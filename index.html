@@ -550,6 +550,33 @@ async function renderOnboarding(){
   };
 }
 
+
+window.__showDeleteConfirm = function({ title, message, onConfirm }) {
+  const old = document.getElementById('deleteConfirmOverlay');
+  if(old) old.remove();
+
+  const html = `
+  <div class="overlay show" id="deleteConfirmOverlay" style="z-index:999;background:rgba(0,0,0,0.75);">
+    <div class="modal" style="max-width:340px;background:#181B20;border:1px solid rgba(255,255,255,0.12);border-radius:16px;padding:24px 20px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,0.6);margin:auto;">
+      <div style="width:48px;height:48px;border-radius:50%;background:rgba(229,62,62,0.18);color:#E53E3E;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:1.3rem;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+      </div>
+      <h3 style="margin:0 0 8px;font-size:1.15rem;font-weight:700;color:#FFFFFF;font-family:'Space Grotesk',sans-serif;">${title || 'Delete this entry?'}</h3>
+      <p style="margin:0 0 20px;font-size:0.85rem;color:#A0AEC0;line-height:1.4;font-family:'Inter',sans-serif;">${message || "This removes it for everyone on this business. It can't be undone."}</p>
+      <div style="display:flex;gap:10px;">
+        <button class="stamp-btn ghost" style="flex:1;border-color:rgba(255,255,255,0.2);color:#E2E8F0;background:rgba(255,255,255,0.05);padding:10px 0;" onclick="document.getElementById('deleteConfirmOverlay').remove()">Cancel</button>
+        <button class="stamp-btn" style="flex:1;background:#E53E3E;color:#FFFFFF;border:none;padding:10px 0;" id="deleteConfirmBtn">Delete</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+  document.getElementById('deleteConfirmBtn').onclick = () => {
+    document.getElementById('deleteConfirmOverlay').remove();
+    if(typeof onConfirm === 'function') onConfirm();
+  };
+};
+
+
 function logout(){ localStorage.removeItem('br_session'); session=null; renderLogin(); }
 
 /* ---------------- PRESET ACCOUNTS SEEDER ---------------- */
@@ -990,7 +1017,8 @@ function currentTabs(){
     : ['tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points'];
 }
 function quickTabs(){
-  return isManagerPlus() ? ['dashboard','tasks','attendance','sales'] : ['tasks','attendance','sales','points'];
+  if(session.role === 'salesman') return ['tasks','attendance','sales','points'];
+  return isManagerPlus() ? ['dashboard','tasks','sales','accounts'] : ['tasks','attendance','sales','points'];
 }
 function getPrimaryActionBtn(t){
   if(t==='tasks') return `<button class="stamp-btn desktop-only" onclick="window.__openTask()">+ Add Task</button>`;
@@ -1080,7 +1108,32 @@ function renderShell(){
         <div class="avatar-circle" style="width:44px;height:44px;">${initials(session.name)}</div>
         <div><div style="font-weight:700;">${esc(session.name)}</div><span class="role-pill ${session.role}">${session.role}</span></div>
       </div>
-      ${tabs.map(t=>`<div class="drawer-item ${activeTab===t?'active':''}" onclick="window.__setTab('${t}')"><span class="ic">${icon(TAB_META[t].icon,20)}</span>${TAB_META[t].label}</div>`).join('')}
+      <!-- Regrouped 5 Labeled Sections -->
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        ${[
+          { section: 'Overview', keys: ['dashboard','ai','reports'] },
+          { section: 'Work', keys: ['tasks','daily','weekly','attendance'] },
+          { section: 'Sales', keys: ['sales','salesman','label','package'] },
+          { section: 'Money', keys: ['accounts','salary','points'] },
+          { section: 'Admin', keys: ['staff','stockkeeper','settings'] }
+        ].map(grp => {
+          const validKeys = grp.keys.filter(k => tabs.includes(k));
+          if(!validKeys.length) return '';
+          return `
+            <div>
+              <div style="font-size:11px;color:var(--ink-soft);margin:0 0 6px 4px;font-family:'IBM Plex Mono',monospace;letter-spacing:0.04em;text-transform:uppercase;">${grp.section}</div>
+              <div style="display:flex;flex-direction:column;gap:2px;">
+                ${validKeys.map(k => `
+                  <div class="drawer-item ${activeTab===k?'active':''}" onclick="window.__setTab('${k}')">
+                    <span class="ic">${icon(TAB_META[k].icon,18)}</span>
+                    <span style="font-size:13px;">${TAB_META[k].label}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
       <div style="border-top:1px solid var(--paper-line);margin:12px 0;"></div>
       <div class="drawer-item" onclick="window.__triggerPwaInstall()"><span class="ic">${icon('save',18)}</span>Install App</div>
       <div class="drawer-item" onclick="window.__openAccount()"><span class="ic">${icon('user',18)}</span>My Account</div>
@@ -3435,52 +3488,61 @@ function renderAiInsightsTab(body){
   healthScore = Math.min(100, healthScore);
 
   body.innerHTML = `
-    <!-- AI Health Score Banner -->
-    <div class="row-card" style="flex-direction:column;align-items:stretch;background:linear-gradient(135deg, #0F766E 0%, #115E59 100%);color:#fff;border:none;margin-bottom:16px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span class="ic">${icon('sparkles',22)}</span>
-            <h2 style="margin:0;color:#fff;font-size:1.25rem;">AI Business Health Report</h2>
+    <!-- Business Health Score Ring Card (Clean UI) -->
+    <div class="row-card" style="flex-direction:column;align-items:stretch;background:#181B20;color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+      <div style="font-size:0.85rem;font-weight:600;color:#A0AEC0;margin-bottom:14px;font-family:'Space Grotesk',sans-serif;">Business health score</div>
+
+      <div style="display:flex;align-items:center;gap:18px;margin-bottom:20px;flex-wrap:wrap;">
+        <!-- SVG Gauge Ring -->
+        <div style="position:relative;width:96px;height:96px;flex-shrink:0;">
+          <svg width="96" height="96" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="8"/>
+            <circle cx="50" cy="50" r="40" fill="none" stroke="${healthScore >= 80 ? '#68D391' : healthScore >= 60 ? '#ECC94B' : '#F56565'}" stroke-width="8" stroke-linecap="round" stroke-dasharray="251.2" stroke-dashoffset="${251.2 - (251.2 * healthScore / 100)}" transform="rotate(-90 50 50)"/>
+          </svg>
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:1.45rem;font-weight:700;color:#FFFFFF;line-height:1;">${healthScore}</div>
+            <div style="font-size:0.65rem;color:#A0AEC0;margin-top:2px;">/ 100</div>
           </div>
-          <div style="font-size:0.8rem;color:rgba(255,255,255,0.8);margin-top:2px;">Real-time Business Intelligence & Growth Analytics</div>
         </div>
-        <div style="text-align:right;">
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:1.8rem;font-weight:700;color:#5EEAD4;">${healthScore} <span style="font-size:0.8rem;">/ 100</span></div>
-          <span class="stamp" style="background:rgba(255,255,255,0.15);color:#fff;border-color:currentColor;font-size:0.65rem;">${healthScore >= 85 ? '🌟 Excellent' : '⚡ Good Growth'}</span>
+
+        <div style="flex:1;min-width:180px;">
+          <h3 style="margin:0 0 4px;font-size:1.2rem;font-weight:700;color:#FFFFFF;font-family:'Space Grotesk',sans-serif;">
+            ${healthScore >= 85 ? 'Good growth' : healthScore >= 70 ? 'High stability' : 'Needs attention'}
+          </h3>
+          <p style="margin:0;font-size:0.82rem;color:#A0AEC0;line-height:1.4;font-family:'Inter',sans-serif;">
+            Based on task completion, attendance and pending credit.
+          </p>
         </div>
       </div>
 
-      <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.15);font-size:0.85rem;line-height:1.5;">
-        <b>AI Executive Summary:</b> Your business is operating with a <b>${taskVelocityPct}% task completion rate</b> and <b>${attPct}% team attendance regularity</b>. Current daily sales average <b>₹${avgDailySales.toFixed(0)}/day</b>, projecting an estimated month-end revenue of <b>₹${projectedMonthSales.toFixed(0)}</b>.
-      </div>
-    </div>
+      <!-- 3 Honest Metric Bars (No Emojis) -->
+      <div style="display:flex;flex-direction:column;gap:10px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.08);">
+        <!-- Tasks Done -->
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <span style="font-size:0.82rem;color:#CBD5E0;min-width:110px;">Tasks done</span>
+          <div style="flex:1;background:rgba(255,255,255,0.1);height:7px;border-radius:999px;overflow:hidden;">
+            <div style="background:#68D391;height:100%;width:${taskVelocityPct}%;border-radius:999px;"></div>
+          </div>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:0.85rem;font-weight:700;color:#FFFFFF;min-width:40px;text-align:right;">${taskVelocityPct}%</span>
+        </div>
 
-    <!-- AI Intelligence Grid -->
-    <div class="section-label">AI Key Intelligence Highlights</div>
-    <div class="cards-grid" style="margin-bottom:16px;">
-      <div class="stat-card" style="border-left:4px solid var(--turmeric);">
-        <div class="num" style="font-size:1.15rem;color:var(--turmeric-dark);">₹${monthSalesTotal.toFixed(0)}</div>
-        <div class="label">Month Sales Total</div>
-        <div style="font-size:0.72rem;color:var(--ink-soft);margin-top:4px;">Projected: <b>₹${projectedMonthSales.toFixed(0)}</b></div>
-      </div>
+        <!-- Attendance -->
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <span style="font-size:0.82rem;color:#CBD5E0;min-width:110px;">Attendance</span>
+          <div style="flex:1;background:rgba(255,255,255,0.1);height:7px;border-radius:999px;overflow:hidden;">
+            <div style="background:#68D391;height:100%;width:${attPct}%;border-radius:999px;"></div>
+          </div>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:0.85rem;font-weight:700;color:#FFFFFF;min-width:40px;text-align:right;">${attPct}%</span>
+        </div>
 
-      <div class="stat-card" style="border-left:4px solid var(--leaf);">
-        <div class="num" style="font-size:1.15rem;color:var(--leaf);">${taskVelocityPct}%</div>
-        <div class="label">Task Velocity</div>
-        <div style="font-size:0.72rem;color:var(--ink-soft);margin-top:4px;">Overdue tasks: <b style="color:${overdueTasksCount?'var(--brick)':'var(--leaf)'}">${overdueTasksCount}</b></div>
-      </div>
-
-      <div class="stat-card" style="border-left:4px solid var(--purple);">
-        <div class="num" style="font-size:1.15rem;color:var(--purple);">${esc(topStaffName)}</div>
-        <div class="label">Top Performer</div>
-        <div style="font-size:0.72rem;color:var(--ink-soft);margin-top:4px;">Highest Points & Incentives</div>
-      </div>
-
-      <div class="stat-card" style="border-left:4px solid var(--brick);">
-        <div class="num" style="font-size:1.15rem;color:${totalPendingCredit > 0 ? 'var(--brick)' : 'var(--leaf)'};">₹${Math.max(0, totalPendingCredit).toFixed(0)}</div>
-        <div class="label">Pending Customer Credit</div>
-        <div style="font-size:0.72rem;color:var(--ink-soft);margin-top:4px;">Outstanding credit to collect</div>
+        <!-- Credit Pending -->
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <span style="font-size:0.82rem;color:#CBD5E0;min-width:110px;">Credit pending</span>
+          <div style="flex:1;background:rgba(255,255,255,0.1);height:7px;border-radius:999px;overflow:hidden;">
+            <div style="background:#DD6B20;height:100%;width:${Math.min(100, Math.round((totalPendingCredit/20000)*100))}%;border-radius:999px;"></div>
+          </div>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:0.85rem;font-weight:700;color:#DD6B20;min-width:45px;text-align:right;">₹${totalPendingCredit >= 1000 ? (totalPendingCredit/1000).toFixed(1)+'k' : totalPendingCredit.toFixed(0)}</span>
+        </div>
       </div>
     </div>
 
