@@ -1359,14 +1359,14 @@ function buildAccountsSalesReportHtml(){
   const totalSalesPeriod = buckets.reduce((s,b) => s + b.total, 0);
   const avgSalesPeriod = buckets.length ? totalSalesPeriod / buckets.length : 0;
 
-  // Build SVG Spline Line Graph
+  // Compact SVG Spline Line Graph Dimensions
   const width = 640;
-  const height = 180;
-  const padding = 28;
+  const height = 150;
+  const padding = 24;
 
   const points = buckets.map((b, i) => {
     const x = padding + (i / Math.max(1, buckets.length - 1)) * (width - padding * 2);
-    const y = height - padding - (b.total / maxSales) * (height - padding * 2);
+    const y = height - padding - (b.total / maxSales) * (height - padding * 2.2);
     return { x, y, val: b.total, label: b.label };
   });
 
@@ -1380,14 +1380,14 @@ function buildAccountsSalesReportHtml(){
       const cx = (prev.x + curr.x) / 2;
       pathD += ` C ${cx} ${prev.y}, ${cx} ${curr.y}, ${curr.x} ${curr.y}`;
     }
-    areaD = pathD + ` L ${points[points.length - 1].x} ${height - padding} L ${points[0].x} ${height - padding} Z`;
+    areaD = pathD + ` L ${points[points.length - 1].x} ${height - 18} L ${points[0].x} ${height - 18} Z`;
   }
 
   return `
-    <div class="section-label" style="margin-top:24px;">Accounts Total Sales Report</div>
-    <div class="row-card" style="flex-direction:column;align-items:stretch;border:1.5px solid var(--turmeric-dark);">
+    <div class="section-label" style="margin-top:20px;">Accounts Total Sales Report</div>
+    <div class="row-card" style="flex-direction:column;align-items:stretch;border:1.5px solid var(--turmeric-dark);padding:14px;margin-bottom:14px;">
       <!-- Card Header -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
         <div>
           <h3 style="margin:0;font-size:1.05rem;color:var(--turmeric-dark);">Daily Accounts Sales Summary</h3>
           <div style="font-size:0.75rem;color:var(--ink-soft);">Financial register tally metrics & trend graph</div>
@@ -1402,9 +1402,9 @@ function buildAccountsSalesReportHtml(){
         </div>
       </div>
 
-      <!-- SVG Line & Spline Graph -->
-      <div style="position:relative;width:100%;overflow-x:auto;margin-bottom:14px;background:var(--paper);padding:10px;border-radius:8px;">
-        <svg viewBox="0 0 ${width} ${height}" style="width:100%;height:auto;min-width:320px;overflow:visible;">
+      <!-- SVG Line Graph Container (Tight Max-Height & No Whitespace) -->
+      <div style="position:relative;width:100%;overflow-x:auto;margin-bottom:10px;background:var(--paper);padding:8px;border-radius:8px;max-height:170px;display:flex;align-items:center;justify-content:center;">
+        <svg viewBox="0 0 ${width} ${height}" style="width:100%;max-height:150px;min-width:320px;overflow:visible;">
           <defs>
             <linearGradient id="dashAccGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stop-color="var(--turmeric)" stop-opacity="0.35"/>
@@ -1414,7 +1414,7 @@ function buildAccountsSalesReportHtml(){
 
           <line x1="${padding}" y1="${padding}" x2="${width-padding}" y2="${padding}" stroke="var(--paper-line)" stroke-dasharray="3,3"/>
           <line x1="${padding}" y1="${height/2}" x2="${width-padding}" y2="${height/2}" stroke="var(--paper-line)" stroke-dasharray="3,3"/>
-          <line x1="${padding}" y1="${height-padding}" x2="${width-padding}" y2="${height-padding}" stroke="var(--paper-line)"/>
+          <line x1="${padding}" y1="${height-18}" x2="${width-padding}" y2="${height-18}" stroke="var(--paper-line)"/>
 
           ${areaD ? `<path d="${areaD}" fill="url(#dashAccGrad)"/>` : ''}
           ${pathD ? `<path d="${pathD}" fill="none" stroke="var(--turmeric-dark)" stroke-width="3" stroke-linecap="round"/>` : ''}
@@ -1422,10 +1422,10 @@ function buildAccountsSalesReportHtml(){
           ${points.map(p => `
             <g>
               <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="var(--paper)" stroke="var(--turmeric-dark)" stroke-width="2.5"/>
-              <text x="${p.x}" y="${p.y - 10}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink)" font-family="'IBM Plex Mono',monospace">
+              <text x="${p.x}" y="${p.y - 8}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink)" font-family="'IBM Plex Mono',monospace">
                 ${p.val > 0 ? '₹' + (p.val >= 1000 ? Math.round(p.val/1000)+'k' : Math.round(p.val)) : ''}
               </text>
-              <text x="${p.x}" y="${height - 8}" text-anchor="middle" font-size="10" font-weight="600" fill="var(--ink-soft)">
+              <text x="${p.x}" y="${height - 4}" text-anchor="middle" font-size="10" font-weight="600" fill="var(--ink-soft)">
                 ${p.label}
               </text>
             </g>
@@ -1434,28 +1434,27 @@ function buildAccountsSalesReportHtml(){
       </div>
 
       <!-- KPI Metrics Row -->
-      <div class="cards-grid" style="grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;">
-        <div style="background:var(--paper);padding:10px;border-radius:8px;text-align:center;">
-          <div style="font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">Period Sales</div>
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:1.15rem;font-weight:700;color:var(--leaf);margin-top:2px;">₹${totalSalesPeriod.toFixed(0)}</div>
+      <div class="cards-grid" style="grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:8px;margin-bottom:0;">
+        <div style="background:var(--paper);padding:8px 10px;border-radius:8px;text-align:center;">
+          <div style="font-size:0.68rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">Period Sales</div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--leaf);margin-top:2px;">₹${totalSalesPeriod.toFixed(0)}</div>
         </div>
-        <div style="background:var(--paper);padding:10px;border-radius:8px;text-align:center;">
-          <div style="font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">Period Average</div>
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:1.15rem;font-weight:700;color:var(--turmeric-dark);margin-top:2px;">₹${avgSalesPeriod.toFixed(0)}</div>
+        <div style="background:var(--paper);padding:8px 10px;border-radius:8px;text-align:center;">
+          <div style="font-size:0.68rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">Period Average</div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--turmeric-dark);margin-top:2px;">₹${avgSalesPeriod.toFixed(0)}</div>
         </div>
-        <div style="background:var(--paper);padding:10px;border-radius:8px;text-align:center;">
-          <div style="font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">Peak Sales</div>
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:1.15rem;font-weight:700;color:var(--purple);margin-top:2px;">₹${maxSales.toFixed(0)}</div>
+        <div style="background:var(--paper);padding:8px 10px;border-radius:8px;text-align:center;">
+          <div style="font-size:0.68rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">Peak Sales</div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--purple);margin-top:2px;">₹${maxSales.toFixed(0)}</div>
         </div>
-        <div style="background:var(--paper);padding:10px;border-radius:8px;text-align:center;">
-          <div style="font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">Tally Count</div>
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:1.15rem;font-weight:700;color:var(--ink);margin-top:2px;">${cache.dailyAccounts.length} Days</div>
+        <div style="background:var(--paper);padding:8px 10px;border-radius:8px;text-align:center;">
+          <div style="font-size:0.68rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">Tally Count</div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--ink);margin-top:2px;">${cache.dailyAccounts.length} Days</div>
         </div>
       </div>
     </div>
   `;
 }
-
 
 /* ---------------- TASKS ---------------- */
 function fmtDue(t){
