@@ -670,6 +670,10 @@ async function loadData(){
       const localSaved = localStorage.getItem('br_daily_accounts_' + bizId);
       cache.dailyAccounts = localSaved ? JSON.parse(localSaved) : (cache.dailyAccounts || []);
     }
+    const cSet = getAccCheckedSet();
+    cache.dailyAccounts.forEach(a => {
+      if(cSet.has(a.date) || (a.id && cSet.has(a.id))) a.is_checked = true;
+    });
     await ensurePresetAccountsSeeded(bizId);
     localStorage.setItem('br_daily_accounts_' + bizId, JSON.stringify(cache.dailyAccounts));
 
@@ -4014,7 +4018,7 @@ function renderAccHistoryRows(records){
           
           <!-- Small Check / Tick Button (100% Persisted & Working) -->
           <div style="display:flex;align-items:center;gap:8px;">
-            <button class="stamp-btn small ${isChecked ? '' : 'ghost'}" style="${isChecked ? 'background:var(--leaf);color:#fff;border-color:var(--leaf);' : ''}" onclick="event.stopPropagation();window.__toggleAccChecked('${rec.id||rec.date}', ${!isChecked})">
+            <button class="stamp-btn small ${isChecked ? '' : 'ghost'}" style="${isChecked ? 'background:var(--leaf);color:#fff;border-color:var(--leaf);' : ''}" onclick="event.stopPropagation();window.__toggleAccChecked('${rec.date}', ${!isChecked})">
               ${isChecked ? '✓ Checked' : '☐ Check'}
             </button>
             <span class="stamp ${rec.excess > 0 ? 'present' : rec.less > 0 ? 'absent' : 'done'}">
@@ -4047,16 +4051,23 @@ function renderAccHistoryRows(records){
   }).join('');
 }
 
-window.__toggleAccChecked = async function(id, isChecked) {
+window.__toggleAccChecked = async function(recDate, isChecked) {
   const checkedSet = getAccCheckedSet();
-  if(isChecked) checkedSet.add(id); else checkedSet.delete(id);
+  if(isChecked) checkedSet.add(recDate); else checkedSet.delete(recDate);
   saveAccCheckedSet(checkedSet);
 
-  const rec = cache.dailyAccounts.find(a => a.id === id || a.date === id);
+  const rec = cache.dailyAccounts.find(a => a.date === recDate || a.id === recDate);
   if(rec) rec.is_checked = isChecked;
 
+  // Persist into daily accounts cache as well
+  localStorage.setItem('br_daily_accounts_' + session.businessId, JSON.stringify(cache.dailyAccounts));
+
   try {
-    await supabase.from('daily_accounts').update({ is_checked: isChecked }).eq('id', id);
+    if(rec && rec.id && !rec.id.startsWith('loc_')){
+      await supabase.from('daily_accounts').update({ is_checked: isChecked }).eq('id', rec.id);
+    } else {
+      await supabase.from('daily_accounts').update({ is_checked: isChecked }).eq('business_id', session.businessId).eq('date', recDate);
+    }
   } catch(e){}
 
   renderTabBody();
