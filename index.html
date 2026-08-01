@@ -1429,7 +1429,7 @@ function renderDashboardTab(body){
   const packagesToday = cache.packages.filter(p=>p.date===today).reduce((s,p)=>s+Number(p.qty||0),0);
 
   body.innerHTML = `
-    ${mapHtml}
+    
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
       <div style="font-weight:700;font-size:1.1rem;">Dashboard Overview</div>
       ${isManagerPlus() ? `<button class="stamp-btn small" style="background:var(--leaf);color:#fff;border-color:var(--leaf);" onclick="window.__sendSmsDailySummary()">${icon('bell',15)} SMS Summary</button>` : ''}
@@ -1979,7 +1979,7 @@ function renderTasksTab(body){
   ` : '';
 
   body.innerHTML = `
-    ${mapHtml}
+    
     ${quickBar}
     ${filterBar}
     <div class="section-label">Open tasks ${isManagerPlus()?`<a onclick="window.__sendAllPending()">Send all pending &rarr;</a>`:''}</div>
@@ -2140,7 +2140,7 @@ function renderDailyTab(body){
   const doneList = list.filter(r=>{ const l=cache.routineLog.find(x=>x.routine_id===r.id); return l && l.status==='done'; });
 
   body.innerHTML = `
-    ${mapHtml}
+    
     <div class="section-label"><span>Everyday schedule — ${today}</span><span style="color:var(--ink-soft);font-weight:600;">${doneList.length}/${list.length} done</span></div>
     ${pending.length ? pending.map(row).join('') : (list.length ? '' : `<div class="empty">No everyday tasks set up yet.${isManagerPlus()?' Tap + to add one — it repeats automatically every day.':''}</div>`)}
     ${doneList.length ? `<div class="section-label">Done today <span style="color:var(--ink-soft);font-weight:600;">tap to expand</span></div>${doneList.map(doneWrap).join('')}` : ''}
@@ -2269,7 +2269,7 @@ function renderWeeklyTab(body){
   const doneList = list.filter(w=>{ const l=cache.weeklyTaskLog.find(x=>x.weekly_task_id===w.id); return l && l.status==='done'; });
 
   body.innerHTML = `
-    ${mapHtml}
+    
     <div class="section-label"><span>This week — ${weekStartDisp} to ${weekEndDisp}</span><span style="color:var(--ink-soft);font-weight:600;">${doneList.length}/${list.length} done</span></div>
     ${pending.length ? pending.map(row).join('') : (list.length ? '' : `<div class="empty">No weekly tasks set up yet.${isManagerPlus()?' Tap + to add one — it repeats automatically every week, resetting each Monday.':''}</div>`)}
     ${doneList.length ? `<div class="section-label">Done this week <span style="color:var(--ink-soft);font-weight:600;">tap to expand</span></div>${doneList.map(doneWrap).join('')}` : ''}
@@ -2461,7 +2461,7 @@ function renderAttendanceTab(body){
   const today = todayStr();
   const curMonth = monthKey(today);
   if(!cache.staff.length){ body.innerHTML = `
-    ${mapHtml}<div class="empty">No staff added yet.</div>`; return; }
+    <div class="empty">No staff added yet.</div>`; return; }
 
   const myToday = cache.attendance.find(a=>a.staff_id===session.staffId && a.date===today);
   const myStreak = computePresenceStreak(session.staffId);
@@ -2541,7 +2541,7 @@ function renderAttendanceTab(body){
   if(isManagerPlus()){
     const monthAtt = cache.attendance.filter(a=>monthKey(a.date)===curMonth);
     body.innerHTML = `
-    ${mapHtml}
+    
       ${selfSection}
       <div class="section-label">Team — Today</div>
       ${cache.staff.map(s=>{
@@ -2579,7 +2579,7 @@ function renderAttendanceTab(body){
     `;
   } else {
     body.innerHTML = `
-    ${mapHtml}
+    
       ${selfSection}
       <div class="section-label">Your recent history</div>
       ${cache.attendance.filter(a=>a.staff_id===session.staffId && a.date!==today && a.status).slice(0,20).map(a=>`
@@ -2651,7 +2651,7 @@ function renderSalesTab(body){
   const reportSection = isManagerPlus() ? buildSalesReportHtml() + buildTargetsHtml() : '';
 
   body.innerHTML = `
-    ${mapHtml}
+    
     ${reportSection}
     <div class="section-label">Orders, day by day</div>
     ${dates.length ? dates.map(d=>{
@@ -2901,7 +2901,7 @@ function renderLabelTab(body){
   list.forEach(l=>{ (byDate[l.date] = byDate[l.date]||[]).push(l); });
   const dates = Object.keys(byDate).sort((a,b)=>b.localeCompare(a));
   body.innerHTML = `
-    ${mapHtml}
+    
     ${isManagerPlus() ? buildQtyGraphHtml(cache.labels, labelReportMode, '__setLabelReportMode', 'qty') : ''}
     <div class="section-label">Labelling log, day by day</div>
     ${dates.length ? dates.map(d=>{
@@ -3043,7 +3043,7 @@ function renderPackageTab(body){
   list.forEach(l=>{ (byDate[l.date] = byDate[l.date]||[]).push(l); });
   const dates = Object.keys(byDate).sort((a,b)=>b.localeCompare(a));
   body.innerHTML = `
-    ${mapHtml}
+    
     ${isManagerPlus() ? buildQtyGraphHtml(cache.packages, packageReportMode, '__setPackageReportMode', 'qty') : ''}
     <div class="section-label">Packaging log, day by day</div>
     ${dates.length ? dates.map(d=>{
@@ -3631,7 +3631,7 @@ function renderAiInsightsTab(body){
   healthScore = Math.min(100, healthScore);
 
   body.innerHTML = `
-    ${mapHtml}
+    
     <!-- Business Health Score Ring Card (Clean UI) -->
     <div class="row-card" style="flex-direction:column;align-items:stretch;background:#181B20;color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 10px 30px rgba(0,0,0,0.3);">
       <div style="font-size:0.85rem;font-weight:600;color:#A0AEC0;margin-bottom:14px;font-family:'Space Grotesk',sans-serif;">Business health score</div>
@@ -3892,7 +3892,7 @@ function renderReportsTab(body){
   }).sort((a,b)=>b.total-a.total);
 
   body.innerHTML = `
-    ${mapHtml}
+    
     <div class="row-card" style="align-items:flex-end;">
       <div style="flex:1;"><label style="margin-top:0;">From</label><input type="date" id="repFrom" value="${from}"></div>
       <div style="flex:1;"><label style="margin-top:0;">To</label><input type="date" id="repTo" value="${to}"></div>
@@ -4080,7 +4080,7 @@ function renderSalesmanTab(body){
 /* ---------------- STAFF (management tab for owners/managers) ---------------- */
 function renderStaffTab(body){
   body.innerHTML = `
-    ${mapHtml}
+    
     <div class="section-label">Team Members (${cache.staff.length})</div>
     <div class="cards-grid">
       ${cache.staff.map(s => `
@@ -4231,7 +4231,7 @@ function renderAccountsTab(body){
   const existing = cache.dailyAccounts.find(a => a.date === accountsDate);
 
   body.innerHTML = `
-    ${mapHtml}
+    
     <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;">
       <button class="stamp-btn small ${accountsSubTab==='entry'?'':'ghost'}" onclick="window.__setAccSubTab('entry')">📝 Entry</button>
       <button class="stamp-btn small ${accountsSubTab==='history'?'':'ghost'}" onclick="window.__setAccSubTab('history')">📜 History (${cache.dailyAccounts.length})</button>
@@ -5058,7 +5058,7 @@ function payScheduleLabel(s){
 }
 function renderSalaryTab(body){
   body.innerHTML = `
-    ${mapHtml}
+    
     ${buildQtyGraphHtml(cache.salaries, salaryReportMode, '__setSalaryReportMode', '', 'amount', '₹', 'paid_date')}
     <div class="section-label">Payout schedule per staff</div>
     ${cache.staff.map(s=>`
@@ -5197,7 +5197,7 @@ function renderAccountTab(body){
   const doneCount = cache.tasks.filter(t=>t.assigned_to===session.staffId && t.status==='done').length;
 
   body.innerHTML = `
-    ${mapHtml}
+    
     <div class="row-card" style="flex-direction:column;align-items:center;text-align:center;padding:26px 16px;">
       <div class="avatar-circle ${rankClass(myRank)}" style="width:76px;height:76px;font-size:1.8rem;margin-bottom:10px;">${initials(s.name)}</div>
       <h2 style="margin:0 0 4px;font-family:'Space Grotesk',sans-serif;">${esc(s.name)}</h2>
@@ -5238,7 +5238,7 @@ function renderAccountTab(body){
 /* ---------------- SETTINGS (owner only) ---------------- */
 function renderSettingsTab(body){
   body.innerHTML = `
-    ${mapHtml}
+    
     <div class="section-label">Business name</div>
     <div class="row-card" style="flex-direction:column;align-items:stretch;">
       <label style="margin-top:0;">Name</label>
