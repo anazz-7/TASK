@@ -1059,6 +1059,7 @@ function renderShell(){
           <p class="desktop-only" style="margin-top:2px;font-size:0.8rem;color:var(--ink-soft);">${esc(session.businessName)} &bull; Signed in as ${esc(session.name)} (${session.role})</p>
         </div>
         <div class="header-actions">
+          ${isManagerPlus() ? `<button class="stamp-btn small" style="background:var(--turmeric-dark);color:#fff;border-color:var(--turmeric-dark);padding:6px 10px;font-size:0.75rem;" onclick="window.__openQuickTaskModal()">⚡ Quick Add</button>` : ''}
           <button class="stamp-btn small ghost" style="padding:6px 10px;font-size:0.75rem;" onclick="window.__triggerPwaInstall()">${icon('save',15)} Install App</button>
           ${getPrimaryActionBtn(activeTab)}
           <button class="avatar-circle mobile-only" style="width:36px;height:36px;font-size:0.75rem;border:none;cursor:pointer;" onclick="window.__openAccount()">${initials(session.name)}</button>
@@ -1777,7 +1778,21 @@ function renderTasksTab(body){
       <label>Search title</label>
       <input id="filterSearch" placeholder="Type to search..." value="${esc(taskFilter.search)}" oninput="window.__setTaskFilter()">
     </div>` : '';
+  const quickBar = isManagerPlus() ? `
+    <div class="row-card" style="flex-direction:column;align-items:stretch;background:var(--paper);border:1.5px solid var(--turmeric-dark);margin-bottom:14px;padding:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-weight:700;font-size:0.85rem;color:var(--turmeric-dark);">⚡ Quick Add Task via Natural Text</span>
+        <span style="font-size:0.7rem;color:var(--ink-soft);">Try: "Clean store tomorrow @Anas !high"</span>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <input id="quickTaskInput" placeholder="Type task title, @Staff, !priority, due date..." onkeypress="if(event.key==='Enter') window.__quickAddNaturalTask()" style="flex:1;font-size:0.88rem;">
+        <button class="stamp-btn" style="padding:8px 14px;font-size:0.85rem;" onclick="window.__quickAddNaturalTask()">+ Add</button>
+      </div>
+    </div>
+  ` : '';
+
   body.innerHTML = `
+    ${quickBar}
     ${filterBar}
     <div class="section-label">Open tasks ${isManagerPlus()?`<a onclick="window.__sendAllPending()">Send all pending &rarr;</a>`:''}</div>
     ${pending.length ? pending.map(row).join('') : `<div class="empty">No open tasks.</div>`}
