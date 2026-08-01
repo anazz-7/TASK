@@ -1608,6 +1608,71 @@ function getNextDayOfWeekStr(targetDay) {
   return localDateStr(d);
 }
 
+
+window.__openQuickTaskModal = function() {
+  document.getElementById('tabBody').insertAdjacentHTML('beforeend', '<div id="quickModalHolder"></div>');
+  const holder = document.getElementById('quickModalHolder');
+  holder.innerHTML = `
+  <div class="overlay show"><div class="modal">
+    <h2>⚡ Quick Create Task (Natural Text)</h2>
+    <p style="font-size:0.8rem;color:var(--ink-soft);margin-bottom:12px;">Type naturally with <b>@StaffName</b>, <b>!high/!low</b>, and <b>tomorrow/friday/today</b>.</p>
+    <label>Task Input Command</label>
+    <input id="quickModalInput" placeholder="e.g. Clean warehouse tomorrow @Anas !high" style="font-size:0.95rem;padding:12px;margin-bottom:14px;" onkeypress="if(event.key==='Enter') window.__submitQuickModal()">
+    <div style="background:var(--amber-soft);padding:10px;border-radius:8px;border:1px solid var(--turmeric);font-size:0.75rem;color:var(--turmeric-dark);margin-bottom:14px;">
+      💡 <b>Examples:</b><br>
+      • "Send invoice Friday @Ramesh"<br>
+      • "Check stock balance today !urgent @Anas"
+    </div>
+    <div class="modal-actions">
+      <button class="stamp-btn ghost" onclick="document.getElementById('quickModalHolder').remove()">Cancel</button>
+      <button class="stamp-btn" onclick="window.__submitQuickModal()">⚡ Create Task</button>
+    </div>
+  </div></div>`;
+  setTimeout(()=> { const el = document.getElementById('quickModalInput'); if(el) el.focus(); }, 100);
+};
+
+window.__submitQuickModal = async function() {
+  const inputEl = document.getElementById('quickModalInput');
+  if(!inputEl) return;
+  const val = inputEl.value.trim();
+  if(!val) return;
+  const parsed = parseNaturalTaskText(val);
+  if(!parsed || !parsed.title) return;
+
+  showLoading();
+  try {
+    const payload = {
+      business_id: session.businessId,
+      assigned_to: parsed.assignedTo,
+      created_by: session.staffId,
+      title: parsed.title,
+      priority: parsed.priority,
+      due_date: parsed.dueDate,
+      status: 'pending'
+    };
+    const { data, error } = await supabase.from('tasks').insert(payload).select().single();
+    if(error) throw error;
+    if(data) cache.tasks.unshift(data);
+
+    const holder = document.getElementById('quickModalHolder');
+    if(holder) holder.remove();
+
+    const banner = document.createElement('div');
+    banner.className = 'celebrate-banner';
+    banner.textContent = '⚡ Task Created Instantly!';
+    document.body.appendChild(banner);
+    setTimeout(()=>banner.remove(), 1500);
+
+    await loadData();
+    renderTabBody();
+  } catch(e){
+    alert('Could not save quick task: ' + (e.message||e));
+  } finally {
+    hideLoading();
+  }
+};
+
+
 window.__quickAddNaturalTask = async function() {
   const inputEl = document.getElementById('quickTaskInput');
   if(!inputEl) return;
