@@ -4763,7 +4763,7 @@ function renderAccEntryHtml(existing){
 
       <!-- 11 Numeric Fields -->
       <div style="display:flex;flex-direction:column;gap:10px;">
-        ${ACC_FIELDS.map(field => `
+        ${ACC_FIELDS.filter(field => isOwner() || field.key !== 'total_sales').map(field => `
           <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--paper-line);">
             <div>
               <div style="font-size:0.88rem;font-weight:600;color:var(--ink);">${field.label}</div>
@@ -4826,7 +4826,9 @@ function updateAccLiveSummary(){
   const data = {};
   ACC_FIELDS.forEach(field => {
     const el = document.getElementById(`accField_${field.key}`);
-    data[field.key] = el ? Number(el.value || 0) : 0;
+    if(el) data[field.key] = Number(el.value || 0);
+    else if(existing && existing[field.key] != null) data[field.key] = Number(existing[field.key]);
+    else data[field.key] = 0;
   });
   const totals = calcAccTotals(data);
   const eTotal = document.getElementById('accSumTotal');
@@ -4866,7 +4868,9 @@ window.__saveAccEntry = async function() {
   };
   ACC_FIELDS.forEach(field => {
     const el = document.getElementById(`accField_${field.key}`);
-    data[field.key] = el ? Number(el.value || 0) : 0;
+    if(el) data[field.key] = Number(el.value || 0);
+    else if(existing && existing[field.key] != null) data[field.key] = Number(existing[field.key]);
+    else data[field.key] = 0;
   });
 
   const totals = calcAccTotals(data);
