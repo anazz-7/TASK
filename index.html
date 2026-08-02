@@ -4834,12 +4834,10 @@ window.__toggleOwnerManualUnlock = async function(date) {
 };
 
 
-function renderAccountsTab(body){
-  const existing = cache.dailyAccounts.find(a => a.date === accountsDate);
-  if(!isOwner()) accountsSubTab = 'entry';
-  const pendingReqs = isOwner() ? getPendingEditRequests() : [];
 
-  const pendingBanner = (isOwner() && pendingReqs.length > 0) ? `
+function renderPendingBannerHtml(pendingReqs) {
+  if (!pendingReqs || !pendingReqs.length) return '';
+  return `
     <div style="background:var(--amber-soft);border:1.5px solid var(--turmeric);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
       <div style="font-weight:700;font-size:0.92rem;color:var(--turmeric-dark);margin-bottom:8px;">
         📩 Pending Past Date Edit Requests (${pendingReqs.length})
@@ -4858,10 +4856,29 @@ function renderAccountsTab(body){
           </div>
         `).join('')}
       </div>
-    </div>` : '';
+    </div>`;
+}
+
+
+function renderAccountsTab(body){
+  const existing = cache.dailyAccounts.find(a => a.date === accountsDate);
+  if(!isOwner()) accountsSubTab = 'entry';
+  const pendingReqs = isOwner() ? getPendingEditRequests() : [];
+
+  // Realtime background check for Owner to catch remote staff requests instantly
+  if(isOwner() && typeof supabase !== 'undefined' && session && session.businessId){
+    supabase.from('tasks').select('*').eq('business_id', session.businessId).then(r => {
+      if(r && r.data){
+        cache.tasks = r.data;
+        const newPending = getPendingEditRequests();
+        const holder = document.getElementById('accPendingBannerHolder');
+        if(holder) holder.innerHTML = renderPendingBannerHtml(newPending);
+      }
+    }).catch(()=>{});
+  }
 
   body.innerHTML = `
-    ${pendingBanner}
+    <div id="accPendingBannerHolder">${renderPendingBannerHtml(pendingReqs)}</div>
     ${isOwner() ? `
     <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;">
       <button class="stamp-btn small ${accountsSubTab==='entry'?'':'ghost'}" onclick="window.__setAccSubTab('entry')">📝 Entry</button>
@@ -4991,6 +5008,18 @@ function renderAccEntryHtml(existing){
 }
 
 function setupAccEntryEvents(){
+  // Realtime check for Staff to catch Owner approval instantly
+  if(!isOwner() && accountsDate < todayStr() && typeof supabase !== 'undefined' && session && session.businessId){
+    supabase.from('tasks').select('*').eq('business_id', session.businessId).eq('title', '[EDIT_REQ] ' + accountsDate).then(r => {
+      if(r && r.data && r.data.some(t => t.status === 'done')){
+        const approved = r.data.find(t => t.status === 'done');
+        const existing = cache.tasks.find(t => t.title === '[EDIT_REQ] ' + accountsDate);
+        if(existing) existing.status = 'done';
+        else cache.tasks.push(approved);
+        renderTabBody();
+      }
+    }).catch(()=>{});
+  }
   const dtInput = document.getElementById('accDateInput');
   if(dtInput){
     dtInput.addEventListener('change', (e) => {
