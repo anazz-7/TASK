@@ -1492,7 +1492,7 @@ const TAB_META = {
 function currentTabs(){
   if(session.role === 'salesman') return ['tasks', 'sales', 'salesman', 'accounts'];
   return isManagerPlus()
-    ? (isOwner() ? ['dashboard','ai','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','salary','accounts','reports','audit','staff','settings'] : ['dashboard','ai','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','staff'])
+    ? (isOwner() ? ['dashboard','ai','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','salary','accounts','reports','audit','staff','settings'] : ['dashboard','ai','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','audit','staff'])
     : ['tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts'];
 }
 function quickTabs(){
@@ -1596,7 +1596,7 @@ function renderShell(){
           { section: 'Work', keys: ['tasks','daily','weekly','attendance'] },
           { section: 'Sales', keys: ['sales','salesman','label','package'] },
           { section: 'Money', keys: ['accounts','salary','points'] },
-          { section: 'Admin', keys: ['staff','stockkeeper','settings'] }
+          { section: 'Admin', keys: ['staff','stockkeeper','audit','settings'] }
         ].map(grp => {
           const validKeys = grp.keys.filter(k => tabs.includes(k));
           if(!validKeys.length) return '';
@@ -4981,7 +4981,7 @@ function renderAccountsTab(body){
       <button class="stamp-btn small ${accountsSubTab==='reports'?'':'ghost'}" onclick="window.__setAccSubTab('reports')">📊 Reports & AI Insights</button>
       <button class="stamp-btn small ${accountsSubTab==='backup'?'':'ghost'}" onclick="window.__setAccSubTab('backup')">💾 Backup & Restore</button>
     </div>` : `
-    <div class="section-label" style="margin-bottom:12px;">Daily Accounts Entry (Data Entry Only)</div>`}
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"><div class="section-label" style="margin:0;">Daily Accounts Entry</div>${isManagerPlus() ? `<button class="stamp-btn small ghost" onclick="window.__setTab('audit')">📜 View Audit Log</button>` : ''}</div>`}
 
     ${accountsSubTab === 'entry' ? renderAccEntryHtml(existing) : ''}
     ${isOwner() && accountsSubTab === 'history' ? renderAccHistoryHtml() : ''}
