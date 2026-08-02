@@ -5888,6 +5888,99 @@ function renderStockkeeperTab(body){
 let salaryReportMode = 'monthly';
 window.__setSalaryReportMode = (m) => { salaryReportMode = m; renderTabBody(); };
 const WEEKDAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+/* ---------------- FEATURE 7: SALARY ADVANCES & DEDUCTIONS ---------------- */
+function getSalaryAdvances() {
+  try {
+    if (cache && cache.salaryAdvances && cache.salaryAdvances.length) return cache.salaryAdvances;
+    return JSON.parse(localStorage.getItem('br_advances_' + session.businessId) || '[]');
+  } catch(e) { return []; }
+}
+
+function saveSalaryAdvanceLocally(adv) {
+  const advances = getSalaryAdvances();
+  advances.unshift(adv);
+  localStorage.setItem('br_advances_' + session.businessId, JSON.stringify(advances));
+  if (cache) cache.salaryAdvances = advances;
+}
+
+window.__openSalaryAdvanceModal = function() {
+  const holder = getModalHolder('salaryModalHolder');
+  holder.innerHTML = `
+  <div class="overlay show"><div class="modal">
+    <h2>💸 Record Salary Advance / Loan</h2>
+    <label>Staff Member</label>
+    <select id="mAdvStaffId">
+      ${cache.staff.map(s => `<option value="${s.id}">${esc(s.name)} (${s.role})</option>`).join('')}
+    </select>
+    <label>Advance Amount (₹)</label>
+    <input type="number" step="0.01" id="mAdvAmount" placeholder="e.g. 2000">
+    <label>Date of Advance</label>
+    <input type="date" id="mAdvDate" value="${todayStr()}">
+    <label>Notes / Reason</label>
+    <textarea id="mAdvNotes" placeholder="Reason for advance..."></textarea>
+    <div class="modal-actions">
+      <button class="stamp-btn ghost" onclick="window.__closeSalaryModal()">Cancel</button>
+      <button class="stamp-btn" onclick="window.__saveSalaryAdvance()">Save Advance</button>
+    </div>
+  </div></div>`;
+};
+
+window.__saveSalaryAdvance = async function() {
+  const staffId = document.getElementById('mAdvStaffId').value;
+  const amount = Number(document.getElementById('mAdvAmount').value || 0);
+  const date = document.getElementById('mAdvDate').value || todayStr();
+  const notes = document.getElementById('mAdvNotes').value.trim();
+
+  if (!amount || amount <= 0) { alert('Please enter a valid advance amount.'); return; }
+
+  const payload = {
+    id: 'adv_' + Date.now(),
+    business_id: session.businessId,
+    staff_id: staffId,
+    amount: amount,
+    date: date,
+    notes: notes
+  };
+
+  showLoading();
+  try {
+    const { data: newRow } = await supabase.from('salary_advances').insert(payload).select().single();
+    if (newRow) saveSalaryAdvanceLocally(newRow);
+    else saveSalaryAdvanceLocally(payload);
+  } catch(e) {
+    saveSalaryAdvanceLocally(payload);
+  } finally {
+    hideLoading();
+    const modalHolder = getModalHolder('salaryModalHolder');
+    modalHolder.innerHTML = '';
+    logAuditEvent('Salary Advance', `Recorded ₹${amount} advance for ${staffName(staffId)}`);
+    triggerAppNotification('Advance Recorded', `₹${amount} advance for ${staffName(staffId)}`);
+    renderTabBody();
+  }
+};
+
+window.__deleteSalaryAdvance = function(id) {
+  window.__showDeleteConfirm({
+    title: 'Delete salary advance?',
+    message: 'This removes the advance record. It cannot be undone.',
+    onConfirm: async () => {
+      showLoading();
+      try {
+        await supabase.from('salary_advances').delete().eq('id', id);
+      } catch(e){}
+      finally {
+        let advances = getSalaryAdvances().filter(a => a.id !== id);
+        localStorage.setItem('br_advances_' + session.businessId, JSON.stringify(advances));
+        if (cache) cache.salaryAdvances = advances;
+        hideLoading();
+        renderTabBody();
+      }
+    }
+  });
+};
+
+
 function payScheduleLabel(s){
   const freq = s.salary_frequency || 'monthly';
   if(freq==='daily') return 'Paid daily';
@@ -5895,15 +5988,76 @@ function payScheduleLabel(s){
   return s.salary_day ? `Paid monthly, on day ${s.salary_day}` : 'Paid monthly — no day set';
 }
 function renderSalaryTab(body){
+  const advances = getSalaryAdvances();
+  const currentMonth = monthKey(todayStr());
+  const advancesThisMonth = advances.filter(a => monthKey(a.date) === currentMonth);
+
   body.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div class="section-label" style="margin:0;">Salary & Advance Payouts</div>
+      <button class="stamp-btn small" style="background:var(--turmeric);color:white;" onclick="window.__openSalaryAdvanceModal()">💸 Record Salary Advance</button>
+    </div>
     
     ${buildQtyGraphHtml(cache.salaries, salaryReportMode, '__setSalaryReportMode', '', 'amount', '₹', 'paid_date')}
+    
+    <!-- Feature 7: Salary Advances & Deductions Overview per Staff -->
+    <div class="section-label">Staff Advances & Deductions (${currentMonth})</div>
+    <div class="cards-grid" style="margin-bottom:16px;">
+      ${cache.staff.map(s => {
+        const staffAdvs = advancesThisMonth.filter(a => a.staff_id === s.id);
+        const totalAdv = staffAdvs.reduce((sum, a) => sum + Number(a.amount||0), 0);
+        return `
+          <div class="row-card" style="flex-direction:column;align-items:stretch;padding:12px 14px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+              <div>
+                <b style="font-size:0.92rem;color:var(--ink);">${esc(s.name)}</b>
+                <span class="role-pill ${s.role}">${s.role}</span>
+                <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">${payScheduleLabel(s)}</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:0.68rem;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;">ADVANCES THIS MONTH</div>
+                <b style="font-size:1rem;color:${totalAdv > 0 ? 'var(--brick)' : 'var(--leaf)'};font-family:'IBM Plex Mono',monospace;">₹${totalAdv.toFixed(0)}</b>
+              </div>
+            </div>
+            ${staffAdvs.length ? `
+              <div style="margin-top:8px;padding-top:6px;border-top:1px dashed var(--paper-line);">
+                ${staffAdvs.map(a => `
+                  <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">
+                    <span>${a.date} (${esc(a.notes||'Advance')})</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--brick);">₹${Number(a.amount).toFixed(0)}</span>
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('')}
+    </div>
+
     <div class="section-label">Payout schedule per staff</div>
     ${cache.staff.map(s=>`
       <div class="row-card" style="align-items:center;">
         <div class="row-main"><h3>${esc(s.name)}</h3><div class="meta"><span>${payScheduleLabel(s)}</span></div></div>
         <button class="icon-btn" onclick="window.__setPayoutSchedule('${s.id}')">Edit</button>
       </div>`).join('')}
+    <div class="section-label">Salary Advance Ledger (${advances.length})</div>
+    ${advances.length ? advances.map(a => `
+      <div class="row-card" style="align-items:center;">
+        <div class="row-main">
+          <h3>${esc(staffName(a.staff_id))}</h3>
+          <div class="meta"><span>${a.date}</span></div>
+          ${a.notes ? `<div class="notes">${esc(a.notes)}</div>` : ''}
+        </div>
+        <b style="font-family:'IBM Plex Mono',monospace;color:var(--brick);">₹${Number(a.amount).toFixed(0)}</b>
+        <div class="action-dropdown-holder">
+          <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${a.id}')">More ▾</button>
+          <div class="action-dropdown-menu" id="actionMenu_${a.id}">
+            <button class="danger" onclick="window.__deleteSalaryAdvance('${a.id}')">🗑 Delete</button>
+          </div>
+        </div>
+      </div>
+    `).join('') : `<div class="empty">No salary advances recorded.</div>`}
+
     <div class="section-label">Payment history</div>
     ${cache.salaries.length ? cache.salaries.map(sa=>`
       <div class="row-card" style="align-items:center;">
