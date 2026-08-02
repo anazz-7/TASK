@@ -5265,11 +5265,8 @@ function renderAccHistoryRows(records){
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;">
           <div>
             <b style="font-size:0.95rem;color:var(--ink);display:block;margin-bottom:2px;font-family:'Space Grotesk',sans-serif;">${datePretty}</b>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(85px, 1fr));gap:6px;font-family:'IBM Plex Mono',monospace;font-size:0.76rem;background:var(--paper);padding:6px 10px;border-radius:6px;border:1px solid var(--paper-line);margin:6px 0;font-variant-numeric:tabular-nums;">
-              <div><span style="font-size:0.64rem;color:var(--ink-soft);display:block;letter-spacing:0.04em;">SALES</span><b>₹${Number(rec.total_sales||0).toFixed(0)}</b></div>
-              <div><span style="font-size:0.64rem;color:var(--ink-soft);display:block;letter-spacing:0.04em;">CASH</span><b>₹${Number(rec.amount||0).toFixed(0)}</b></div>
-              <div><span style="font-size:0.64rem;color:var(--ink-soft);display:block;letter-spacing:0.04em;">GPAY</span><b>₹${Number(rec.gpay||0).toFixed(0)}</b></div>
-              <div><span style="font-size:0.64rem;color:var(--ink-soft);display:block;letter-spacing:0.04em;">TOTAL</span><b style="color:var(--turmeric-dark);">₹${Number(rec.total||0).toFixed(0)}</b></div>
+<div style="font-size:0.78rem;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;">
+              Sales: ₹${Number(rec.total_sales||0).toFixed(0)} &bull; Total: ₹${Number(rec.total||0).toFixed(0)}
             </div>
           </div>
           <span class="stamp ${rec.excess > 0 ? 'present' : rec.less > 0 ? 'absent' : 'done'}" style="flex-shrink:0;font-size:0.72rem;padding:4px 8px;">
