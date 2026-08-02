@@ -4716,11 +4716,103 @@ window.__setAccReportMode = function(m) {
   renderTabBody();
 };
 
+
+/* ---------------- PERMISSION REQUESTS FOR OLD DATE ACCOUNTS ---------------- */
+function getAccountEditRequests() {
+  try {
+    return JSON.parse(localStorage.getItem('br_acc_edit_requests_' + session.businessId) || '[]');
+  } catch(e) { return []; }
+}
+
+function saveAccountEditRequests(list) {
+  localStorage.setItem('br_acc_edit_requests_' + session.businessId, JSON.stringify(list));
+  if(cache) cache.accountEditRequests = list;
+}
+
+function isDateUnlockedForStaff(date) {
+  if (isOwner()) return true;
+  if (date >= todayStr()) return true;
+  const requests = getAccountEditRequests();
+  return requests.some(r => r.staff_id === session.staffId && r.date === date && r.status === 'approved');
+}
+
+window.__requestAccEditPermission = function(date) {
+  const reason = prompt(`Enter reason for requesting edit access to Accounts for ${date}:`, 'Need to update/correct daily cash entry');
+  if(!reason || !reason.trim()) return;
+
+  const requests = getAccountEditRequests();
+  const existingIndex = requests.findIndex(r => r.staff_id === session.staffId && r.date === date);
+  const reqData = {
+    id: 'req_' + Date.now(),
+    business_id: session.businessId,
+    staff_id: session.staffId,
+    staff_name: session.name,
+    date: date,
+    reason: reason.trim(),
+    status: 'pending',
+    created_at: new Date().toISOString()
+  };
+
+  if(existingIndex >= 0) requests[existingIndex] = reqData;
+  else requests.push(reqData);
+
+  saveAccountEditRequests(requests);
+
+  const smsMsg = `EDIT REQUEST from ${session.name} for Accounts on ${date}: "${reason.trim()}" — Open app to Approve.`;
+  sendSmsTo(OWNER_NOTIFY_NUMBER, smsMsg);
+
+  if(typeof window.showToast === 'function') window.showToast(`📩 Approval Request sent to Owner for ${date}!`, 'success');
+  else alert(`📩 Approval Request sent to Owner for ${date}!`);
+
+  renderTabBody();
+};
+
+window.__respondAccEditRequest = function(reqId, status) {
+  const requests = getAccountEditRequests();
+  const req = requests.find(r => r.id === reqId);
+  if(!req) return;
+
+  req.status = status;
+  saveAccountEditRequests(requests);
+
+  if(status === 'approved') {
+    if(typeof window.showToast === 'function') window.showToast(`✓ Approved ${req.staff_name}'s edit request for ${req.date}`, 'success');
+    else alert(`✓ Approved ${req.staff_name}'s edit request for ${req.date}`);
+  } else {
+    if(typeof window.showToast === 'function') window.showToast(`✕ Rejected edit request for ${req.date}`, 'info');
+  }
+  renderTabBody();
+};
+
+
 function renderAccountsTab(body){
   const existing = cache.dailyAccounts.find(a => a.date === accountsDate);
   if(!isOwner()) accountsSubTab = 'entry';
+  const pendingReqs = isOwner() ? getAccountEditRequests().filter(r => r.status === 'pending') : [];
+
+  const pendingBanner = (isOwner() && pendingReqs.length > 0) ? `
+    <div style="background:var(--amber-soft);border:1.5px solid var(--turmeric);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+      <div style="font-weight:700;font-size:0.92rem;color:var(--turmeric-dark);margin-bottom:8px;">
+        📩 Pending Past Date Edit Requests (${pendingReqs.length})
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${pendingReqs.map(req => `
+          <div style="display:flex;align-items:center;justify-content:space-between;background:var(--card);padding:8px 12px;border-radius:6px;border:1px solid var(--paper-line);">
+            <div>
+              <b style="font-size:0.88rem;">${esc(req.staff_name)}</b> requested to edit <b>${req.date}</b>
+              <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">"${esc(req.reason)}"</div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button class="stamp-btn small" style="background:var(--leaf);color:white;" onclick="window.__respondAccEditRequest('${req.id}', 'approved')">✓ Approve</button>
+              <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);" onclick="window.__respondAccEditRequest('${req.id}', 'rejected')">✕ Reject</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>` : '';
 
   body.innerHTML = `
+    ${pendingBanner}
     ${isOwner() ? `
     <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;">
       <button class="stamp-btn small ${accountsSubTab==='entry'?'':'ghost'}" onclick="window.__setAccSubTab('entry')">📝 Entry</button>
@@ -4747,7 +4839,43 @@ function renderAccEntryHtml(existing){
   const f = existing || {};
   const totals = calcAccTotals(f);
   const isPastDate = accountsDate < todayStr();
-  const isLockedForNonOwner = !isOwner() && isPastDate;
+  const isUnlocked = isDateUnlockedForStaff(accountsDate);
+  const isLockedForNonOwner = !isUnlocked;
+  const myReq = getAccountEditRequests().find(r => r.staff_id === session.staffId && r.date === accountsDate);
+
+  let statusBanner = '';
+  if(isLockedForNonOwner){
+    if(myReq && myReq.status === 'pending'){
+      statusBanner = `<div style="background:var(--amber-soft);color:var(--turmeric);font-size:0.82rem;font-weight:600;padding:10px 14px;border-radius:8px;margin-bottom:14px;border:1px solid var(--turmeric);">
+        ⏳ Edit Request Pending Approval by Owner (${accountsDate}). Reason: "${esc(myReq.reason)}"
+      </div>`;
+    } else if(myReq && myReq.status === 'rejected'){
+      statusBanner = `<div style="background:var(--brick-soft);color:var(--brick);font-size:0.82rem;font-weight:600;padding:10px 14px;border-radius:8px;margin-bottom:14px;border:1px solid var(--brick);">
+        ✕ Edit Request Rejected by Owner for ${accountsDate}. Tap below to send a new request.
+      </div>`;
+    } else {
+      statusBanner = `<div style="background:var(--brick-soft);color:var(--brick);font-size:0.8rem;font-weight:600;padding:10px 14px;border-radius:8px;margin-bottom:14px;border:1px solid var(--brick);">
+        🔒 Editing past date accounts (${accountsDate}) is restricted to the Owner.
+      </div>`;
+    }
+  } else if(!isOwner() && isPastDate && myReq && myReq.status === 'approved'){
+    statusBanner = `<div style="background:var(--leaf-soft);color:var(--leaf);font-size:0.82rem;font-weight:600;padding:10px 14px;border-radius:8px;margin-bottom:14px;border:1px solid var(--leaf);">
+      ✓ Owner Approved Edit Access for ${accountsDate}! You can make and save changes.
+    </div>`;
+  } else if(existing){
+    statusBanner = `<div style="background:var(--leaf-soft);color:var(--leaf);font-size:0.78rem;font-weight:600;padding:8px 12px;border-radius:6px;margin-bottom:14px;">✓ Entry already saved for this day — editing will update it</div>`;
+  }
+
+  let nonOwnerBtnHtml = '';
+  if(isLockedForNonOwner){
+    if(myReq && myReq.status === 'pending'){
+      nonOwnerBtnHtml = `<button class="stamp-btn ghost" style="width:100%;padding:14px 0;font-size:0.95rem;color:var(--turmeric);border-color:var(--turmeric);cursor:not-allowed;" disabled>⏳ Owner Approval Pending</button>`;
+    } else {
+      nonOwnerBtnHtml = `<button class="stamp-btn" style="width:100%;padding:14px 0;font-size:0.95rem;background:var(--turmeric);color:white;" onclick="window.__requestAccEditPermission('${accountsDate}')">📩 Request Owner Approval to Edit (${accountsDate})</button>`;
+    }
+  } else {
+    nonOwnerBtnHtml = `<button class="stamp-btn" style="width:100%;padding:14px 0;font-size:1rem;font-weight:700;" onclick="window.__saveAccEntry()">💾 Save Day's Account Entry</button>`;
+  }
 
   return `
     <div class="row-card" style="flex-direction:column;align-items:stretch;padding-bottom:20px;">
@@ -4761,10 +4889,7 @@ function renderAccEntryHtml(existing){
         <button class="stamp-btn ghost small" onclick="window.__shiftAccDate(1)">Next ›</button>
       </div>
 
-      ${isLockedForNonOwner ? `
-        <div style="background:var(--brick-soft);color:var(--brick);font-size:0.8rem;font-weight:600;padding:10px 14px;border-radius:8px;margin-bottom:14px;border:1px solid var(--brick);">
-          🔒 Editing past date accounts (${accountsDate}) is restricted to the Owner. Read-only mode.
-        </div>` : (existing ? `<div style="background:var(--leaf-soft);color:var(--leaf);font-size:0.78rem;font-weight:600;padding:8px 12px;border-radius:6px;margin-bottom:14px;">✓ Entry already saved for this day — editing will update it</div>` : '')}
+      ${statusBanner}
 
       <!-- 11 Numeric Fields -->
       <div style="display:flex;flex-direction:column;gap:10px;">
@@ -4804,11 +4929,7 @@ function renderAccEntryHtml(existing){
       </div>` : `
       <!-- Simple Data Entry Footer for Non-Owner Roles -->
       <div style="margin-top:16px;">
-        ${isLockedForNonOwner ? `
-          <button class="stamp-btn ghost" style="width:100%;padding:14px 0;font-size:0.95rem;opacity:0.6;cursor:not-allowed;" disabled>🔒 Editing Restricted for Past Dates</button>
-        ` : `
-          <button class="stamp-btn" style="width:100%;padding:14px 0;font-size:1rem;font-weight:700;" onclick="window.__saveAccEntry()">💾 Save Day's Account Entry</button>
-        `}
+        ${nonOwnerBtnHtml}
       </div>`}
     </div>
   `;
@@ -4869,7 +4990,7 @@ window.__sendAccSmsSummary = function() {
 };
 
 window.__saveAccEntry = async function() {
-  if (!isOwner() && accountsDate < todayStr()) {
+  if (!isDateUnlockedForStaff(accountsDate)) {
     alert('Permission Denied: Editing accounts for past dates (' + accountsDate + ') is restricted to the Owner.');
     return;
   }
