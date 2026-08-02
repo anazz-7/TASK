@@ -2363,6 +2363,13 @@ window.__quickAddNaturalTask = async function() {
 };
 
 
+
+window.__setTaskSubTab = function(t) {
+  taskSubTab = t;
+  renderTabBody();
+};
+
+
 function renderTasksTab(body){
   let list = isManagerPlus() ? cache.tasks : cache.tasks.filter(t=>t.assigned_to===session.staffId);
   if(taskFilter.staffId) list = list.filter(t=>t.assigned_to===taskFilter.staffId);
@@ -2444,13 +2451,24 @@ function renderTasksTab(body){
   ` : '';
 
   body.innerHTML = `
-    
-    ${quickBar}
-    ${filterBar}
-    <div class="section-label">Open tasks ${isManagerPlus()?`<a onclick="window.__sendAllPending()">Send all pending &rarr;</a>`:''}</div>
-    ${pending.length ? pending.map(row).join('') : `<div class="empty">No open tasks.</div>`}
-    <div class="section-label">Done <span style="color:var(--ink-soft);font-weight:600;">${done.length} — tap to expand</span></div>
-    ${done.length ? done.map(doneRow).join('') : `<div class="empty">Nothing done yet.</div>`}
+    <!-- Tasks Sub-Menu Navigation Bar -->
+    <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;">
+      <button class="stamp-btn small ${taskSubTab==='active'?'':'ghost'}" onclick="window.__setTaskSubTab('active')">⚡ Active Tasks (${pending.length})</button>
+      <button class="stamp-btn small ${taskSubTab==='history'?'':'ghost'}" onclick="window.__setTaskSubTab('history')">📜 Task History (${done.length})</button>
+    </div>
+
+    ${taskSubTab === 'active' ? `
+      ${quickBar}
+      ${filterBar}
+      <div class="section-label">Open Active Tasks ${isManagerPlus()?`<a onclick="window.__sendAllPending()">Send all pending &rarr;</a>`:''}</div>
+      ${pending.length ? pending.map(row).join('') : `<div class="empty">No open tasks right now. Great job!</div>`}
+    ` : ''}
+
+    ${taskSubTab === 'history' ? `
+      <div class="section-label">Completed Task History (${done.length} tasks)</div>
+      ${done.length ? done.map(row).join('') : `<div class="empty">No completed tasks in history yet.</div>`}
+    ` : ''}
+
     <div id="taskModalHolder"></div>`;
 
   window.__toggleDone = (id) => {
@@ -6646,5 +6664,4 @@ boot();
 </script>
 </body>
 </html>
-
 
