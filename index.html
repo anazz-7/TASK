@@ -1489,10 +1489,10 @@ const TAB_META = {
   accounts: {icon:'save', label:'Accounts'},
 };
 function currentTabs(){
-  if(session.role === 'salesman') return ['tasks', 'sales', 'salesman'];
+  if(session.role === 'salesman') return ['tasks', 'sales', 'salesman', 'accounts'];
   return isManagerPlus()
-    ? (isOwner() ? ['dashboard','ai','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','salary','accounts','reports','staff','settings'] : ['dashboard','ai','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','staff'])
-    : ['tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points'];
+    ? (isOwner() ? ['dashboard','ai','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','salary','accounts','reports','staff','settings'] : ['dashboard','ai','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','staff'])
+    : ['tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts'];
 }
 function quickTabs(){
   if(session.role === 'salesman') return ['tasks','attendance','sales','accounts'];
