@@ -1487,11 +1487,12 @@ const TAB_META = {
   settings: {icon:'settings', label:'Settings'},
   stockkeeper: {icon:'clipboard', label:'Stockkeeper'},
   accounts: {icon:'save', label:'Accounts'},
+  audit: {icon:'clipboard', label:'Audit Log'},
 };
 function currentTabs(){
   if(session.role === 'salesman') return ['tasks', 'sales', 'salesman', 'accounts'];
   return isManagerPlus()
-    ? (isOwner() ? ['dashboard','ai','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','salary','accounts','reports','staff','settings'] : ['dashboard','ai','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','staff'])
+    ? (isOwner() ? ['dashboard','ai','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','salary','accounts','reports','audit','staff','settings'] : ['dashboard','ai','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','staff'])
     : ['tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts'];
 }
 function quickTabs(){
@@ -1663,6 +1664,7 @@ function renderTabBody(){
   if(activeTab==='package') return renderPackageTab(body);
   if(activeTab==='stockkeeper') return renderStockkeeperTab(body);
   if(activeTab==='accounts') return renderAccountsTab(body);
+  if(activeTab==='audit' && isManagerPlus()) return renderAuditTab(body);
   if(activeTab==='salary' && isOwner()) return renderSalaryTab(body);
   if(activeTab==='salesman') return renderSalesmanTab(body);
   if(activeTab==='points') return renderPointsTab(body);
@@ -4717,15 +4719,100 @@ window.__setAccReportMode = function(m) {
 };
 
 
+
+/* ---------------- FEATURE 5: ACTIVITY AUDIT LOGGING ---------------- */
+function getAuditLogs() {
+  try {
+    return JSON.parse(localStorage.getItem('br_audit_logs_' + session.businessId) || '[]');
+  } catch(e) { return []; }
+}
+
+function logAuditEvent(actionType, details) {
+  if (!session) return;
+  const logs = getAuditLogs();
+  const entry = {
+    id: 'audit_' + Date.now(),
+    business_id: session.businessId,
+    staff_id: session.staffId,
+    staff_name: session.name,
+    staff_role: session.role,
+    action_type: actionType,
+    details: details,
+    timestamp: new Date().toISOString()
+  };
+  logs.unshift(entry); // newest first
+  if (logs.length > 200) logs.pop(); // keep last 200 logs
+  localStorage.setItem('br_audit_logs_' + session.businessId, JSON.stringify(logs));
+  if (cache) cache.auditLogs = logs;
+}
+
+function renderAuditTab(body) {
+  const logs = getAuditLogs();
+  body.innerHTML = `
+    
+    <div class="section-label">System Activity Audit Log (${logs.length} entries)</div>
+    ${logs.length ? `
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${logs.map(l => `
+          <div class="row-card" style="align-items:flex-start;padding:12px 14px;">
+            <div class="avatar-circle" style="width:36px;height:36px;font-size:0.85rem;margin-top:2px;">${initials(l.staff_name)}</div>
+            <div class="row-main">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                <b style="font-size:0.9rem;">${esc(l.staff_name)}</b>
+                <span class="role-pill ${l.staff_role}">${l.staff_role}</span>
+                <span class="stamp small" style="background:var(--paper);color:var(--turmeric);font-weight:600;">${esc(l.action_type)}</span>
+              </div>
+              <div style="font-size:0.85rem;color:var(--ink);line-height:1.4;">${esc(l.details)}</div>
+              <div style="font-size:0.73rem;color:var(--ink-soft);margin-top:6px;">
+                ${new Date(l.timestamp).toLocaleString('en-IN', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    ` : `<div class="empty">No activity audit logs recorded yet.</div>`}
+  `;
+}
+
+/* ---------------- FEATURE 6: REAL-TIME SYSTEM & BROWSER PUSH NOTIFICATIONS ---------------- */
+function triggerAppNotification(title, body, type = 'info') {
+  if (typeof window.showToast === 'function') {
+    window.showToast(`${title}: ${body}`, type);
+  }
+  if (typeof playReminderSound === 'function') {
+    playReminderSound();
+  }
+  if (typeof showNotification === 'function') {
+    showNotification(title, body);
+  }
+}
+
+
 /* ---------------- PERMISSION REQUESTS FOR OLD DATE ACCOUNTS (Bulletproof Tasks & PIN Sync) ---------------- */
 if(!window.__sessionUnlockedDates) window.__sessionUnlockedDates = new Set();
 
+function checkDateUnlockStatus(date) {
+  if (isOwner()) return { unlocked: true, remainingMs: Infinity, isExpired: false };
+  if (date >= todayStr()) return { unlocked: true, remainingMs: Infinity, isExpired: false };
+  if (window.__sessionUnlockedDates.has(date)) return { unlocked: true, remainingMs: 30 * 60 * 1000, isExpired: false };
+
+  const approvedTask = cache.tasks ? cache.tasks.find(t => t.title === '[EDIT_REQ] ' + date && t.status === 'done') : null;
+  if (!approvedTask) return { unlocked: false, remainingMs: 0, isExpired: false };
+
+  // Feature 1: 30-Minute Auto-Expiring Window calculation
+  const approvedTime = new Date(approvedTask.created_at || Date.now()).getTime();
+  const elapsedMs = Date.now() - approvedTime;
+  const maxMs = 30 * 60 * 1000; // 30 minutes window
+
+  if (elapsedMs < maxMs) {
+    return { unlocked: true, remainingMs: maxMs - elapsedMs, isExpired: false };
+  } else {
+    return { unlocked: false, remainingMs: 0, isExpired: true };
+  }
+}
+
 function isDateUnlockedForStaff(date) {
-  if (isOwner()) return true;
-  if (date >= todayStr()) return true;
-  if (window.__sessionUnlockedDates.has(date)) return true;
-  const approvedTask = cache.tasks.find(t => t.title === '[EDIT_REQ] ' + date && t.status === 'done');
-  return Boolean(approvedTask);
+  return checkDateUnlockStatus(date).unlocked;
 }
 
 function getPendingEditRequests() {
@@ -4757,6 +4844,8 @@ window.__requestAccEditPermission = async function(date) {
     sendSmsTo(OWNER_NOTIFY_NUMBER, smsMsg);
 
     window.showToast(`📩 Approval Request sent to Owner for ${date}!`, 'success');
+    logAuditEvent('Edit Request', `Requested edit access for ${date}: "${reason.trim()}"`);
+    triggerAppNotification('Edit Request Sent', `Request for ${date} sent to Owner`);
   } catch(e) {
     alert('Could not send request — please check your internet connection (' + (e.message||e) + ')');
   } finally {
@@ -4773,6 +4862,8 @@ window.__respondAccEditRequest = async function(taskId, status) {
       const t = cache.tasks.find(x => x.id === taskId);
       if (t) t.status = 'done';
       window.showToast(`✓ Approved edit request!`, 'success');
+      logAuditEvent('Approval Response', `Approved edit request for ${t ? t.title.replace('[EDIT_REQ] ','') : ''}`);
+      triggerAppNotification('Edit Approved', `Past date edit access granted`);
     } else {
       await sbCheck(supabase.from('tasks').delete().eq('id', taskId));
       cache.tasks = cache.tasks.filter(x => x.id !== taskId);
@@ -4912,9 +5003,14 @@ function renderAccEntryHtml(existing){
   const isLockedForNonOwner = !isUnlocked;
   const pendingReq = cache.tasks ? cache.tasks.find(t => t.title === '[EDIT_REQ] ' + accountsDate && t.status !== 'done') : null;
 
+  const unlockStatus = checkDateUnlockStatus(accountsDate);
   let statusBanner = '';
   if(isLockedForNonOwner){
-    if(pendingReq){
+    if(unlockStatus.isExpired){
+      statusBanner = `<div style="background:var(--brick-soft);color:var(--brick);font-size:0.82rem;font-weight:600;padding:10px 14px;border-radius:8px;margin-bottom:14px;border:1px solid var(--brick);">
+        🔒 30-Minute Edit Access Expired for ${accountsDate}. Tap below to request a new edit window.
+      </div>`;
+    } else if(pendingReq){
       statusBanner = `<div style="background:var(--amber-soft);color:var(--turmeric);font-size:0.82rem;font-weight:600;padding:10px 14px;border-radius:8px;margin-bottom:14px;border:1px solid var(--turmeric);">
         ⏳ Edit Request Pending Approval by Owner for ${accountsDate}. ("${esc(pendingReq.notes||'')}")
       </div>`;
@@ -4924,8 +5020,11 @@ function renderAccEntryHtml(existing){
       </div>`;
     }
   } else if(!isOwner() && isPastDate){
-    statusBanner = `<div style="background:var(--leaf-soft);color:var(--leaf);font-size:0.82rem;font-weight:600;padding:10px 14px;border-radius:8px;margin-bottom:14px;border:1px solid var(--leaf);">
-      ✓ Edit Access Unlocked for ${accountsDate}! You can make and save changes.
+    const mins = isFinite(unlockStatus.remainingMs) ? Math.floor(unlockStatus.remainingMs / 60000) : 30;
+    const secs = isFinite(unlockStatus.remainingMs) ? Math.floor((unlockStatus.remainingMs % 60000) / 1000) : 0;
+    statusBanner = `<div style="background:var(--leaf-soft);color:var(--leaf);font-size:0.82rem;font-weight:600;padding:10px 14px;border-radius:8px;margin-bottom:14px;border:1px solid var(--leaf);display:flex;align-items:center;justify-content:space-between;">
+      <span>✓ Edit Access Unlocked for ${accountsDate}!</span>
+      <span style="font-family:'IBM Plex Mono',monospace;background:var(--card);padding:3px 8px;border-radius:4px;border:1px solid var(--leaf);">⏱️ Closes in ${mins}m ${secs}s</span>
     </div>`;
   } else if(existing){
     statusBanner = `<div style="background:var(--leaf-soft);color:var(--leaf);font-size:0.78rem;font-weight:600;padding:8px 12px;border-radius:6px;margin-bottom:14px;">✓ Entry already saved for this day — editing will update it</div>`;
@@ -5079,6 +5178,8 @@ window.__sendAccSmsSummary = function() {
 };
 
 window.__saveAccEntry = async function() {
+  logAuditEvent('Accounts Save', `Saved daily accounts entry for ${accountsDate}`);
+  triggerAppNotification('Accounts Saved', `Entry updated for ${accountsDate}`);
   if (!isDateUnlockedForStaff(accountsDate)) {
     alert('Permission Denied: Editing accounts for past dates (' + accountsDate + ') is restricted to the Owner.');
     return;
