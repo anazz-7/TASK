@@ -660,6 +660,86 @@
     background: var(--brick-soft);
   }
 
+
+  /* Owner-Only Quick Access Floating Action Button */
+  .owner-fab-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(18, 38, 71, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 45;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+  }
+  .owner-fab-overlay.show {
+    opacity: 1;
+    visibility: visible;
+  }
+  .owner-fab-menu {
+    position: fixed;
+    bottom: 85px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    z-index: 46;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(16px) scale(0.92);
+    transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .owner-fab-menu.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+  }
+  .owner-fab-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--card);
+    color: var(--ink);
+    border: 1.5px solid var(--turmeric);
+    padding: 10px 16px;
+    border-radius: 30px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .owner-fab-item:active {
+    transform: scale(0.95);
+  }
+  .owner-fab-btn {
+    position: fixed;
+    bottom: 78px;
+    right: 20px;
+    background: linear-gradient(135deg, var(--turmeric-dark), var(--turmeric));
+    color: #ffffff;
+    border: 1.5px solid rgba(255,255,255,0.3);
+    border-radius: 30px;
+    padding: 12px 18px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 700;
+    box-shadow: 0 6px 20px rgba(30,58,110,0.35);
+    cursor: pointer;
+    z-index: 44;
+    transition: all 0.2s ease;
+  }
+  @media (min-width: 768px) {
+    .owner-fab-btn {
+      bottom: 24px;
+    }
+  }
+  .owner-fab-btn:active {
+    transform: scale(0.94);
+  }
+
 </style>
 </head>
 <body>
@@ -1051,6 +1131,24 @@ window.alert = function(msg) {
     window.__showAppAlert({ title: 'System Notice', message: msg, type: 'error' });
   } else {
     window.showToast(msg, 'success');
+  }
+};
+
+
+
+/* Owner Quick Access FAB Handler */
+window.__toggleOwnerFab = function() {
+  const menu = document.getElementById('ownerFabMenu');
+  const overlay = document.getElementById('ownerFabOverlay');
+  if (menu && overlay) {
+    const isShowing = menu.classList.contains('show');
+    if (isShowing) {
+      menu.classList.remove('show');
+      overlay.classList.remove('show');
+    } else {
+      menu.classList.add('show');
+      overlay.classList.add('show');
+    }
   }
 };
 
@@ -1623,16 +1721,28 @@ function renderShell(){
     </div>
   </div>
 
-  <!-- Mobile Floating Action Buttons -->
-  ${activeTab==='tasks' ? '<button class="fab mobile-only" onclick="window.__openTask()">+</button>' : ''}
-  ${activeTab==='daily' && isManagerPlus() ? '<button class="fab mobile-only" onclick="window.__openRoutine()">+</button>' : ''}
-  ${activeTab==='weekly' && isManagerPlus() ? '<button class="fab mobile-only" onclick="window.__openWeekly()">+</button>' : ''}
-  ${activeTab==='staff' ? '<button class="fab mobile-only" onclick="window.__openStaff()">+</button>' : ''}
-  ${activeTab==='sales' ? '<button class="fab mobile-only" onclick="window.__openSale()">+</button>' : ''}
-  ${activeTab==='label' ? '<button class="fab mobile-only" onclick="window.__openLabel()">+</button>' : ''}
-  ${activeTab==='package' ? '<button class="fab mobile-only" onclick="window.__openPackage()">+</button>' : ''}
-  ${activeTab==='salary' && isOwner() ? '<button class="fab mobile-only" onclick="window.__openSalary()">+</button>' : ''}
-  ${activeTab==='points' && isManagerPlus() ? '<button class="fab mobile-only" onclick="window.__openPoints()">+</button>' : ''}
+  <!-- Owner-Only Quick Access Floating Action Button -->
+  ${isOwner() ? `
+    <div class="owner-fab-overlay" id="ownerFabOverlay" onclick="window.__toggleOwnerFab()"></div>
+    <div class="owner-fab-menu" id="ownerFabMenu">
+      <div class="owner-fab-item" onclick="window.__setTab('accounts');window.__toggleOwnerFab();">📝 Accounts Entry</div>
+      <div class="owner-fab-item" onclick="window.__openSalaryAdvanceModal();window.__toggleOwnerFab();">💸 Record Salary Advance</div>
+      <div class="owner-fab-item" onclick="window.__openQuickTaskModal();window.__toggleOwnerFab();">⚡ Add Quick Task</div>
+      <div class="owner-fab-item" onclick="window.__openSale();window.__toggleOwnerFab();">🛒 Log Sale</div>
+      <div class="owner-fab-item" onclick="window.__setTab('audit');window.__toggleOwnerFab();">📜 Activity Audit Log</div>
+    </div>
+    <button class="owner-fab-btn" id="ownerFabBtn" onclick="window.__toggleOwnerFab()" title="Owner Quick Actions">⚡ Quick Access</button>
+  ` : `
+    <!-- Mobile Floating Action Buttons for Non-Owner Roles -->
+    ${activeTab==='tasks' ? '<button class="fab mobile-only" onclick="window.__openTask()">+</button>' : ''}
+    ${activeTab==='daily' && isManagerPlus() ? '<button class="fab mobile-only" onclick="window.__openRoutine()">+</button>' : ''}
+    ${activeTab==='weekly' && isManagerPlus() ? '<button class="fab mobile-only" onclick="window.__openWeekly()">+</button>' : ''}
+    ${activeTab==='staff' ? '<button class="fab mobile-only" onclick="window.__openStaff()">+</button>' : ''}
+    ${activeTab==='sales' ? '<button class="fab mobile-only" onclick="window.__openSale()">+</button>' : ''}
+    ${activeTab==='label' ? '<button class="fab mobile-only" onclick="window.__openLabel()">+</button>' : ''}
+    ${activeTab==='package' ? '<button class="fab mobile-only" onclick="window.__openPackage()">+</button>' : ''}
+    ${activeTab==='points' && isManagerPlus() ? '<button class="fab mobile-only" onclick="window.__openPoints()">+</button>' : ''}
+  `}
   `;
 
   window.__logout = logout;
