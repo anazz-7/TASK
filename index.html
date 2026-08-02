@@ -4778,25 +4778,29 @@ function renderAccHistoryRows(records){
     const isChecked = checkedSet.has(rec.id) || checkedSet.has(rec.date) || Boolean(rec.is_checked);
 
     return `
-      <div class="row-card" style="flex-direction:column;align-items:stretch;${isChecked ? 'border-left:4px solid var(--leaf);' : ''}">
-        <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="window.__toggleAccExpand('${rec.date}')">
+      <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px 16px;margin-bottom:10px;${isChecked ? 'border-left:4px solid var(--leaf);background:var(--leaf-soft);' : ''}">
+        <!-- Top Row: Date & Status Badge -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;">
           <div>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <b style="font-size:0.95rem;color:var(--ink);">${datePretty}</b>
-              ${isChecked ? `<span style="color:var(--leaf);font-size:0.75rem;font-weight:700;">✓ Verified</span>` : ''}
+            <b style="font-size:0.95rem;color:var(--ink);display:block;margin-bottom:2px;font-family:'Space Grotesk',sans-serif;">${datePretty}</b>
+            <div style="font-size:0.78rem;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;">
+              Sales: ₹${Number(rec.total_sales||0).toFixed(0)} &bull; Total: ₹${Number(rec.total||0).toFixed(0)}
             </div>
-            <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">Sales: ₹${Number(rec.total_sales||0).toFixed(0)} | Total: ₹${Number(rec.total||0).toFixed(0)}</div>
           </div>
-          
-          <!-- Small Check / Tick Button (100% Persisted & Working) -->
-          <div style="display:flex;align-items:center;gap:8px;">
-            <button class="stamp-btn small ${isChecked ? '' : 'ghost'}" style="${isChecked ? 'background:var(--leaf);color:#fff;border-color:var(--leaf);' : ''}" onclick="event.stopPropagation();window.__toggleAccChecked('${rec.date}', ${!isChecked})">
-              ${isChecked ? '✓ Checked' : '☐ Check'}
-            </button>
-            <span class="stamp ${rec.excess > 0 ? 'present' : rec.less > 0 ? 'absent' : 'done'}">
-              ${rec.excess > 0 ? '+₹'+Number(rec.excess).toFixed(0)+' Excess' : rec.less > 0 ? '-₹'+Number(rec.less).toFixed(0)+' Less' : '✓ Balanced'}
-            </span>
-          </div>
+          <span class="stamp ${rec.excess > 0 ? 'present' : rec.less > 0 ? 'absent' : 'done'}" style="flex-shrink:0;font-size:0.72rem;padding:4px 8px;">
+            ${rec.excess > 0 ? '+₹'+Number(rec.excess).toFixed(0)+' EXCESS' : rec.less > 0 ? '-₹'+Number(rec.less).toFixed(0)+' LESS' : '✓ BALANCED'}
+          </span>
+        </div>
+
+        <!-- Bottom Action Bar: Check Button & View Details -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px dashed var(--paper-line);">
+          <button class="stamp-btn small ${isChecked ? '' : 'ghost'}" style="${isChecked ? 'background:var(--leaf);color:#fff;border-color:var(--leaf);font-weight:700;' : ''}" onclick="event.stopPropagation();window.__toggleAccChecked('${rec.date}', ${!isChecked})">
+            ${isChecked ? '✓ Checked' : '☐ Check'}
+          </button>
+
+          <button class="stamp-btn ghost small" style="font-size:0.75rem;padding:4px 10px;" onclick="window.__toggleAccExpand('${rec.date}')">
+            ${isOpen ? 'Hide Details ▲' : 'View Details ▼'}
+          </button>
         </div>
 
         ${isOpen ? `
