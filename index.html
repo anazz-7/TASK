@@ -2469,7 +2469,12 @@ function renderDailyTab(body){
       <div class="row-actions">
         <button class="stamp-btn small ${done?'ghost':''}" onclick="window.__toggleRoutine('${r.id}', ${done})">${done?'Undo':icon('check',14)+' Done today'}</button>
         ${isManagerPlus()?`<button class="icon-btn" onclick="window.__editRoutine('${r.id}')">Edit</button>`:''}
-        ${isOwner()?`<button class="icon-btn" style="color:var(--brick);" onclick="window.__deleteRoutine('${r.id}')">Delete</button>`:''}
+        <div class="action-dropdown-holder">
+    <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${r.id}')">More ▾</button>
+    <div class="action-dropdown-menu" id="actionMenu_${r.id}">
+      ${isOwner() ? `<button class="danger" onclick="window.__deleteRoutine('${r.id}')">🗑 Delete</button>` : ''}
+    </div>
+  </div>
       </div>
     </div>`;
   };
@@ -2521,7 +2526,24 @@ function renderDailyTab(body){
       alert('Could not update — please check your connection and try again.\n\n('+(e.message||e)+')');
     } finally { __busyKeys.delete(key); }
   };
-  window.__deleteRoutine = async (id) => { if(!confirm('Remove this everyday task? This cannot be undone.')) return; await supabase.from('routines').delete().eq('id', id); await loadData(); renderTabBody(); };
+  window.__deleteRoutine = function(id) {
+  window.__showDeleteConfirm({
+    title: 'Delete routine task?',
+    message: 'This removes it for everyone on this business. It cannot be undone.',
+    onConfirm: async () => {
+      showLoading();
+      try {
+        await supabase.from('routines').delete().eq('id', id);
+        cache.routines = cache.routines.filter(r => r.id !== id);
+      } catch(e){}
+      finally {
+        hideLoading();
+        await loadData();
+        renderTabBody();
+      }
+    }
+  });
+};
   window.__editRoutine = (id) => openRoutineModal(id);
 }
 function openRoutineModal(routineId){
@@ -2598,7 +2620,12 @@ function renderWeeklyTab(body){
       <div class="row-actions">
         <button class="stamp-btn small ${done?'ghost':''}" onclick="window.__toggleWeekly('${w.id}', ${done})">${done?'Undo':icon('check',14)+' Done'}</button>
         ${isManagerPlus()?`<button class="icon-btn" onclick="window.__editWeekly('${w.id}')">Edit</button>`:''}
-        ${isOwner()?`<button class="icon-btn" style="color:var(--brick);" onclick="window.__deleteWeekly('${w.id}')">Delete</button>`:''}
+        <div class="action-dropdown-holder">
+    <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${w.id}')">More ▾</button>
+    <div class="action-dropdown-menu" id="actionMenu_${w.id}">
+      ${isOwner() ? `<button class="danger" onclick="window.__deleteWeekly('${w.id}')">🗑 Delete</button>` : ''}
+    </div>
+  </div>
       </div>
     </div>`;
   };
@@ -2650,7 +2677,24 @@ function renderWeeklyTab(body){
       alert('Could not update — please check your connection and try again.\n\n('+(e.message||e)+')');
     } finally { __busyKeys.delete(key); }
   };
-  window.__deleteWeekly = async (id) => { if(!confirm('Remove this weekly task? This cannot be undone.')) return; await supabase.from('weekly_tasks').delete().eq('id', id); await loadData(); renderTabBody(); };
+  window.__deleteWeekly = function(id) {
+  window.__showDeleteConfirm({
+    title: 'Delete weekly task?',
+    message: 'This removes it for everyone on this business. It cannot be undone.',
+    onConfirm: async () => {
+      showLoading();
+      try {
+        await supabase.from('weekly_tasks').delete().eq('id', id);
+        cache.weeklyTasks = cache.weeklyTasks.filter(w => w.id !== id);
+      } catch(e){}
+      finally {
+        hideLoading();
+        await loadData();
+        renderTabBody();
+      }
+    }
+  });
+};
   window.__editWeekly = (id) => openWeeklyModal(id);
 }
 function openWeeklyModal(weeklyId){
@@ -3014,12 +3058,35 @@ function renderSalesTab(body){
         <div class="row-card" style="align-items:center;">
           <div class="row-main"><h3>${esc(staffName(e.staff_id))}</h3>${e.notes?`<div class="notes">${esc(e.notes)}</div>`:''}</div>
           <b style="font-family:'IBM Plex Mono',monospace;">₹${Number(e.order_value).toFixed(0)}</b>
-          ${isManagerPlus()?`<button class="icon-btn" onclick="window.__editSale('${e.id}')">Edit</button>`:''}${isOwner()?`<button class="icon-btn" style="color:var(--brick);" onclick="window.__deleteSale('${e.id}')">Delete</button>`:''}
+          <div class="action-dropdown-holder">
+    <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${e.id}')">More ▾</button>
+    <div class="action-dropdown-menu" id="actionMenu_${e.id}">
+      ${isManagerPlus() ? `<button onclick="window.__editSale('${e.id}')">✎ Edit</button>` : ''}
+      ${isOwner() ? `<button class="danger" onclick="window.__deleteSale('${e.id}')">🗑 Delete</button>` : ''}
+    </div>
+  </div>
         </div>`).join('')}`;
     }).join('') : `<div class="empty">No orders logged yet. Tap + to add one.</div>`}
     <div id="saleModalHolder"></div>
   `;
-  window.__deleteSale = async (id) => { if(!confirm('Delete this order entry?')) return; await supabase.from('sales').delete().eq('id', id); await loadData(); renderTabBody(); };
+  window.__deleteSale = function(id) {
+  window.__showDeleteConfirm({
+    title: 'Delete this sale entry?',
+    message: 'This removes it for everyone on this business. It cannot be undone.',
+    onConfirm: async () => {
+      showLoading();
+      try {
+        await supabase.from('sales').delete().eq('id', id);
+        cache.sales = cache.sales.filter(s => s.id !== id);
+      } catch(e){}
+      finally {
+        hideLoading();
+        await loadData();
+        renderTabBody();
+      }
+    }
+  });
+};
   window.__setSalesMode = (m) => { salesReportMode = m; renderTabBody(); };
 }
 function getWeekStartDate(d){
@@ -3270,7 +3337,13 @@ function renderLabelTab(body){
         <div class="row-card" style="align-items:center;">
           <div class="row-main"><h3>${esc(e.item || '(item not named)')}</h3><div class="meta"><span>${esc(staffName(e.staff_id))}</span></div>${e.notes?`<div class="notes">${esc(e.notes)}</div>`:''}</div>
           <b style="font-family:'IBM Plex Mono',monospace;">${Number(e.qty)} qty</b>
-          ${isManagerPlus()?`<button class="icon-btn" onclick="window.__editLabel('${e.id}')">Edit</button>`:''}${isOwner()?`<button class="icon-btn" style="color:var(--brick);" onclick="window.__deleteLabel('${e.id}')">Delete</button>`:''}
+          <div class="action-dropdown-holder">
+    <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${e.id}')">More ▾</button>
+    <div class="action-dropdown-menu" id="actionMenu_${e.id}">
+      ${isManagerPlus() ? `<button onclick="window.__editLabel('${e.id}')">✎ Edit</button>` : ''}
+      ${isOwner() ? `<button class="danger" onclick="window.__deleteLabel('${e.id}')">🗑 Delete</button>` : ''}
+    </div>
+  </div>
         </div>`).join('') : ''}`;
     }).join('') : `<div class="empty">Nothing logged yet. Tap + to record what was labelled today.</div>`}
     <div id="labelModalHolder"></div>
@@ -3279,7 +3352,24 @@ function renderLabelTab(body){
     if(expandedLabelDates.has(d)) expandedLabelDates.delete(d); else expandedLabelDates.add(d);
     renderTabBody();
   };
-  window.__deleteLabel = async (id) => { if(!confirm('Delete this entry?')) return; await supabase.from('labels').delete().eq('id', id); await loadData(); renderTabBody(); };
+  window.__deleteLabel = function(id) {
+  window.__showDeleteConfirm({
+    title: 'Delete label entry?',
+    message: 'This removes it for everyone on this business. It cannot be undone.',
+    onConfirm: async () => {
+      showLoading();
+      try {
+        await supabase.from('labels').delete().eq('id', id);
+        cache.labels = cache.labels.filter(l => l.id !== id);
+      } catch(e){}
+      finally {
+        hideLoading();
+        await loadData();
+        renderTabBody();
+      }
+    }
+  });
+};
   window.__editLabel = (id) => openEditLabelModal(id);
 }
 function openEditLabelModal(labelId){
@@ -3412,7 +3502,13 @@ function renderPackageTab(body){
         <div class="row-card" style="align-items:center;">
           <div class="row-main"><h3>${esc(e.item || '(item not named)')}</h3><div class="meta"><span>${esc(staffName(e.staff_id))}</span></div>${e.notes?`<div class="notes">${esc(e.notes)}</div>`:''}</div>
           <b style="font-family:'IBM Plex Mono',monospace;">${Number(e.qty)} qty</b>
-          ${isManagerPlus()?`<button class="icon-btn" onclick="window.__editPackage('${e.id}')">Edit</button>`:''}${isOwner()?`<button class="icon-btn" style="color:var(--brick);" onclick="window.__deletePackage('${e.id}')">Delete</button>`:''}
+          <div class="action-dropdown-holder">
+    <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${e.id}')">More ▾</button>
+    <div class="action-dropdown-menu" id="actionMenu_${e.id}">
+      ${isManagerPlus() ? `<button onclick="window.__editPackage('${e.id}')">✎ Edit</button>` : ''}
+      ${isOwner() ? `<button class="danger" onclick="window.__deletePackage('${e.id}')">🗑 Delete</button>` : ''}
+    </div>
+  </div>
         </div>`).join('') : ''}`;
     }).join('') : `<div class="empty">Nothing logged yet. Tap + to record what was packaged today.</div>`}
     <div id="packageModalHolder"></div>
@@ -3421,7 +3517,24 @@ function renderPackageTab(body){
     if(expandedPackageDates.has(d)) expandedPackageDates.delete(d); else expandedPackageDates.add(d);
     renderTabBody();
   };
-  window.__deletePackage = async (id) => { if(!confirm('Delete this entry?')) return; await supabase.from('packages').delete().eq('id', id); await loadData(); renderTabBody(); };
+  window.__deletePackage = function(id) {
+  window.__showDeleteConfirm({
+    title: 'Delete package entry?',
+    message: 'This removes it for everyone on this business. It cannot be undone.',
+    onConfirm: async () => {
+      showLoading();
+      try {
+        await supabase.from('packages').delete().eq('id', id);
+        cache.packages = cache.packages.filter(p => p.id !== id);
+      } catch(e){}
+      finally {
+        hideLoading();
+        await loadData();
+        renderTabBody();
+      }
+    }
+  });
+};
   window.__editPackage = (id) => openEditPackageModal(id);
 }
 function openEditPackageModal(packageId){
@@ -3758,11 +3871,33 @@ function renderPointsTab(body){
             </div>
           </div>
           <b style="font-family:'IBM Plex Mono',monospace;font-size:1.05rem;color:${p.points<0?'var(--brick)':'var(--leaf)'};">${p.points>0?'+':''}${p.points} pts</b>
-          ${isOwner()?`<button class="icon-btn" style="color:var(--brick);margin-top:4px;" onclick="window.__deletePoints('${p.id}')">Delete</button>`:''}
+          <div class="action-dropdown-holder">
+    <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${p.id}')">More ▾</button>
+    <div class="action-dropdown-menu" id="actionMenu_${p.id}">
+      ${isOwner() ? `<button class="danger" onclick="window.__deletePoints('${p.id}')">🗑 Delete</button>` : ''}
+    </div>
+  </div>
         </div>`).join('')}</div>` : `<div class="empty">No points history recorded yet.</div>`}
       <div id="pointsModalHolder"></div>
     `;
-    window.__deletePoints = async (id) => { if(!confirm('Delete this points entry?')) return; await supabase.from('points_log').delete().eq('id', id); await loadData(); renderTabBody(); };
+    window.__deletePoints = function(id) {
+  window.__showDeleteConfirm({
+    title: 'Delete points entry?',
+    message: 'This removes it for everyone on this business. It cannot be undone.',
+    onConfirm: async () => {
+      showLoading();
+      try {
+        await supabase.from('points_log').delete().eq('id', id);
+        cache.points = cache.points.filter(p => p.id !== id);
+      } catch(e){}
+      finally {
+        hideLoading();
+        await loadData();
+        renderTabBody();
+      }
+    }
+  });
+};
     return;
   }
 
@@ -4450,7 +4585,14 @@ function renderStaffTab(body){
           </div>
           <div class="row-actions">
             ${isManagerPlus() ? `<button class="icon-btn" onclick="window.__editStaff('${s.id}')">Edit</button>` : ''}
-            ${isOwner() && s.id !== session.staffId ? `<button class="icon-btn" style="color:var(--brick);" onclick="window.__deleteStaff('${s.id}')">Delete</button>` : ''}
+            ${isOwner() && s.id !== session.staffId ? `
+    <div class="action-dropdown-holder">
+      <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${s.id}')">More ▾</button>
+      <div class="action-dropdown-menu" id="actionMenu_${s.id}">
+        <button class="danger" onclick="window.__deleteStaff('${s.id}')">🗑 Delete</button>
+      </div>
+    </div>
+  ` : ''}
           </div>
         </div>
       `).join('')}
@@ -5427,12 +5569,34 @@ function renderSalaryTab(body){
       <div class="row-card" style="align-items:center;">
         <div class="row-main"><h3>${esc(staffName(sa.staff_id))}</h3><div class="meta"><span>${sa.paid_date}</span></div>${sa.notes?`<div class="notes">${esc(sa.notes)}</div>`:''}</div>
         <b style="font-family:'IBM Plex Mono',monospace;">₹${Number(sa.amount).toFixed(0)}</b>
-        <button class="icon-btn" style="color:var(--brick);" onclick="window.__deleteSalary('${sa.id}')">Delete</button>
+        <div class="action-dropdown-holder">
+    <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${sa.id}')">More ▾</button>
+    <div class="action-dropdown-menu" id="actionMenu_${sa.id}">
+      <button class="danger" onclick="window.__deleteSalary('${sa.id}')">🗑 Delete</button>
+    </div>
+  </div>
       </div>`).join('') : `<div class="empty">No salary payments logged yet. Tap + to add one.</div>`}
     <div id="salaryModalHolder"></div>
     <div id="scheduleModalHolder"></div>
   `;
-  window.__deleteSalary = async (id) => { if(!confirm('Delete this salary record?')) return; await supabase.from('salaries').delete().eq('id', id); await loadData(); renderTabBody(); };
+  window.__deleteSalary = function(id) {
+  window.__showDeleteConfirm({
+    title: 'Delete salary record?',
+    message: 'This removes it for everyone on this business. It cannot be undone.',
+    onConfirm: async () => {
+      showLoading();
+      try {
+        await supabase.from('salaries').delete().eq('id', id);
+        cache.salaries = cache.salaries.filter(s => s.id !== id);
+      } catch(e){}
+      finally {
+        hideLoading();
+        await loadData();
+        renderTabBody();
+      }
+    }
+  });
+};
   window.__setPayoutSchedule = (staffId) => {
     const s = cache.staff.find(x=>x.id===staffId);
     const holder = document.getElementById('scheduleModalHolder');
