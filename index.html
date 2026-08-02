@@ -5268,9 +5268,12 @@ function renderAccEntryHtml(existing){
           <div class="kv"><span>Less (Shortage)</span><b id="accSumLess" style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--brick);">₹${totals.less.toFixed(0)}</b></div>
         </div>
 
-        <div style="display:flex;gap:8px;margin-top:14px;">
-          <button class="stamp-btn" style="flex:2;padding:12px 0;font-size:0.95rem;" onclick="window.__saveAccEntry()">💾 Save Day's Account</button>
-          <button class="stamp-btn ghost" style="flex:1;padding:12px 0;font-size:0.8rem;background:var(--blue-soft);color:var(--blue);border-color:var(--blue);" onclick="window.__sendAccSmsSummary()">📲 Send SMS</button>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">
+          <div style="display:flex;gap:8px;">
+            <button class="stamp-btn" style="flex:2;padding:12px 0;font-size:0.95rem;" onclick="window.__saveAccEntry()">💾 Save Day's Account</button>
+            <button class="stamp-btn ghost" style="flex:1;padding:12px 0;font-size:0.8rem;background:var(--blue-soft);color:var(--blue);border-color:var(--blue);" onclick="window.__sendAccSmsSummary()">📲 Send SMS</button>
+          </div>
+          <button class="stamp-btn ghost" style="width:100%;padding:10px 0;font-size:0.82rem;background:var(--amber-soft);color:var(--turmeric-dark);border-color:var(--turmeric);" onclick="window.__sendSurplusDeficitSmsToStaff()">📢 Send Surplus / Deficit Alert SMS to Staffs</button>
         </div>
       </div>` : `
       <!-- Simple Data Entry Footer for Non-Owner Roles -->
@@ -5335,6 +5338,33 @@ window.__shiftAccDate = function(days) {
   accountsDate = localDateStr(dt);
   renderTabBody();
 };
+
+
+window.__sendSurplusDeficitSmsToStaff = function() {
+  const existing = cache.dailyAccounts.find(a => a.date === accountsDate);
+  const data = existing || {};
+  const totals = calcAccTotals(data);
+  let statusText = '';
+  if (totals.excess > 0) {
+    statusText = `SURPLUS of +₹${totals.excess.toFixed(0)}`;
+  } else if (totals.less > 0) {
+    statusText = `DEFICIT of -₹${totals.less.toFixed(0)}`;
+  } else {
+    statusText = `BALANCED (₹${totals.totalSales.toFixed(0)})`;
+  }
+
+  const msg = `${session.businessName} Accounts Alert (${accountsDate}): Daily cash tally has a ${statusText}. Total Sales: ₹${totals.totalSales.toFixed(0)}.`;
+  const staffPhones = cache.staff.map(s => s.phone).filter(Boolean);
+  if (!staffPhones.length) {
+    alert('No staff phone numbers found in system. Please add phone numbers under Staff tab.');
+    return;
+  }
+
+  sendSmsTo(staffPhones.join(','), msg);
+  logAuditEvent('Surplus/Deficit SMS', `Sent ${statusText} SMS alert to ${staffPhones.length} staff members`);
+  triggerAppNotification('SMS Alert Sent', `Sent ${statusText} SMS to staff`);
+};
+
 
 window.__sendAccSmsSummary = function() {
   const existing = cache.dailyAccounts.find(a => a.date === accountsDate);
@@ -5507,6 +5537,16 @@ window.__filterAccHistory = function(q) {
 };
 
 /* ---------------- CALENDAR SUB-TAB ---------------- */
+
+window.__shiftAccCalMonth = function(delta) {
+  if(!accCalMonth) accCalMonth = localMonthStr(new Date());
+  const [y, m] = accCalMonth.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  accCalMonth = localMonthStr(d);
+  renderTabBody();
+};
+
+
 function renderAccCalendarHtml(){
   const curM = accCalMonth;
   const [y, m] = curM.split('-').map(Number);
@@ -5556,7 +5596,11 @@ function renderAccCalendarHtml(){
     <div class="row-card" style="flex-direction:column;align-items:stretch;margin-bottom:14px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
         <h3 style="margin:0;font-size:1.05rem;color:var(--turmeric-dark);">Monthly Accounts Calendar</h3>
-        <input type="month" value="${curM}" onchange="accCalMonth=this.value;renderTabBody();" style="font-family:'IBM Plex Mono',monospace;font-weight:700;padding:4px 8px;border:1px solid var(--paper-line);border-radius:6px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button class="stamp-btn ghost small" onclick="window.__shiftAccCalMonth(-1)">‹ Prev</button>
+          <input type="month" value="${curM}" onchange="accCalMonth=this.value;renderTabBody();" style="font-family:'IBM Plex Mono',monospace;font-weight:700;padding:4px 8px;border:1px solid var(--paper-line);border-radius:6px;">
+          <button class="stamp-btn ghost small" onclick="window.__shiftAccCalMonth(1)">Next ›</button>
+        </div>
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(7, 1fr);gap:4px;text-align:center;font-size:0.7rem;font-weight:700;color:var(--ink-soft);margin-bottom:6px;">
@@ -5636,10 +5680,10 @@ function renderAccReportsHtml(){
   const creditPct = totSalesAll ? Math.round((totCreditAll / totSalesAll) * 100) : 0;
   const healthScore = Math.max(50, Math.min(99, 100 - creditPct + Math.min(20, digitalPct/2)));
 
-  // SVG Line Graph
-  const width = 640;
-  const height = 180;
-  const padding = 28;
+  // SVG Line Graph (Fixed height & padding to prevent label overlap)
+  const width = 680;
+  const height = 240;
+  const padding = 36;
 
   const points = buckets.map((b, i) => {
     const x = padding + (i / Math.max(1, buckets.length - 1)) * (width - padding * 2);
@@ -5689,10 +5733,10 @@ function renderAccReportsHtml(){
           ${points.map(p => `
             <g>
               <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="var(--paper)" stroke="var(--turmeric-dark)" stroke-width="2.5"/>
-              <text x="${p.x}" y="${p.y - 10}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink)" font-family="'IBM Plex Mono',monospace">
+              <text x="${p.x}" y="${Math.max(16, p.y - 12)}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--turmeric-dark)" font-family="'IBM Plex Mono',monospace">
                 ${p.val > 0 ? '₹' + (p.val >= 1000 ? Math.round(p.val/1000)+'k' : Math.round(p.val)) : ''}
               </text>
-              <text x="${p.x}" y="${height - 8}" text-anchor="middle" font-size="10" font-weight="600" fill="var(--ink-soft)">
+              <text x="${p.x}" y="${height - 12}" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink-soft)" font-family="'IBM Plex Mono',monospace">
                 ${p.label}
               </text>
             </g>
