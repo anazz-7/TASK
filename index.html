@@ -4869,10 +4869,13 @@ function renderAccountsTab(body){
   if(isOwner() && typeof supabase !== 'undefined' && session && session.businessId){
     supabase.from('tasks').select('*').eq('business_id', session.businessId).then(r => {
       if(r && r.data){
+        const prevCount = getPendingEditRequests().length;
         cache.tasks = r.data;
         const newPending = getPendingEditRequests();
-        const holder = document.getElementById('accPendingBannerHolder');
-        if(holder) holder.innerHTML = renderPendingBannerHtml(newPending);
+        if(newPending.length !== prevCount){
+          const holder = document.getElementById('accPendingBannerHolder');
+          if(holder) holder.innerHTML = renderPendingBannerHtml(newPending);
+        }
       }
     }).catch(()=>{});
   }
@@ -5008,15 +5011,17 @@ function renderAccEntryHtml(existing){
 }
 
 function setupAccEntryEvents(){
-  // Realtime check for Staff to catch Owner approval instantly
+  // Realtime check for Staff to catch Owner approval instantly (guarded against re-render loop)
   if(!isOwner() && accountsDate < todayStr() && typeof supabase !== 'undefined' && session && session.businessId){
     supabase.from('tasks').select('*').eq('business_id', session.businessId).eq('title', '[EDIT_REQ] ' + accountsDate).then(r => {
       if(r && r.data && r.data.some(t => t.status === 'done')){
         const approved = r.data.find(t => t.status === 'done');
         const existing = cache.tasks.find(t => t.title === '[EDIT_REQ] ' + accountsDate);
-        if(existing) existing.status = 'done';
-        else cache.tasks.push(approved);
-        renderTabBody();
+        if(!existing || existing.status !== 'done'){
+          if(existing) existing.status = 'done';
+          else cache.tasks.push(approved);
+          renderTabBody();
+        }
       }
     }).catch(()=>{});
   }
