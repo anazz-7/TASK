@@ -776,6 +776,7 @@ let session = JSON.parse(localStorage.getItem('br_session') || 'null'); // {staf
 let cache = { businesses: [], staff: [], tasks: [], attendance: [], sales: [], routines: [], routineLog: [], points: [], labels: [], weeklyTasks: [], weeklyTaskLog: [], packages: [], salesmanLocations: [], salaries: [], salesTargets: [], trophies: [], stockChecks: [], dailyAccounts: [] };
 let activeTab = 'tasks';
 let taskFilter = { staffId: '', priority: '', search: '' };
+let taskSubTab = 'active'; // 'active' | 'history'
 let expandedDoneIds = new Set();
 
 /* ---------------- bootstrap ---------------- */
@@ -2371,6 +2372,7 @@ window.__setTaskSubTab = function(t) {
 
 
 function renderTasksTab(body){
+  if(typeof taskSubTab === 'undefined') window.taskSubTab = 'active';
   let list = isManagerPlus() ? cache.tasks : cache.tasks.filter(t=>t.assigned_to===session.staffId);
   if(taskFilter.staffId) list = list.filter(t=>t.assigned_to===taskFilter.staffId);
   if(taskFilter.priority) list = list.filter(t=>t.priority===taskFilter.priority);
