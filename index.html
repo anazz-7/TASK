@@ -5271,9 +5271,9 @@ function renderAccEntryHtml(existing){
         <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">
           <div style="display:flex;gap:8px;">
             <button class="stamp-btn" style="flex:2;padding:12px 0;font-size:0.95rem;" onclick="window.__saveAccEntry()">💾 Save Day's Account</button>
-            <button class="stamp-btn ghost" style="flex:1;padding:12px 0;font-size:0.8rem;background:var(--blue-soft);color:var(--blue);border-color:var(--blue);" onclick="window.__sendAccSmsSummary()">📲 Send SMS</button>
+            <button class="stamp-btn ghost" style="flex:1;padding:12px 0;font-size:0.8rem;background:var(--blue-soft);color:var(--blue);border-color:var(--blue);" onclick="window.__openChooseStaffSmsModal('summary')">📲 Send SMS</button>
           </div>
-          <button class="stamp-btn ghost" style="width:100%;padding:10px 0;font-size:0.82rem;background:var(--amber-soft);color:var(--turmeric-dark);border-color:var(--turmeric);" onclick="window.__sendSurplusDeficitSmsToStaff()">📢 Send Surplus / Deficit Alert SMS to Staffs</button>
+          <button class="stamp-btn ghost" style="width:100%;padding:10px 0;font-size:0.82rem;background:var(--amber-soft);color:var(--turmeric-dark);border-color:var(--turmeric);" onclick="window.__openChooseStaffSmsModal('surplus')">📢 Choose Staff & Send Surplus/Deficit SMS</button>
         </div>
       </div>` : `
       <!-- Simple Data Entry Footer for Non-Owner Roles -->
@@ -5337,6 +5337,85 @@ window.__shiftAccDate = function(days) {
   dt.setDate(dt.getDate() + days);
   accountsDate = localDateStr(dt);
   renderTabBody();
+};
+
+
+
+/* ---------------- CHOOSE STAFF SMS RECIPIENTS MODAL ---------------- */
+window.__openChooseStaffSmsModal = function(smsType) {
+  const staffWithPhone = cache.staff.filter(s => s.phone && s.phone.trim());
+  if (!staffWithPhone.length) {
+    alert('No staff members have a phone number on file. Please add phone numbers under the Staff tab first.');
+    return;
+  }
+
+  const holder = getModalHolder('taskModalHolder');
+  const title = smsType === 'surplus' ? '📢 Choose Staff for Surplus/Deficit SMS' : '📲 Choose Staff for Accounts Summary SMS';
+
+  holder.innerHTML = `
+  <div class="overlay show"><div class="modal">
+    <h2>${title}</h2>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--paper-line);">
+      <span style="font-size:0.82rem;font-weight:600;color:var(--ink-soft);">Select Staff Recipients (${staffWithPhone.length})</span>
+      <label style="display:flex;align-items:center;gap:6px;margin:0;cursor:pointer;font-size:0.8rem;text-transform:none;letter-spacing:normal;">
+        <input type="checkbox" id="mSmsSelectAll" checked onchange="document.querySelectorAll('.mStaffSmsCb').forEach(c=>c.checked=this.checked)"> Select All
+      </label>
+    </div>
+    
+    <div style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
+      ${staffWithPhone.map(s => `
+        <label style="display:flex;align-items:center;justify-content:space-between;background:var(--paper);padding:8px 12px;border-radius:6px;border:1px solid var(--paper-line);margin:0;cursor:pointer;text-transform:none;letter-spacing:normal;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input type="checkbox" class="mStaffSmsCb" value="${esc(s.phone)}" data-name="${esc(s.name)}" checked>
+            <b style="font-size:0.88rem;color:var(--ink);">${esc(s.name)}</b>
+            <span class="role-pill ${s.role}">${s.role}</span>
+          </div>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:0.78rem;color:var(--ink-soft);">${esc(s.phone)}</span>
+        </label>
+      `).join('')}
+    </div>
+
+    <div class="modal-actions">
+      <button class="stamp-btn ghost" onclick="getModalHolder('taskModalHolder').innerHTML=''">Cancel</button>
+      <button class="stamp-btn" style="background:var(--turmeric);color:white;" onclick="window.__sendSmsToSelectedStaff('${smsType}')">📢 Send SMS</button>
+    </div>
+  </div></div>`;
+};
+
+window.__sendSmsToSelectedStaff = function(smsType) {
+  const selectedCbs = Array.from(document.querySelectorAll('.mStaffSmsCb:checked'));
+  if (!selectedCbs.length) {
+    alert('Please select at least one staff member.');
+    return;
+  }
+
+  const phones = selectedCbs.map(c => c.value);
+  const names = selectedCbs.map(c => c.getAttribute('data-name'));
+
+  const existing = cache.dailyAccounts.find(a => a.date === accountsDate);
+  const data = existing || {};
+  ACC_FIELDS.forEach(field => {
+    const el = document.getElementById(`accField_${field.key}`);
+    if(el) data[field.key] = Number(el.value || 0);
+  });
+  const totals = calcAccTotals(data);
+
+  let msg = '';
+  if (smsType === 'surplus') {
+    let statusText = '';
+    if (totals.excess > 0) statusText = `SURPLUS (+₹${totals.excess.toFixed(0)})`;
+    else if (totals.less > 0) statusText = `DEFICIT (-₹${totals.less.toFixed(0)})`;
+    else statusText = `BALANCED`;
+    msg = `${session.businessName} Accounts Alert (${accountsDate}): Daily cash tally status is ${statusText}.`;
+  } else {
+    const statusStr = totals.excess > 0 ? `+${totals.excess.toFixed(0)} Excess` : (totals.less > 0 ? `-${totals.less.toFixed(0)} Less` : 'Balanced');
+    msg = `Accounts Register (${accountsDate}): Sales ₹${totals.totalSales.toFixed(0)} | Cash ₹${Number(data.amount||0).toFixed(0)} | GPay ₹${Number(data.gpay||0).toFixed(0)} | Total ₹${totals.total.toFixed(0)} [${statusStr}] — ${session.businessName}`;
+  }
+
+  sendSmsTo(phones.join(','), msg);
+  getModalHolder('taskModalHolder').innerHTML = '';
+  logAuditEvent('Staff SMS', `Sent SMS to ${names.join(', ')}`);
+  window.showToast(`📢 SMS sent to ${names.length} staff member(s)!`, 'success');
 };
 
 
