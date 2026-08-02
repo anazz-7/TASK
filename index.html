@@ -5889,6 +5889,8 @@ let salaryReportMode = 'monthly';
 window.__setSalaryReportMode = (m) => { salaryReportMode = m; renderTabBody(); };
 const WEEKDAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
+let salarySubTab = 'payouts'; // 'payouts' | 'advances' | 'schedules'
+
 /* ---------------- FEATURE 7: SALARY ADVANCES & DEDUCTIONS ---------------- */
 function getSalaryAdvances() {
   try {
@@ -5987,89 +5989,108 @@ function payScheduleLabel(s){
   if(freq==='weekly') return s.salary_day ? `Paid weekly, on ${WEEKDAY_NAMES[s.salary_day]}` : 'Paid weekly — no day set';
   return s.salary_day ? `Paid monthly, on day ${s.salary_day}` : 'Paid monthly — no day set';
 }
+
+window.__setSalarySubTab = function(t) {
+  salarySubTab = t;
+  renderTabBody();
+};
+
+
 function renderSalaryTab(body){
   const advances = getSalaryAdvances();
   const currentMonth = monthKey(todayStr());
   const advancesThisMonth = advances.filter(a => monthKey(a.date) === currentMonth);
 
   body.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-      <div class="section-label" style="margin:0;">Salary & Advance Payouts</div>
-      <button class="stamp-btn small" style="background:var(--turmeric);color:white;" onclick="window.__openSalaryAdvanceModal()">💸 Record Salary Advance</button>
+    <!-- Salary Sub-Menu Navigation Bar -->
+    <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;">
+      <button class="stamp-btn small ${salarySubTab==='payouts'?'':'ghost'}" onclick="window.__setSalarySubTab('payouts')">💵 Payout History (${cache.salaries.length})</button>
+      <button class="stamp-btn small ${salarySubTab==='advances'?'':'ghost'}" onclick="window.__setSalarySubTab('advances')">💸 Salary Advances (${advances.length})</button>
+      <button class="stamp-btn small ${salarySubTab==='schedules'?'':'ghost'}" onclick="window.__setSalarySubTab('schedules')">📅 Schedules (${cache.staff.length})</button>
     </div>
-    
-    ${buildQtyGraphHtml(cache.salaries, salaryReportMode, '__setSalaryReportMode', '', 'amount', '₹', 'paid_date')}
-    
-    <!-- Feature 7: Salary Advances & Deductions Overview per Staff -->
-    <div class="section-label">Staff Advances & Deductions (${currentMonth})</div>
-    <div class="cards-grid" style="margin-bottom:16px;">
-      ${cache.staff.map(s => {
-        const staffAdvs = advancesThisMonth.filter(a => a.staff_id === s.id);
-        const totalAdv = staffAdvs.reduce((sum, a) => sum + Number(a.amount||0), 0);
-        return `
-          <div class="row-card" style="flex-direction:column;align-items:stretch;padding:12px 14px;">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-              <div>
-                <b style="font-size:0.92rem;color:var(--ink);">${esc(s.name)}</b>
-                <span class="role-pill ${s.role}">${s.role}</span>
-                <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">${payScheduleLabel(s)}</div>
-              </div>
-              <div style="text-align:right;">
-                <div style="font-size:0.68rem;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;">ADVANCES THIS MONTH</div>
-                <b style="font-size:1rem;color:${totalAdv > 0 ? 'var(--brick)' : 'var(--leaf)'};font-family:'IBM Plex Mono',monospace;">₹${totalAdv.toFixed(0)}</b>
-              </div>
+
+    ${salarySubTab === 'payouts' ? `
+      ${buildQtyGraphHtml(cache.salaries, salaryReportMode, '__setSalaryReportMode', '', 'amount', '₹', 'paid_date')}
+      <div class="section-label">Salary Payment History</div>
+      ${cache.salaries.length ? cache.salaries.map(sa=>`
+        <div class="row-card" style="align-items:center;">
+          <div class="row-main"><h3>${esc(staffName(sa.staff_id))}</h3><div class="meta"><span>${sa.paid_date}</span></div>${sa.notes?`<div class="notes">${esc(sa.notes)}</div>`:''}</div>
+          <b style="font-family:'IBM Plex Mono',monospace;">₹${Number(sa.amount).toFixed(0)}</b>
+          <div class="action-dropdown-holder">
+            <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${sa.id}')">More ▾</button>
+            <div class="action-dropdown-menu" id="actionMenu_${sa.id}">
+              <button class="danger" onclick="window.__deleteSalary('${sa.id}')">🗑 Delete</button>
             </div>
-            ${staffAdvs.length ? `
-              <div style="margin-top:8px;padding-top:6px;border-top:1px dashed var(--paper-line);">
-                ${staffAdvs.map(a => `
-                  <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">
-                    <span>${a.date} (${esc(a.notes||'Advance')})</span>
-                    <span style="font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--brick);">₹${Number(a.amount).toFixed(0)}</span>
-                  </div>
-                `).join('')}
-              </div>
-            ` : ''}
           </div>
-        `;
-      }).join('')}
-    </div>
+        </div>`).join('') : `<div class="empty">No salary payments logged yet. Tap + to add one.</div>`}
+    ` : ''}
 
-    <div class="section-label">Payout schedule per staff</div>
-    ${cache.staff.map(s=>`
-      <div class="row-card" style="align-items:center;">
-        <div class="row-main"><h3>${esc(s.name)}</h3><div class="meta"><span>${payScheduleLabel(s)}</span></div></div>
-        <button class="icon-btn" onclick="window.__setPayoutSchedule('${s.id}')">Edit</button>
-      </div>`).join('')}
-    <div class="section-label">Salary Advance Ledger (${advances.length})</div>
-    ${advances.length ? advances.map(a => `
-      <div class="row-card" style="align-items:center;">
-        <div class="row-main">
-          <h3>${esc(staffName(a.staff_id))}</h3>
-          <div class="meta"><span>${a.date}</span></div>
-          ${a.notes ? `<div class="notes">${esc(a.notes)}</div>` : ''}
-        </div>
-        <b style="font-family:'IBM Plex Mono',monospace;color:var(--brick);">₹${Number(a.amount).toFixed(0)}</b>
-        <div class="action-dropdown-holder">
-          <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${a.id}')">More ▾</button>
-          <div class="action-dropdown-menu" id="actionMenu_${a.id}">
-            <button class="danger" onclick="window.__deleteSalaryAdvance('${a.id}')">🗑 Delete</button>
-          </div>
-        </div>
+    ${salarySubTab === 'advances' ? `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div class="section-label" style="margin:0;">Staff Advances Overview (${currentMonth})</div>
+        <button class="stamp-btn small" style="background:var(--turmeric);color:white;" onclick="window.__openSalaryAdvanceModal()">💸 Record Salary Advance</button>
       </div>
-    `).join('') : `<div class="empty">No salary advances recorded.</div>`}
 
-    <div class="section-label">Payment history</div>
-    ${cache.salaries.length ? cache.salaries.map(sa=>`
-      <div class="row-card" style="align-items:center;">
-        <div class="row-main"><h3>${esc(staffName(sa.staff_id))}</h3><div class="meta"><span>${sa.paid_date}</span></div>${sa.notes?`<div class="notes">${esc(sa.notes)}</div>`:''}</div>
-        <b style="font-family:'IBM Plex Mono',monospace;">₹${Number(sa.amount).toFixed(0)}</b>
-        <div class="action-dropdown-holder">
-    <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${sa.id}')">More ▾</button>
-    <div class="action-dropdown-menu" id="actionMenu_${sa.id}">
-      <button class="danger" onclick="window.__deleteSalary('${sa.id}')">🗑 Delete</button>
-    </div>
-  </div>
-      </div>`).join('') : `<div class="empty">No salary payments logged yet. Tap + to add one.</div>`}
+      <div class="cards-grid" style="margin-bottom:16px;">
+        ${cache.staff.map(s => {
+          const staffAdvs = advancesThisMonth.filter(a => a.staff_id === s.id);
+          const totalAdv = staffAdvs.reduce((sum, a) => sum + Number(a.amount||0), 0);
+          return `
+            <div class="row-card" style="flex-direction:column;align-items:stretch;padding:12px 14px;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <div>
+                  <b style="font-size:0.92rem;color:var(--ink);">${esc(s.name)}</b>
+                  <span class="role-pill ${s.role}">${s.role}</span>
+                  <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">${payScheduleLabel(s)}</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:0.68rem;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;">ADVANCES THIS MONTH</div>
+                  <b style="font-size:1rem;color:${totalAdv > 0 ? 'var(--brick)' : 'var(--leaf)'};font-family:'IBM Plex Mono',monospace;">₹${totalAdv.toFixed(0)}</b>
+                </div>
+              </div>
+              ${staffAdvs.length ? `
+                <div style="margin-top:8px;padding-top:6px;border-top:1px dashed var(--paper-line);">
+                  ${staffAdvs.map(a => `
+                    <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">
+                      <span>${a.date} (${esc(a.notes||'Advance')})</span>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--brick);">₹${Number(a.amount).toFixed(0)}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }).join('')}
+      </div>
+
+      <div class="section-label">Salary Advance Ledger (${advances.length})</div>
+      ${advances.length ? advances.map(a => `
+        <div class="row-card" style="align-items:center;">
+          <div class="row-main">
+            <h3>${esc(staffName(a.staff_id))}</h3>
+            <div class="meta"><span>${a.date}</span></div>
+            ${a.notes ? `<div class="notes">${esc(a.notes)}</div>` : ''}
+          </div>
+          <b style="font-family:'IBM Plex Mono',monospace;color:var(--brick);">₹${Number(a.amount).toFixed(0)}</b>
+          <div class="action-dropdown-holder">
+            <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${a.id}')">More ▾</button>
+            <div class="action-dropdown-menu" id="actionMenu_${a.id}">
+              <button class="danger" onclick="window.__deleteSalaryAdvance('${a.id}')">🗑 Delete</button>
+            </div>
+          </div>
+        </div>
+      `).join('') : `<div class="empty">No salary advances recorded.</div>`}
+    ` : ''}
+
+    ${salarySubTab === 'schedules' ? `
+      <div class="section-label">Payout Schedule Per Staff</div>
+      ${cache.staff.map(s=>`
+        <div class="row-card" style="align-items:center;">
+          <div class="row-main"><h3>${esc(s.name)}</h3><div class="meta"><span>${payScheduleLabel(s)}</span></div></div>
+          <button class="icon-btn" onclick="window.__setPayoutSchedule('${s.id}')">Edit</button>
+        </div>`).join('')}
+    ` : ''}
+
     <div id="salaryModalHolder"></div>
     <div id="scheduleModalHolder"></div>
   `;
