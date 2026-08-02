@@ -4635,6 +4635,27 @@ function openStaffModal(staffId){
     <input id="mStaffPhone" value="${s ? esc(s.phone||'') : ''}" placeholder="e.g. 9876543210">
     <label>PIN Code (4-6 digits)</label>
     <input id="mStaffPin" type="password" inputmode="numeric" value="${s ? esc(s.pin||'') : ''}" placeholder="••••">
+    
+    <!-- Weekly & Monthly Salary Payout Configuration -->
+    <div style="margin-top:14px;padding:12px;background:var(--paper);border-radius:8px;border:1px solid var(--paper-line);">
+      <div style="font-weight:700;font-size:0.85rem;color:var(--turmeric-dark);margin-bottom:8px;">💰 Salary Payout Schedule</div>
+      <label style="margin-top:0;">Payout Frequency</label>
+      <select id="mStaffSalaryFreq" onchange="window.__toggleStaffSalaryFields()">
+        <option value="weekly" ${s && s.salary_frequency==='weekly'?'selected':''}>Weekly Payouts</option>
+        <option value="monthly" ${(!s || s.salary_frequency==='monthly')?'selected':''}>Monthly Payouts</option>
+        <option value="daily" ${s && s.salary_frequency==='daily'?'selected':''}>Daily Payouts</option>
+      </select>
+      <label>Base Salary Amount (₹)</label>
+      <input type="number" id="mStaffBaseSalary" value="${s ? (s.base_salary||'') : ''}" placeholder="e.g. 4500 (Weekly) or 18000 (Monthly)">
+      <div id="mStaffDayWrap">
+        <label>Payout Day</label>
+        <select id="mStaffSalaryDay">
+          ${WEEKDAY_NAMES.map((d,i)=>`<option value="${i}" ${s && s.salary_day===i?'selected':''}>Every ${d} (Weekly)</option>`).join('')}
+          ${Array.from({length:31},(_,i)=>i+1).map(d=>`<option value="${d}" ${s && s.salary_day===d?'selected':''}>Day ${d} of Month (Monthly)</option>`).join('')}
+        </select>
+      </div>
+    </div>
+
     <div class="modal-actions">
       <button class="stamp-btn ghost" onclick="window.__closeStaffModal()">Cancel</button>
       <button class="stamp-btn" onclick="window.__saveStaff('${staffId||''}')">Save Staff</button>
@@ -4650,12 +4671,19 @@ function openStaffModal(staffId){
 
     if(!name || !pin){ alert('Enter name and PIN code.'); return; }
 
+    const salary_frequency = document.getElementById('mStaffSalaryFreq').value;
+    const salary_day = Number(document.getElementById('mStaffSalaryDay').value || 0);
+    const base_salary = Number(document.getElementById('mStaffBaseSalary').value || 0);
+
     const data = {
       business_id: session.businessId,
       name,
       role,
       phone: phone || null,
       pin,
+      salary_frequency,
+      salary_day,
+      base_salary
     };
 
     await guardedSave('staff-' + (id||'new'), async () => {
@@ -5985,9 +6013,11 @@ window.__deleteSalaryAdvance = function(id) {
 
 function payScheduleLabel(s){
   const freq = s.salary_frequency || 'monthly';
-  if(freq==='daily') return 'Paid daily';
-  if(freq==='weekly') return s.salary_day ? `Paid weekly, on ${WEEKDAY_NAMES[s.salary_day]}` : 'Paid weekly — no day set';
-  return s.salary_day ? `Paid monthly, on day ${s.salary_day}` : 'Paid monthly — no day set';
+  const amt = Number(s.base_salary || 0);
+  const amtStr = amt > 0 ? ` (₹${amt.toLocaleString('en-IN')})` : '';
+  if(freq==='daily') return `Paid Daily${amtStr}`;
+  if(freq==='weekly') return s.salary_day != null ? `Paid Weekly on ${WEEKDAY_NAMES[s.salary_day]}${amtStr}` : `Paid Weekly${amtStr}`;
+  return s.salary_day ? `Paid Monthly on Day ${s.salary_day}${amtStr}` : `Paid Monthly${amtStr}`;
 }
 
 window.__setSalarySubTab = function(t) {
