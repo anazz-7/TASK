@@ -1373,13 +1373,15 @@ if('serviceWorker' in navigator){
 async function showNotification(title, body){
   if(!('Notification' in window) || Notification.permission !== 'granted') return;
   try{
-    if('serviceWorker' in navigator){
+    if('serviceWorker' in navigator && navigator.serviceWorker.controller){
       const reg = await navigator.serviceWorker.ready;
-      reg.showNotification(title, { body, icon: undefined });
+      reg.showNotification(title, { body, icon: 'icon-192.png', badge: 'icon-192.png', vibrate: [200, 100, 200] });
     } else {
-      new Notification(title, { body });
+      new Notification(title, { body, icon: 'icon-192.png' });
     }
-  } catch(e){ /* some browsers still block this silently */ }
+  } catch(e){
+    try{ new Notification(title, { body, icon: 'icon-192.png' }); }catch(err){}
+  }
 }
 function maybeNotify(){
   if(!('Notification' in window) || Notification.permission !== 'granted') return;
@@ -1528,9 +1530,25 @@ function startPopupReminders(){
 function requestNotifications(){
   if(!('Notification' in window)){ alert('Notifications are not supported in this browser.'); return; }
   Notification.requestPermission().then(async p => {
-    if(p==='granted'){ await showNotification('Notifications on', 'You will see reminders here while the app is open.'); startReminderLoop(); }
-    else if(p==='denied'){ alert('Notifications were blocked. To turn them on, check your browser/site settings for this page and allow notifications.'); }
-    renderShell();
+    if(p==='granted'){
+      if('serviceWorker' in navigator){
+        try {
+          const reg = await navigator.serviceWorker.register('sw.js');
+          if(reg) {
+            reg.showNotification('BABM TASK Connected', {
+              body: 'Web Push Notifications enabled! You will receive alerts even when the site is closed.',
+              icon: 'icon-192.png',
+              vibrate: [200, 100, 200]
+            });
+          }
+        } catch(e){}
+      }
+      if(typeof window.showToast==='function') window.showToast('🔔 Web Push Notifications Enabled!', 'success');
+      startReminderLoop();
+    } else if(p==='denied'){
+      alert('Notifications were blocked. To turn them on, check your browser/site settings for this page and allow notifications.');
+    }
+    if(typeof renderShell==='function') renderShell();
   });
 }
 
