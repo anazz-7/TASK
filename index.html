@@ -2468,10 +2468,11 @@ function renderDailyTab(body){
       </div>
       <div class="row-actions">
         <button class="stamp-btn small ${done?'ghost':''}" onclick="window.__toggleRoutine('${r.id}', ${done})">${done?'Undo':icon('check',14)+' Done today'}</button>
-        ${isManagerPlus()?`<button class="icon-btn" onclick="window.__editRoutine('${r.id}')">Edit</button>`:''}
+        
         <div class="action-dropdown-holder">
     <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${r.id}')">More ▾</button>
     <div class="action-dropdown-menu" id="actionMenu_${r.id}">
+      ${isManagerPlus() ? `<button onclick="window.__editRoutine('${r.id}')">✎ Edit</button>` : ''}
       ${isOwner() ? `<button class="danger" onclick="window.__deleteRoutine('${r.id}')">🗑 Delete</button>` : ''}
     </div>
   </div>
@@ -2619,10 +2620,11 @@ function renderWeeklyTab(body){
       </div>
       <div class="row-actions">
         <button class="stamp-btn small ${done?'ghost':''}" onclick="window.__toggleWeekly('${w.id}', ${done})">${done?'Undo':icon('check',14)+' Done'}</button>
-        ${isManagerPlus()?`<button class="icon-btn" onclick="window.__editWeekly('${w.id}')">Edit</button>`:''}
+        
         <div class="action-dropdown-holder">
     <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${w.id}')">More ▾</button>
     <div class="action-dropdown-menu" id="actionMenu_${w.id}">
+      ${isManagerPlus() ? `<button onclick="window.__editWeekly('${w.id}')">✎ Edit</button>` : ''}
       ${isOwner() ? `<button class="danger" onclick="window.__deleteWeekly('${w.id}')">🗑 Delete</button>` : ''}
     </div>
   </div>
@@ -4584,15 +4586,13 @@ function renderStaffTab(body){
             </div>
           </div>
           <div class="row-actions">
-            ${isManagerPlus() ? `<button class="icon-btn" onclick="window.__editStaff('${s.id}')">Edit</button>` : ''}
-            ${isOwner() && s.id !== session.staffId ? `
-    <div class="action-dropdown-holder">
-      <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${s.id}')">More ▾</button>
-      <div class="action-dropdown-menu" id="actionMenu_${s.id}">
-        <button class="danger" onclick="window.__deleteStaff('${s.id}')">🗑 Delete</button>
-      </div>
-    </div>
-  ` : ''}
+            <div class="action-dropdown-holder">
+              <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${s.id}')">More ▾</button>
+              <div class="action-dropdown-menu" id="actionMenu_${s.id}">
+                ${isManagerPlus() ? `<button onclick="window.__editStaff('${s.id}')">✎ Edit</button>` : ''}
+                ${isOwner() && s.id !== session.staffId ? `<button class="danger" onclick="window.__deleteStaff('${s.id}')">🗑 Delete</button>` : ''}
+              </div>
+            </div>
           </div>
         </div>
       `).join('')}
