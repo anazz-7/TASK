@@ -542,6 +542,124 @@
     background: var(--brick-soft);
   }
 
+
+  /* ---------------- MORE BUTTON & PROPER PADDING ENGINE ---------------- */
+  header.top {
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    background: var(--card);
+    border-bottom: 1px solid var(--paper-line);
+    flex-wrap: nowrap;
+    z-index: 30;
+  }
+  .header-title-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .header-title-area h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+  }
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .wrap {
+    padding: 14px 12px 60px;
+    max-width: 100%;
+  }
+
+  @media (min-width: 900px) {
+    header.top {
+      padding: 16px 28px;
+    }
+    .wrap {
+      padding: 24px 32px 60px;
+      max-width: 1280px;
+    }
+  }
+
+  /* Action Dropdown "More ▾" Button */
+  .action-dropdown-holder {
+    position: relative;
+    display: inline-block;
+  }
+  .action-more-btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 5px 10px;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+  }
+  .action-more-btn:hover {
+    background: var(--paper-line);
+  }
+  .action-dropdown-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    z-index: 100;
+    background: var(--card);
+    border: 1px solid var(--paper-line);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    padding: 6px;
+    min-width: 145px;
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .action-dropdown-menu.show {
+    display: flex;
+  }
+  .action-dropdown-menu button {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    padding: 8px 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--ink);
+    cursor: pointer;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .action-dropdown-menu button:hover {
+    background: var(--paper);
+  }
+  .action-dropdown-menu button.danger {
+    color: var(--brick);
+  }
+  .action-dropdown-menu button.danger:hover {
+    background: var(--brick-soft);
+  }
+
 </style>
 </head>
 <body>
@@ -1361,10 +1479,10 @@ function renderShell(){
     <div class="app-main">
       <header class="top">
         <div class="header-title-area">
-          <button class="header-icon-btn mobile-only" onclick="window.__openDrawer()" style="margin-right:4px;">${icon('menu',22)}</button>
-          <div>
-            <h1 style="font-size:1.15rem;margin:0;">${activeLabel}</h1>
-            <p class="desktop-only" style="margin-top:1px;font-size:0.75rem;color:var(--ink-soft);">${esc(session.businessName)} &bull; ${esc(session.name)} (${session.role})</p>
+          <button class="header-icon-btn mobile-only" onclick="window.__openDrawer()" style="margin-right:2px;display:flex;align-items:center;justify-content:center;">${icon('menu',22)}</button>
+          <div style="display:flex;flex-direction:column;justify-content:center;">
+            <h1 style="font-size:1.15rem;margin:0;line-height:1.2;">${activeLabel}</h1>
+            <p class="desktop-only" style="margin:2px 0 0;font-size:0.75rem;color:var(--ink-soft);line-height:1.2;">${esc(session.businessName)} &bull; ${esc(session.name)} (${session.role})</p>
           </div>
         </div>
         <div class="header-actions">
@@ -2073,7 +2191,7 @@ function renderTasksTab(body){
       <div class="row-actions" style="display:flex;align-items:center;gap:6px;">
         ${t.status!=='done'?`<button class="icon-btn" style="font-weight:600;color:var(--leaf);" onclick="window.__markDone('${t.id}')">${icon('check',14)} Done</button>`:''}
         <div class="action-dropdown-holder">
-          <button class="action-dots-btn" onclick="window.__toggleActionMenu(event, '${t.id}')">⋮</button>
+          <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${t.id}')">More ▾</button>
           <div class="action-dropdown-menu" id="actionMenu_${t.id}">
             ${isManagerPlus()?`<button onclick="window.__editTask('${t.id}')">✎ Edit</button>`:''}
             ${isManagerPlus()?`<button onclick="window.__sendWa('${t.id}')">💬 WhatsApp</button>`:''}
