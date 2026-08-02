@@ -660,112 +660,6 @@
     background: var(--brick-soft);
   }
 
-
-  /* Feature 1: Dark Mode Theme Tokens */
-  [data-theme="dark"] {
-    --paper:#0B132B; --paper-line:#1E2D4A; --card:#142240;
-    --ink:#F0F4F9; --ink-soft:#94A3B8;
-    --turmeric:#2563EB; --turmeric-dark:#1D4ED8;
-    --leaf:#10B981; --leaf-soft:#064E3B;
-    --brick:#EF4444; --brick-soft:#450A0A;
-    --amber-soft:#1E293B; --blue-soft:#1E293B; --blue:#3B82F6;
-    --purple-soft:#1E293B; --purple:#8B5CF6;
-  }
-
-  /* Feature 6: Glassmorphism Quick Status Bar */
-  .glass-status-bar {
-    background: rgba(255, 255, 255, 0.65);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    border-radius: 20px;
-    padding: 4px 12px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--ink);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-  }
-  [data-theme="dark"] .glass-status-bar {
-    background: rgba(20, 34, 64, 0.7);
-    border-color: rgba(30, 45, 74, 0.6);
-  }
-
-  /* Feature 3: Shimmer Skeleton & Micro-Animations */
-  @keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-  }
-  .skeleton {
-    background: linear-gradient(90deg, var(--paper-line) 25%, var(--paper) 50%, var(--paper-line) 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
-    border-radius: 6px;
-  }
-  .row-card {
-    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease;
-  }
-  .row-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-  }
-
-  /* Feature 2: Expandable Speed Dial FAB Wheel */
-  .speed-dial-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(11, 19, 43, 0.5);
-    backdrop-filter: blur(4px);
-    z-index: 45;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.2s ease;
-  }
-  .speed-dial-overlay.show {
-    opacity: 1;
-    visibility: visible;
-  }
-  .speed-dial-menu {
-    position: fixed;
-    bottom: 90px;
-    right: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 10px;
-    z-index: 46;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(20px) scale(0.9);
-    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-  .speed-dial-menu.show {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0) scale(1);
-  }
-  .speed-dial-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: var(--card);
-    color: var(--ink);
-    border: 1px solid var(--paper-line);
-    padding: 10px 16px;
-    border-radius: 30px;
-    font-family: 'Space Grotesk', sans-serif;
-    font-weight: 600;
-    font-size: 0.88rem;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  .speed-dial-item:active {
-    transform: scale(0.95);
-  }
-
 </style>
 </head>
 <body>
@@ -1157,45 +1051,6 @@ window.alert = function(msg) {
     window.__showAppAlert({ title: 'System Notice', message: msg, type: 'error' });
   } else {
     window.showToast(msg, 'success');
-  }
-};
-
-
-
-/* ---------------- THEME SWITCHER (Feature 1) ---------------- */
-function initTheme() {
-  const saved = localStorage.getItem('br_theme') || 'light';
-  document.documentElement.setAttribute('data-theme', saved);
-}
-initTheme();
-
-window.__toggleTheme = function() {
-  const current = document.documentElement.getAttribute('data-theme') || 'light';
-  const next = current === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem('br_theme', next);
-  if (typeof window.showToast === 'function') {
-    window.showToast(next === 'dark' ? '🌙 Dark Mode Activated' : '☀️ Light Mode Activated', 'info');
-  }
-  if (typeof renderShell === 'function') renderShell();
-};
-
-/* ---------------- SPEED DIAL FAB (Feature 2) ---------------- */
-window.__toggleSpeedDial = function() {
-  const menu = document.getElementById('speedDialMenu');
-  const overlay = document.getElementById('speedDialOverlay');
-  const fab = document.getElementById('fabMainBtn');
-  if (menu && overlay) {
-    const isShowing = menu.classList.contains('show');
-    if (isShowing) {
-      menu.classList.remove('show');
-      overlay.classList.remove('show');
-      if(fab) fab.style.transform = 'rotate(0deg)';
-    } else {
-      menu.classList.add('show');
-      overlay.classList.add('show');
-      if(fab) fab.style.transform = 'rotate(45deg)';
-    }
   }
 };
 
@@ -1713,14 +1568,6 @@ function renderShell(){
           </div>
         </div>
         <div class="header-actions">
-          <div class="glass-status-bar desktop-only">
-            <span class="status-dot green"></span>
-            <span>${cache && cache.staff ? cache.staff.length : 1} Active</span> &bull; 
-            <span>⚡ ${cache && cache.tasks ? cache.tasks.filter(t=>t.status!=='done').length : 0} Tasks</span>
-          </div>
-          <button class="header-icon-btn" onclick="window.__toggleTheme()" title="Toggle Dark/Light Mode" style="font-size:1.15rem;background:transparent;border:none;cursor:pointer;padding:4px 6px;">
-            ${(document.documentElement.getAttribute('data-theme')==='dark') ? '☀️' : '🌙'}
-          </button>
           ${isManagerPlus() ? `<button class="stamp-btn small" style="background:var(--turmeric-dark);color:#fff;border-color:var(--turmeric-dark);padding:5px 9px;font-size:0.75rem;" onclick="window.__openQuickTaskModal()">⚡ Quick Add</button>` : ''}
           <button class="stamp-btn small ghost desktop-only" style="padding:5px 9px;font-size:0.75rem;" onclick="window.__triggerPwaInstall()">${icon('save',15)} Install App</button>
           ${getPrimaryActionBtn(activeTab)}
@@ -1776,15 +1623,16 @@ function renderShell(){
     </div>
   </div>
 
-  <!-- Feature 2: Expandable Speed Dial FAB Wheel -->
-  <div class="speed-dial-overlay mobile-only" id="speedDialOverlay" onclick="window.__toggleSpeedDial()"></div>
-  <div class="speed-dial-menu mobile-only" id="speedDialMenu">
-    <div class="speed-dial-item" onclick="window.__openSale();window.__toggleSpeedDial();">🛒 Log Sale</div>
-    <div class="speed-dial-item" onclick="window.__setTab('accounts');window.__toggleSpeedDial();">📝 Accounts Entry</div>
-    <div class="speed-dial-item" onclick="window.__openTask();window.__toggleSpeedDial();">⚡ Add Task</div>
-    ${isManagerPlus() ? `<div class="speed-dial-item" onclick="window.__openPoints();window.__toggleSpeedDial();">⭐ Award Points</div>` : ''}
-  </div>
-  <button class="fab mobile-only" id="fabMainBtn" onclick="window.__toggleSpeedDial()">+</button>
+  <!-- Mobile Floating Action Buttons -->
+  ${activeTab==='tasks' ? '<button class="fab mobile-only" onclick="window.__openTask()">+</button>' : ''}
+  ${activeTab==='daily' && isManagerPlus() ? '<button class="fab mobile-only" onclick="window.__openRoutine()">+</button>' : ''}
+  ${activeTab==='weekly' && isManagerPlus() ? '<button class="fab mobile-only" onclick="window.__openWeekly()">+</button>' : ''}
+  ${activeTab==='staff' ? '<button class="fab mobile-only" onclick="window.__openStaff()">+</button>' : ''}
+  ${activeTab==='sales' ? '<button class="fab mobile-only" onclick="window.__openSale()">+</button>' : ''}
+  ${activeTab==='label' ? '<button class="fab mobile-only" onclick="window.__openLabel()">+</button>' : ''}
+  ${activeTab==='package' ? '<button class="fab mobile-only" onclick="window.__openPackage()">+</button>' : ''}
+  ${activeTab==='salary' && isOwner() ? '<button class="fab mobile-only" onclick="window.__openSalary()">+</button>' : ''}
+  ${activeTab==='points' && isManagerPlus() ? '<button class="fab mobile-only" onclick="window.__openPoints()">+</button>' : ''}
   `;
 
   window.__logout = logout;
