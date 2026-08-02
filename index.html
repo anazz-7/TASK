@@ -5346,14 +5346,14 @@ window.__sendSurplusDeficitSmsToStaff = function() {
   const totals = calcAccTotals(data);
   let statusText = '';
   if (totals.excess > 0) {
-    statusText = `SURPLUS of +₹${totals.excess.toFixed(0)}`;
+    statusText = `SURPLUS (+₹${totals.excess.toFixed(0)})`;
   } else if (totals.less > 0) {
-    statusText = `DEFICIT of -₹${totals.less.toFixed(0)}`;
+    statusText = `DEFICIT (-₹${totals.less.toFixed(0)})`;
   } else {
-    statusText = `BALANCED (₹${totals.totalSales.toFixed(0)})`;
+    statusText = `BALANCED`;
   }
 
-  const msg = `${session.businessName} Accounts Alert (${accountsDate}): Daily cash tally has a ${statusText}. Total Sales: ₹${totals.totalSales.toFixed(0)}.`;
+  const msg = `${session.businessName} Accounts Alert (${accountsDate}): Daily cash tally status is ${statusText}.`;
   const staffPhones = cache.staff.map(s => s.phone).filter(Boolean);
   if (!staffPhones.length) {
     alert('No staff phone numbers found in system. Please add phone numbers under Staff tab.');
