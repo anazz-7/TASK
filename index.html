@@ -717,23 +717,24 @@
   .owner-fab-btn {
     position: fixed;
     bottom: 78px;
-    right: 20px;
+    right: 16px;
     background: linear-gradient(135deg, var(--turmeric-dark), var(--turmeric));
     color: #ffffff;
-    border: 1.5px solid rgba(255,255,255,0.3);
-    border-radius: 30px;
-    padding: 12px 18px;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 24px;
+    padding: 8px 14px;
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 0.88rem;
+    font-size: 0.78rem;
     font-weight: 700;
-    box-shadow: 0 6px 20px rgba(30,58,110,0.35);
+    box-shadow: 0 4px 14px rgba(30,58,110,0.3);
     cursor: pointer;
     z-index: 44;
     transition: all 0.2s ease;
   }
   @media (min-width: 768px) {
     .owner-fab-btn {
-      bottom: 24px;
+      bottom: 20px;
+      right: 20px;
     }
   }
   .owner-fab-btn:active {
@@ -1722,7 +1723,7 @@ function renderShell(){
   </div>
 
   <!-- Owner-Only Quick Access Floating Action Button -->
-  ${isOwner() ? `
+  ${(activeTab === 'dashboard' && isOwner()) ? `
     <div class="owner-fab-overlay" id="ownerFabOverlay" onclick="window.__toggleOwnerFab()"></div>
     <div class="owner-fab-menu" id="ownerFabMenu">
       <div class="owner-fab-item" onclick="window.__setTab('accounts');window.__toggleOwnerFab();">📝 Accounts Entry</div>
@@ -4774,6 +4775,8 @@ function openStaffModal(staffId){
 
   window.__closeStaffModal = () => { holder.innerHTML = ''; };
   window.__saveStaff = async (id) => {
+  const nameInput = document.getElementById('mStaffName') ? document.getElementById('mStaffName').value.trim() : '';
+  logAuditEvent('Staff Update', `${id ? 'Updated' : 'Added'} staff member: ${nameInput}`);
     const name = document.getElementById('mStaffName').value.trim();
     const role = document.getElementById('mStaffRole').value;
     const phone = document.getElementById('mStaffPhone').value.trim();
@@ -5033,6 +5036,7 @@ window.__unlockWithOwnerPin = function(date) {
   if (match) {
     window.__sessionUnlockedDates.add(date);
     window.showToast(`🔓 Accounts for ${date} unlocked for this session!`, 'success');
+    logAuditEvent('PIN Unlock', `Unlocked Accounts for ${date} via Owner PIN`);
     renderTabBody();
   } else {
     alert('Incorrect Owner PIN. Permission denied.');
