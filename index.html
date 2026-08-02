@@ -2501,7 +2501,17 @@ function renderDailyTab(body){
 
   body.innerHTML = `
     
-    <div class="section-label"><span>Everyday schedule — ${today}</span><span style="color:var(--ink-soft);font-weight:600;">${doneList.length}/${list.length} done</span></div>
+    <div class="section-label">
+      <span>Everyday schedule — ${today}</span>
+      <div style="display:inline-flex;align-items:center;gap:6px;">
+        <svg width="22" height="22" viewBox="0 0 36 36" style="transform:rotate(-90deg);vertical-align:middle;">
+          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--paper-line)" stroke-width="4" />
+          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--leaf)" stroke-width="4" stroke-dasharray="${list.length ? Math.round((doneList.length / list.length) * 100) : 0}, 100" />
+        </svg>
+        <span style="font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:0.8rem;color:var(--leaf);">${list.length ? Math.round((doneList.length / list.length) * 100) : 0}%</span>
+        <span style="color:var(--ink-soft);font-size:0.75rem;">(${doneList.length}/${list.length})</span>
+      </div>
+    </div>
     ${pending.length ? pending.map(row).join('') : (list.length ? '' : `<div class="empty">No everyday tasks set up yet.${isManagerPlus()?' Tap + to add one — it repeats automatically every day.':''}</div>`)}
     ${doneList.length ? `<div class="section-label">Done today <span style="color:var(--ink-soft);font-weight:600;">tap to expand</span></div>${doneList.map(doneWrap).join('')}` : ''}
     <div id="routineModalHolder"></div>
@@ -5255,8 +5265,11 @@ function renderAccHistoryRows(records){
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;">
           <div>
             <b style="font-size:0.95rem;color:var(--ink);display:block;margin-bottom:2px;font-family:'Space Grotesk',sans-serif;">${datePretty}</b>
-            <div style="font-size:0.78rem;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;">
-              Sales: ₹${Number(rec.total_sales||0).toFixed(0)} &bull; Total: ₹${Number(rec.total||0).toFixed(0)}
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(85px, 1fr));gap:6px;font-family:'IBM Plex Mono',monospace;font-size:0.76rem;background:var(--paper);padding:6px 10px;border-radius:6px;border:1px solid var(--paper-line);margin:6px 0;font-variant-numeric:tabular-nums;">
+              <div><span style="font-size:0.64rem;color:var(--ink-soft);display:block;letter-spacing:0.04em;">SALES</span><b>₹${Number(rec.total_sales||0).toFixed(0)}</b></div>
+              <div><span style="font-size:0.64rem;color:var(--ink-soft);display:block;letter-spacing:0.04em;">CASH</span><b>₹${Number(rec.amount||0).toFixed(0)}</b></div>
+              <div><span style="font-size:0.64rem;color:var(--ink-soft);display:block;letter-spacing:0.04em;">GPAY</span><b>₹${Number(rec.gpay||0).toFixed(0)}</b></div>
+              <div><span style="font-size:0.64rem;color:var(--ink-soft);display:block;letter-spacing:0.04em;">TOTAL</span><b style="color:var(--turmeric-dark);">₹${Number(rec.total||0).toFixed(0)}</b></div>
             </div>
           </div>
           <span class="stamp ${rec.excess > 0 ? 'present' : rec.less > 0 ? 'absent' : 'done'}" style="flex-shrink:0;font-size:0.72rem;padding:4px 8px;">
