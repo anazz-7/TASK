@@ -1495,7 +1495,7 @@ function currentTabs(){
     : ['tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points'];
 }
 function quickTabs(){
-  if(session.role === 'salesman') return ['tasks','attendance','sales','points'];
+  if(session.role === 'salesman') return ['tasks','attendance','sales','accounts'];
   return isManagerPlus() ? ['dashboard','tasks','sales','accounts'] : ['tasks','attendance','sales','points'];
 }
 function getPrimaryActionBtn(t){
@@ -1662,7 +1662,7 @@ function renderTabBody(){
   if(activeTab==='label') return renderLabelTab(body);
   if(activeTab==='package') return renderPackageTab(body);
   if(activeTab==='stockkeeper') return renderStockkeeperTab(body);
-  if(activeTab==='accounts' && isOwner()) return renderAccountsTab(body);
+  if(activeTab==='accounts') return renderAccountsTab(body);
   if(activeTab==='salary' && isOwner()) return renderSalaryTab(body);
   if(activeTab==='salesman') return renderSalesmanTab(body);
   if(activeTab==='points') return renderPointsTab(body);
@@ -4717,28 +4717,25 @@ window.__setAccReportMode = function(m) {
 };
 
 function renderAccountsTab(body){
-  if(!isOwner()){
-    body.innerHTML = '<div class="empty">Access Restricted. Daily Accounts is accessible by the Owner only.</div>';
-    return;
-  }
-
   const existing = cache.dailyAccounts.find(a => a.date === accountsDate);
+  if(!isOwner()) accountsSubTab = 'entry';
 
   body.innerHTML = `
-    
+    ${isOwner() ? `
     <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;">
       <button class="stamp-btn small ${accountsSubTab==='entry'?'':'ghost'}" onclick="window.__setAccSubTab('entry')">📝 Entry</button>
       <button class="stamp-btn small ${accountsSubTab==='history'?'':'ghost'}" onclick="window.__setAccSubTab('history')">📜 History (${cache.dailyAccounts.length})</button>
       <button class="stamp-btn small ${accountsSubTab==='calendar'?'':'ghost'}" onclick="window.__setAccSubTab('calendar')">📅 Calendar</button>
       <button class="stamp-btn small ${accountsSubTab==='reports'?'':'ghost'}" onclick="window.__setAccSubTab('reports')">📊 Reports & AI Insights</button>
       <button class="stamp-btn small ${accountsSubTab==='backup'?'':'ghost'}" onclick="window.__setAccSubTab('backup')">💾 Backup & Restore</button>
-    </div>
+    </div>` : `
+    <div class="section-label" style="margin-bottom:12px;">Daily Accounts Entry (Data Entry Only)</div>`}
 
     ${accountsSubTab === 'entry' ? renderAccEntryHtml(existing) : ''}
-    ${accountsSubTab === 'history' ? renderAccHistoryHtml() : ''}
-    ${accountsSubTab === 'calendar' ? renderAccCalendarHtml() : ''}
-    ${accountsSubTab === 'reports' ? renderAccReportsHtml() : ''}
-    ${accountsSubTab === 'backup' ? renderAccBackupHtml() : ''}
+    ${isOwner() && accountsSubTab === 'history' ? renderAccHistoryHtml() : ''}
+    ${isOwner() && accountsSubTab === 'calendar' ? renderAccCalendarHtml() : ''}
+    ${isOwner() && accountsSubTab === 'reports' ? renderAccReportsHtml() : ''}
+    ${isOwner() && accountsSubTab === 'backup' ? renderAccBackupHtml() : ''}
   `;
 
   if(accountsSubTab === 'entry'){
@@ -4783,7 +4780,8 @@ function renderAccEntryHtml(existing){
         <textarea id="accNotes" placeholder="Optional notes for today's cash tally...">${f.notes ? esc(f.notes) : ''}</textarea>
       </div>
 
-      <!-- Live Summary Bar Pinned Footer -->
+      ${isOwner() ? `
+      <!-- Live Summary Bar Pinned Footer for Owner -->
       <div style="margin-top:16px;background:var(--card);border:2px solid var(--paper-line);border-radius:10px;padding:14px;box-shadow:0 4px 12px rgba(0,0,0,0.05);">
         <div class="two-col">
           <div class="kv"><span>Calculated Total</span><b id="accSumTotal" style="font-family:'IBM Plex Mono',monospace;font-size:1.15rem;color:var(--turmeric-dark);">₹${totals.total.toFixed(0)}</b></div>
@@ -4798,7 +4796,11 @@ function renderAccEntryHtml(existing){
           <button class="stamp-btn" style="flex:2;padding:12px 0;font-size:0.95rem;" onclick="window.__saveAccEntry()">💾 Save Day's Account</button>
           <button class="stamp-btn ghost" style="flex:1;padding:12px 0;font-size:0.8rem;background:var(--blue-soft);color:var(--blue);border-color:var(--blue);" onclick="window.__sendAccSmsSummary()">📲 Send SMS</button>
         </div>
-      </div>
+      </div>` : `
+      <!-- Simple Data Entry Footer for Non-Owner Roles -->
+      <div style="margin-top:16px;">
+        <button class="stamp-btn" style="width:100%;padding:14px 0;font-size:1rem;font-weight:700;" onclick="window.__saveAccEntry()">💾 Save Day's Account Entry</button>
+      </div>`}
     </div>
   `;
 }
