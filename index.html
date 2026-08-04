@@ -1908,7 +1908,7 @@ function buildDashboardVendorBillsHtml() {
   const totalUnpaid = unpaid.reduce((sum, b) => sum + getBillAmount(b), 0);
 
   return `
-    <div class="section-label">🔴 Unpaid Vendor Bills Due (${unpaid.length}) <a onclick="window.__setTab('vendors')">View All &rarr;</a></div>
+    <div class="section-label">Unpaid Vendor Bills Due (${unpaid.length}) <a onclick="window.__setTab('vendors')">View All &rarr;</a></div>
     <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px;margin-bottom:16px;border-left:4px solid var(--brick);">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
         <div>
@@ -2021,7 +2021,7 @@ function renderDashboardTab(body){
     <div class="row-card" style="flex-direction:column;align-items:stretch;background:linear-gradient(135deg, var(--paper), var(--card));border:1.5px solid var(--turmeric);padding:16px;margin-bottom:16px;box-shadow:0 6px 20px rgba(0,0,0,0.06);">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <div>
-          <h2 style="margin:0;font-size:1.15rem;color:var(--turmeric-dark);font-family:'Space Grotesk',sans-serif;">📊 Executive Dashboard</h2>
+          <h2 style="margin:0;font-size:1.15rem;color:var(--turmeric-dark);font-family:'Space Grotesk',sans-serif;">Executive Dashboard</h2>
           <div style="font-size:0.75rem;color:var(--ink-soft);">${esc(session.businessName)} &bull; ${new Date().toLocaleDateString('en-IN', {weekday:'short', day:'numeric', month:'short', year:'numeric'})}</div>
         </div>
         ${isManagerPlus() ? `<button class="stamp-btn small" style="background:var(--leaf);color:#fff;border-color:var(--leaf);" onclick="window.__sendSmsDailySummary()">${icon('bell',14)} SMS Report</button>` : ''}
@@ -2029,24 +2029,24 @@ function renderDashboardTab(body){
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;">
         <div style="background:var(--paper);padding:10px 12px;border-radius:8px;border:1px solid var(--paper-line);">
-          <span style="font-size:0.7rem;color:var(--ink-soft);font-weight:600;display:block;">🟢 Sales Today</span>
+          <span style="font-size:0.7rem;color:var(--ink-soft);font-weight:600;display:block;">Sales Today</span>
           <b style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;color:var(--leaf);">₹${todaySalesTotal.toFixed(0)}</b>
         </div>
 
         <div style="background:var(--paper);padding:10px 12px;border-radius:8px;border:1px solid var(--paper-line);cursor:pointer;" onclick="window.__setTab('vendors')">
-          <span style="font-size:0.7rem;color:var(--ink-soft);font-weight:600;display:block;">🔴 Vendor Bills Due</span>
+          <span style="font-size:0.7rem;color:var(--ink-soft);font-weight:600;display:block;">Vendor Bills Due</span>
           <b style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;color:${unpaidVendorBills.length?'var(--brick)':'var(--ink)'}">₹${unpaidVendorTotal.toFixed(0)}</b>
           <span style="font-size:0.68rem;color:var(--ink-soft);">${unpaidVendorBills.length} Bill${unpaidVendorBills.length!==1?'s':''} Unpaid</span>
         </div>
 
         <div style="background:var(--paper);padding:10px 12px;border-radius:8px;border:1px solid var(--paper-line);cursor:pointer;" onclick="window.__setTab('attendance')">
-          <span style="font-size:0.7rem;color:var(--ink-soft);font-weight:600;display:block;">👥 Staff On Duty</span>
+          <span style="font-size:0.7rem;color:var(--ink-soft);font-weight:600;display:block;">Staff On Duty</span>
           <b style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;color:var(--ink);">${todayCheckedIn}/${cache.staff.length}</b>
           <span style="font-size:0.68rem;color:var(--ink-soft);">${attPct}% Present Month</span>
         </div>
 
         <div style="background:var(--paper);padding:10px 12px;border-radius:8px;border:1px solid var(--paper-line);cursor:pointer;" onclick="window.__setTab('tasks')">
-          <span style="font-size:0.7rem;color:var(--ink-soft);font-weight:600;display:block;">⚡ Open Tasks</span>
+          <span style="font-size:0.7rem;color:var(--ink-soft);font-weight:600;display:block;">Open Tasks</span>
           <b style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;color:${overdue?'var(--brick)':'var(--ink)'}">${total - done}</b>
           <span style="font-size:0.68rem;color:${overdue?'var(--brick)':'var(--ink-soft)'}">${overdue ? overdue+' Overdue' : rate+'% Complete'}</span>
         </div>
@@ -2056,8 +2056,6 @@ function renderDashboardTab(body){
     <!-- Feature 2: Vendor Bills Payable Widget -->
     ${buildDashboardVendorBillsHtml()}
 
-    <!-- Feature 6: Real-Time Activity Feed Widget -->
-    ${buildDashboardActivityFeedHtml()}
 
     <div class="section-label">Tasks</div>
     <div class="stat-grid">
@@ -5825,6 +5823,133 @@ function getBillNo(b) {
 }
 
 
+
+/* ---------------- TALLY-STYLE BILL-WISE PRINTABLE RECEIPT ---------------- */
+function numberToWords(amount) {
+  const num = Math.floor(amount);
+  if (num === 0) return 'Zero';
+  const a = ['','One ','Two ','Three ','Four ','Five ','Six ','Seven ','Eight ','Nine ','Ten ','Eleven ','Twelve ','Thirteen ','Fourteen ','Fifteen ','Sixteen ','Seventeen ','Eighteen ','Nineteen '];
+  const b = ['', '', 'Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+
+  function inWords(n) {
+    if ((n = n.toString()).length > 9) return 'Overflow';
+    let n_array = ('000000000' + n).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
+    if (!n_array) return '';
+    let str = '';
+    str += (n_array[1] != 0) ? (a[Number(n_array[1])] || (b[n_array[1][0]] + ' ' + a[n_array[1][1]])) + 'Crore ' : '';
+    str += (n_array[2] != 0) ? (a[Number(n_array[2])] || (b[n_array[2][0]] + ' ' + a[n_array[2][1]])) + 'Lakh ' : '';
+    str += (n_array[3] != 0) ? (a[Number(n_array[3])] || (b[n_array[3][0]] + ' ' + a[n_array[3][1]])) + 'Thousand ' : '';
+    str += (n_array[4] != 0) ? (a[Number(n_array[4])] || (b[n_array[4][0]] + ' ' + a[n_array[4][1]])) + 'Hundred ' : '';
+    str += (n_array[5] != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n_array[5])] || (b[n_array[5][0]] + ' ' + a[n_array[5][1]])) : '';
+    return str;
+  }
+  return inWords(num).trim();
+}
+
+window.__printVendorBillReceipt = function(id) {
+  const bill = (cache.vendorBills || []).find(b => b.id === id);
+  if (!bill) return;
+
+  const vName = getVendorName(bill);
+  const vNo = getBillNo(bill);
+  const vAmt = getBillAmount(bill);
+  const datePretty = new Date(bill.bill_date + 'T00:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+  const paidDatePretty = bill.paid_at ? new Date(bill.paid_at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : 'Pending Settlement';
+  const staff = cache.staff.find(s => s.id === bill.scanned_by);
+  const staffName = staff ? staff.name : 'Staff';
+
+  const printWindow = window.open('', '_blank', 'width=800,height=900');
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Payment Voucher - ${esc(vNo)}</title>
+      <style>
+        body { font-family: 'Courier New', Courier, monospace; margin: 30px; color: #111; background: #fff; }
+        .voucher-box { border: 2px solid #000; padding: 24px; max-width: 700px; margin: 0 auto; }
+        .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 16px; }
+        .header h2 { margin: 0; font-size: 1.4rem; text-transform: uppercase; letter-spacing: 1px; }
+        .header p { margin: 4px 0 0; font-size: 0.85rem; }
+        .v-title { text-align: center; font-weight: bold; font-size: 1.1rem; text-decoration: underline; margin-bottom: 16px; letter-spacing: 2px; }
+        .row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.95rem; }
+        .table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+        .table th, .table td { border: 1px solid #000; padding: 8px 12px; font-size: 0.9rem; text-align: left; }
+        .table th { background: #f0f0f0; font-weight: bold; }
+        .total-row td { font-weight: bold; font-size: 1rem; }
+        .footer-sig { display: flex; justify-content: space-between; margin-top: 50px; font-size: 0.88rem; }
+        .sig-box { text-align: center; border-top: 1px solid #000; width: 200px; padding-top: 4px; }
+        @media print {
+          body { margin: 0; }
+          .no-print { display: none; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="no-print" style="margin-bottom:16px;text-align:right;">
+        <button onclick="window.print()" style="padding:8px 16px;font-size:1rem;font-weight:bold;cursor:pointer;">Print Receipt / Voucher</button>
+      </div>
+
+      <div class="voucher-box">
+        <div class="header">
+          <h2>${esc(session.businessName)}</h2>
+          <p>Official Purchase & Vendor Payment Receipt (Tally Format)</p>
+        </div>
+
+        <div class="v-title">PAYMENT VOUCHER</div>
+
+        <div class="row">
+          <span>Voucher No: <b>VCH-${bill.id.slice(-6).toUpperCase()}</b></span>
+          <span>Date: <b>${datePretty}</b></span>
+        </div>
+
+        <div class="row">
+          <span>Paid To (Party Name): <b>${esc(vName)}</b></span>
+          <span>Status: <b>${bill.status === 'paid' ? 'PAID / SETTLED' : 'UNPAID / PAYABLE'}</b></span>
+        </div>
+
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Particulars / Bill Ref</th>
+              <th>Bill Date</th>
+              <th>Due Date</th>
+              <th style="text-align:right;">Amount (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                Bill No: <b>${esc(vNo)}</b><br>
+                <small>Logged by: ${esc(staffName)} ${bill.notes ? ' | ' + esc(bill.notes) : ''}</small>
+              </td>
+              <td>${datePretty}</td>
+              <td>${bill.due_date || 'N/A'}</td>
+              <td style="text-align:right;font-weight:bold;">₹${vAmt.toFixed(2)}</td>
+            </tr>
+            <tr class="total-row">
+              <td colspan="3" style="text-align:right;">Total Settlement Amount:</td>
+              <td style="text-align:right;">₹${vAmt.toFixed(2)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="font-size:0.85rem;margin-top:12px;">
+          <b>Amount in words:</b> Rupees ${numberToWords(vAmt)} Only
+        </div>
+        ${bill.paid_at ? `<div style="font-size:0.8rem;color:#444;margin-top:4px;">Settled on: ${paidDatePretty}</div>` : ''}
+
+        <div class="footer-sig">
+          <div class="sig-box">Receiver Signature</div>
+          <div class="sig-box">Authorized Signatory</div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+};
+
+
 function renderVendorBillsTab(body) {
   const bills = cache.vendorBills || [];
   const unpaid = bills.filter(b => b.status !== 'paid');
@@ -5840,26 +5965,26 @@ function renderVendorBillsTab(body) {
     <div class="row-card" style="flex-direction:column;align-items:stretch;background:linear-gradient(135deg, var(--paper), var(--card));border:1.5px solid var(--turmeric);margin-bottom:14px;padding:16px;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
         <div>
-          <span style="font-size:0.75rem;font-weight:700;color:var(--ink-soft);letter-spacing:0.04em;text-transform:uppercase;">🔴 Total Bills Payable (Unpaid)</span>
+          <span style="font-size:0.75rem;font-weight:700;color:var(--ink-soft);letter-spacing:0.04em;text-transform:uppercase;">Total Bills Payable (Unpaid)</span>
           <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.6rem;font-weight:800;color:var(--brick);margin:4px 0 0;">₹${totalUnpaid.toFixed(0)}</h2>
           <div style="font-size:0.78rem;color:var(--ink-soft);margin-top:2px;">${unpaid.length} Bill${unpaid.length !== 1 ? 's' : ''} Pending Verification & Settlement</div>
         </div>
         <div style="text-align:right;">
-          <span style="font-size:0.72rem;font-weight:600;color:var(--leaf);display:block;">🟢 Settled This Month</span>
+          <span style="font-size:0.72rem;font-weight:600;color:var(--leaf);display:block;">Settled This Month</span>
           <b style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;color:var(--leaf);">₹${totalPaid.toFixed(0)}</b>
         </div>
       </div>
 
       <div style="margin-top:14px;">
-        <button class="stamp-btn" style="width:100%;padding:12px 0;font-size:0.95rem;" onclick="window.__openScanVendorBillModal()">➕ Add Purchase Bill</button>
+        <button class="stamp-btn" style="width:100%;padding:12px 0;font-size:0.95rem;" onclick="window.__openScanVendorBillModal()">Add Purchase Bill</button>
       </div>
     </div>
 
     <!-- Navigation Sub-Menu Bar -->
     <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;">
-      <button class="stamp-btn small ${vendorSubTab==='unpaid'?'':'ghost'}" onclick="window.__setVendorSubTab('unpaid')">⏳ Unpaid Bills (${unpaid.length})</button>
-      <button class="stamp-btn small ${vendorSubTab==='paid'?'':'ghost'}" onclick="window.__setVendorSubTab('paid')">✓ Paid History (${paid.length})</button>
-      <button class="stamp-btn small ${vendorSubTab==='all'?'':'ghost'}" onclick="window.__setVendorSubTab('all')">📋 All Bills (${bills.length})</button>
+      <button class="stamp-btn small ${vendorSubTab==='unpaid'?'':'ghost'}" onclick="window.__setVendorSubTab('unpaid')">Unpaid Bills (${unpaid.length})</button>
+      <button class="stamp-btn small ${vendorSubTab==='paid'?'':'ghost'}" onclick="window.__setVendorSubTab('paid')">Paid History (${paid.length})</button>
+      <button class="stamp-btn small ${vendorSubTab==='all'?'':'ghost'}" onclick="window.__setVendorSubTab('all')">All Bills (${bills.length})</button>
     </div>
 
     <!-- Bills List -->
@@ -5905,7 +6030,7 @@ function renderVendorBillCard(b) {
             ₹${getBillAmount(b).toFixed(0)}
           </div>
           <span class="stamp ${isPaid?'done':'absent'}" style="font-size:0.7rem;padding:3px 7px;margin-top:4px;display:inline-block;">
-            ${isPaid ? '✓ PAID' : '⏳ UNPAID'}
+            ${isPaid ? 'PAID' : 'UNPAID'}
           </span>
         </div>
       </div>
@@ -5919,11 +6044,12 @@ function renderVendorBillCard(b) {
         </div>
 
         <div style="display:flex;gap:6px;">
+          <button class="stamp-btn ghost small" style="font-size:0.75rem;padding:4px 8px;" onclick="window.__printVendorBillReceipt('${b.id}')">Print Receipt</button>
           ${!isPaid && isOwner() ? `
-            <button class="stamp-btn small" style="background:var(--leaf);color:#fff;border-color:var(--leaf);font-weight:700;" onclick="window.__markVendorBillPaid('${b.id}')">✓ Verify & Mark Paid</button>
+            <button class="stamp-btn small" style="background:var(--leaf);color:#fff;border-color:var(--leaf);font-weight:700;" onclick="window.__markVendorBillPaid('${b.id}')">Verify & Mark Paid</button>
           ` : ''}
           ${isOwner() ? `
-            <button class="stamp-btn ghost small" style="color:var(--brick);border-color:var(--brick);" onclick="window.__deleteVendorBill('${b.id}')">🗑</button>
+            <button class="stamp-btn ghost small" style="color:var(--brick);border-color:var(--brick);" onclick="window.__deleteVendorBill('${b.id}')">Delete</button>
           ` : ''}
         </div>
       </div>
@@ -6224,7 +6350,7 @@ window.__markVendorBillPaid = async function(id) {
 
   logAuditEvent('Vendor Bill Paid', `Verified & paid Bill ${bill.bill_no||'N/A'} (₹${bill.amount}) to ${bill.vendor_name}`);
   triggerAppNotification('Bill Marked Paid', `Bill ${bill.bill_no||''} from ${bill.vendor_name} marked PAID`);
-  window.showToast(`✓ Bill marked as PAID!`, 'success');
+  window.showToast(`Bill marked as PAID!`, 'success');
   renderTabBody();
 };
 
