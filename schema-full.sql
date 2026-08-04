@@ -309,3 +309,30 @@ create table if not exists daily_accounts (
 alter table daily_accounts enable row level security;
 drop policy if exists "allow all daily_accounts" on daily_accounts;
 create policy "allow all daily_accounts" on daily_accounts for all using (true) with check (true);
+
+
+-- ---------- Vendor Bills ----------
+create table if not exists vendor_bills (
+  id uuid primary key default gen_random_uuid(),
+  business_id uuid references businesses(id) on delete cascade,
+  vendor_name text,
+  vendor text,
+  supplier_name text,
+  bill_no text,
+  invoice_no text,
+  amount numeric default 0,
+  total_amount numeric default 0,
+  bill_amount numeric default 0,
+  bill_date date default current_date,
+  due_date date,
+  notes text,
+  photo_url text,
+  scanned_by uuid references staff(id) on delete set null,
+  status text default 'pending',
+  paid_at timestamptz,
+  paid_by uuid references staff(id) on delete set null,
+  created_at timestamptz default now()
+);
+alter table vendor_bills enable row level security;
+drop policy if exists "allow all vendor_bills" on vendor_bills;
+create policy "allow all vendor_bills" on vendor_bills for all using (true) with check (true);

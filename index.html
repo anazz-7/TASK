@@ -5730,9 +5730,15 @@ function renderVendorBillCard(b) {
     <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px 16px;margin-bottom:12px;${isPaid ? 'border-left:4px solid var(--leaf);' : 'border-left:4px solid var(--brick);'}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
         <div style="display:flex;gap:12px;align-items:center;">
-          <div style="width:46px;height:46px;border-radius:8px;background:var(--paper-line);display:flex;align-items:center;justify-content:center;color:var(--ink-soft);font-size:1.2rem;flex-shrink:0;">
-            🧾
-          </div>
+          ${b.photo_url ? `
+            <div style="width:54px;height:54px;border-radius:8px;overflow:hidden;background:#000;flex-shrink:0;cursor:pointer;border:1px solid var(--paper-line);" onclick="window.__viewVendorBillPhoto('${b.id}')">
+              <img src="${b.photo_url}" style="width:100%;height:100%;object-fit:cover;">
+            </div>
+          ` : `
+            <div style="width:46px;height:46px;border-radius:8px;background:var(--paper-line);display:flex;align-items:center;justify-content:center;color:var(--ink-soft);font-size:1.2rem;flex-shrink:0;">
+              🧾
+            </div>
+          `}
           <div>
             <b style="font-size:1rem;color:var(--ink);display:block;margin-bottom:2px;font-family:'Space Grotesk',sans-serif;">${esc(getVendorName(b))}</b>
             <div style="font-size:0.78rem;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;">
@@ -5868,7 +5874,7 @@ function parseExtractedBillText(rawText) {
     billNo = invMatch[1].trim();
   }
 
-  // 3. Extract Total Amount (₹)
+  // 3. Smart Extract Total Amount (₹) with Phone/GSTIN Noise Filtering
   let amount = 0;
   const amountsFound = [];
   const amountRegex = /(?:total|net|amount|rs\.?|inr|₹|payable|due|grand)[\s:-]*[₹rRsS\.]*[\s]*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)/gi;
@@ -5877,13 +5883,16 @@ function parseExtractedBillText(rawText) {
     if (match[1]) {
       const numStr = match[1].replace(/,/g, '');
       const val = parseFloat(numStr);
-      if (!isNaN(val) && val > 0 && val < 5000000) {
+      // Filter out phone numbers (10 digits starting 6-9), pin codes (6 digits), GSTIN numbers
+      const isPhoneNumber = /^[6-9]\d{9}$/.test(numStr);
+      const isPinCode = /^\d{6}$/.test(numStr) && val > 100000;
+      if (!isNaN(val) && val > 0 && val < 1000000 && !isPhoneNumber && !isPinCode) {
         amountsFound.push(val);
       }
     }
   }
   if (amountsFound.length > 0) {
-    amount = Math.max(...amountsFound); // Pick highest total amount detected
+    amount = Math.max(...amountsFound);
   }
 
   // 4. Extract Date
@@ -6021,6 +6030,7 @@ window.__saveVendorBill = async function() {
     bill_date: bill_date,
     due_date: due_date,
     notes: notes,
+    photo_url: currentBillPhotoData,
     scanned_by: session.staffId,
     status: 'pending',
     created_at: new Date().toISOString()
