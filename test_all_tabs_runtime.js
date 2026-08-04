@@ -1,5 +1,7 @@
 const fs = require('fs');
-const html = fs.readFileSync('C:/Users/mdana/.gemini/antigravity/scratch/babmtask/index.html', 'utf8');
+const path = require('path');
+const indexPath = path.join(__dirname, 'index.html');
+const html = fs.readFileSync(indexPath, 'utf8');
 
 const match = html.match(/<script type="module">([\s\S]*?)<\/script>\s*<\/body>/i);
 let js = match[1];

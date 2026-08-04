@@ -1,9 +1,11 @@
 // Service Worker for BABM TASK / B-INDUSTRIES (PWA Cache & Web Push Notifications)
-const CACHE_NAME = 'babm-task-app-v3';
+const CACHE_VERSION = 'v3.2.0';
+const CACHE_NAME = `babm-task-app-${CACHE_VERSION}`;
 const ASSETS_TO_CACHE = [
   './',
   'index.html',
-  'manifest.json'
+  'manifest.json',
+  'sw.js'
 ];
 
 // Install: Cache core PWA app shell
@@ -47,7 +49,7 @@ self.addEventListener('fetch', (e) => {
         }
         return networkResponse;
       }).catch(() => {
-        if (e.request.headers.get('accept').includes('text/html')) {
+        if (e.request.headers && e.request.headers.get('accept') && e.request.headers.get('accept').includes('text/html')) {
           return caches.match('index.html');
         }
       });

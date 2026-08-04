@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<meta charset="UTF-8">
+  <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Business Register</title>
 <link rel="manifest" href="manifest.json">
@@ -1395,6 +1394,22 @@ function updateOfflineBadgeBar() {
 
 window.addEventListener('online', () => { updateOfflineBadgeBar(); flushOfflineMutationQueue(); });
 window.addEventListener('offline', () => { updateOfflineBadgeBar(); });
+
+
+
+/* ---------------- NETWORK TIMEOUT & RETRY SUPABASE HELPER ---------------- */
+async function safeSupabaseCall(promiseFn, fallbackData = null, timeoutMs = 7000) {
+  if (!navigator.onLine) {
+    return { data: fallbackData, error: new Error('Device is offline') };
+  }
+  const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Network timeout')), timeoutMs));
+  try {
+    const res = await Promise.race([promiseFn(), timeoutPromise]);
+    return res || { data: fallbackData, error: null };
+  } catch (err) {
+    return { data: fallbackData, error: err };
+  }
+}
 
 
 /* ---------------- data ---------------- */
