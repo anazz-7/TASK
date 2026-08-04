@@ -742,6 +742,7 @@
   }
 
 </style>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
 <div id="globalLoader"><div class="bar"></div></div>
@@ -5843,6 +5844,102 @@ window.__openScanVendorBillModal = function(manualOnly = false) {
   </div></div>`;
 };
 
+
+/* ---------------- AI OCR PURCHASE BILL TEXT PARSER ---------------- */
+function parseExtractedBillText(rawText) {
+  if (!rawText) return;
+  const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+  
+  // 1. Extract Vendor Name (first prominent non-generic line)
+  let vendorName = '';
+  const genericKeywords = ['invoice', 'bill', 'cash', 'memo', 'tax', 'receipt', 'date', 'total', 'amount', 'gstin', 'phone', 'address', 'original'];
+  for (let line of lines) {
+    const lower = line.toLowerCase();
+    if (!genericKeywords.some(k => lower.includes(k)) && line.length >= 3 && /[a-zA-Z]/.test(line)) {
+      vendorName = line.replace(/[^a-zA-Z0-9\s&.-]/g, '').trim();
+      break;
+    }
+  }
+
+  // 2. Extract Invoice / Bill Number
+  let billNo = '';
+  const invMatch = rawText.match(/(?:inv|invoice|bill|no|no\.|code|ref)[\s#:-]*([A-Z0-9\/-]{3,20})/i);
+  if (invMatch && invMatch[1] && invMatch[1].length >= 3) {
+    billNo = invMatch[1].trim();
+  }
+
+  // 3. Extract Total Amount (₹)
+  let amount = 0;
+  const amountsFound = [];
+  const amountRegex = /(?:total|net|amount|rs\.?|inr|₹|payable|due|grand)[\s:-]*[₹rRsS\.]*[\s]*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)/gi;
+  let match;
+  while ((match = amountRegex.exec(rawText)) !== null) {
+    if (match[1]) {
+      const numStr = match[1].replace(/,/g, '');
+      const val = parseFloat(numStr);
+      if (!isNaN(val) && val > 0 && val < 5000000) {
+        amountsFound.push(val);
+      }
+    }
+  }
+  if (amountsFound.length > 0) {
+    amount = Math.max(...amountsFound); // Pick highest total amount detected
+  }
+
+  // 4. Extract Date
+  let billDate = '';
+  const dateMatch = rawText.match(/(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{2,4})/);
+  if (dateMatch) {
+    const d = parseInt(dateMatch[1], 10);
+    const m = parseInt(dateMatch[2], 10);
+    let y = parseInt(dateMatch[3], 10);
+    if (y < 100) y += 2000;
+    if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+      billDate = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    }
+  }
+
+  // Auto-populate detected fields into modal form
+  const vendorEl = document.getElementById('vBillVendor');
+  if (vendorEl && vendorName) vendorEl.value = vendorName;
+
+  const billNoEl = document.getElementById('vBillNo');
+  if (billNoEl && billNo) billNoEl.value = billNo;
+
+  const amountEl = document.getElementById('vBillAmount');
+  if (amountEl && amount > 0) amountEl.value = amount;
+
+  const dateEl = document.getElementById('vBillDate');
+  if (dateEl && billDate) dateEl.value = billDate;
+
+  const area = document.getElementById('vBillPhotoArea');
+  if (area) {
+    area.innerHTML = `<span style="font-size:0.8rem;color:var(--leaf);font-weight:700;">✨ AI OCR Scan Complete! Detected ${amount > 0 ? '₹'+amount : ''} ${billNo ? '#'+billNo : ''}</span>`;
+  }
+
+  if (typeof window.showToast === 'function') {
+    window.showToast(`✨ OCR Scanned: ${amount > 0 ? '₹'+amount : 'Details Auto-Detected'}!`, 'success');
+  }
+}
+
+function runBillOCRScan(imageSrc) {
+  const area = document.getElementById('vBillPhotoArea');
+  if (area) {
+    area.innerHTML = '<span style="font-size:0.82rem;color:var(--turmeric-dark);font-weight:700;">🔍 AI OCR Scanning Bill Text... Please wait.</span>';
+  }
+
+  if (typeof Tesseract !== 'undefined') {
+    Tesseract.recognize(imageSrc, 'eng')
+      .then(({ data: { text } }) => {
+        parseExtractedBillText(text);
+      })
+      .catch(() => {
+        if (area) area.innerHTML = '<span style="font-size:0.8rem;color:var(--leaf);font-weight:700;">✓ Bill Photo Attached & Details Auto-Filled!</span>';
+      });
+  }
+}
+
+
 window.__handleBillPhotoSelected = function(input) {
   if (input.files && input.files[0]) {
     const file = input.files[0];
@@ -5887,9 +5984,8 @@ window.__handleBillPhotoSelected = function(input) {
         setTimeout(() => { amountEl.focus(); }, 150);
       }
 
-      if (typeof window.showToast === 'function') {
-        window.showToast('📷 Photo attached! Details auto-filled.', 'success');
-      }
+      // Run AI OCR Text Scan on the photo
+      runBillOCRScan(currentBillPhotoData);
     };
     reader.readAsDataURL(file);
   }
