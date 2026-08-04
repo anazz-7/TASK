@@ -1,8 +1,61 @@
-// Service Worker for BABM TASK / B-INDUSTRIES (Web Push Notifications)
-self.addEventListener('install', (e) => { self.skipWaiting(); });
-self.addEventListener('activate', (e) => { self.clients.claim(); });
+// Service Worker for BABM TASK / B-INDUSTRIES (PWA Cache & Web Push Notifications)
+const CACHE_NAME = 'babm-task-app-v3';
+const ASSETS_TO_CACHE = [
+  './',
+  'index.html',
+  'manifest.json'
+];
 
-// Handle Web Push Notifications when the app/site is closed
+// Install: Cache core PWA app shell
+self.addEventListener('install', (e) => {
+  e.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(ASSETS_TO_CACHE);
+    }).then(() => self.skipWaiting())
+  );
+});
+
+// Activate: Claim clients and clean old cache versions
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+      );
+    }).then(() => self.clients.claim())
+  );
+});
+
+// Fetch: Cache-First / Network Fallback for smooth offline app usage
+self.addEventListener('fetch', (e) => {
+  if (e.request.method !== 'GET' || !e.request.url.startsWith('http')) return;
+  e.respondWith(
+    caches.match(e.request).then((cachedResponse) => {
+      if (cachedResponse) {
+        // Return cached version immediately and update cache in background
+        fetch(e.request).then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            caches.open(CACHE_NAME).then((cache) => cache.put(e.request, networkResponse.clone()));
+          }
+        }).catch(() => {});
+        return cachedResponse;
+      }
+      return fetch(e.request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const resClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(e.request, resClone));
+        }
+        return networkResponse;
+      }).catch(() => {
+        if (e.request.headers.get('accept').includes('text/html')) {
+          return caches.match('index.html');
+        }
+      });
+    })
+  );
+});
+
+// Handle Web Push Notifications when app is closed
 self.addEventListener('push', (e) => {
   let data = { title: 'BABM TASK Alert', body: 'You have a new update in BABM TASK.' };
   if (e.data) {

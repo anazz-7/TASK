@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Business Register</title>
@@ -1309,6 +1310,92 @@ async function ensurePresetAccountsSeeded(bizId){
   }
   cache.dailyAccounts.sort((a,b) => (a.date < b.date ? 1 : -1));
 }
+
+
+/* ---------------- OFFLINE MUTATION QUEUE MANAGER (Issue 3 Fix) ---------------- */
+function getOfflineQueue() {
+  try {
+    return JSON.parse(localStorage.getItem('br_offline_mutation_queue') || '[]');
+  } catch(e) { return []; }
+}
+
+function queueOfflineMutation(actionType, table, payload) {
+  const queue = getOfflineQueue();
+  const entry = {
+    id: 'off_' + Date.now() + '_' + Math.random().toString(36).substring(2,6),
+    action_type: actionType,
+    table: table,
+    payload: payload,
+    timestamp: new Date().toISOString()
+  };
+  queue.push(entry);
+  localStorage.setItem('br_offline_mutation_queue', JSON.stringify(queue));
+  updateOfflineBadgeBar();
+}
+
+async function flushOfflineMutationQueue() {
+  if (!navigator.onLine) return;
+  const queue = getOfflineQueue();
+  if (!queue.length) {
+    updateOfflineBadgeBar();
+    return;
+  }
+
+  let syncedCount = 0;
+  const remaining = [];
+
+  for (const item of queue) {
+    try {
+      if (item.action_type === 'insert') {
+        const { error } = await supabase.from(item.table).insert(item.payload);
+        if (error) throw error;
+      } else if (item.action_type === 'update') {
+        const { error } = await supabase.from(item.table).update(item.payload).eq('id', item.payload.id);
+        if (error) throw error;
+      } else if (item.action_type === 'upsert') {
+        const { error } = await supabase.from(item.table).upsert(item.payload, { onConflict: 'business_id,date' });
+        if (error) throw error;
+      }
+      syncedCount++;
+    } catch(err) {
+      remaining.push(item);
+    }
+  }
+
+  localStorage.setItem('br_offline_mutation_queue', JSON.stringify(remaining));
+  updateOfflineBadgeBar();
+
+  if (syncedCount > 0 && typeof window.showToast === 'function') {
+    window.showToast(`✅ Synced ${syncedCount} offline record(s) to cloud!`, 'success');
+  }
+}
+
+function updateOfflineBadgeBar() {
+  const queue = getOfflineQueue();
+  const isOffline = !navigator.onLine;
+  let bar = document.getElementById('offlineSyncStatusBanner');
+  
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'offlineSyncStatusBanner';
+    bar.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9999;background:var(--turmeric-dark);color:white;padding:8px 14px;font-size:0.82rem;font-weight:700;display:none;align-items:center;justify-content:space-between;box-shadow:0 -4px 12px rgba(0,0,0,0.15);';
+    document.body.appendChild(bar);
+  }
+
+  if (isOffline || queue.length > 0) {
+    bar.style.display = 'flex';
+    bar.innerHTML = `
+      <span>${isOffline ? '⚡ You are Offline' : '⏳ Cloud Sync Pending'} &bull; ${queue.length} Queued Action${queue.length!==1?'s':''}</span>
+      ${navigator.onLine ? `<button class="stamp-btn small" style="background:white;color:var(--turmeric-dark);padding:2px 8px;font-size:0.75rem;" onclick="flushOfflineMutationQueue()">Sync Now</button>` : `<span style="font-size:0.72rem;opacity:0.9;">Will auto-sync when online</span>`}
+    `;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+window.addEventListener('online', () => { updateOfflineBadgeBar(); flushOfflineMutationQueue(); });
+window.addEventListener('offline', () => { updateOfflineBadgeBar(); });
+
 
 /* ---------------- data ---------------- */
 async function loadData(){
@@ -5976,6 +6063,7 @@ window.__printVendorBillReceipt = function(id) {
     <!DOCTYPE html>
     <html>
     <head>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
       <title>Payment Voucher - ${esc(vNo)}</title>
       <style>
         body { font-family: 'Courier New', Courier, monospace; margin: 30px; color: #111; background: #fff; }
@@ -6938,6 +7026,152 @@ window.__exportAccJson = function() {
   a.click();
 };
 
+
+/* ---------------- REAL EXCEL (.XLSX) IMPORTER & VERIFIED RESTORE (Issue 1 & Issue 2 Fixes) ---------------- */
+window.__importAccExcel = async function(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  if (typeof XLSX === 'undefined') {
+    alert('Excel parsing library is still loading. Please try again in 5 seconds.');
+    return;
+  }
+
+  try {
+    showLoading();
+    const arrayBuffer = await file.arrayBuffer();
+    const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
+    const firstSheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[firstSheetName];
+    const rawRows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+    if (!rawRows.length) {
+      hideLoading();
+      alert('The uploaded Excel file appears to be empty.');
+      return;
+    }
+
+    let cloudSuccessCount = 0;
+    let cloudErrorCount = 0;
+    let localCount = 0;
+    const failedLogs = [];
+
+    // Header mapping helper
+    const getVal = (row, keys) => {
+      for (const k of keys) {
+        for (const rowKey of Object.keys(row)) {
+          if (rowKey.toLowerCase().replace(/[^a-z0-9]/g, '') === k.toLowerCase().replace(/[^a-z0-9]/g, '')) {
+            return row[rowKey];
+          }
+        }
+      }
+      return '';
+    };
+
+    for (const row of rawRows) {
+      let rawDate = getVal(row, ['date', 'transactiondate', 'entrydate', 'day']);
+      if (!rawDate) continue;
+
+      let dateStr = '';
+      if (rawDate instanceof Date) {
+        dateStr = localDateStr(rawDate);
+      } else {
+        dateStr = String(rawDate).trim().slice(0, 10);
+      }
+
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) continue; // Must be YYYY-MM-DD format
+
+      const payload = {
+        business_id: session.businessId,
+        date: dateStr,
+        notes: String(getVal(row, ['notes', 'remarks', 'comments']) || '').trim() || null,
+        is_checked: false
+      };
+
+      const keyMap = {
+        total_sales: ['totalsales', 'sales', 'salesamount'],
+        amount: ['amount', 'cash', 'cashamount'],
+        vendors: ['vendors', 'vendorpayments', 'payouts'],
+        credit: ['credit', 'creditgiven'],
+        credit_received: ['creditreceived'],
+        gpay: ['gpay', 'googlepay', 'upi', 'online'],
+        ba_credit: ['bacredit', 'bacreditamount'],
+        expenses: ['expenses', 'expenselist'],
+        personal_ac: ['personalac', 'ac'],
+        salary_paid: ['salarypaid', 'salary'],
+        adjustment: ['adjustment']
+      };
+
+      ACC_FIELDS.forEach(f => {
+        const aliases = keyMap[f.key] || [f.key];
+        const val = getVal(row, aliases);
+        payload[f.key] = (val !== '' && val !== null && !isNaN(Number(val))) ? Number(val) : 0;
+      });
+
+      const totals = calcAccTotals(payload);
+      payload.total = totals.total;
+      payload.excess = totals.excess;
+      payload.less = totals.less;
+
+      // Verified Supabase Save
+      if (navigator.onLine && typeof supabase !== 'undefined' && session.businessId) {
+        try {
+          const { error } = await supabase.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' });
+          if (error) {
+            cloudErrorCount++;
+            failedLogs.push(`${dateStr}: ${error.message}`);
+          } else {
+            cloudSuccessCount++;
+          }
+        } catch(err) {
+          cloudErrorCount++;
+          failedLogs.push(`${dateStr}: ${err.message}`);
+        }
+      } else {
+        queueOfflineMutation('upsert', 'daily_accounts', payload);
+      }
+
+      // Local Cache Update
+      const existing = cache.dailyAccounts.find(a => a.date === payload.date);
+      if (!existing) {
+        payload.id = 'loc_' + Date.now() + '_' + Math.random().toString(36).substring(2,5);
+        cache.dailyAccounts.push(payload);
+      } else {
+        Object.assign(existing, payload);
+      }
+      localCount++;
+    }
+
+    localStorage.setItem('br_daily_accounts_' + session.businessId, JSON.stringify(cache.dailyAccounts));
+    hideLoading();
+
+    // Show Verified Import Summary Modal
+    const holder = getModalHolder('taskModalHolder');
+    holder.innerHTML = `
+      <div class="overlay show"><div class="modal" style="max-width:440px;">
+        <h2>📊 Excel Import Summary</h2>
+        <div style="background:var(--paper);padding:14px;border-radius:10px;border:1px solid var(--paper-line);margin-bottom:14px;">
+          <div style="font-size:0.9rem;margin-bottom:6px;">Total SpreadSheet Rows Processed: <b>${localCount} Day(s)</b></div>
+          <div style="font-size:0.9rem;color:var(--leaf);font-weight:700;margin-bottom:4px;">✅ Verified Saved to Supabase Cloud: ${cloudSuccessCount}</div>
+          ${cloudErrorCount > 0 ? `<div style="font-size:0.88rem;color:var(--brick);font-weight:700;">⚠️ Cloud Save Failures: ${cloudErrorCount}</div>` : ''}
+        </div>
+        ${failedLogs.length ? `
+          <div style="max-height:120px;overflow-y:auto;background:var(--brick-soft);padding:8px 10px;border-radius:6px;font-size:0.75rem;color:var(--brick);font-family:'IBM Plex Mono',monospace;margin-bottom:14px;">
+            ${failedLogs.map(l => `<div>${esc(l)}</div>`).join('')}
+          </div>
+        ` : ''}
+        <button class="stamp-btn" style="width:100%;" onclick="window.__closeVendorModal();renderTabBody();">Done</button>
+      </div></div>
+    `;
+
+    await loadData();
+    renderTabBody();
+  } catch(e) {
+    hideLoading();
+    alert('Error reading Excel spreadsheet: ' + e.message);
+  }
+};
+
 window.__restoreAccJson = async function(input) {
   const file = input.files[0];
   if(!file) return;
@@ -6945,7 +7179,11 @@ window.__restoreAccJson = async function(input) {
     const text = await file.text();
     const data = JSON.parse(text);
     const list = Array.isArray(data) ? data : Object.values(data);
-    let count = 0;
+    let cloudSuccessCount = 0;
+    let cloudErrorCount = 0;
+    let localCount = 0;
+    const failedLogs = [];
+
     showLoading();
     for(const rec of list){
       if(!rec || !rec.date) continue;
@@ -6963,9 +7201,22 @@ window.__restoreAccJson = async function(input) {
       payload.excess = totals.excess;
       payload.less = totals.less;
 
-      try {
-        await supabase.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' });
-      } catch(e){}
+      if (navigator.onLine && typeof supabase !== 'undefined' && session.businessId) {
+        try {
+          const { error } = await supabase.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' });
+          if (error) {
+            cloudErrorCount++;
+            failedLogs.push(`${payload.date}: ${error.message}`);
+          } else {
+            cloudSuccessCount++;
+          }
+        } catch(err) {
+          cloudErrorCount++;
+          failedLogs.push(`${payload.date}: ${err.message}`);
+        }
+      } else {
+        queueOfflineMutation('upsert', 'daily_accounts', payload);
+      }
       
       const existing = cache.dailyAccounts.find(a => a.date === payload.date);
       if(!existing){
@@ -6974,11 +7225,30 @@ window.__restoreAccJson = async function(input) {
       } else {
         Object.assign(existing, payload);
       }
-      count++;
+      localCount++;
     }
     localStorage.setItem('br_daily_accounts_' + session.businessId, JSON.stringify(cache.dailyAccounts));
     hideLoading();
-    alert(`Successfully restored ${count} day(s) into accounts!`);
+
+    // Show Verified Import Summary Modal
+    const holder = getModalHolder('taskModalHolder');
+    holder.innerHTML = `
+      <div class="overlay show"><div class="modal" style="max-width:440px;">
+        <h2>📥 Backup Restore Summary</h2>
+        <div style="background:var(--paper);padding:14px;border-radius:10px;border:1px solid var(--paper-line);margin-bottom:14px;">
+          <div style="font-size:0.9rem;margin-bottom:6px;">Total Backup Records Processed: <b>${localCount} Day(s)</b></div>
+          <div style="font-size:0.9rem;color:var(--leaf);font-weight:700;margin-bottom:4px;">✅ Verified Saved to Supabase Cloud: ${cloudSuccessCount}</div>
+          ${cloudErrorCount > 0 ? `<div style="font-size:0.88rem;color:var(--brick);font-weight:700;">⚠️ Cloud Save Failures: ${cloudErrorCount}</div>` : ''}
+        </div>
+        ${failedLogs.length ? `
+          <div style="max-height:120px;overflow-y:auto;background:var(--brick-soft);padding:8px 10px;border-radius:6px;font-size:0.75rem;color:var(--brick);font-family:'IBM Plex Mono',monospace;margin-bottom:14px;">
+            ${failedLogs.map(l => `<div>${esc(l)}</div>`).join('')}
+          </div>
+        ` : ''}
+        <button class="stamp-btn" style="width:100%;" onclick="window.__closeVendorModal();renderTabBody();">Done</button>
+      </div></div>
+    `;
+
     await loadData();
     renderTabBody();
   } catch(e){
