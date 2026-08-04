@@ -5655,13 +5655,31 @@ window.__setVendorSubTab = function(tab) {
   renderTabBody();
 };
 
+
+/* Robust fallback helpers for Vendor name, amount, and invoice number */
+function getBillAmount(b) {
+  if (!b) return 0;
+  return Number(b.amount || b.total_amount || b.invoice_amount || b.bill_amount || 0);
+}
+
+function getVendorName(b) {
+  if (!b) return 'Vendor';
+  return (b.vendor_name || b.vendor || b.supplier_name || b.supplier || 'Vendor').trim();
+}
+
+function getBillNo(b) {
+  if (!b) return 'N/A';
+  return (b.bill_no || b.invoice_no || b.bill_number || b.inv_no || 'N/A').trim();
+}
+
+
 function renderVendorBillsTab(body) {
   const bills = cache.vendorBills || [];
   const unpaid = bills.filter(b => b.status !== 'paid');
   const paid = bills.filter(b => b.status === 'paid');
 
-  const totalUnpaid = unpaid.reduce((sum, b) => sum + Number(b.amount || 0), 0);
-  const totalPaid = paid.reduce((sum, b) => sum + Number(b.amount || 0), 0);
+  const totalUnpaid = unpaid.reduce((sum, b) => sum + getBillAmount(b), 0);
+  const totalPaid = paid.reduce((sum, b) => sum + getBillAmount(b), 0);
 
   const displayList = vendorSubTab === 'unpaid' ? unpaid : (vendorSubTab === 'paid' ? paid : bills);
 
@@ -5715,9 +5733,9 @@ function renderVendorBillCard(b) {
             🧾
           </div>
           <div>
-            <b style="font-size:1rem;color:var(--ink);display:block;margin-bottom:2px;font-family:'Space Grotesk',sans-serif;">${esc(b.vendor_name)}</b>
+            <b style="font-size:1rem;color:var(--ink);display:block;margin-bottom:2px;font-family:'Space Grotesk',sans-serif;">${esc(getVendorName(b))}</b>
             <div style="font-size:0.78rem;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;">
-              Bill No: <b>${esc(b.bill_no || 'N/A')}</b> &bull; Date: ${datePretty}
+              Bill No: <b>${esc(getBillNo(b))}</b> &bull; Date: ${datePretty}
             </div>
             <div style="font-size:0.72rem;color:var(--ink-soft);margin-top:2px;">
               Scanned by: <b>${esc(staffName)}</b> ${b.due_date ? `&bull; Due: <span style="color:var(--brick);font-weight:600;">${duePretty}</span>` : ''}
@@ -5727,7 +5745,7 @@ function renderVendorBillCard(b) {
         
         <div style="text-align:right;flex-shrink:0;">
           <div style="font-family:'IBM Plex Mono',monospace;font-size:1.15rem;font-weight:800;color:${isPaid?'var(--leaf)':'var(--brick)'};">
-            ₹${Number(b.amount||0).toFixed(0)}
+            ₹${getBillAmount(b).toFixed(0)}
           </div>
           <span class="stamp ${isPaid?'done':'absent'}" style="font-size:0.7rem;padding:3px 7px;margin-top:4px;display:inline-block;">
             ${isPaid ? '✓ PAID' : '⏳ UNPAID'}
@@ -5785,6 +5803,12 @@ window.__openScanVendorBillModal = function(manualOnly = false) {
     ` : ''}
 
     <label>Vendor / Supplier Name</label>
+    ${(cache.vendorBills && cache.vendorBills.length > 0) ? `
+      <select id="vBillVendorSelect" onchange="if(this.value){ document.getElementById('vBillVendor').value = this.value; }" style="margin-bottom:6px;font-size:0.85rem;">
+        <option value="">-- Choose Existing Vendor --</option>
+        ${Array.from(new Set(cache.vendorBills.map(getVendorName).filter(Boolean))).map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('')}
+      </select>
+    ` : ''}
     <input id="vBillVendor" placeholder="e.g. Modern Garments Wholesalers">
 
     <div class="two-col">
@@ -5890,12 +5914,17 @@ window.__saveVendorBill = async function() {
 
   const billObj = {
     business_id: session.businessId,
-    vendor_name,
-    bill_no,
-    amount,
-    bill_date,
-    due_date,
-    notes,
+    vendor_name: vendor_name,
+    vendor: vendor_name,
+    supplier_name: vendor_name,
+    bill_no: bill_no,
+    invoice_no: bill_no,
+    amount: amount,
+    total_amount: amount,
+    bill_amount: amount,
+    bill_date: bill_date,
+    due_date: due_date,
+    notes: notes,
     scanned_by: session.staffId,
     status: 'pending',
     created_at: new Date().toISOString()
