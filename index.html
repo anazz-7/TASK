@@ -1898,6 +1898,74 @@ function sendSmsDailySummary(){
 }
 window.__sendSmsDailySummary = sendSmsDailySummary;
 
+
+/* ---------------- DASHBOARD WIDGETS (Features 1, 2, 6) ---------------- */
+function buildDashboardVendorBillsHtml() {
+  const bills = cache.vendorBills || [];
+  const unpaid = bills.filter(b => b.status !== 'paid');
+  if (!unpaid.length) return '';
+
+  const totalUnpaid = unpaid.reduce((sum, b) => sum + getBillAmount(b), 0);
+
+  return `
+    <div class="section-label">🔴 Unpaid Vendor Bills Due (${unpaid.length}) <a onclick="window.__setTab('vendors')">View All &rarr;</a></div>
+    <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px;margin-bottom:16px;border-left:4px solid var(--brick);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div>
+          <b style="font-size:0.95rem;color:var(--brick);">Total Payable to Suppliers</b>
+          <div style="font-size:0.75rem;color:var(--ink-soft);">${unpaid.length} Pending Bills Awaiting Payment</div>
+        </div>
+        <b style="font-family:'IBM Plex Mono',monospace;font-size:1.25rem;color:var(--brick);">₹${totalUnpaid.toFixed(0)}</b>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${unpaid.slice(0, 3).map(b => `
+          <div style="display:flex;justify-content:space-between;align-items:center;background:var(--paper);padding:8px 12px;border-radius:6px;border:1px solid var(--paper-line);">
+            <div>
+              <b style="font-size:0.88rem;color:var(--ink);">${esc(getVendorName(b))}</b>
+              <div style="font-size:0.75rem;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;">Bill #${esc(getBillNo(b))} ${b.due_date ? '&bull; Due: ' + b.due_date : ''}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <b style="font-family:'IBM Plex Mono',monospace;font-size:0.95rem;color:var(--brick);">₹${getBillAmount(b).toFixed(0)}</b>
+              ${isOwner() ? `<button class="stamp-btn small" style="background:var(--leaf);color:#fff;border-color:var(--leaf);padding:4px 8px;font-size:0.72rem;" onclick="window.__markVendorBillPaid('${b.id}')">✓ Pay</button>` : ''}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function buildDashboardActivityFeedHtml() {
+  const auditLogs = typeof getAuditLogs === 'function' ? getAuditLogs() : [];
+  if (!auditLogs.length) return '';
+
+  const recent = auditLogs.slice(0, 5);
+
+  return `
+    <div class="section-label">📜 Real-Time Activity Feed <a onclick="window.__setTab('audit')">View All &rarr;</a></div>
+    <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px;margin-bottom:16px;">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${recent.map(item => `
+          <div style="display:flex;align-items:flex-start;gap:10px;padding-bottom:8px;border-bottom:1px dashed var(--paper-line);">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--amber-soft);color:var(--turmeric-dark);display:flex;align-items:center;justify-content:center;font-size:0.75rem;flex-shrink:0;font-weight:700;">
+              ⚡
+            </div>
+            <div style="flex:1;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <b style="font-size:0.84rem;color:var(--ink);">${esc(item.actionType)}</b>
+                <span style="font-size:0.7rem;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;">${item.timestamp ? item.timestamp.slice(11,16) : ''}</span>
+              </div>
+              <div style="font-size:0.78rem;color:var(--ink-soft);margin-top:2px;">${esc(item.details)}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+
 function renderDashboardTab(body){
   const today = todayStr();
   const curMonth = monthKey(today);
@@ -1945,13 +2013,52 @@ function renderDashboardTab(body){
   const sharingNowCount = cache.salesmanLocations.filter(l=>l.is_sharing).length;
   const packagesToday = cache.packages.filter(p=>p.date===today).reduce((s,p)=>s+Number(p.qty||0),0);
 
+  const unpaidVendorBills = (cache.vendorBills || []).filter(b => b.status !== 'paid');
+  const unpaidVendorTotal = unpaidVendorBills.reduce((sum, b) => sum + getBillAmount(b), 0);
+
   body.innerHTML = `
-    
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <div style="font-weight:700;font-size:1.1rem;">Dashboard Overview</div>
-      ${isManagerPlus() ? `<button class="stamp-btn small" style="background:var(--leaf);color:#fff;border-color:var(--leaf);" onclick="window.__sendSmsDailySummary()">${icon('bell',15)} SMS Summary</button>` : ''}
+    <!-- Feature 1: Executive KPI Summary Hero Banner -->
+    <div class="row-card" style="flex-direction:column;align-items:stretch;background:linear-gradient(135deg, var(--paper), var(--card));border:1.5px solid var(--turmeric);padding:16px;margin-bottom:16px;box-shadow:0 6px 20px rgba(0,0,0,0.06);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div>
+          <h2 style="margin:0;font-size:1.15rem;color:var(--turmeric-dark);font-family:'Space Grotesk',sans-serif;">📊 Executive Dashboard</h2>
+          <div style="font-size:0.75rem;color:var(--ink-soft);">${esc(session.businessName)} &bull; ${new Date().toLocaleDateString('en-IN', {weekday:'short', day:'numeric', month:'short', year:'numeric'})}</div>
+        </div>
+        ${isManagerPlus() ? `<button class="stamp-btn small" style="background:var(--leaf);color:#fff;border-color:var(--leaf);" onclick="window.__sendSmsDailySummary()">${icon('bell',14)} SMS Report</button>` : ''}
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;">
+        <div style="background:var(--paper);padding:10px 12px;border-radius:8px;border:1px solid var(--paper-line);">
+          <span style="font-size:0.7rem;color:var(--ink-soft);font-weight:600;display:block;">🟢 Sales Today</span>
+          <b style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;color:var(--leaf);">₹${todaySalesTotal.toFixed(0)}</b>
+        </div>
+
+        <div style="background:var(--paper);padding:10px 12px;border-radius:8px;border:1px solid var(--paper-line);cursor:pointer;" onclick="window.__setTab('vendors')">
+          <span style="font-size:0.7rem;color:var(--ink-soft);font-weight:600;display:block;">🔴 Vendor Bills Due</span>
+          <b style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;color:${unpaidVendorBills.length?'var(--brick)':'var(--ink)'}">₹${unpaidVendorTotal.toFixed(0)}</b>
+          <span style="font-size:0.68rem;color:var(--ink-soft);">${unpaidVendorBills.length} Bill${unpaidVendorBills.length!==1?'s':''} Unpaid</span>
+        </div>
+
+        <div style="background:var(--paper);padding:10px 12px;border-radius:8px;border:1px solid var(--paper-line);cursor:pointer;" onclick="window.__setTab('attendance')">
+          <span style="font-size:0.7rem;color:var(--ink-soft);font-weight:600;display:block;">👥 Staff On Duty</span>
+          <b style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;color:var(--ink);">${todayCheckedIn}/${cache.staff.length}</b>
+          <span style="font-size:0.68rem;color:var(--ink-soft);">${attPct}% Present Month</span>
+        </div>
+
+        <div style="background:var(--paper);padding:10px 12px;border-radius:8px;border:1px solid var(--paper-line);cursor:pointer;" onclick="window.__setTab('tasks')">
+          <span style="font-size:0.7rem;color:var(--ink-soft);font-weight:600;display:block;">⚡ Open Tasks</span>
+          <b style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;color:${overdue?'var(--brick)':'var(--ink)'}">${total - done}</b>
+          <span style="font-size:0.68rem;color:${overdue?'var(--brick)':'var(--ink-soft)'}">${overdue ? overdue+' Overdue' : rate+'% Complete'}</span>
+        </div>
+      </div>
     </div>
-  
+
+    <!-- Feature 2: Vendor Bills Payable Widget -->
+    ${buildDashboardVendorBillsHtml()}
+
+    <!-- Feature 6: Real-Time Activity Feed Widget -->
+    ${buildDashboardActivityFeedHtml()}
+
     <div class="section-label">Tasks</div>
     <div class="stat-grid">
       <div class="stat-card"><div class="num">${total}</div><div class="label">Total tasks</div></div>
