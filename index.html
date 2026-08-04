@@ -1723,7 +1723,7 @@ function renderShell(){
           { section: 'Overview', keys: ['dashboard','ai','reports'] },
           { section: 'Work', keys: ['tasks','daily','weekly','attendance'] },
           { section: 'Sales', keys: ['sales','salesman','label','package'] },
-          { section: 'Money', keys: ['accounts','salary','points'] },
+          { section: 'Money', keys: ['accounts','vendors','salary','points'] },
           { section: 'Admin', keys: ['staff','stockkeeper','audit','settings'] }
         ].map(grp => {
           const validKeys = grp.keys.filter(k => tabs.includes(k));
@@ -1772,6 +1772,7 @@ function renderShell(){
     ${activeTab==='label' ? '<button class="fab mobile-only" onclick="window.__openLabel()">+</button>' : ''}
     ${activeTab==='package' ? '<button class="fab mobile-only" onclick="window.__openPackage()">+</button>' : ''}
     ${activeTab==='points' && isManagerPlus() ? '<button class="fab mobile-only" onclick="window.__openPoints()">+</button>' : ''}
+    ${activeTab==='vendors' ? '<button class="fab mobile-only" onclick="window.__openScanVendorBillModal()">+</button>' : ''}
   `}
   `;
 
