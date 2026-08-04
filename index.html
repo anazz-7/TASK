@@ -1637,7 +1637,7 @@ function getPrimaryActionBtn(t){
   if(t==='package') return `<button class="stamp-btn desktop-only" onclick="window.__openPackage()">+ Log Package</button>`;
   if(t==='salary' && isOwner()) return `<button class="stamp-btn desktop-only" onclick="window.__openSalary()">+ Record Salary</button>`;
   if(t==='points' && isManagerPlus()) return `<button class="stamp-btn desktop-only" onclick="window.__openPoints()">+ Award Points</button>`;
-  if(t==='vendors') return `<button class="stamp-btn desktop-only" onclick="window.__openScanVendorBillModal()">📷 Scan / Add Bill</button>`;
+  if(t==='vendors') return `<button class="stamp-btn desktop-only" onclick="window.__openScanVendorBillModal()">➕ Add Bill</button>`;
   return '';
 }
 
@@ -5699,9 +5699,8 @@ function renderVendorBillsTab(body) {
         </div>
       </div>
 
-      <div style="display:flex;gap:8px;margin-top:14px;">
-        <button class="stamp-btn" style="flex:1;padding:10px 0;font-size:0.85rem;" onclick="window.__openScanVendorBillModal()">📝 Add Purchase Bill</button>
-        <button class="stamp-btn ghost" style="padding:10px 14px;font-size:0.85rem;" onclick="window.__openScanVendorBillModal(true)">➕ Manual Entry</button>
+      <div style="margin-top:14px;">
+        <button class="stamp-btn" style="width:100%;padding:12px 0;font-size:0.95rem;" onclick="window.__openScanVendorBillModal()">➕ Add Purchase Bill</button>
       </div>
     </div>
 
@@ -5788,26 +5787,17 @@ window.__closeVendorModal = function() {
 };
 
 
-window.__openScanVendorBillModal = function(manualOnly = false) {
-  currentBillPhotoData = '';
+window.__openScanVendorBillModal = function() {
   const holder = getModalHolder('taskModalHolder');
+
+  // Compute 15-day default due date
+  const defaultDue = new Date();
+  defaultDue.setDate(defaultDue.getDate() + 15);
+  const dueStr = localDateStr(defaultDue);
 
   holder.innerHTML = `
   <div class="overlay show"><div class="modal" style="max-width:440px;">
-    <h2>📷 ${manualOnly ? 'Add Vendor Purchase Bill' : 'Add Purchase Bill'}</h2>
-    
-    <input type="file" id="vBillFileInput" accept="image/*" capture="environment" style="display:none;" onchange="window.__handleBillPhotoSelected(this)">
-    
-    ${!manualOnly ? `
-      <div style="border:2px dashed var(--turmeric);border-radius:10px;padding:16px;text-align:center;background:var(--amber-soft);margin-bottom:14px;cursor:pointer;" onclick="document.getElementById('vBillFileInput').click()">
-        <div id="vBillPhotoArea">
-          <span style="font-size:2rem;display:block;margin-bottom:4px;">📷</span>
-          <b style="font-size:0.9rem;color:var(--turmeric-dark);display:block;">Tap Camera to Scan Purchase Bill</b>
-          <span style="font-size:0.75rem;color:var(--ink-soft);">Snaps photo & attaches to vendor record</span>
-        </div>
-        <img id="vBillPreviewImg" style="display:none;width:100%;max-height:180px;object-fit:contain;border-radius:6px;margin-top:8px;">
-      </div>
-    ` : ''}
+    <h2>🧾 Add Purchase Bill</h2>
 
     <label>Vendor / Supplier Name</label>
     ${(cache.vendorBills && cache.vendorBills.length > 0) ? `
@@ -5836,7 +5826,7 @@ window.__openScanVendorBillModal = function(manualOnly = false) {
       </div>
       <div>
         <label>Payment Due Date</label>
-        <input type="date" id="vBillDueDate">
+        <input type="date" id="vBillDueDate" value="${dueStr}">
       </div>
     </div>
 
@@ -5845,9 +5835,14 @@ window.__openScanVendorBillModal = function(manualOnly = false) {
 
     <div class="modal-actions">
       <button class="stamp-btn ghost" onclick="window.__closeVendorModal()">Cancel</button>
-      <button class="stamp-btn" style="background:var(--turmeric);color:white;" onclick="window.__saveVendorBill()">💾 Submit Bill</button>
+      <button class="stamp-btn" style="background:var(--turmeric);color:white;" onclick="window.__saveVendorBill()">💾 Save Purchase Bill</button>
     </div>
   </div></div>`;
+
+  setTimeout(() => {
+    const vEl = document.getElementById('vBillVendor');
+    if (vEl) vEl.focus();
+  }, 150);
 };
 
 
