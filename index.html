@@ -773,7 +773,7 @@ function hideLoading() {
 const app = document.getElementById('app');
 let supabase = null;
 let session = JSON.parse(localStorage.getItem('br_session') || 'null'); // {staffId, name, role, businessId, businessName}
-let cache = { businesses: [], staff: [], tasks: [], attendance: [], sales: [], routines: [], routineLog: [], points: [], labels: [], weeklyTasks: [], weeklyTaskLog: [], packages: [], salesmanLocations: [], salaries: [], salesTargets: [], trophies: [], stockChecks: [], dailyAccounts: [] };
+let cache = { businesses: [], staff: [], tasks: [], attendance: [], sales: [], routines: [], routineLog: [], points: [], labels: [], weeklyTasks: [], weeklyTaskLog: [], packages: [], salesmanLocations: [], salaries: [], salesTargets: [], trophies: [], stockChecks: [], dailyAccounts: [], vendorBills: [] };
 let activeTab = 'tasks';
 let taskFilter = { staffId: '', priority: '', search: '' };
 let taskSubTab = 'active'; // 'active' | 'history'
@@ -1268,6 +1268,14 @@ async function loadData(){
     cache.trophies = trophiesR.data || [];
     cache.stockChecks = stockR.data || [];
     try {
+      const { data: vBillsData } = await supabase.from('vendor_bills').select('*').eq('business_id', bizId).order('bill_date', {ascending:false});
+      cache.vendorBills = vBillsData || [];
+    } catch(e) {
+      const localSaved = localStorage.getItem('br_vendor_bills_' + bizId);
+      cache.vendorBills = localSaved ? JSON.parse(localSaved) : [];
+    }
+
+    try {
       const { data: dAccData, error: dErr } = await supabase.from('daily_accounts').select('*').eq('business_id', bizId).order('date', {ascending:false});
       if(dErr) throw dErr;
       cache.dailyAccounts = dAccData || [];
@@ -1606,12 +1614,13 @@ const TAB_META = {
   stockkeeper: {icon:'clipboard', label:'Stockkeeper'},
   accounts: {icon:'save', label:'Accounts'},
   audit: {icon:'clipboard', label:'Audit Log'},
+  vendors: {icon:'vendors', label:'Vendor Bills'},
 };
 function currentTabs(){
   if(session.role === 'salesman') return ['tasks', 'sales', 'salesman', 'accounts'];
   return isManagerPlus()
-    ? (isOwner() ? ['dashboard','ai','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','salary','accounts','reports','audit','staff','settings'] : ['dashboard','ai','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','audit','staff'])
-    : ['tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts'];
+    ? (isOwner() ? ['dashboard','ai','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','salary','accounts','vendors','reports','audit','staff','settings'] : ['dashboard','ai','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','vendors','audit','staff'])
+    : ['tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','vendors'];
 }
 function quickTabs(){
   if(session.role === 'salesman') return ['tasks','attendance','sales','accounts'];
@@ -1627,6 +1636,7 @@ function getPrimaryActionBtn(t){
   if(t==='package') return `<button class="stamp-btn desktop-only" onclick="window.__openPackage()">+ Log Package</button>`;
   if(t==='salary' && isOwner()) return `<button class="stamp-btn desktop-only" onclick="window.__openSalary()">+ Record Salary</button>`;
   if(t==='points' && isManagerPlus()) return `<button class="stamp-btn desktop-only" onclick="window.__openPoints()">+ Award Points</button>`;
+  if(t==='vendors') return `<button class="stamp-btn desktop-only" onclick="window.__openScanVendorBillModal()">📷 Scan / Add Bill</button>`;
   return '';
 }
 
@@ -1794,6 +1804,7 @@ function renderTabBody(){
   if(activeTab==='package') return renderPackageTab(body);
   if(activeTab==='stockkeeper') return renderStockkeeperTab(body);
   if(activeTab==='accounts') return renderAccountsTab(body);
+  if(activeTab==='vendors') return renderVendorBillsTab(body);
   if(activeTab==='audit' && isManagerPlus()) return renderAuditTab(body);
   if(activeTab==='salary' && isOwner()) return renderSalaryTab(body);
   if(activeTab==='salesman') return renderSalesmanTab(body);
@@ -5632,6 +5643,311 @@ window.__filterAccHistory = function(q) {
   const listEl = document.getElementById('accHistoryList');
   if(listEl) listEl.innerHTML = renderAccHistoryRows(filtered);
 };
+
+
+/* ---------------- VENDOR PAYMENTS & PURCHASE BILL SCANNER MODULE ---------------- */
+let vendorSubTab = 'unpaid'; // 'unpaid' | 'paid' | 'all'
+let currentBillPhotoData = '';
+
+window.__setVendorSubTab = function(tab) {
+  vendorSubTab = tab;
+  renderTabBody();
+};
+
+function renderVendorBillsTab(body) {
+  const bills = cache.vendorBills || [];
+  const unpaid = bills.filter(b => b.status !== 'paid');
+  const paid = bills.filter(b => b.status === 'paid');
+
+  const totalUnpaid = unpaid.reduce((sum, b) => sum + Number(b.amount || 0), 0);
+  const totalPaid = paid.reduce((sum, b) => sum + Number(b.amount || 0), 0);
+
+  const displayList = vendorSubTab === 'unpaid' ? unpaid : (vendorSubTab === 'paid' ? paid : bills);
+
+  body.innerHTML = `
+    <!-- Top Summary Banner Card -->
+    <div class="row-card" style="flex-direction:column;align-items:stretch;background:linear-gradient(135deg, var(--paper), var(--card));border:1.5px solid var(--turmeric);margin-bottom:14px;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+        <div>
+          <span style="font-size:0.75rem;font-weight:700;color:var(--ink-soft);letter-spacing:0.04em;text-transform:uppercase;">🔴 Total Bills Payable (Unpaid)</span>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.6rem;font-weight:800;color:var(--brick);margin:4px 0 0;">₹${totalUnpaid.toFixed(0)}</h2>
+          <div style="font-size:0.78rem;color:var(--ink-soft);margin-top:2px;">${unpaid.length} Bill${unpaid.length !== 1 ? 's' : ''} Pending Verification & Settlement</div>
+        </div>
+        <div style="text-align:right;">
+          <span style="font-size:0.72rem;font-weight:600;color:var(--leaf);display:block;">🟢 Settled This Month</span>
+          <b style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;color:var(--leaf);">₹${totalPaid.toFixed(0)}</b>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button class="stamp-btn" style="flex:1;padding:10px 0;font-size:0.85rem;" onclick="window.__openScanVendorBillModal()">📷 Scan / Upload Purchase Bill</button>
+        <button class="stamp-btn ghost" style="padding:10px 14px;font-size:0.85rem;" onclick="window.__openScanVendorBillModal(true)">➕ Manual Entry</button>
+      </div>
+    </div>
+
+    <!-- Navigation Sub-Menu Bar -->
+    <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;">
+      <button class="stamp-btn small ${vendorSubTab==='unpaid'?'':'ghost'}" onclick="window.__setVendorSubTab('unpaid')">⏳ Unpaid Bills (${unpaid.length})</button>
+      <button class="stamp-btn small ${vendorSubTab==='paid'?'':'ghost'}" onclick="window.__setVendorSubTab('paid')">✓ Paid History (${paid.length})</button>
+      <button class="stamp-btn small ${vendorSubTab==='all'?'':'ghost'}" onclick="window.__setVendorSubTab('all')">📋 All Bills (${bills.length})</button>
+    </div>
+
+    <!-- Bills List -->
+    <div class="section-label">${vendorSubTab==='unpaid'?'Pending Unpaid Bills Payable':'Bill History'} (${displayList.length})</div>
+    ${displayList.length ? displayList.map(renderVendorBillCard).join('') : `<div class="empty">No ${vendorSubTab} vendor bills found.</div>`}
+    
+    <div id="vendorModalHolder"></div>`;
+}
+
+function renderVendorBillCard(b) {
+  const isPaid = b.status === 'paid';
+  const staff = cache.staff.find(s => s.id === b.scanned_by);
+  const staffName = staff ? staff.name : (b.scanned_by || 'Staff');
+  const datePretty = new Date(b.bill_date + 'T00:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+  const duePretty = b.due_date ? new Date(b.due_date + 'T00:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short' }) : 'None';
+
+  return `
+    <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px 16px;margin-bottom:12px;${isPaid ? 'border-left:4px solid var(--leaf);' : 'border-left:4px solid var(--brick);'}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+        <div style="display:flex;gap:12px;align-items:center;">
+          ${b.photo_url ? `
+            <div style="width:54px;height:54px;border-radius:8px;overflow:hidden;background:#000;flex-shrink:0;cursor:pointer;border:1px solid var(--paper-line);" onclick="window.__viewVendorBillPhoto('${b.id}')">
+              <img src="${b.photo_url}" style="width:100%;height:100%;object-fit:cover;">
+            </div>
+          ` : `
+            <div style="width:54px;height:54px;border-radius:8px;background:var(--paper-line);display:flex;align-items:center;justify-content:center;color:var(--ink-soft);font-size:1.2rem;flex-shrink:0;">
+              🧾
+            </div>
+          `}
+          <div>
+            <b style="font-size:1rem;color:var(--ink);display:block;margin-bottom:2px;font-family:'Space Grotesk',sans-serif;">${esc(b.vendor_name)}</b>
+            <div style="font-size:0.78rem;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;">
+              Bill No: <b>${esc(b.bill_no || 'N/A')}</b> &bull; Date: ${datePretty}
+            </div>
+            <div style="font-size:0.72rem;color:var(--ink-soft);margin-top:2px;">
+              Scanned by: <b>${esc(staffName)}</b> ${b.due_date ? `&bull; Due: <span style="color:var(--brick);font-weight:600;">${duePretty}</span>` : ''}
+            </div>
+          </div>
+        </div>
+        
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:1.15rem;font-weight:800;color:${isPaid?'var(--leaf)':'var(--brick)'};">
+            ₹${Number(b.amount||0).toFixed(0)}
+          </div>
+          <span class="stamp ${isPaid?'done':'absent'}" style="font-size:0.7rem;padding:3px 7px;margin-top:4px;display:inline-block;">
+            ${isPaid ? '✓ PAID' : '⏳ UNPAID'}
+          </span>
+        </div>
+      </div>
+
+      ${b.notes ? `<div class="notes" style="margin-top:10px;"><b>Notes:</b> ${esc(b.notes)}</div>` : ''}
+
+      <!-- Action Bar -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px dashed var(--paper-line);">
+        <div>
+          ${b.photo_url ? `<button class="stamp-btn ghost small" style="font-size:0.75rem;padding:4px 8px;" onclick="window.__viewVendorBillPhoto('${b.id}')">👁 View Bill Photo</button>` : ''}
+        </div>
+
+        <div style="display:flex;gap:6px;">
+          ${!isPaid && isOwner() ? `
+            <button class="stamp-btn small" style="background:var(--leaf);color:#fff;border-color:var(--leaf);font-weight:700;" onclick="window.__markVendorBillPaid('${b.id}')">✓ Verify & Mark Paid</button>
+          ` : ''}
+          ${isOwner() ? `
+            <button class="stamp-btn ghost small" style="color:var(--brick);border-color:var(--brick);" onclick="window.__deleteVendorBill('${b.id}')">🗑</button>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+window.__openScanVendorBillModal = function(manualOnly = false) {
+  currentBillPhotoData = '';
+  const holder = getModalHolder('taskModalHolder');
+
+  holder.innerHTML = `
+  <div class="overlay show"><div class="modal" style="max-width:440px;">
+    <h2>📷 ${manualOnly ? 'Add Vendor Purchase Bill' : 'Scan / Upload Purchase Bill'}</h2>
+    
+    <input type="file" id="vBillFileInput" accept="image/*" capture="environment" style="display:none;" onchange="window.__handleBillPhotoSelected(this)">
+    
+    ${!manualOnly ? `
+      <div style="border:2px dashed var(--turmeric);border-radius:10px;padding:16px;text-align:center;background:var(--amber-soft);margin-bottom:14px;cursor:pointer;" onclick="document.getElementById('vBillFileInput').click()">
+        <div id="vBillPhotoArea">
+          <span style="font-size:2rem;display:block;margin-bottom:4px;">📷</span>
+          <b style="font-size:0.9rem;color:var(--turmeric-dark);display:block;">Tap Camera to Scan Purchase Bill</b>
+          <span style="font-size:0.75rem;color:var(--ink-soft);">Snaps photo & attaches to vendor record</span>
+        </div>
+        <img id="vBillPreviewImg" style="display:none;width:100%;max-height:180px;object-fit:contain;border-radius:6px;margin-top:8px;">
+      </div>
+    ` : ''}
+
+    <label>Vendor / Supplier Name</label>
+    <input id="vBillVendor" placeholder="e.g. Modern Garments Wholesalers">
+
+    <div class="two-col">
+      <div>
+        <label>Purchase Bill No</label>
+        <input id="vBillNo" placeholder="e.g. INV-8891">
+      </div>
+      <div>
+        <label>Bill Amount (₹)</label>
+        <input type="number" step="0.01" id="vBillAmount" placeholder="e.g. 12500">
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <label>Bill Date</label>
+        <input type="date" id="vBillDate" value="${todayStr()}">
+      </div>
+      <div>
+        <label>Payment Due Date</label>
+        <input type="date" id="vBillDueDate">
+      </div>
+    </div>
+
+    <label>Notes / Order Details</label>
+    <textarea id="vBillNotes" placeholder="Optional supplier notes or item details..."></textarea>
+
+    <div class="modal-actions">
+      <button class="stamp-btn ghost" onclick="getModalHolder('taskModalHolder').innerHTML=''">Cancel</button>
+      <button class="stamp-btn" style="background:var(--turmeric);color:white;" onclick="window.__saveVendorBill()">💾 Submit Bill</button>
+    </div>
+  </div></div>`;
+};
+
+window.__handleBillPhotoSelected = function(input) {
+  if (input.files && input.files[0]) {
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      currentBillPhotoData = e.target.result;
+      const img = document.getElementById('vBillPreviewImg');
+      const area = document.getElementById('vBillPhotoArea');
+      if (img) {
+        img.src = currentBillPhotoData;
+        img.style.display = 'block';
+      }
+      if (area) {
+        area.innerHTML = '<span style="font-size:0.8rem;color:var(--leaf);font-weight:700;">✓ Bill Photo Attached! Tap to retake photo.</span>';
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+};
+
+window.__saveVendorBill = async function() {
+  const vendor_name = document.getElementById('vBillVendor') ? document.getElementById('vBillVendor').value.trim() : '';
+  const bill_no = document.getElementById('vBillNo') ? document.getElementById('vBillNo').value.trim() : '';
+  const amount = Number(document.getElementById('vBillAmount') ? document.getElementById('vBillAmount').value : 0);
+  const bill_date = document.getElementById('vBillDate') ? document.getElementById('vBillDate').value : todayStr();
+  const due_date = document.getElementById('vBillDueDate') ? document.getElementById('vBillDueDate').value : '';
+  const notes = document.getElementById('vBillNotes') ? document.getElementById('vBillNotes').value.trim() : '';
+
+  if (!vendor_name) {
+    alert('Please enter Vendor / Supplier Name.');
+    return;
+  }
+  if (!amount || amount <= 0) {
+    alert('Please enter a valid Bill Amount (₹).');
+    return;
+  }
+
+  const billObj = {
+    business_id: session.businessId,
+    vendor_name,
+    bill_no,
+    amount,
+    bill_date,
+    due_date,
+    notes,
+    photo_url: currentBillPhotoData,
+    scanned_by: session.staffId,
+    status: 'pending',
+    created_at: new Date().toISOString()
+  };
+
+  showLoading();
+  try {
+    const { data, error } = await supabase.from('vendor_bills').insert(billObj).select().single();
+    if (error) throw error;
+    if (data) cache.vendorBills.unshift(data);
+    else { billObj.id = 'vbill_' + Date.now(); cache.vendorBills.unshift(billObj); }
+  } catch(e) {
+    billObj.id = 'vbill_' + Date.now();
+    cache.vendorBills.unshift(billObj);
+    localStorage.setItem('br_vendor_bills_' + session.businessId, JSON.stringify(cache.vendorBills));
+  } finally {
+    hideLoading();
+  }
+
+  getModalHolder('taskModalHolder').innerHTML = '';
+  logAuditEvent('Vendor Bill Scanned', `Scanned Bill ${bill_no||'N/A'} for ₹${amount} from ${vendor_name}`);
+  triggerAppNotification('Bill Logged', `Vendor bill of ₹${amount} saved (Pending Owner Verification)`);
+  window.showToast(`📷 Purchase Bill logged successfully!`, 'success');
+  renderTabBody();
+};
+
+window.__markVendorBillPaid = async function(id) {
+  const bill = cache.vendorBills.find(b => b.id === id);
+  if (!bill) return;
+
+  if (!confirm(`Verify & mark bill ${bill.bill_no || ''} from ${bill.vendor_name} (₹${Number(bill.amount).toFixed(0)}) as PAID?`)) return;
+
+  bill.status = 'paid';
+  bill.paid_at = new Date().toISOString();
+  bill.paid_by = session.staffId;
+
+  showLoading();
+  try {
+    await supabase.from('vendor_bills').update({ status: 'paid', paid_at: bill.paid_at, paid_by: bill.paid_by }).eq('id', id);
+  } catch(e) {
+    localStorage.setItem('br_vendor_bills_' + session.businessId, JSON.stringify(cache.vendorBills));
+  } finally {
+    hideLoading();
+  }
+
+  logAuditEvent('Vendor Bill Paid', `Verified & paid Bill ${bill.bill_no||'N/A'} (₹${bill.amount}) to ${bill.vendor_name}`);
+  triggerAppNotification('Bill Marked Paid', `Bill ${bill.bill_no||''} from ${bill.vendor_name} marked PAID`);
+  window.showToast(`✓ Bill marked as PAID!`, 'success');
+  renderTabBody();
+};
+
+window.__deleteVendorBill = async function(id) {
+  if (!confirm('Are you sure you want to delete this vendor bill?')) return;
+
+  cache.vendorBills = cache.vendorBills.filter(b => b.id !== id);
+
+  showLoading();
+  try {
+    await supabase.from('vendor_bills').delete().eq('id', id);
+  } catch(e) {
+    localStorage.setItem('br_vendor_bills_' + session.businessId, JSON.stringify(cache.vendorBills));
+  } finally {
+    hideLoading();
+  }
+
+  logAuditEvent('Vendor Bill Delete', `Deleted vendor bill`);
+  window.showToast('🗑 Vendor bill deleted', 'info');
+  renderTabBody();
+};
+
+window.__viewVendorBillPhoto = function(id) {
+  const bill = cache.vendorBills.find(b => b.id === id);
+  if (!bill || !bill.photo_url) return;
+
+  const holder = getModalHolder('taskModalHolder');
+  holder.innerHTML = `
+  <div class="overlay show" onclick="this.remove()"><div class="modal" style="max-width:90vw;max-height:90vh;padding:12px;background:#000;color:#fff;text-align:center;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <span style="font-weight:700;font-size:0.9rem;">${esc(bill.vendor_name)} (Bill #${esc(bill.bill_no||'N/A')})</span>
+      <button class="stamp-btn ghost small" style="color:#fff;border-color:#fff;" onclick="this.closest('.overlay').remove()">✕ Close</button>
+    </div>
+    <img src="${bill.photo_url}" style="max-width:100%;max-height:75vh;object-fit:contain;border-radius:6px;">
+  </div></div>`;
+};
+
 
 /* ---------------- CALENDAR SUB-TAB ---------------- */
 
