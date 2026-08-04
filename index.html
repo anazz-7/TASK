@@ -741,6 +741,55 @@
     transform: scale(0.94);
   }
 
+  /* Executive Dashboard Mobile-First KPI Grid */
+  .dash-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  @media (min-width: 640px) {
+    .dash-kpi-grid {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+  }
+  .dash-kpi-card {
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-radius: 10px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+    cursor: pointer;
+  }
+  .dash-kpi-card:active {
+    transform: scale(0.97);
+  }
+  .dash-kpi-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 4px;
+  }
+  .dash-kpi-val {
+    font-family: 'Space Grotesk', 'IBM Plex Mono', monospace;
+    font-size: 1.25rem;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+  .dash-kpi-sub {
+    font-size: 0.72rem;
+    color: var(--ink-soft);
+    margin-top: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
 
   /* Responsive Mobile Enhancements */
   @media (max-width: 600px) {
@@ -765,6 +814,9 @@
       font-size: 0.95rem !important;
     }
   }
+
+
+
 
 </style>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -2017,38 +2069,39 @@ function renderDashboardTab(body){
   const unpaidVendorTotal = unpaidVendorBills.reduce((sum, b) => sum + getBillAmount(b), 0);
 
   body.innerHTML = `
-    <!-- Feature 1: Executive KPI Summary Hero Banner -->
-    <div class="row-card" style="flex-direction:column;align-items:stretch;background:linear-gradient(135deg, var(--paper), var(--card));border:1.5px solid var(--turmeric);padding:16px;margin-bottom:16px;box-shadow:0 6px 20px rgba(0,0,0,0.06);">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+    <!-- Feature 1: Mobile-First Executive KPI Summary Hero Banner -->
+    <div class="row-card" style="flex-direction:column;align-items:stretch;background:var(--card);border:1.5px solid var(--paper-line);padding:14px;margin-bottom:16px;border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,0.04);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px dashed var(--paper-line);">
         <div>
-          <h2 style="margin:0;font-size:1.15rem;color:var(--turmeric-dark);font-family:'Space Grotesk',sans-serif;">Executive Dashboard</h2>
-          <div style="font-size:0.75rem;color:var(--ink-soft);">${esc(session.businessName)} &bull; ${new Date().toLocaleDateString('en-IN', {weekday:'short', day:'numeric', month:'short', year:'numeric'})}</div>
+          <h2 style="margin:0;font-size:1.05rem;color:var(--ink);font-family:'Space Grotesk',sans-serif;font-weight:700;">Executive Overview</h2>
+          <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">${esc(session.businessName)} &bull; ${new Date().toLocaleDateString('en-IN', {weekday:'short', day:'numeric', month:'short'})}</div>
         </div>
-        ${isManagerPlus() ? `<button class="stamp-btn small" style="background:var(--leaf);color:#fff;border-color:var(--leaf);" onclick="window.__sendSmsDailySummary()">${icon('bell',14)} SMS Report</button>` : ''}
+        ${isManagerPlus() ? `<button class="stamp-btn small" style="background:var(--leaf);color:#fff;border-color:var(--leaf);padding:4px 10px;font-size:0.78rem;" onclick="window.__sendSmsDailySummary()">SMS Report</button>` : ''}
       </div>
 
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;">
-        <div style="background:var(--paper);padding:10px 12px;border-radius:8px;border:1px solid var(--paper-line);">
-          <span style="font-size:0.7rem;color:var(--ink-soft);font-weight:600;display:block;">Sales Today</span>
-          <b style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;color:var(--leaf);">₹${todaySalesTotal.toFixed(0)}</b>
+      <div class="dash-kpi-grid">
+        <div class="dash-kpi-card" onclick="window.__setTab('sales')">
+          <div class="dash-kpi-title">Sales Today</div>
+          <div class="dash-kpi-val" style="color:var(--leaf);">₹${todaySalesTotal.toFixed(0)}</div>
+          <div class="dash-kpi-sub">Today's Revenue</div>
         </div>
 
-        <div style="background:var(--paper);padding:10px 12px;border-radius:8px;border:1px solid var(--paper-line);cursor:pointer;" onclick="window.__setTab('vendors')">
-          <span style="font-size:0.7rem;color:var(--ink-soft);font-weight:600;display:block;">Vendor Bills Due</span>
-          <b style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;color:${unpaidVendorBills.length?'var(--brick)':'var(--ink)'}">₹${unpaidVendorTotal.toFixed(0)}</b>
-          <span style="font-size:0.68rem;color:var(--ink-soft);">${unpaidVendorBills.length} Bill${unpaidVendorBills.length!==1?'s':''} Unpaid</span>
+        <div class="dash-kpi-card" onclick="window.__setTab('vendors')">
+          <div class="dash-kpi-title">Vendor Bills Due</div>
+          <div class="dash-kpi-val" style="color:${unpaidVendorBills.length?'var(--brick)':'var(--ink)'}">₹${unpaidVendorTotal.toFixed(0)}</div>
+          <div class="dash-kpi-sub" style="color:${unpaidVendorBills.length?'var(--brick)':'var(--ink-soft)'}">${unpaidVendorBills.length} Bill${unpaidVendorBills.length!==1?'s':''} Unpaid</div>
         </div>
 
-        <div style="background:var(--paper);padding:10px 12px;border-radius:8px;border:1px solid var(--paper-line);cursor:pointer;" onclick="window.__setTab('attendance')">
-          <span style="font-size:0.7rem;color:var(--ink-soft);font-weight:600;display:block;">Staff On Duty</span>
-          <b style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;color:var(--ink);">${todayCheckedIn}/${cache.staff.length}</b>
-          <span style="font-size:0.68rem;color:var(--ink-soft);">${attPct}% Present Month</span>
+        <div class="dash-kpi-card" onclick="window.__setTab('attendance')">
+          <div class="dash-kpi-title">Staff On Duty</div>
+          <div class="dash-kpi-val">${todayCheckedIn}/${cache.staff.length}</div>
+          <div class="dash-kpi-sub">${attPct}% Month Avg</div>
         </div>
 
-        <div style="background:var(--paper);padding:10px 12px;border-radius:8px;border:1px solid var(--paper-line);cursor:pointer;" onclick="window.__setTab('tasks')">
-          <span style="font-size:0.7rem;color:var(--ink-soft);font-weight:600;display:block;">Open Tasks</span>
-          <b style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;color:${overdue?'var(--brick)':'var(--ink)'}">${total - done}</b>
-          <span style="font-size:0.68rem;color:${overdue?'var(--brick)':'var(--ink-soft)'}">${overdue ? overdue+' Overdue' : rate+'% Complete'}</span>
+        <div class="dash-kpi-card" onclick="window.__setTab('tasks')">
+          <div class="dash-kpi-title">Open Tasks</div>
+          <div class="dash-kpi-val" style="color:${overdue?'var(--brick)':'var(--ink)'}">${total - done}</div>
+          <div class="dash-kpi-sub" style="color:${overdue?'var(--brick)':'var(--ink-soft)'}">${overdue ? overdue+' Overdue' : rate+'% Done'}</div>
         </div>
       </div>
     </div>
@@ -5882,7 +5935,10 @@ window.__printVendorBillReceipt = function(id) {
           body { margin: 0; }
           .no-print { display: none; }
         }
-      </style>
+      
+
+
+</style>
     </head>
     <body>
       <div class="no-print" style="margin-bottom:16px;text-align:right;">
