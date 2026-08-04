@@ -5406,7 +5406,7 @@ window.__openChooseStaffSmsModal = function(smsType) {
     </div>
 
     <div class="modal-actions">
-      <button class="stamp-btn ghost" onclick="getModalHolder('taskModalHolder').innerHTML=''">Cancel</button>
+      <button class="stamp-btn ghost" onclick="window.__closeVendorModal()">Cancel</button>
       <button class="stamp-btn" style="background:var(--turmeric);color:white;" onclick="window.__sendSmsToSelectedStaff('${smsType}')">📢 Send SMS</button>
     </div>
   </div></div>`;
@@ -5756,6 +5756,13 @@ function renderVendorBillCard(b) {
   `;
 }
 
+
+window.__closeVendorModal = function() {
+  const holder = getModalHolder('taskModalHolder');
+  if (holder) holder.innerHTML = '';
+};
+
+
 window.__openScanVendorBillModal = function(manualOnly = false) {
   currentBillPhotoData = '';
   const holder = getModalHolder('taskModalHolder');
@@ -5806,7 +5813,7 @@ window.__openScanVendorBillModal = function(manualOnly = false) {
     <textarea id="vBillNotes" placeholder="Optional supplier notes or item details..."></textarea>
 
     <div class="modal-actions">
-      <button class="stamp-btn ghost" onclick="getModalHolder('taskModalHolder').innerHTML=''">Cancel</button>
+      <button class="stamp-btn ghost" onclick="window.__closeVendorModal()">Cancel</button>
       <button class="stamp-btn" style="background:var(--turmeric);color:white;" onclick="window.__saveVendorBill()">💾 Submit Bill</button>
     </div>
   </div></div>`;
@@ -5825,7 +5832,39 @@ window.__handleBillPhotoSelected = function(input) {
         img.style.display = 'block';
       }
       if (area) {
-        area.innerHTML = '<span style="font-size:0.8rem;color:var(--leaf);font-weight:700;">✓ Bill Photo Attached! Tap to retake photo.</span>';
+        area.innerHTML = '<span style="font-size:0.8rem;color:var(--leaf);font-weight:700;">✓ Bill Photo Attached & Details Auto-Filled!</span>';
+      }
+
+      // Auto-fill Bill Number if empty
+      const billNoEl = document.getElementById('vBillNo');
+      if (billNoEl && !billNoEl.value) {
+        const d = new Date();
+        const autoNo = 'INV-' + d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0') + '-' + Math.floor(10 + Math.random() * 90);
+        billNoEl.value = autoNo;
+      }
+
+      // Auto-fill Payment Due Date (15-day default credit)
+      const dueDateEl = document.getElementById('vBillDueDate');
+      if (dueDateEl && !dueDateEl.value) {
+        const d = new Date();
+        d.setDate(d.getDate() + 15);
+        dueDateEl.value = localDateStr(d);
+      }
+
+      // Auto-fill recent vendor if available
+      const vendorEl = document.getElementById('vBillVendor');
+      if (vendorEl && !vendorEl.value && cache.vendorBills && cache.vendorBills.length > 0) {
+        vendorEl.value = cache.vendorBills[0].vendor_name;
+      }
+
+      // Auto-focus Amount input for 1-tap entry
+      const amountEl = document.getElementById('vBillAmount');
+      if (amountEl) {
+        setTimeout(() => { amountEl.focus(); }, 150);
+      }
+
+      if (typeof window.showToast === 'function') {
+        window.showToast('📷 Photo attached! Details auto-filled.', 'success');
       }
     };
     reader.readAsDataURL(file);
