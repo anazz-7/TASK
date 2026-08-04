@@ -741,6 +741,31 @@
     transform: scale(0.94);
   }
 
+
+  /* Responsive Mobile Enhancements */
+  @media (max-width: 600px) {
+    .modal {
+      width: calc(100vw - 24px) !important;
+      max-width: 100vw !important;
+      max-height: 88vh !important;
+      padding: 16px !important;
+      margin: 12px auto !important;
+    }
+    .two-col {
+      grid-template-columns: 1fr !important;
+      gap: 8px !important;
+    }
+    .row-card {
+      padding: 12px 14px !important;
+    }
+    input[type="number"], input[type="text"], select, textarea {
+      font-size: 16px !important; /* Prevents iOS mobile auto-zoom */
+    }
+    #accDateInput {
+      font-size: 0.95rem !important;
+    }
+  }
+
 </style>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
@@ -5347,12 +5372,17 @@ function setupAccEntryEvents(){
 }
 
 function updateAccLiveSummary(){
+  const existing = cache.dailyAccounts.find(a => a.date === accountsDate);
   const data = {};
   ACC_FIELDS.forEach(field => {
     const el = document.getElementById(`accField_${field.key}`);
-    if(el) data[field.key] = Number(el.value || 0);
-    else if(existing && existing[field.key] != null) data[field.key] = Number(existing[field.key]);
-    else data[field.key] = 0;
+    if(el && el.value !== '') {
+      data[field.key] = Number(el.value);
+    } else if(existing && existing[field.key] != null) {
+      data[field.key] = Number(existing[field.key]);
+    } else {
+      data[field.key] = 0;
+    }
   });
   const totals = calcAccTotals(data);
   const eTotal = document.getElementById('accSumTotal');
@@ -5490,8 +5520,6 @@ window.__sendAccSmsSummary = function() {
 };
 
 window.__saveAccEntry = async function() {
-  logAuditEvent('Accounts Save', `Saved daily accounts entry for ${accountsDate}`);
-  triggerAppNotification('Accounts Saved', `Entry updated for ${accountsDate}`);
   if (!isDateUnlockedForStaff(accountsDate)) {
     alert('Permission Denied: Editing accounts for past dates (' + accountsDate + ') is restricted to the Owner.');
     return;
@@ -5504,38 +5532,54 @@ window.__saveAccEntry = async function() {
   };
   ACC_FIELDS.forEach(field => {
     const el = document.getElementById(`accField_${field.key}`);
-    if(el) data[field.key] = Number(el.value || 0);
-    else if(existing && existing[field.key] != null) data[field.key] = Number(existing[field.key]);
-    else data[field.key] = 0;
+    if(el && el.value !== '') {
+      data[field.key] = Number(el.value);
+    } else if(existing && existing[field.key] != null) {
+      data[field.key] = Number(existing[field.key]);
+    } else {
+      data[field.key] = 0;
+    }
   });
 
   const totals = calcAccTotals(data);
   data.total = totals.total;
+  data.total_sales = totals.totalSales;
   data.excess = totals.excess;
   data.less = totals.less;
 
+  // Immediately update local cache so saved numbers are preserved instantly
+  if (existing) {
+    Object.assign(existing, data);
+  } else {
+    data.id = 'loc_' + Date.now();
+    cache.dailyAccounts.push(data);
+  }
+  localStorage.setItem('br_daily_accounts_' + session.businessId, JSON.stringify(cache.dailyAccounts));
+
+  logAuditEvent('Accounts Save', `Saved daily accounts entry for ${accountsDate} (Total: ₹${data.total})`);
+  triggerAppNotification('Accounts Saved', `Entry updated for ${accountsDate}`);
+
   showLoading();
   try {
-    if (existing) {
-      const { error } = await supabase.from('daily_accounts').update(data).eq('id', existing.id);
+    const dbPayload = Object.assign({}, data);
+    delete dbPayload.is_checked; // local transient property
+    if (existing && existing.id && !existing.id.startsWith('loc_')) {
+      const { error } = await supabase.from('daily_accounts').update(dbPayload).eq('id', existing.id);
       if (error) throw error;
     } else {
-      const { error } = await supabase.from('daily_accounts').insert(data);
+      const { data: inserted, error } = await supabase.from('daily_accounts').insert(dbPayload).select().single();
       if (error) throw error;
+      if (inserted && existing) Object.assign(existing, inserted);
     }
   } catch(e) {
-    if (!existing) {
-      data.id = 'loc_' + Date.now();
-      cache.dailyAccounts.push(data);
-    } else {
-      Object.assign(existing, data);
-    }
-    localStorage.setItem('br_daily_accounts_' + session.businessId, JSON.stringify(cache.dailyAccounts));
+    // Already saved in local storage fallback
   } finally {
     hideLoading();
   }
 
-  await loadData();
+  if (typeof window.showToast === 'function') {
+    window.showToast(`💾 Accounts saved for ${accountsDate}!`, 'success');
+  }
   renderTabBody();
 };
 
