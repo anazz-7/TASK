@@ -1315,7 +1315,7 @@ async function loadData(){
   showLoading();
   try {
     const bizId = session.businessId;
-    const [staffR, tasksR, attR, salesR, routinesR, pointsR, labelsR, weeklyR, packagesR, locR, salariesR, targetsR, trophiesR, stockR] = await Promise.all([
+    const [staffR, tasksR, attR, salesR, routinesR, pointsR, labelsR, weeklyR, packagesR, locR, salariesR, targetsR, trophiesR, stockR, auditR] = await Promise.all([
       supabase.from('staff').select('*').eq('business_id', bizId).order('name'),
       supabase.from('tasks').select('*').eq('business_id', bizId).order('due_date', {ascending:true, nullsFirst:false}),
       supabase.from('attendance').select('*').eq('business_id', bizId).order('date', {ascending:false}),
@@ -1330,6 +1330,7 @@ async function loadData(){
       supabase.from('sales_targets').select('*').eq('business_id', bizId),
       supabase.from('trophies').select('*').eq('business_id', bizId),
       supabase.from('stock_checks').select('*').eq('business_id', bizId).order('date', {ascending:false}),
+      supabase.from('audit_logs').select('*').eq('business_id', bizId).order('timestamp', {ascending:false}).limit(300),
     ]);
     cache.staff = staffR.data || [];
     cache.tasks = tasksR.data || [];
@@ -1345,6 +1346,7 @@ async function loadData(){
     cache.salesTargets = targetsR.data || [];
     cache.trophies = trophiesR.data || [];
     cache.stockChecks = stockR.data || [];
+    cache.auditLogs = auditR.data || [];
     try {
       const { data: vBillsData } = await supabase.from('vendor_bills').select('*').eq('business_id', bizId).order('bill_date', {ascending:false});
       cache.vendorBills = vBillsData || [];
@@ -1668,6 +1670,7 @@ const ICONS = {
   star: '<path d="M12 2.5l2.9 6 6.6.7-4.9 4.5 1.3 6.5L12 16.9l-5.9 3.3 1.3-6.5-4.9-4.5 6.6-.7Z" fill="none" stroke-width="1.6" stroke-linejoin="round"/>',
   handshake: '<path d="M2 12l4-4 4 3 3-3 4 4M9 15l2 2M13 12l3 3M6 8l-3 4 3 3M18 8l3 4-3 3" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
   sparkles: '<path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" fill="none" stroke-width="2" stroke-linecap="round"/>',
+  vendors: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="none" stroke-width="2" stroke-linejoin="round"/><polyline points="14 2 14 8 20 8" fill="none" stroke-width="2"/><line x1="16" y1="13" x2="8" y2="13" stroke-width="2"/><line x1="16" y1="17" x2="8" y2="17" stroke-width="2"/><line x1="10" y1="9" x2="8" y2="9" stroke-width="2"/>',
 };
 function icon(name, size){
   size = size || 18;
@@ -5105,8 +5108,11 @@ window.__setAccReportMode = function(m) {
 
 
 
-/* ---------------- FEATURE 5: ACTIVITY AUDIT LOGGING ---------------- */
+/* ---------------- FEATURE 5: ALL-STAFF SYSTEM AUDIT LOGS WITH DATE ACCORDION ---------------- */
 function getAuditLogs() {
+  if (cache && cache.auditLogs && cache.auditLogs.length) {
+    return cache.auditLogs;
+  }
   try {
     return JSON.parse(localStorage.getItem('br_audit_logs_' + session.businessId) || '[]');
   } catch(e) { return []; }
@@ -5114,46 +5120,100 @@ function getAuditLogs() {
 
 function logAuditEvent(actionType, details) {
   if (!session) return;
-  const logs = getAuditLogs();
   const entry = {
-    id: 'audit_' + Date.now(),
+    id: 'audit_' + Date.now() + '_' + Math.random().toString(36).substring(2,6),
     business_id: session.businessId,
     staff_id: session.staffId,
-    staff_name: session.name,
-    staff_role: session.role,
+    staff_name: session.name || 'Staff',
+    staff_role: session.role || 'staff',
     action_type: actionType,
     details: details,
     timestamp: new Date().toISOString()
   };
-  logs.unshift(entry); // newest first
-  if (logs.length > 200) logs.pop(); // keep last 200 logs
-  localStorage.setItem('br_audit_logs_' + session.businessId, JSON.stringify(logs));
-  if (cache) cache.auditLogs = logs;
+  
+  if (!cache.auditLogs) cache.auditLogs = [];
+  cache.auditLogs.unshift(entry);
+  if (cache.auditLogs.length > 500) cache.auditLogs.pop();
+  
+  try {
+    localStorage.setItem('br_audit_logs_' + session.businessId, JSON.stringify(cache.auditLogs));
+  } catch(e){}
+
+  // Sync to central Supabase DB asynchronously so ALL STAFF logs are captured
+  if (typeof supabase !== 'undefined' && session.businessId) {
+    supabase.from('audit_logs').insert(entry).catch(()=>{});
+  }
 }
+
+let __collapsedAuditDates = new Set();
+window.__toggleAuditDateAccordion = function(dateKey) {
+  if (__collapsedAuditDates.has(dateKey)) {
+    __collapsedAuditDates.delete(dateKey);
+  } else {
+    __collapsedAuditDates.add(dateKey);
+  }
+  renderTabBody();
+};
 
 function renderAuditTab(body) {
   const logs = getAuditLogs();
+
+  // Group logs by Date (YYYY-MM-DD)
+  const grouped = {};
+  logs.forEach(l => {
+    const dStr = l.timestamp ? l.timestamp.slice(0, 10) : todayStr();
+    if (!grouped[dStr]) grouped[dStr] = [];
+    grouped[dStr].push(l);
+  });
+
+  const dates = Object.keys(grouped).sort((a,b) => (b > a ? 1 : -1));
+
   body.innerHTML = `
-    
-    <div class="section-label">System Activity Audit Log (${logs.length} entries)</div>
-    ${logs.length ? `
-      <div style="display:flex;flex-direction:column;gap:10px;">
-        ${logs.map(l => `
-          <div class="row-card" style="align-items:flex-start;padding:12px 14px;">
-            <div class="avatar-circle" style="width:36px;height:36px;font-size:0.85rem;margin-top:2px;">${initials(l.staff_name)}</div>
-            <div class="row-main">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-                <b style="font-size:0.9rem;">${esc(l.staff_name)}</b>
-                <span class="role-pill ${l.staff_role}">${l.staff_role}</span>
-                <span class="stamp small" style="background:var(--paper);color:var(--turmeric);font-weight:600;">${esc(l.action_type)}</span>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div class="section-label" style="margin:0;">All Staff Activity Audit Log (${logs.length} Total Logs)</div>
+      <button class="stamp-btn ghost small" style="font-size:0.75rem;" onclick="loadData().then(()=>renderTabBody())">🔄 Refresh Logs</button>
+    </div>
+
+    ${dates.length ? `
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        ${dates.map(dKey => {
+          const dayLogs = grouped[dKey];
+          const isCollapsed = __collapsedAuditDates.has(dKey);
+          const datePretty = new Date(dKey + 'T00:00:00').toLocaleDateString('en-IN', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+          return `
+            <div class="row-card" style="flex-direction:column;align-items:stretch;padding:12px 14px;margin-bottom:0;border:1px solid var(--paper-line);">
+              <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;" onclick="window.__toggleAuditDateAccordion('${dKey}')">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:0.85rem;font-weight:700;color:var(--turmeric-dark);">${isCollapsed ? '▶' : '▼'}</span>
+                  <b style="font-size:0.95rem;color:var(--ink);">${datePretty}</b>
+                  <span class="stamp small" style="background:var(--amber-soft);color:var(--turmeric-dark);font-weight:700;">${dayLogs.length} Action${dayLogs.length!==1?'s':''}</span>
+                </div>
+                <span style="font-size:0.75rem;color:var(--ink-soft);">${isCollapsed ? 'Tap to Expand' : 'Tap to Collapse'}</span>
               </div>
-              <div style="font-size:0.85rem;color:var(--ink);line-height:1.4;">${esc(l.details)}</div>
-              <div style="font-size:0.73rem;color:var(--ink-soft);margin-top:6px;">
-                ${new Date(l.timestamp).toLocaleString('en-IN', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}
-              </div>
+
+              ${!isCollapsed ? `
+                <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;padding-top:10px;border-top:1px dashed var(--paper-line);">
+                  ${dayLogs.map(l => `
+                    <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--paper-line);">
+                      <div class="avatar-circle" style="width:34px;height:34px;font-size:0.8rem;margin-top:2px;flex-shrink:0;">${initials(l.staff_name)}</div>
+                      <div style="flex:1;">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
+                          <b style="font-size:0.88rem;color:var(--ink);">${esc(l.staff_name)}</b>
+                          <span class="role-pill ${l.staff_role||'staff'}">${l.staff_role||'staff'}</span>
+                          <span class="stamp small" style="background:var(--paper);color:var(--turmeric-dark);font-weight:600;">${esc(l.action_type)}</span>
+                        </div>
+                        <div style="font-size:0.82rem;color:var(--ink);line-height:1.4;">${esc(l.details)}</div>
+                        <div style="font-size:0.72rem;color:var(--ink-soft);margin-top:4px;font-family:'IBM Plex Mono',monospace;">
+                          ${new Date(l.timestamp).toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'})}
+                        </div>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
             </div>
-          </div>
-        `).join('')}
+          `;
+        }).join('')}
       </div>
     ` : `<div class="empty">No activity audit logs recorded yet.</div>`}
   `;
@@ -6006,6 +6066,92 @@ window.__printVendorBillReceipt = function(id) {
 };
 
 
+
+/* ---------------- BULK VENDOR BILL PAYMENT FEATURE ---------------- */
+window.__selectedVendorBillIds = new Set();
+
+window.__toggleVendorBillSelection = function(id) {
+  if (window.__selectedVendorBillIds.has(id)) {
+    window.__selectedVendorBillIds.delete(id);
+  } else {
+    window.__selectedVendorBillIds.add(id);
+  }
+  window.__updateBulkVendorSummary();
+};
+
+window.__toggleSelectAllUnpaidVendorBills = function(masterCb) {
+  const unpaid = (cache.vendorBills || []).filter(b => b.status !== 'paid');
+  if (masterCb.checked) {
+    unpaid.forEach(b => window.__selectedVendorBillIds.add(b.id));
+  } else {
+    window.__selectedVendorBillIds.clear();
+  }
+  renderTabBody();
+};
+
+window.__updateBulkVendorSummary = function() {
+  const selectedCount = window.__selectedVendorBillIds.size;
+  const bills = cache.vendorBills || [];
+  const selectedBills = bills.filter(b => window.__selectedVendorBillIds.has(b.id));
+  const totalAmt = selectedBills.reduce((sum, b) => sum + getBillAmount(b), 0);
+
+  const summaryEl = document.getElementById('vBillBulkSummaryArea');
+  if (summaryEl) {
+    summaryEl.innerHTML = selectedCount > 0 ? `
+      <div style="background:var(--amber-soft);border:1.5px solid var(--turmeric);padding:10px 14px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div>
+          <b style="font-size:0.9rem;color:var(--turmeric-dark);">${selectedCount} Bill${selectedCount!==1?'s':''} Selected for Bulk Settlement</b>
+          <div style="font-size:0.75rem;color:var(--ink-soft);">Total Selected Amount: ₹${totalAmt.toFixed(0)}</div>
+        </div>
+        <button class="stamp-btn" style="background:var(--leaf);color:#fff;border-color:var(--leaf);font-weight:700;padding:8px 14px;" onclick="window.__paySelectedVendorBillsBulk()">💳 Pay ${selectedCount} Bill${selectedCount!==1?'s':''} (₹${totalAmt.toFixed(0)})</button>
+      </div>
+    ` : '';
+  }
+};
+
+window.__paySelectedVendorBillsBulk = async function() {
+  const selectedIds = Array.from(window.__selectedVendorBillIds);
+  if (!selectedIds.length) {
+    alert('Please select at least one unpaid bill to settle.');
+    return;
+  }
+
+  const bills = cache.vendorBills || [];
+  const selectedBills = bills.filter(b => selectedIds.includes(b.id));
+  const totalAmt = selectedBills.reduce((sum, b) => sum + getBillAmount(b), 0);
+
+  if (!confirm(`Are you sure you want to mark ${selectedIds.length} vendor bill(s) totaling ₹${totalAmt.toFixed(0)} as PAID?`)) {
+    return;
+  }
+
+  // 1. Instantly update local cache (0ms delay)
+  const nowIso = new Date().toISOString();
+  selectedBills.forEach(b => {
+    b.status = 'paid';
+    b.paid_at = nowIso;
+    b.paid_by = session.staffId;
+  });
+
+  window.__selectedVendorBillIds.clear();
+  logAuditEvent('Bulk Vendor Bills Paid', `Verified & paid ${selectedBills.length} bills totaling ₹${totalAmt.toFixed(0)}`);
+  triggerAppNotification('Bulk Bills Paid', `Paid ${selectedBills.length} vendor bills (₹${totalAmt.toFixed(0)})`);
+  if (typeof window.showToast === 'function') {
+    window.showToast(`Paid ${selectedBills.length} vendor bills totaling ₹${totalAmt.toFixed(0)}!`, 'success');
+  }
+
+  renderTabBody(); // Instant UI re-render
+
+  // 2. Perform Supabase DB write in background
+  if (typeof supabase !== 'undefined' && session.businessId) {
+    for (const b of selectedBills) {
+      if (b.id && !b.id.startsWith('loc_')) {
+        supabase.from('vendor_bills').update({ status: 'paid', paid_at: nowIso, paid_by: session.staffId }).eq('id', b.id).catch(()=>{});
+      }
+    }
+  }
+};
+
+
 function renderVendorBillsTab(body) {
   const bills = cache.vendorBills || [];
   const unpaid = bills.filter(b => b.status !== 'paid');
@@ -6036,11 +6182,22 @@ function renderVendorBillsTab(body) {
       </div>
     </div>
 
-    <!-- Navigation Sub-Menu Bar -->
-    <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;">
-      <button class="stamp-btn small ${vendorSubTab==='unpaid'?'':'ghost'}" onclick="window.__setVendorSubTab('unpaid')">Unpaid Bills (${unpaid.length})</button>
-      <button class="stamp-btn small ${vendorSubTab==='paid'?'':'ghost'}" onclick="window.__setVendorSubTab('paid')">Paid History (${paid.length})</button>
-      <button class="stamp-btn small ${vendorSubTab==='all'?'':'ghost'}" onclick="window.__setVendorSubTab('all')">All Bills (${bills.length})</button>
+    <!-- Bulk Payment Summary Action Area -->
+    <div id="vBillBulkSummaryArea"></div>
+
+    <!-- Navigation Sub-Menu Bar & Select All Toggle -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+      <div style="display:flex;gap:6px;overflow-x:auto;">
+        <button class="stamp-btn small ${vendorSubTab==='unpaid'?'':'ghost'}" onclick="window.__setVendorSubTab('unpaid')">Unpaid Bills (${unpaid.length})</button>
+        <button class="stamp-btn small ${vendorSubTab==='paid'?'':'ghost'}" onclick="window.__setVendorSubTab('paid')">Paid History (${paid.length})</button>
+        <button class="stamp-btn small ${vendorSubTab==='all'?'':'ghost'}" onclick="window.__setVendorSubTab('all')">All Bills (${bills.length})</button>
+      </div>
+
+      ${(isOwner() && unpaid.length > 0 && vendorSubTab !== 'paid') ? `
+        <label style="font-size:0.82rem;font-weight:700;color:var(--turmeric-dark);display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;">
+          <input type="checkbox" onchange="window.__toggleSelectAllUnpaidVendorBills(this)" ${unpaid.every(b => window.__selectedVendorBillIds.has(b.id)) ? 'checked' : ''}> Select All Unpaid Bills
+        </label>
+      ` : ''}
     </div>
 
     <!-- Bills List -->
@@ -6060,7 +6217,10 @@ function renderVendorBillCard(b) {
   return `
     <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px 16px;margin-bottom:12px;${isPaid ? 'border-left:4px solid var(--leaf);' : 'border-left:4px solid var(--brick);'}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
-        <div style="display:flex;gap:12px;align-items:center;">
+        <div style="display:flex;gap:10px;align-items:center;">
+          ${(!isPaid && isOwner()) ? `
+            <input type="checkbox" style="width:18px;height:18px;cursor:pointer;flex-shrink:0;" ${window.__selectedVendorBillIds.has(b.id)?'checked':''} onchange="window.__toggleVendorBillSelection('${b.id}')">
+          ` : ''}
           ${b.photo_url ? `
             <div style="width:54px;height:54px;border-radius:8px;overflow:hidden;background:#000;flex-shrink:0;cursor:pointer;border:1px solid var(--paper-line);" onclick="window.__viewVendorBillPhoto('${b.id}')">
               <img src="${b.photo_url}" style="width:100%;height:100%;object-fit:cover;">

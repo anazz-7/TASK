@@ -336,3 +336,19 @@ create table if not exists vendor_bills (
 alter table vendor_bills enable row level security;
 drop policy if exists "allow all vendor_bills" on vendor_bills;
 create policy "allow all vendor_bills" on vendor_bills for all using (true) with check (true);
+
+
+-- ---------- Audit Logs ----------
+create table if not exists audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  business_id uuid references businesses(id) on delete cascade,
+  staff_id uuid references staff(id) on delete set null,
+  staff_name text,
+  staff_role text,
+  action_type text,
+  details text,
+  timestamp timestamptz default now()
+);
+alter table audit_logs enable row level security;
+drop policy if exists "allow all audit_logs" on audit_logs;
+create policy "allow all audit_logs" on audit_logs for all using (true) with check (true);
