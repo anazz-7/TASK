@@ -2880,29 +2880,34 @@ function renderTasksTab(body){
     window.location.href = smsLink(t);
     if(t.status!=='done'){ await supabase.from('tasks').update({status:'sent'}).eq('id', id); await loadData(); renderTabBody(); }
   };
-  window.__markDone = (id) => {
-    const t = cache.tasks.find(x => x.id === id);
-    if (!t) return;
-
-    // Instant local update
-    t.status = 'done';
-    t.completed_at = new Date().toISOString();
-    _tasksSave();
-    celebrateDone();
-    window.showToast('✓ Task done! Moved to Task History.', 'success');
-    logAuditEvent('Task Completed', 'Completed task: ' + t.title);
-    renderTabBody();
-
-    // Background DB sync
-    if (navigator.onLine && typeof supabase !== 'undefined' && !String(id).startsWith('loc_task_')) {
-      supabase.from('tasks').update({ status: 'done' }).eq('id', id).catch(() => {});
-    }
-    awardTaskPoint(id, 'task').catch(() => {});
-    notifyCompletion(id, 'task');
-  };
-  
   window.__editTask = (id) => openTaskModal(id);
 }
+
+// __markDone defined GLOBALLY so it always works regardless of active tab
+window.__markDone = function(id) {
+  const t = cache.tasks.find(x => x.id === id);
+  if (!t) return;
+
+  // Instant local update
+  t.status = 'done';
+  t.completed_at = new Date().toISOString();
+  _tasksSave();
+  celebrateDone();
+  window.showToast('✓ Task done! Moved to Task History.', 'success');
+  logAuditEvent('Task Completed', 'Completed: ' + t.title);
+
+  // Re-render immediately — switch to history to show where it went
+  if (activeTab === 'tasks') {
+    renderTabBody();
+  }
+
+  // Background DB sync (non-blocking)
+  if (navigator.onLine && typeof supabase !== 'undefined' && !String(id).startsWith('loc_task_')) {
+    supabase.from('tasks').update({ status: 'done' }).eq('id', id).catch(() => {});
+  }
+  try { awardTaskPoint(id, 'task').catch(() => {}); } catch(e){}
+  try { notifyCompletion(id, 'task'); } catch(e){}
+};
 
 function openTaskModal(taskId){
   const t = taskId ? cache.tasks.find(x=>x.id===taskId) : null;
@@ -5589,11 +5594,20 @@ function renderAccountsTab(body){
   const pendingReqs = isOwner() ? getPendingEditRequests() : [];
 
   // Realtime background check for Owner to catch remote staff requests instantly
+  // NOTE: We MERGE instead of overwrite to preserve locally updated task statuses
   if(isOwner() && typeof supabase !== 'undefined' && session && session.businessId){
     supabase.from('tasks').select('*').eq('business_id', session.businessId).then(r => {
       if(r && r.data){
         const prevCount = getPendingEditRequests().length;
-        cache.tasks = r.data;
+        // Merge: preserve local status overrides (done, deleted) on top of cloud data
+        const cloudTasks = r.data;
+        const localTasksMap = {};
+        cache.tasks.forEach(t => { localTasksMap[t.id] = t; });
+        cache.tasks = cloudTasks.map(ct => {
+          const local = localTasksMap[ct.id];
+          if (local && local.status === 'done' && ct.status !== 'done') return Object.assign({}, ct, { status: 'done', completed_at: local.completed_at });
+          return ct;
+        }).concat(cache.tasks.filter(t => String(t.id).startsWith('loc_task_')));
         const newPending = getPendingEditRequests();
         if(newPending.length !== prevCount){
           const holder = document.getElementById('accPendingBannerHolder');
@@ -5971,19 +5985,26 @@ window.__saveAccEntry = async function() {
     window.showToast(`💾 Accounts saved for ${accountsDate}!`, 'success');
   }
 
-  renderTabBody(); // Instant UI Update
+  // Re-render immediately with the saved values (cache already updated above)
+  renderTabBody();
 
-  // 2. Perform Supabase DB Upsert in Background
+  // 2. Perform Supabase DB Upsert in Background (non-blocking)
   if (navigator.onLine && typeof supabase !== 'undefined' && session.businessId) {
-    try {
-      const { data: upserted, error } = await supabase.from('daily_accounts').upsert(dbPayload, { onConflict: 'business_id,date' }).select().single();
-      if (error) throw error;
-      if (upserted && existing) Object.assign(existing, upserted);
-    } catch(e) {
-      if (typeof queueOfflineMutation === 'function') {
-        queueOfflineMutation('upsert', 'daily_accounts', dbPayload);
-      }
-    }
+    supabase.from('daily_accounts').upsert(dbPayload, { onConflict: 'business_id,date' })
+      .select().single()
+      .then(r => {
+        if (r && r.data && r.data.id) {
+          // Update the cache record with the real DB id/timestamps
+          const cached = cache.dailyAccounts.find(a => a.date === accountsDate);
+          if (cached) Object.assign(cached, r.data);
+          try { localStorage.setItem('br_daily_accounts_' + session.businessId, JSON.stringify(cache.dailyAccounts)); } catch(e){}
+        }
+      })
+      .catch(e => {
+        if (typeof queueOfflineMutation === 'function') {
+          queueOfflineMutation('upsert', 'daily_accounts', dbPayload);
+        }
+      });
   } else if (typeof queueOfflineMutation === 'function') {
     queueOfflineMutation('upsert', 'daily_accounts', dbPayload);
   }
