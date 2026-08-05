@@ -1043,15 +1043,32 @@ window.__deleteTask = function(id) {
     title: 'Delete this task?',
     message: 'This removes it for everyone on this business. It cannot be undone.',
     onConfirm: async () => {
-      showLoading();
+      // 1. Instantly update local cache & localStorage (0ms delay)
+      const target = cache.tasks.find(t => t.id === id);
+      if (target) target.is_deleted = true;
+      cache.tasks = cache.tasks.filter(t => t.id !== id);
+
       try {
-        await supabase.from('tasks').delete().eq('id', id);
-        cache.tasks = cache.tasks.filter(t => t.id !== id);
+        localStorage.setItem('br_tasks_' + session.businessId, JSON.stringify(cache.tasks));
       } catch(e){}
-      finally {
-        hideLoading();
-        await loadData();
-        renderTabBody();
+
+      logAuditEvent('Task Deleted', `Deleted task ID ${id}`);
+      if (typeof window.showToast === 'function') {
+        window.showToast('🗑 Task deleted successfully!', 'info');
+      }
+      renderTabBody(); // Instant UI Re-render (0ms)
+
+      // 2. Perform background DB deletion
+      if (navigator.onLine && typeof supabase !== 'undefined' && session.businessId) {
+        if (!id.startsWith('loc_task_')) {
+          supabase.from('tasks').delete().eq('id', id).catch(e => {
+            if (typeof queueOfflineMutation === 'function') {
+              queueOfflineMutation('delete', 'tasks', { id });
+            }
+          });
+        }
+      } else if (typeof queueOfflineMutation === 'function') {
+        queueOfflineMutation('delete', 'tasks', { id });
       }
     }
   });
@@ -1436,7 +1453,28 @@ async function loadData(){
       supabase.from('audit_logs').select('*').eq('business_id', bizId).order('timestamp', {ascending:false}).limit(300),
     ]);
     cache.staff = staffR.data || [];
-    cache.tasks = tasksR.data || [];
+    const cloudTasks = tasksR.data || [];
+    let localSavedTasks = [];
+    try {
+      localSavedTasks = JSON.parse(localStorage.getItem('br_tasks_' + bizId) || '[]');
+    } catch(e){}
+
+    const localUnsynced = localSavedTasks.filter(t => t.id && t.id.startsWith('loc_task_'));
+    const deletedIds = new Set(localSavedTasks.filter(t => t.is_deleted).map(t => t.id));
+
+    // Combine cloud tasks + local unsynced tasks, filtering out deleted ones
+    const combinedTasks = [...localUnsynced, ...cloudTasks.filter(ct => !deletedIds.has(ct.id))];
+    
+    // Preserve local status updates if local is newer
+    combinedTasks.forEach(ct => {
+      const loc = localSavedTasks.find(lt => lt.id === ct.id);
+      if (loc && loc.status === 'done') ct.status = 'done';
+    });
+
+    cache.tasks = combinedTasks;
+    try {
+      localStorage.setItem('br_tasks_' + bizId, JSON.stringify(cache.tasks));
+    } catch(e){}
     cache.attendance = attR.data || [];
     cache.sales = salesR.data || [];
     cache.routines = routinesR.data || [];
@@ -2840,22 +2878,23 @@ function renderTasksTab(body){
     } catch(e){}
 
     celebrateDone();
+    logAuditEvent('Task Completed', `Completed task "${t.title}"`);
     if (typeof window.showToast === 'function') {
-      window.showToast(`Task completed & moved to Task History tab!`, 'success');
+      window.showToast(`✓ Task completed & moved to Task History tab!`, 'success');
     }
-    renderTabBody(); // Instant UI Re-render
+    renderTabBody(); // Instant UI Re-render (0ms)
 
     // 2. Perform background DB Sync & notifications
     if (navigator.onLine && typeof supabase !== 'undefined' && session.businessId) {
-      try {
-        await supabase.from('tasks').update({ status: 'done' }).eq('id', id);
-        awardTaskPoint(id, 'task').catch(()=>{});
-        notifyCompletion(id, 'task');
-      } catch(e) {
-        if (typeof queueOfflineMutation === 'function') {
-          queueOfflineMutation('update', 'tasks', { id, status: 'done' });
-        }
+      if (!id.startsWith('loc_task_')) {
+        supabase.from('tasks').update({ status: 'done' }).eq('id', id).catch(e => {
+          if (typeof queueOfflineMutation === 'function') {
+            queueOfflineMutation('update', 'tasks', { id, status: 'done' });
+          }
+        });
       }
+      awardTaskPoint(id, 'task').catch(()=>{});
+      notifyCompletion(id, 'task');
     } else if (typeof queueOfflineMutation === 'function') {
       queueOfflineMutation('update', 'tasks', { id, status: 'done' });
     }
