@@ -2831,13 +2831,17 @@ function renderTasksTab(body){
     const t = cache.tasks.find(x => x.id === id);
     if (!t) return;
 
-    // 1. Instantly update local cache (0ms delay)
+    // 1. Instantly update local cache & localStorage (0ms delay)
     t.status = 'done';
     t.completed_at = new Date().toISOString();
 
+    try {
+      localStorage.setItem('br_tasks_' + session.businessId, JSON.stringify(cache.tasks));
+    } catch(e){}
+
     celebrateDone();
     if (typeof window.showToast === 'function') {
-      window.showToast(`Task marked as Done!`, 'success');
+      window.showToast(`Task completed & moved to Task History tab!`, 'success');
     }
     renderTabBody(); // Instant UI Re-render
 
@@ -2904,7 +2908,11 @@ function openTaskModal(taskId){
       priority: document.getElementById('mTaskPriority').value,
     };
 
-    // 1. Instantly update local cache (0ms delay)
+    // Reset filters so the newly created/edited task is guaranteed to be visible
+    taskFilter = { staffId: '', priority: '', search: '' };
+    taskSubTab = 'active';
+
+    // 1. Instantly update local cache & localStorage (0ms delay)
     if (id) {
       const existing = cache.tasks.find(x => x.id === id);
       if (existing) Object.assign(existing, data);
@@ -2915,9 +2923,13 @@ function openTaskModal(taskId){
       cache.tasks.unshift(data);
     }
 
+    try {
+      localStorage.setItem('br_tasks_' + session.businessId, JSON.stringify(cache.tasks));
+    } catch(e){}
+
     holder.innerHTML = ''; // Close modal instantly
     if (typeof window.showToast === 'function') {
-      window.showToast(id ? 'Task updated!' : 'Task created!', 'success');
+      window.showToast(id ? 'Task updated!' : 'Task created successfully!', 'success');
     }
     renderTabBody(); // Instant UI Re-render
 
@@ -2930,7 +2942,7 @@ function openTaskModal(taskId){
           const dbPayload = Object.assign({}, data);
           delete dbPayload.id;
           const { data: inserted } = await supabase.from('tasks').insert(dbPayload).select().single();
-          if (inserted) {
+          if (inserted && inserted.id) {
             const locTask = cache.tasks.find(x => x.id === data.id);
             if (locTask) Object.assign(locTask, inserted);
           }
