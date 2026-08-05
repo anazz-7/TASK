@@ -1350,32 +1350,80 @@ async function flushOfflineMutationQueue() {
     return;
   }
 
+  showLoading();
   let syncedCount = 0;
   const remaining = [];
 
   for (const item of queue) {
     try {
-      if (item.action_type === 'insert') {
-        const { error } = await supabase.from(item.table).insert(item.payload);
-        if (error) throw error;
+      const payload = Object.assign({}, item.payload || {});
+      delete payload.id; // remove local temporary ID for clean cloud insert/update
+      let resErr = null;
+
+      if (item.table === 'daily_accounts') {
+        // Multi-tier robust sync for daily_accounts
+        let { data: saved, error } = await supabase.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' }).select().single();
+        if (error || !saved) {
+          const { data: checkData } = await supabase.from('daily_accounts').select('id').eq('business_id', payload.business_id).eq('date', payload.date).maybeSingle();
+          if (checkData && checkData.id) {
+            const res = await supabase.from('daily_accounts').update(payload).eq('id', checkData.id).select().single();
+            saved = res.data; resErr = res.error;
+          } else {
+            const res = await supabase.from('daily_accounts').insert(payload).select().single();
+            saved = res.data; resErr = res.error;
+          }
+        }
+        if (saved && saved.id) {
+          syncedCount++;
+          continue;
+        }
+      } else if (item.action_type === 'insert') {
+        const { error } = await supabase.from(item.table).insert(payload);
+        if (error) resErr = error; else syncedCount++;
       } else if (item.action_type === 'update') {
-        const { error } = await supabase.from(item.table).update(item.payload).eq('id', item.payload.id);
-        if (error) throw error;
-      } else if (item.action_type === 'upsert') {
-        const { error } = await supabase.from(item.table).upsert(item.payload, { onConflict: 'business_id,date' });
-        if (error) throw error;
+        const { error } = await supabase.from(item.table).update(payload).eq('id', item.payload.id);
+        if (error) resErr = error; else syncedCount++;
+      } else if (item.action_type === 'delete') {
+        const { error } = await supabase.from(item.table).delete().eq('id', item.payload.id);
+        if (error) resErr = error; else syncedCount++;
+      } else {
+        syncedCount++;
+        continue;
       }
-      syncedCount++;
+
+      if (resErr) {
+        console.warn('Queue sync item error:', resErr);
+        if (item.retryCount && item.retryCount >= 2) {
+          console.warn('Dropping stale queue item after retries:', item);
+        } else {
+          item.retryCount = (item.retryCount || 0) + 1;
+          remaining.push(item);
+        }
+      }
     } catch(err) {
+      console.warn('Queue item sync exception:', err);
       remaining.push(item);
     }
   }
 
+  hideLoading();
   localStorage.setItem('br_offline_mutation_queue', JSON.stringify(remaining));
   updateOfflineBadgeBar();
 
   if (syncedCount > 0 && typeof window.showToast === 'function') {
-    window.showToast(`✅ Synced ${syncedCount} offline record(s) to cloud!`, 'success');
+    window.showToast(`✅ Synced ${syncedCount} queued action(s) to cloud!`, 'success');
+  } else if (remaining.length > 0 && typeof window.showToast === 'function') {
+    window.showToast(`⚠️ Sync skipped ${remaining.length} item(s). Click Clear Queue if stuck.`, 'info');
+  }
+}
+
+function clearOfflineQueue() {
+  if (confirm('Clear all pending offline queued items?')) {
+    localStorage.removeItem('br_offline_mutation_queue');
+    updateOfflineBadgeBar();
+    if (typeof window.showToast === 'function') {
+      window.showToast('Cleared offline sync queue.', 'info');
+    }
   }
 }
 
@@ -1395,7 +1443,10 @@ function updateOfflineBadgeBar() {
     bar.style.display = 'flex';
     bar.innerHTML = `
       <span>${isOffline ? '⚡ You are Offline' : '⏳ Cloud Sync Pending'} &bull; ${queue.length} Queued Action${queue.length!==1?'s':''}</span>
-      ${navigator.onLine ? `<button class="stamp-btn small" style="background:white;color:var(--turmeric-dark);padding:2px 8px;font-size:0.75rem;" onclick="flushOfflineMutationQueue()">Sync Now</button>` : `<span style="font-size:0.72rem;opacity:0.9;">Will auto-sync when online</span>`}
+      <div style="display:flex;gap:6px;">
+        ${navigator.onLine ? `<button class="stamp-btn small" style="background:white;color:var(--turmeric-dark);padding:3px 10px;font-size:0.75rem;" onclick="flushOfflineMutationQueue()">Sync Now</button>` : `<span style="font-size:0.72rem;opacity:0.9;">Will auto-sync when online</span>`}
+        <button class="stamp-btn small ghost" style="color:white;border-color:rgba(255,255,255,0.4);padding:3px 8px;font-size:0.72rem;" onclick="clearOfflineQueue()">Clear Queue</button>
+      </div>
     `;
   } else {
     bar.style.display = 'none';
