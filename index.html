@@ -1061,7 +1061,7 @@ window.__deleteTask = function(id) {
 
   // 2. Background DB delete
   if (navigator.onLine && typeof supabase !== 'undefined' && !String(id).startsWith('loc_task_')) {
-    supabase.from('tasks').delete().eq('id', id).catch(() => {});
+    Promise.resolve(supabase.from('tasks').delete().eq('id', id)).catch(() => {});
   }
   logAuditEvent('Task Deleted', 'Deleted task ' + id);
 };
@@ -2903,7 +2903,7 @@ window.__markDone = function(id) {
 
   // Background DB sync (non-blocking)
   if (navigator.onLine && typeof supabase !== 'undefined' && !String(id).startsWith('loc_task_')) {
-    supabase.from('tasks').update({ status: 'done' }).eq('id', id).catch(() => {});
+    Promise.resolve(supabase.from('tasks').update({ status: 'done' }).eq('id', id)).catch(() => {});
   }
   try { awardTaskPoint(id, 'task').catch(() => {}); } catch(e){}
   try { notifyCompletion(id, 'task'); } catch(e){}
@@ -2972,7 +2972,7 @@ function openTaskModal(taskId){
     // Background DB sync
     if (navigator.onLine && typeof supabase !== 'undefined') {
       if (id && !String(id).startsWith('loc_task_')) {
-        supabase.from('tasks').update(data).eq('id', id).catch(() => {});
+        Promise.resolve(supabase.from('tasks').update(data).eq('id', id)).catch(() => {});
       } else {
         const db = Object.assign({}, data);
         delete db.id;
@@ -5332,7 +5332,7 @@ function logAuditEvent(actionType, details) {
 
   // Sync to central Supabase DB asynchronously so ALL STAFF logs are captured
   if (typeof supabase !== 'undefined' && session.businessId) {
-    supabase.from('audit_logs').insert(entry).catch(()=>{});
+    Promise.resolve(supabase.from('audit_logs').insert(entry)).catch(()=>{});
   }
 }
 
@@ -6373,7 +6373,7 @@ window.__paySelectedVendorBillsBulk = async function() {
   if (typeof supabase !== 'undefined' && session.businessId) {
     for (const b of selectedBills) {
       if (b.id && !b.id.startsWith('loc_')) {
-        supabase.from('vendor_bills').update({ status: 'paid', paid_at: nowIso, paid_by: session.staffId }).eq('id', b.id).catch(()=>{});
+        Promise.resolve(supabase.from('vendor_bills').update({ status: 'paid', paid_at: nowIso, paid_by: session.staffId }).eq('id', b.id)).catch(()=>{});
       }
     }
   }
