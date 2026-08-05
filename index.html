@@ -5991,33 +5991,44 @@ window.__saveAccEntry = function() {
     logAuditEvent('Accounts Save', 'Saved accounts for ' + accountsDate + ' (Total: Rs.' + Math.round(data.total) + ')');
     renderTabBody();
 
-    // 3. Background Supabase save (select -> update or insert, works regardless of DB constraints)
+    // 3. Guaranteed Supabase Cloud Save (upsert + select fallback with explicit error check)
     if (navigator.onLine && typeof supabase !== 'undefined') {
       const payload = Object.assign({}, dbPayload);
       delete payload.id;
       
-      supabase.from('daily_accounts')
-        .select('id')
-        .eq('business_id', session.businessId)
-        .eq('date', accountsDate)
-        .maybeSingle()
-        .then(async function(checkRes) {
-          let res;
-          if (checkRes && checkRes.data && checkRes.data.id) {
-            res = await supabase.from('daily_accounts').update(payload).eq('id', checkRes.data.id).select().single();
-          } else {
-            res = await supabase.from('daily_accounts').insert(payload).select().single();
+      (async function() {
+        try {
+          // Attempt 1: Fast Upsert by business_id + date
+          let { data: saved, error } = await supabase.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' }).select().single();
+          
+          // Attempt 2: Fallback to manual select -> update or insert if upsert fails
+          if (error || !saved) {
+            const { data: checkData } = await supabase.from('daily_accounts').select('id').eq('business_id', session.businessId).eq('date', accountsDate).maybeSingle();
+            if (checkData && checkData.id) {
+              const res = await supabase.from('daily_accounts').update(payload).eq('id', checkData.id).select().single();
+              saved = res.data;
+              error = res.error;
+            } else {
+              const res = await supabase.from('daily_accounts').insert(payload).select().single();
+              saved = res.data;
+              error = res.error;
+            }
           }
-          if (res && res.data && res.data.id) {
+
+          if (saved && saved.id) {
             var cached = cache.dailyAccounts.find(function(a) { return a.date === accountsDate; });
-            if (cached) Object.assign(cached, res.data);
+            if (cached) Object.assign(cached, saved);
             try { localStorage.setItem('br_daily_accounts_' + session.businessId, JSON.stringify(cache.dailyAccounts)); } catch(e) {}
+            console.log('✓ Accounts successfully saved & verified in Supabase cloud for ' + accountsDate);
+          } else if (error) {
+            console.warn('Supabase save error:', error);
+            if (typeof queueOfflineMutation === 'function') queueOfflineMutation('upsert', 'daily_accounts', payload);
           }
-        })
-        .catch(function(err) {
-          console.warn('Supabase accounts save fallback queued:', err);
+        } catch(e) {
+          console.warn('Supabase save exception:', e);
           if (typeof queueOfflineMutation === 'function') queueOfflineMutation('upsert', 'daily_accounts', payload);
-        });
+        }
+      })();
     } else if (typeof queueOfflineMutation === 'function') {
       queueOfflineMutation('upsert', 'daily_accounts', dbPayload);
     }
