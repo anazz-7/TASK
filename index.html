@@ -2646,36 +2646,48 @@ window.__submitQuickModal = async function() {
   const parsed = parseNaturalTaskText(val);
   if(!parsed || !parsed.title) return;
 
-  showLoading();
-  try {
-    const payload = {
-      business_id: session.businessId,
-      assigned_to: parsed.assignedTo,
-      created_by: session.staffId,
-      title: parsed.title,
-      priority: parsed.priority,
-      due_date: parsed.dueDate,
-      status: 'pending'
-    };
-    const { data, error } = await supabase.from('tasks').insert(payload).select().single();
-    if(error) throw error;
-    if(data) cache.tasks.unshift(data);
+  const payload = {
+    business_id: session.businessId,
+    assigned_to: parsed.assignedTo,
+    created_by: session.staffId,
+    title: parsed.title,
+    priority: parsed.priority,
+    due_date: parsed.dueDate,
+    status: 'pending'
+  };
 
-    const holder = document.getElementById('quickModalHolder');
-    if(holder) holder.remove();
+  // 1. Instant local update (0ms) — close modal, show in list NOW
+  payload.id = 'loc_task_' + Date.now();
+  payload.created_at = new Date().toISOString();
+  cache.tasks.unshift(payload);
+  taskFilter = { staffId: '', priority: '', search: '' };
+  taskSubTab = 'active';
+  try { localStorage.setItem('br_tasks_' + session.businessId, JSON.stringify(cache.tasks)); } catch(e){}
 
-    const banner = document.createElement('div');
-    banner.className = 'celebrate-banner';
-    banner.textContent = '⚡ Task Created Instantly!';
-    document.body.appendChild(banner);
-    setTimeout(()=>banner.remove(), 1500);
+  const holder = document.getElementById('quickModalHolder');
+  if(holder) holder.remove();
 
-    await loadData();
-    renderTabBody();
-  } catch(e){
-    alert('Could not save quick task: ' + (e.message||e));
-  } finally {
-    hideLoading();
+  celebrateDone();
+  if (typeof window.showToast === 'function') {
+    window.showToast('⚡ Task created! Syncing to cloud...', 'success');
+  }
+  if (activeTab === 'tasks') renderTabBody(); else { activeTab = 'tasks'; renderShell(); }
+
+  // 2. Background DB sync
+  const dbPayload = Object.assign({}, payload);
+  delete dbPayload.id;
+  if (navigator.onLine && typeof supabase !== 'undefined') {
+    supabase.from('tasks').insert(dbPayload).select().single().then(r => {
+      if (r && r.data && r.data.id) {
+        const loc = cache.tasks.find(t => t.id === payload.id);
+        if (loc) Object.assign(loc, r.data);
+        try { localStorage.setItem('br_tasks_' + session.businessId, JSON.stringify(cache.tasks)); } catch(e){}
+      }
+    }).catch(()=> {
+      if (typeof queueOfflineMutation === 'function') queueOfflineMutation('insert', 'tasks', dbPayload);
+    });
+  } else if (typeof queueOfflineMutation === 'function') {
+    queueOfflineMutation('insert', 'tasks', dbPayload);
   }
 };
 
@@ -2689,35 +2701,46 @@ window.__quickAddNaturalTask = async function() {
   const parsed = parseNaturalTaskText(val);
   if(!parsed || !parsed.title) return;
 
-  showLoading();
-  try {
-    const payload = {
-      business_id: session.businessId,
-      assigned_to: parsed.assignedTo,
-      created_by: session.staffId,
-      title: parsed.title,
-      priority: parsed.priority,
-      due_date: parsed.dueDate,
-      status: 'pending'
-    };
+  const payload = {
+    business_id: session.businessId,
+    assigned_to: parsed.assignedTo,
+    created_by: session.staffId,
+    title: parsed.title,
+    priority: parsed.priority,
+    due_date: parsed.dueDate,
+    status: 'pending'
+  };
 
-    const { data, error } = await supabase.from('tasks').insert(payload).select().single();
-    if(error) throw error;
-    if(data) cache.tasks.unshift(data);
-    
-    inputEl.value = '';
-    const banner = document.createElement('div');
-    banner.className = 'celebrate-banner';
-    banner.textContent = '⚡ Task Created Instantly!';
-    document.body.appendChild(banner);
-    setTimeout(()=>banner.remove(), 1500);
+  // 1. Instant local update (0ms) — show in list NOW
+  payload.id = 'loc_task_' + Date.now();
+  payload.created_at = new Date().toISOString();
+  cache.tasks.unshift(payload);
+  taskFilter = { staffId: '', priority: '', search: '' };
+  taskSubTab = 'active';
+  try { localStorage.setItem('br_tasks_' + session.businessId, JSON.stringify(cache.tasks)); } catch(e){}
 
-    await loadData();
-    renderTabBody();
-  } catch(e){
-    alert('Could not save quick task: ' + (e.message||e));
-  } finally {
-    hideLoading();
+  inputEl.value = '';
+  celebrateDone();
+  if (typeof window.showToast === 'function') {
+    window.showToast('⚡ Task created! Syncing to cloud...', 'success');
+  }
+  renderTabBody();
+
+  // 2. Background DB sync
+  const dbPayload = Object.assign({}, payload);
+  delete dbPayload.id;
+  if (navigator.onLine && typeof supabase !== 'undefined') {
+    supabase.from('tasks').insert(dbPayload).select().single().then(r => {
+      if (r && r.data && r.data.id) {
+        const loc = cache.tasks.find(t => t.id === payload.id);
+        if (loc) Object.assign(loc, r.data);
+        try { localStorage.setItem('br_tasks_' + session.businessId, JSON.stringify(cache.tasks)); } catch(e){}
+      }
+    }).catch(()=> {
+      if (typeof queueOfflineMutation === 'function') queueOfflineMutation('insert', 'tasks', dbPayload);
+    });
+  } else if (typeof queueOfflineMutation === 'function') {
+    queueOfflineMutation('insert', 'tasks', dbPayload);
   }
 };
 
