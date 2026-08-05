@@ -5991,21 +5991,31 @@ window.__saveAccEntry = function() {
     logAuditEvent('Accounts Save', 'Saved accounts for ' + accountsDate + ' (Total: Rs.' + Math.round(data.total) + ')');
     renderTabBody();
 
-    // 3. Background Supabase upsert (non-blocking, fire-and-forget)
+    // 3. Background Supabase save (select -> update or insert, works regardless of DB constraints)
     if (navigator.onLine && typeof supabase !== 'undefined') {
       const payload = Object.assign({}, dbPayload);
-      delete payload.id; // let DB assign real id on insert; upsert by business_id+date
+      delete payload.id;
+      
       supabase.from('daily_accounts')
-        .upsert(payload, { onConflict: 'business_id,date' })
-        .select().single()
-        .then(function(r) {
-          if (r && r.data && r.data.id) {
+        .select('id')
+        .eq('business_id', session.businessId)
+        .eq('date', accountsDate)
+        .maybeSingle()
+        .then(async function(checkRes) {
+          let res;
+          if (checkRes && checkRes.data && checkRes.data.id) {
+            res = await supabase.from('daily_accounts').update(payload).eq('id', checkRes.data.id).select().single();
+          } else {
+            res = await supabase.from('daily_accounts').insert(payload).select().single();
+          }
+          if (res && res.data && res.data.id) {
             var cached = cache.dailyAccounts.find(function(a) { return a.date === accountsDate; });
-            if (cached) Object.assign(cached, r.data);
+            if (cached) Object.assign(cached, res.data);
             try { localStorage.setItem('br_daily_accounts_' + session.businessId, JSON.stringify(cache.dailyAccounts)); } catch(e) {}
           }
         })
-        .catch(function() {
+        .catch(function(err) {
+          console.warn('Supabase accounts save fallback queued:', err);
           if (typeof queueOfflineMutation === 'function') queueOfflineMutation('upsert', 'daily_accounts', payload);
         });
     } else if (typeof queueOfflineMutation === 'function') {
