@@ -1343,7 +1343,10 @@ function queueOfflineMutation(actionType, table, payload) {
 }
 
 async function flushOfflineMutationQueue() {
-  if (!navigator.onLine) return;
+  if (!navigator.onLine) {
+    alert('Cannot sync: Device is offline. Check your internet connection.');
+    return;
+  }
   const queue = getOfflineQueue();
   if (!queue.length) {
     updateOfflineBadgeBar();
@@ -1353,6 +1356,7 @@ async function flushOfflineMutationQueue() {
   showLoading();
   let syncedCount = 0;
   const remaining = [];
+  let lastErrorMsg = null;
 
   for (const item of queue) {
     try {
@@ -1363,14 +1367,16 @@ async function flushOfflineMutationQueue() {
       if (item.table === 'daily_accounts') {
         // Multi-tier robust sync for daily_accounts
         let { data: saved, error } = await supabase.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' }).select().single();
+        if (error) resErr = error;
+        
         if (error || !saved) {
-          const { data: checkData } = await supabase.from('daily_accounts').select('id').eq('business_id', payload.business_id).eq('date', payload.date).maybeSingle();
+          const { data: checkData, error: checkErr } = await supabase.from('daily_accounts').select('id').eq('business_id', payload.business_id).eq('date', payload.date).maybeSingle();
           if (checkData && checkData.id) {
             const res = await supabase.from('daily_accounts').update(payload).eq('id', checkData.id).select().single();
-            saved = res.data; resErr = res.error;
+            saved = res.data; resErr = res.error || checkErr;
           } else {
             const res = await supabase.from('daily_accounts').insert(payload).select().single();
-            saved = res.data; resErr = res.error;
+            saved = res.data; resErr = res.error || checkErr;
           }
         }
         if (saved && saved.id) {
@@ -1392,6 +1398,7 @@ async function flushOfflineMutationQueue() {
       }
 
       if (resErr) {
+        lastErrorMsg = resErr.message || resErr.details || JSON.stringify(resErr);
         console.warn('Queue sync item error:', resErr);
         if (item.retryCount && item.retryCount >= 2) {
           console.warn('Dropping stale queue item after retries:', item);
@@ -1401,6 +1408,7 @@ async function flushOfflineMutationQueue() {
         }
       }
     } catch(err) {
+      lastErrorMsg = err.message || String(err);
       console.warn('Queue item sync exception:', err);
       remaining.push(item);
     }
@@ -1412,8 +1420,10 @@ async function flushOfflineMutationQueue() {
 
   if (syncedCount > 0 && typeof window.showToast === 'function') {
     window.showToast(`✅ Synced ${syncedCount} queued action(s) to cloud!`, 'success');
-  } else if (remaining.length > 0 && typeof window.showToast === 'function') {
-    window.showToast(`⚠️ Sync skipped ${remaining.length} item(s). Click Clear Queue if stuck.`, 'info');
+  }
+  
+  if (lastErrorMsg && remaining.length > 0) {
+    alert('☁️ Cloud Sync Alert: Could not sync ' + remaining.length + ' item(s).\n\nSupabase Error: ' + lastErrorMsg + '\n\nTip: If your API key or database schema changed, tap "Clear Queue" on the status bar to clear stuck items.');
   }
 }
 
