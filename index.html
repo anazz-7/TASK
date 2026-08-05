@@ -5937,76 +5937,85 @@ window.__sendAccSmsSummary = function() {
   sendSmsTo(OWNER_NOTIFY_NUMBER, msg);
 };
 
-window.__saveAccEntry = async function() {
-  if (!isDateUnlockedForStaff(accountsDate)) {
-    alert('Permission Denied: Editing accounts for past dates (' + accountsDate + ') is restricted to the Owner.');
-    return;
-  }
-  const existing = cache.dailyAccounts.find(a => a.date === accountsDate);
-  const data = {
-    business_id: session.businessId,
-    date: accountsDate,
-    notes: document.getElementById('accNotes') ? document.getElementById('accNotes').value.trim() : ''
-  };
-  ACC_FIELDS.forEach(field => {
-    const el = document.getElementById(`accField_${field.key}`);
-    if(el && el.value !== '') {
-      data[field.key] = Number(el.value);
-    } else if(existing && existing[field.key] != null) {
-      data[field.key] = Number(existing[field.key]);
-    } else {
-      data[field.key] = 0;
-    }
-  });
-
-  const totals = calcAccTotals(data);
-  data.total = totals.total;
-  data.total_sales = totals.totalSales;
-  data.excess = totals.excess;
-  data.less = totals.less;
-
-  const dbPayload = Object.assign({}, data);
-  delete dbPayload.is_checked; // local transient property
-
-  // 1. Immediately update local cache for 0ms instant response
-  if (existing) {
-    Object.assign(existing, dbPayload);
-  } else {
-    dbPayload.id = 'loc_' + Date.now();
-    cache.dailyAccounts.push(dbPayload);
-  }
+window.__saveAccEntry = function() {
   try {
-    localStorage.setItem('br_daily_accounts_' + session.businessId, JSON.stringify(cache.dailyAccounts));
-  } catch(e){}
+    if (!session || !session.businessId) { alert('Not logged in. Please refresh.'); return; }
+    if (!isDateUnlockedForStaff(accountsDate)) {
+      alert('Permission Denied: Editing past date accounts (' + accountsDate + ') is restricted to the Owner. Use the PIN unlock or request remote approval.');
+      return;
+    }
 
-  logAuditEvent('Accounts Save', `Saved daily accounts entry for ${accountsDate} (Total: ₹${data.total})`);
-  triggerAppNotification('Accounts Saved', `Entry updated for ${accountsDate}`);
-  if (typeof window.showToast === 'function') {
-    window.showToast(`💾 Accounts saved for ${accountsDate}!`, 'success');
-  }
+    // Collect all field values from DOM
+    const existing = cache.dailyAccounts.find(a => a.date === accountsDate);
+    const data = {
+      business_id: session.businessId,
+      date: accountsDate,
+      notes: ''
+    };
+    const notesEl = document.getElementById('accNotes');
+    if (notesEl) data.notes = notesEl.value.trim();
 
-  // Re-render immediately with the saved values (cache already updated above)
-  renderTabBody();
+    ACC_FIELDS.forEach(function(field) {
+      const el = document.getElementById('accField_' + field.key);
+      if (el && el.value !== '') {
+        data[field.key] = parseFloat(el.value) || 0;
+      } else if (existing && existing[field.key] != null) {
+        data[field.key] = Number(existing[field.key]);
+      } else {
+        data[field.key] = 0;
+      }
+    });
 
-  // 2. Perform Supabase DB Upsert in Background (non-blocking)
-  if (navigator.onLine && typeof supabase !== 'undefined' && session.businessId) {
-    supabase.from('daily_accounts').upsert(dbPayload, { onConflict: 'business_id,date' })
-      .select().single()
-      .then(r => {
-        if (r && r.data && r.data.id) {
-          // Update the cache record with the real DB id/timestamps
-          const cached = cache.dailyAccounts.find(a => a.date === accountsDate);
-          if (cached) Object.assign(cached, r.data);
-          try { localStorage.setItem('br_daily_accounts_' + session.businessId, JSON.stringify(cache.dailyAccounts)); } catch(e){}
-        }
-      })
-      .catch(e => {
-        if (typeof queueOfflineMutation === 'function') {
-          queueOfflineMutation('upsert', 'daily_accounts', dbPayload);
-        }
-      });
-  } else if (typeof queueOfflineMutation === 'function') {
-    queueOfflineMutation('upsert', 'daily_accounts', dbPayload);
+    // Calculate totals
+    const totals = calcAccTotals(data);
+    data.total = totals.total;
+    data.total_sales = totals.totalSales;
+    data.excess = totals.excess;
+    data.less = totals.less;
+
+    // Build DB payload (strip local-only fields)
+    const dbPayload = Object.assign({}, data);
+    delete dbPayload.is_checked;
+
+    // 1. Update local cache IMMEDIATELY (0ms)
+    if (existing) {
+      Object.assign(existing, dbPayload);
+    } else {
+      dbPayload.id = 'loc_acc_' + Date.now();
+      cache.dailyAccounts.push(dbPayload);
+    }
+    try { localStorage.setItem('br_daily_accounts_' + session.businessId, JSON.stringify(cache.dailyAccounts)); } catch(e) {}
+
+    // 2. Show feedback and re-render immediately
+    window.showToast('\u{1F4BE} Accounts saved for ' + accountsDate + '!', 'success');
+    logAuditEvent('Accounts Save', 'Saved accounts for ' + accountsDate + ' (Total: Rs.' + Math.round(data.total) + ')');
+    renderTabBody();
+
+    // 3. Background Supabase upsert (non-blocking, fire-and-forget)
+    if (navigator.onLine && typeof supabase !== 'undefined') {
+      const payload = Object.assign({}, dbPayload);
+      delete payload.id; // let DB assign real id on insert; upsert by business_id+date
+      supabase.from('daily_accounts')
+        .upsert(payload, { onConflict: 'business_id,date' })
+        .select().single()
+        .then(function(r) {
+          if (r && r.data && r.data.id) {
+            var cached = cache.dailyAccounts.find(function(a) { return a.date === accountsDate; });
+            if (cached) Object.assign(cached, r.data);
+            try { localStorage.setItem('br_daily_accounts_' + session.businessId, JSON.stringify(cache.dailyAccounts)); } catch(e) {}
+          }
+        })
+        .catch(function() {
+          if (typeof queueOfflineMutation === 'function') queueOfflineMutation('upsert', 'daily_accounts', payload);
+        });
+    } else if (typeof queueOfflineMutation === 'function') {
+      queueOfflineMutation('upsert', 'daily_accounts', dbPayload);
+    }
+
+  } catch(err) {
+    // Show the actual error so we know what went wrong
+    alert('Save Error: ' + (err.message || String(err)));
+    console.error('__saveAccEntry error:', err);
   }
 };
 
