@@ -5976,6 +5976,9 @@ window.__saveAccEntry = function() {
     // Build DB payload (strip local-only fields)
     const dbPayload = Object.assign({}, data);
     delete dbPayload.is_checked;
+    // Map legacy column names (ac, salary) alongside personal_ac and salary_paid for 100% database compatibility
+    dbPayload.ac = dbPayload.personal_ac || 0;
+    dbPayload.salary = dbPayload.salary_paid || 0;
 
     // 1. Update local cache IMMEDIATELY (0ms)
     if (existing) {
@@ -6013,6 +6016,28 @@ window.__saveAccEntry = function() {
               saved = res.data;
               error = res.error;
             }
+          }
+
+          // Fallback to legacy 'accounts' table if daily_accounts table is missing in Supabase
+          if (error && (error.code === '42P01' || (error.message && error.message.includes('does not exist')))) {
+            console.warn('daily_accounts table missing, attempting save to legacy accounts table...');
+            const legacyPayload = {
+              business_id: session.businessId,
+              date: accountsDate,
+              total_sales: payload.total_sales || 0,
+              amount: payload.amount || 0,
+              vendors: payload.vendors || 0,
+              credit: payload.credit || 0,
+              credit_received: payload.credit_received || 0,
+              gpay: payload.gpay || 0,
+              ba_credit: payload.ba_credit || 0,
+              expenses: payload.expenses || 0,
+              ac: payload.personal_ac || payload.ac || 0,
+              salary: payload.salary_paid || payload.salary || 0,
+              adjustment: payload.adjustment || 0
+            };
+            const res = await supabase.from('accounts').insert(legacyPayload).select().single();
+            if (res && res.data) { saved = res.data; error = null; }
           }
 
           if (saved && saved.id) {
