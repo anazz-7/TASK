@@ -2828,19 +2828,32 @@ function renderTasksTab(body){
     if(t.status!=='done'){ await supabase.from('tasks').update({status:'sent'}).eq('id', id); await loadData(); renderTabBody(); }
   };
   window.__markDone = async (id) => {
-    const key = 'done-'+id;
-    if(__busyKeys.has(key)) return;
-    __busyKeys.add(key);
-    try{
-      await sbCheck(supabase.from('tasks').update({status:'done'}).eq('id', id));
-      celebrateDone();
-      await awardTaskPoint(id, 'task');
-      notifyCompletion(id, 'task');
-      await loadData(); renderTabBody();
-    } catch(e){
-      alert('Could not mark done — please check your connection and try again.\n\n('+(e.message||e)+')');
-    } finally {
-      __busyKeys.delete(key);
+    const t = cache.tasks.find(x => x.id === id);
+    if (!t) return;
+
+    // 1. Instantly update local cache (0ms delay)
+    t.status = 'done';
+    t.completed_at = new Date().toISOString();
+
+    celebrateDone();
+    if (typeof window.showToast === 'function') {
+      window.showToast(`Task marked as Done!`, 'success');
+    }
+    renderTabBody(); // Instant UI Re-render
+
+    // 2. Perform background DB Sync & notifications
+    if (navigator.onLine && typeof supabase !== 'undefined' && session.businessId) {
+      try {
+        await supabase.from('tasks').update({ status: 'done' }).eq('id', id);
+        awardTaskPoint(id, 'task').catch(()=>{});
+        notifyCompletion(id, 'task');
+      } catch(e) {
+        if (typeof queueOfflineMutation === 'function') {
+          queueOfflineMutation('update', 'tasks', { id, status: 'done' });
+        }
+      }
+    } else if (typeof queueOfflineMutation === 'function') {
+      queueOfflineMutation('update', 'tasks', { id, status: 'done' });
     }
   };
   
@@ -2890,12 +2903,46 @@ function openTaskModal(taskId){
       due_time: document.getElementById('mTaskTime').value || null,
       priority: document.getElementById('mTaskPriority').value,
     };
-    await guardedSave('task-'+(id||'new'), async () => {
-      if(id) await sbCheck(supabase.from('tasks').update(data).eq('id', id));
-      else await sbCheck(supabase.from('tasks').insert(data));
-      holder.innerHTML='';
-      await loadData(); renderTabBody();
-    });
+
+    // 1. Instantly update local cache (0ms delay)
+    if (id) {
+      const existing = cache.tasks.find(x => x.id === id);
+      if (existing) Object.assign(existing, data);
+    } else {
+      data.id = 'loc_task_' + Date.now();
+      data.status = 'pending';
+      data.created_at = new Date().toISOString();
+      cache.tasks.unshift(data);
+    }
+
+    holder.innerHTML = ''; // Close modal instantly
+    if (typeof window.showToast === 'function') {
+      window.showToast(id ? 'Task updated!' : 'Task created!', 'success');
+    }
+    renderTabBody(); // Instant UI Re-render
+
+    // 2. Perform background DB Sync
+    if (navigator.onLine && typeof supabase !== 'undefined' && session.businessId) {
+      try {
+        if (id && !id.startsWith('loc_task_')) {
+          await supabase.from('tasks').update(data).eq('id', id);
+        } else {
+          const dbPayload = Object.assign({}, data);
+          delete dbPayload.id;
+          const { data: inserted } = await supabase.from('tasks').insert(dbPayload).select().single();
+          if (inserted) {
+            const locTask = cache.tasks.find(x => x.id === data.id);
+            if (locTask) Object.assign(locTask, inserted);
+          }
+        }
+      } catch(e) {
+        if (typeof queueOfflineMutation === 'function') {
+          queueOfflineMutation(id ? 'update' : 'insert', 'tasks', data);
+        }
+      }
+    } else if (typeof queueOfflineMutation === 'function') {
+      queueOfflineMutation(id ? 'update' : 'insert', 'tasks', data);
+    }
   };
 }
 window.__openTask = () => openTaskModal(null);
@@ -5868,40 +5915,42 @@ window.__saveAccEntry = async function() {
   data.excess = totals.excess;
   data.less = totals.less;
 
-  // Immediately update local cache so saved numbers are preserved instantly
+  const dbPayload = Object.assign({}, data);
+  delete dbPayload.is_checked; // local transient property
+
+  // 1. Immediately update local cache for 0ms instant response
   if (existing) {
-    Object.assign(existing, data);
+    Object.assign(existing, dbPayload);
   } else {
-    data.id = 'loc_' + Date.now();
-    cache.dailyAccounts.push(data);
+    dbPayload.id = 'loc_' + Date.now();
+    cache.dailyAccounts.push(dbPayload);
   }
-  localStorage.setItem('br_daily_accounts_' + session.businessId, JSON.stringify(cache.dailyAccounts));
+  try {
+    localStorage.setItem('br_daily_accounts_' + session.businessId, JSON.stringify(cache.dailyAccounts));
+  } catch(e){}
 
   logAuditEvent('Accounts Save', `Saved daily accounts entry for ${accountsDate} (Total: ₹${data.total})`);
   triggerAppNotification('Accounts Saved', `Entry updated for ${accountsDate}`);
-
-  showLoading();
-  try {
-    const dbPayload = Object.assign({}, data);
-    delete dbPayload.is_checked; // local transient property
-    if (existing && existing.id && !existing.id.startsWith('loc_')) {
-      const { error } = await supabase.from('daily_accounts').update(dbPayload).eq('id', existing.id);
-      if (error) throw error;
-    } else {
-      const { data: inserted, error } = await supabase.from('daily_accounts').insert(dbPayload).select().single();
-      if (error) throw error;
-      if (inserted && existing) Object.assign(existing, inserted);
-    }
-  } catch(e) {
-    // Already saved in local storage fallback
-  } finally {
-    hideLoading();
-  }
-
   if (typeof window.showToast === 'function') {
     window.showToast(`💾 Accounts saved for ${accountsDate}!`, 'success');
   }
-  renderTabBody();
+
+  renderTabBody(); // Instant UI Update
+
+  // 2. Perform Supabase DB Upsert in Background
+  if (navigator.onLine && typeof supabase !== 'undefined' && session.businessId) {
+    try {
+      const { data: upserted, error } = await supabase.from('daily_accounts').upsert(dbPayload, { onConflict: 'business_id,date' }).select().single();
+      if (error) throw error;
+      if (upserted && existing) Object.assign(existing, upserted);
+    } catch(e) {
+      if (typeof queueOfflineMutation === 'function') {
+        queueOfflineMutation('upsert', 'daily_accounts', dbPayload);
+      }
+    }
+  } else if (typeof queueOfflineMutation === 'function') {
+    queueOfflineMutation('upsert', 'daily_accounts', dbPayload);
+  }
 };
 
 function renderAccHistoryHtml(){
