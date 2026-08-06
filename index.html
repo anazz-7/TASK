@@ -6037,9 +6037,10 @@ window.__saveAccEntry = function() {
     // Build DB payload (strip local-only fields)
     const dbPayload = Object.assign({}, data);
     delete dbPayload.is_checked;
-    // Map legacy column names (ac, salary) alongside personal_ac and salary_paid for 100% database compatibility
-    dbPayload.ac = dbPayload.personal_ac || 0;
-    dbPayload.salary = dbPayload.salary_paid || 0;
+    // NOTE: do NOT add legacy "ac"/"salary" keys here — the daily_accounts table
+    // only has "personal_ac" and "salary_paid" columns. Sending unknown columns
+    // makes every Supabase upsert fail, which was causing entries to get stuck
+    // forever in the offline sync queue instead of actually saving.
 
     // 1. Update local cache IMMEDIATELY (0ms)
     if (existing) {
