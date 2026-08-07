@@ -1506,6 +1506,21 @@ function getVendorPartiesList() {
 }
 
 /* ---------------- data ---------------- */
+
+function loadDataFromLocalStorage() {
+  if (!session || !session.businessId) return;
+  const bizId = session.businessId;
+  try {
+    const keys = ['staff', 'tasks', 'attendance', 'sales', 'routines', 'points', 'labels', 'weeklyTasks', 'packages', 'salesmanLocations', 'salaries', 'salesTargets', 'trophies', 'stockChecks', 'auditLogs', 'salaryAdvances', 'lowStocks', 'vendorBills', 'vendorPayments', 'dailyAccounts'];
+    keys.forEach(k => {
+      const stored = localStorage.getItem('br_' + k + '_' + bizId);
+      if (stored) {
+        try { cache[k] = JSON.parse(stored); } catch(e){}
+      }
+    });
+  } catch(e){}
+}
+
 async function loadData(){
   showLoading();
   try {
@@ -1513,10 +1528,10 @@ async function loadData(){
     const [staffR, tasksR, attR, salesR, routinesR, pointsR, labelsR, weeklyR, packagesR, locR, salariesR, targetsR, trophiesR, stockR, auditR] = await Promise.all([
       supabase.from('staff').select('*').eq('business_id', bizId).order('name'),
       supabase.from('tasks').select('*').eq('business_id', bizId).order('due_date', {ascending:true, nullsFirst:false}),
-      supabase.from('attendance').select('*').eq('business_id', bizId).order('date', {ascending:false}),
+      supabase.from('attendance').select('*').eq('business_id', bizId).order('date', {ascending:false}).limit(200),
       supabase.from('sales').select('*').eq('business_id', bizId).order('date', {ascending:false}),
       supabase.from('routines').select('*').eq('business_id', bizId).order('title'),
-      supabase.from('points_log').select('*').eq('business_id', bizId).order('date', {ascending:false}),
+      supabase.from('points_log').select('*').eq('business_id', bizId).order('date', {ascending:false}).limit(200),
       supabase.from('labels').select('*').eq('business_id', bizId).order('date', {ascending:false}),
       supabase.from('weekly_tasks').select('*').eq('business_id', bizId).order('title'),
       supabase.from('packages').select('*').eq('business_id', bizId).order('date', {ascending:false}),
@@ -1525,7 +1540,7 @@ async function loadData(){
       supabase.from('sales_targets').select('*').eq('business_id', bizId),
       supabase.from('trophies').select('*').eq('business_id', bizId),
       supabase.from('stock_checks').select('*').eq('business_id', bizId).order('date', {ascending:false}),
-      supabase.from('audit_logs').select('*').eq('business_id', bizId).order('timestamp', {ascending:false}).limit(300),
+      supabase.from('audit_logs').select('*').eq('business_id', bizId).order('timestamp', {ascending:false}).limit(100).limit(300),
     ]);
     cache.staff = staffR.data || [];
     const cloudTasks = tasksR.data || [];
