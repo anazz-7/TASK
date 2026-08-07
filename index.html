@@ -871,7 +871,7 @@ function _tasksRender() {
 const app = document.getElementById('app');
 let supabase = null;
 let session = JSON.parse(localStorage.getItem('br_session') || 'null'); // {staffId, name, role, businessId, businessName}
-let cache = { businesses: [], staff: [], tasks: [], attendance: [], sales: [], routines: [], routineLog: [], points: [], labels: [], weeklyTasks: [], weeklyTaskLog: [], packages: [], salesmanLocations: [], salaries: [], salesTargets: [], trophies: [], stockChecks: [], dailyAccounts: [], vendorBills: [], lowStocks: [], vendorParties: [] };
+let cache = { businesses: [], staff: [], tasks: [], attendance: [], sales: [], routines: [], routineLog: [], points: [], labels: [], weeklyTasks: [], weeklyTaskLog: [], packages: [], salesmanLocations: [], salaries: [], salesTargets: [], trophies: [], stockChecks: [], dailyAccounts: [], vendorBills: [], lowStocks: [], vendorParties: [], vendorPayments: [] };
 let activeTab = 'tasks';
 let taskFilter = { staffId: '', priority: '', search: '' };
 let taskSubTab = 'active'; // 'active' | 'history'
@@ -1491,6 +1491,35 @@ async function safeSupabaseCall(promiseFn, fallbackData = null, timeoutMs = 7000
 
 
 
+
+/* ---------------- VENDOR BILL & PAYMENT DATA HELPERS ---------------- */
+function getBillAmount(b) {
+  if (!b) return 0;
+  return Number(b.amount || b.total_amount || b.bill_amount || 0);
+}
+
+function getBillPaidAmount(b) {
+  if (!b) return 0;
+  if (b.paid_amount != null) return Number(b.paid_amount || 0);
+  if (b.status === 'paid') return getBillAmount(b);
+  return 0;
+}
+
+function getBillBalanceAmount(b) {
+  const amt = getBillAmount(b);
+  const paid = getBillPaidAmount(b);
+  return Math.max(0, amt - paid);
+}
+
+function getBillStatus(b) {
+  if (!b) return 'unpaid';
+  const amt = getBillAmount(b);
+  const paid = getBillPaidAmount(b);
+  if (paid >= amt && amt > 0) return 'paid';
+  if (paid > 0) return 'partial';
+  return 'unpaid';
+}
+
 /* ---------------- VENDOR PARTY AUTO-COMPLETE HELPER ---------------- */
 function getVendorPartiesList() {
   const set = new Set();
@@ -1581,6 +1610,14 @@ async function loadData(){
       const localParties = localStorage.getItem('br_vendor_parties_' + bizId);
       cache.vendorParties = localParties ? JSON.parse(localParties) : [];
     } catch(e) { cache.vendorParties = []; }
+
+    try {
+      const { data: vpData } = await supabase.from('vendor_payments').select('*').eq('business_id', bizId).order('date', {ascending:false});
+      cache.vendorPayments = vpData || [];
+    } catch(e) {
+      const localVP = localStorage.getItem('br_vendor_payments_' + bizId);
+      cache.vendorPayments = localVP ? JSON.parse(localVP) : [];
+    }
 
     try {
       const { data: dAccData, error: dErr } = await supabase.from('daily_accounts').select('*').eq('business_id', bizId).order('date', {ascending:false});
@@ -6556,10 +6593,11 @@ window.__paySelectedVendorBillsBulk = async function() {
 
 function renderVendorBillsTab(body) {
   const bills = cache.vendorBills || [];
-  const unpaid = bills.filter(b => b.status !== 'paid');
-  const paid = bills.filter(b => b.status === 'paid');
+  const unpaid = bills.filter(b => getBillStatus(b) !== 'paid');
+  const paid = bills.filter(b => getBillStatus(b) === 'paid');
+  const partial = bills.filter(b => getBillStatus(b) === 'partial');
 
-  const totalUnpaid = unpaid.reduce((sum, b) => sum + getBillAmount(b), 0);
+  const totalUnpaidBalance = unpaid.reduce((sum, b) => sum + getBillBalanceAmount(b), 0);
   const totalPaid = paid.reduce((sum, b) => sum + getBillAmount(b), 0);
 
   const displayList = vendorSubTab === 'unpaid' ? unpaid : (vendorSubTab === 'paid' ? paid : bills);
@@ -6569,13 +6607,13 @@ function renderVendorBillsTab(body) {
     <div class="row-card" style="flex-direction:column;align-items:stretch;background:linear-gradient(135deg, var(--paper), var(--card));border:1.5px solid var(--turmeric);margin-bottom:14px;padding:16px;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
         <div>
-          <span style="font-size:0.75rem;font-weight:700;color:var(--ink-soft);letter-spacing:0.04em;text-transform:uppercase;">Total Bills Payable (Unpaid)</span>
-          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.6rem;font-weight:800;color:var(--brick);margin:4px 0 0;">₹${totalUnpaid.toFixed(0)}</h2>
-          <div style="font-size:0.78rem;color:var(--ink-soft);margin-top:2px;">${unpaid.length} Bill${unpaid.length !== 1 ? 's' : ''} Pending Verification & Settlement</div>
+          <span style="font-size:0.75rem;font-weight:700;color:var(--ink-soft);letter-spacing:0.04em;text-transform:uppercase;">Total Outstanding Balance</span>
+          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.6rem;font-weight:800;color:var(--brick);margin:4px 0 0;">₹${totalUnpaidBalance.toLocaleString('en-IN')}</h2>
+          <div style="font-size:0.78rem;color:var(--ink-soft);margin-top:2px;">${unpaid.length} Pending Bills (${partial.length} Partially Paid)</div>
         </div>
         <div style="text-align:right;">
-          <span style="font-size:0.72rem;font-weight:600;color:var(--leaf);display:block;">Settled This Month</span>
-          <b style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;color:var(--leaf);">₹${totalPaid.toFixed(0)}</b>
+          <span style="font-size:0.72rem;font-weight:600;color:var(--leaf);display:block;">Settled Bills Total</span>
+          <b style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;color:var(--leaf);">₹${totalPaid.toLocaleString('en-IN')}</b>
         </div>
       </div>
 
@@ -6611,14 +6649,24 @@ function renderVendorBillsTab(body) {
 }
 
 function renderVendorBillCard(b) {
-  const isPaid = b.status === 'paid';
+  const st = getBillStatus(b);
+  const isPaid = st === 'paid';
+  const isPartial = st === 'partial';
   const staff = cache.staff.find(s => s.id === b.scanned_by);
-  const staffName = staff ? staff.name : (b.scanned_by || 'Staff');
+  const staffNameVal = staff ? staff.name : (b.scanned_by || 'Staff');
   const datePretty = new Date(b.bill_date + 'T00:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
   const duePretty = b.due_date ? new Date(b.due_date + 'T00:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short' }) : 'None';
 
+  const amt = getBillAmount(b);
+  const paidAmt = getBillPaidAmount(b);
+  const balance = getBillBalanceAmount(b);
+
+  const statusStampText = isPaid ? 'PAID' : (isPartial ? 'PARTIALLY PAID' : 'UNPAID');
+  const statusStampClass = isPaid ? 'done' : (isPartial ? 'medium' : 'pending');
+  const borderLeftColor = isPaid ? 'var(--leaf)' : (isPartial ? 'var(--turmeric)' : 'var(--brick)');
+
   return `
-    <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px 16px;margin-bottom:12px;${isPaid ? 'border-left:4px solid var(--leaf);' : 'border-left:4px solid var(--brick);'}">
+    <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px 16px;margin-bottom:12px;border-left:4px solid ${borderLeftColor};">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
         <div style="display:flex;gap:10px;align-items:center;">
           ${(!isPaid && isOwner()) ? `
@@ -6636,40 +6684,43 @@ function renderVendorBillCard(b) {
           <div>
             <b style="font-size:1rem;color:var(--ink);display:block;margin-bottom:2px;font-family:'Space Grotesk',sans-serif;">${esc(getVendorName(b))}</b>
             <div style="font-size:0.78rem;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;">
-              Bill No: <b>${esc(getBillNo(b))}</b> &bull; Date: ${datePretty}
+              Bill No: <b>#${esc(getBillNo(b))}</b> &bull; Date: ${datePretty}
             </div>
             <div style="font-size:0.72rem;color:var(--ink-soft);margin-top:2px;">
-              Scanned by: <b>${esc(staffName)}</b> ${b.due_date ? `&bull; Due: <span style="color:var(--brick);font-weight:600;">${duePretty}</span>` : ''}
+              Scanned by: <b>${esc(staffNameVal)}</b> ${b.due_date ? `&bull; Due: <span style="color:var(--brick);font-weight:600;">${duePretty}</span>` : ''}
             </div>
           </div>
         </div>
         
         <div style="text-align:right;flex-shrink:0;">
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:1.15rem;font-weight:800;color:${isPaid?'var(--leaf)':'var(--brick)'};">
-            ₹${getBillAmount(b).toFixed(0)}
+          <span class="stamp ${statusStampClass}" style="margin-bottom:4px;display:inline-block;">${statusStampText}</span>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:0.95rem;font-weight:700;color:var(--ink);">
+            Bill: <b>₹${amt.toLocaleString('en-IN')}</b>
           </div>
-          <span class="stamp ${isPaid?'done':'absent'}" style="font-size:0.7rem;padding:3px 7px;margin-top:4px;display:inline-block;">
-            ${isPaid ? 'PAID' : 'UNPAID'}
-          </span>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:0.78rem;color:var(--leaf);">
+            Paid: ₹${paidAmt.toLocaleString('en-IN')}
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:0.82rem;font-weight:700;color:${balance>0?'var(--brick)':'var(--leaf)'};">
+            Balance: ₹${balance.toLocaleString('en-IN')}
+          </div>
         </div>
       </div>
 
-      ${b.notes ? `<div class="notes" style="margin-top:10px;"><b>Notes:</b> ${esc(b.notes)}</div>` : ''}
-
-      <!-- Action Bar -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px dashed var(--paper-line);">
-        <div>
-          ${b.photo_url ? `<button class="stamp-btn ghost small" style="font-size:0.75rem;padding:4px 8px;" onclick="window.__viewVendorBillPhoto('${b.id}')">👁 View Bill Photo</button>` : ''}
+        <div style="display:flex;gap:6px;align-items:center;">
+          ${!isPaid ? `
+            <button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border:none;font-weight:700;" onclick="window.__openRecordPaymentModal('${b.id}')">💳 Pay Now</button>
+          ` : ''}
+          <button class="stamp-btn small ghost" onclick="window.__openVendorPaymentHistoryModal('${b.id}')">📜 History</button>
         </div>
 
-        <div style="display:flex;gap:6px;">
-          <button class="stamp-btn ghost small" style="font-size:0.75rem;padding:4px 8px;" onclick="window.__printVendorBillReceipt('${b.id}')">Print Receipt</button>
-          ${!isPaid && isOwner() ? `
-            <button class="stamp-btn small" style="background:var(--leaf);color:#fff;border-color:var(--leaf);font-weight:700;" onclick="window.__markVendorBillPaid('${b.id}')">Verify & Mark Paid</button>
-          ` : ''}
-          ${isOwner() ? `
-            <button class="stamp-btn ghost small" style="color:var(--brick);border-color:var(--brick);" onclick="window.__deleteVendorBill('${b.id}')">Delete</button>
-          ` : ''}
+        <div class="action-dropdown-holder">
+          <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${b.id}')">More ▾</button>
+          <div class="action-dropdown-menu" id="actionMenu_${b.id}">
+            ${b.photo_url ? `<button onclick="window.__viewVendorBillPhoto('${b.id}')">👁 View Photo</button>` : ''}
+            <button onclick="window.__showPaymentVoucherModal({vendorName:'${esc(getVendorName(b))}', bills:[cache.vendorBills.find(x=>x.id==='${b.id}')], totalAmount:${amt}, paymentMode:'Cash'})">🖨 Print Voucher</button>
+            ${isOwner() ? `<button class="danger" onclick="window.__deleteVendorBill('${b.id}')">🗑 Delete</button>` : ''}
+          </div>
         </div>
       </div>
     </div>
@@ -7447,6 +7498,251 @@ window.__printPaymentVoucher = function() {
   printWindow.document.close();
 };
 
+
+/* ---------------- RECORD PAYMENT & PAYMENT HISTORY MODALS ---------------- */
+window.__openRecordPaymentModal = function(billId) {
+  const b = (cache.vendorBills || []).find(x => x.id === billId);
+  if (!b) return;
+
+  const holder = getModalHolder('vendorModalHolder');
+  const vendorName = getVendorName(b);
+  const billNo = getBillNo(b);
+  const billAmt = getBillAmount(b);
+  const paidAmt = getBillPaidAmount(b);
+  const balance = getBillBalanceAmount(b);
+
+  holder.innerHTML = `
+  <div class="overlay show"><div class="modal" style="max-width:440px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--paper-line);">
+      <h2 style="margin:0;font-size:1.1rem;">💳 Record Payment</h2>
+      <button class="stamp-btn ghost small" onclick="getModalHolder('vendorModalHolder').innerHTML=''">✕</button>
+    </div>
+
+    <div style="background:var(--paper);border:1px solid var(--paper-line);border-radius:8px;padding:12px;margin-bottom:14px;display:flex;flex-direction:column;gap:6px;">
+      <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
+        <span style="color:var(--ink-soft);">Supplier:</span>
+        <b style="color:var(--ink);text-transform:uppercase;">${esc(vendorName)}</b>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
+        <span style="color:var(--ink-soft);">Bill No:</span>
+        <b style="font-family:'IBM Plex Mono',monospace;">#${esc(billNo)}</b>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
+        <span style="color:var(--ink-soft);">Bill Amount:</span>
+        <b style="font-family:'IBM Plex Mono',monospace;">₹${billAmt.toLocaleString('en-IN')}</b>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
+        <span style="color:var(--ink-soft);">Already Paid:</span>
+        <b style="font-family:'IBM Plex Mono',monospace;color:var(--leaf);">₹${paidAmt.toLocaleString('en-IN')}</b>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:0.95rem;padding-top:6px;border-top:1px dashed var(--paper-line);">
+        <b style="color:var(--brick);">Outstanding Balance:</b>
+        <b style="font-family:'IBM Plex Mono',monospace;color:var(--brick);font-size:1.05rem;">₹${balance.toLocaleString('en-IN')}</b>
+      </div>
+    </div>
+
+    <label>Payment Amount (₹) *</label>
+    <input type="number" step="any" id="mSinglePayAmount" value="${balance}" placeholder="Enter amount paid" style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;font-weight:700;" oninput="window.__calcSinglePayRemaining(${balance})">
+
+    <div style="margin-top:6px;font-size:0.82rem;font-weight:600;display:flex;justify-content:space-between;" id="mSinglePayRemainingDisp">
+      <span>Remaining Balance after payment:</span>
+      <b style="color:var(--leaf);font-family:'IBM Plex Mono',monospace;">₹0</b>
+    </div>
+
+    <label style="margin-top:12px;">Payment Mode</label>
+    <select id="mSinglePayMode">
+      <option value="Cash">Cash</option>
+      <option value="GPay / Online Transfer">GPay / Online Transfer</option>
+      <option value="Cheque">Cheque</option>
+      <option value="Bank NEFT / RTGS">Bank NEFT / RTGS</option>
+    </select>
+
+    <label>Remarks / Notes</label>
+    <input id="mSinglePayRemarks" placeholder="e.g. Cash payment by Owner">
+
+    <div class="modal-actions" style="margin-top:18px;">
+      <button class="stamp-btn ghost" onclick="getModalHolder('vendorModalHolder').innerHTML=''">Cancel</button>
+      <button class="stamp-btn" style="background:var(--turmeric);color:#fff;" onclick="window.__saveSingleBillPayment('${b.id}')">💾 Save Payment & Print</button>
+    </div>
+  </div></div>`;
+};
+
+window.__calcSinglePayRemaining = function(balance) {
+  const payInput = document.getElementById('mSinglePayAmount');
+  const disp = document.getElementById('mSinglePayRemainingDisp');
+  if (!payInput || !disp) return;
+
+  const payVal = Number(payInput.value || 0);
+  const rem = Math.max(0, balance - payVal);
+  disp.innerHTML = `
+    <span>Remaining Balance after payment:</span>
+    <b style="color:${rem > 0 ? 'var(--brick)' : 'var(--leaf)'};font-family:'IBM Plex Mono',monospace;">₹${rem.toLocaleString('en-IN')}</b>
+  `;
+};
+
+window.__saveSingleBillPayment = async function(billId) {
+  const b = (cache.vendorBills || []).find(x => x.id === billId);
+  if (!b) return;
+
+  const payAmt = Number(document.getElementById('mSinglePayAmount').value || 0);
+  const mode = document.getElementById('mSinglePayMode').value;
+  const remarks = document.getElementById('mSinglePayRemarks').value.trim() || 'Cash payment';
+
+  if (!payAmt || payAmt <= 0) {
+    alert('Please enter a valid Payment Amount.');
+    return;
+  }
+
+  const currentPaid = getBillPaidAmount(b);
+  const newPaid = currentPaid + payAmt;
+  const totalAmt = getBillAmount(b);
+  const newBalance = Math.max(0, totalAmt - newPaid);
+  const newStatus = newPaid >= totalAmt ? 'paid' : 'partial';
+  const nowIso = new Date().toISOString();
+
+  // 1. Update Bill Record
+  b.paid_amount = newPaid;
+  b.balance_amount = newBalance;
+  b.status = newStatus;
+  b.paid_at = nowIso;
+  b.paid_by = session.staffId;
+
+  // 2. Log Payment Transaction
+  const paymentEntry = {
+    id: 'vp_' + Date.now() + '_' + Math.random().toString(36).substring(2,6),
+    business_id: session.businessId,
+    bill_id: b.id,
+    vendor_name: getVendorName(b),
+    bill_no: getBillNo(b),
+    date: todayStr(),
+    amount: payAmt,
+    payment_mode: mode,
+    remarks: remarks,
+    created_by: session.staffId,
+    created_at: nowIso
+  };
+
+  if (!cache.vendorPayments) cache.vendorPayments = [];
+  cache.vendorPayments.unshift(paymentEntry);
+
+  showLoading();
+  try {
+    localStorage.setItem('br_vendor_bills_' + session.businessId, JSON.stringify(cache.vendorBills));
+    localStorage.setItem('br_vendor_payments_' + session.businessId, JSON.stringify(cache.vendorPayments));
+
+    if (typeof supabase !== 'undefined' && !b.id.startsWith('loc_')) {
+      await supabase.from('vendor_bills').update({
+        paid_amount: newPaid,
+        balance_amount: newBalance,
+        status: newStatus,
+        paid_at: nowIso,
+        paid_by: session.staffId
+      }).eq('id', b.id);
+
+      Promise.resolve(supabase.from('vendor_payments').insert(paymentEntry)).catch(()=>{});
+    }
+  } catch(e) {
+    console.warn('Payment cloud save exception:', e);
+    queueOfflineMutation('update', 'vendor_bills', { id: b.id, paid_amount: newPaid, balance_amount: newBalance, status: newStatus });
+    queueOfflineMutation('insert', 'vendor_payments', paymentEntry);
+  } finally {
+    hideLoading();
+  }
+
+  getModalHolder('vendorModalHolder').innerHTML = '';
+  logAuditEvent('Vendor Payment Recorded', `Recorded ₹${payAmt} payment for Bill #${getBillNo(b)} (${getVendorName(b)})`);
+  window.showToast(`✅ Payment of ₹${payAmt} saved! Status: ${newStatus.toUpperCase()}`, 'success');
+  renderTabBody();
+
+  // 3. Launch Payment Voucher Printable Modal
+  window.__showPaymentVoucherModal({
+    vendorName: getVendorName(b),
+    bills: [b],
+    totalAmount: payAmt,
+    paymentMode: mode,
+    notes: remarks
+  });
+};
+
+window.__openVendorPaymentHistoryModal = function(billId) {
+  const b = (cache.vendorBills || []).find(x => x.id === billId);
+  if (!b) return;
+
+  const holder = getModalHolder('vendorModalHolder');
+  const vendorName = getVendorName(b);
+  const billNo = getBillNo(b);
+  const billAmt = getBillAmount(b);
+  const paidAmt = getBillPaidAmount(b);
+  const balance = getBillBalanceAmount(b);
+
+  const payments = (cache.vendorPayments || []).filter(p => p.bill_id === b.id || (p.vendor_name === vendorName && p.bill_no === billNo));
+
+  holder.innerHTML = `
+  <div class="overlay show"><div class="modal" style="max-width:500px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--paper-line);">
+      <h2 style="margin:0;font-size:1.1rem;">📜 Payment History</h2>
+      <button class="stamp-btn ghost small" onclick="getModalHolder('vendorModalHolder').innerHTML=''">✕</button>
+    </div>
+
+    <div style="background:var(--paper);border:1px solid var(--paper-line);border-radius:8px;padding:10px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <b style="font-size:0.9rem;">${esc(vendorName)}</b>
+        <div style="font-size:0.75rem;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;">Bill #${esc(billNo)} &bull; Total ₹${billAmt.toLocaleString('en-IN')}</div>
+      </div>
+      <div style="text-align:right;">
+        <span class="stamp ${newStatusClass(getBillStatus(b))}">${getBillStatus(b).toUpperCase()}</span>
+      </div>
+    </div>
+
+    <div class="section-label">Payment Transactions (${payments.length})</div>
+
+    ${payments.length ? `
+      <div style="display:flex;flex-direction:column;gap:8px;max-height:240px;overflow-y:auto;">
+        ${payments.map(p => `
+          <div style="display:flex;justify-content:space-between;align-items:center;background:#fff;padding:10px 12px;border-radius:6px;border:1px solid var(--paper-line);font-size:0.82rem;">
+            <div>
+              <b style="font-family:'IBM Plex Mono',monospace;color:var(--leaf);font-size:0.95rem;">₹${Number(p.amount||0).toLocaleString('en-IN')}</b>
+              <div style="font-size:0.72rem;color:var(--ink-soft);margin-top:2px;">
+                ${p.date} &bull; ${esc(p.payment_mode||'Cash')} &bull; By ${esc(staffName(p.created_by))}
+              </div>
+              ${p.remarks ? `<div style="font-size:0.75rem;color:var(--ink);margin-top:2px;font-style:italic;">"${esc(p.remarks)}"</div>` : ''}
+            </div>
+            <button class="stamp-btn small ghost" onclick="window.__printSinglePaymentReceipt('${p.id}')">🖨 Voucher</button>
+          </div>
+        `).join('')}
+      </div>
+    ` : `<div class="empty" style="padding:20px;">No individual payment logs recorded yet.</div>`}
+
+    <div style="margin-top:14px;padding-top:10px;border-top:1px dashed var(--paper-line);display:flex;justify-content:space-between;align-items:center;font-size:0.88rem;">
+      <span>Total Paid: <b style="color:var(--leaf);font-family:'IBM Plex Mono',monospace;">₹${paidAmt.toLocaleString('en-IN')}</b></span>
+      <span>Balance: <b style="color:${balance > 0 ? 'var(--brick)' : 'var(--leaf)'};font-family:'IBM Plex Mono',monospace;">₹${balance.toLocaleString('en-IN')}</b></span>
+    </div>
+
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="stamp-btn ghost" style="width:100%;" onclick="getModalHolder('vendorModalHolder').innerHTML=''">Close</button>
+    </div>
+  </div></div>`;
+
+  window.__printSinglePaymentReceipt = function(pId) {
+    const p = (cache.vendorPayments || []).find(x => x.id === pId);
+    if (!p) return;
+    window.__showPaymentVoucherModal({
+      vendorName: p.vendor_name || vendorName,
+      bills: [b],
+      totalAmount: p.amount,
+      paymentMode: p.payment_mode || 'Cash',
+      notes: p.remarks || '',
+      voucherNo: p.id
+    });
+  };
+};
+
+function newStatusClass(st) {
+  if (st === 'paid') return 'done';
+  if (st === 'partial') return 'medium';
+  return 'pending';
+}
+
 /* ---------------- BULK VENDOR SETTLEMENT MODAL ---------------- */
 window.__openBulkVendorSettlementModal = function() {
   const holder = getModalHolder('vendorModalHolder');
@@ -7536,6 +7832,7 @@ window.__openBulkVendorSettlementModal = function() {
   };
 };
 
+
 window.__submitBulkVendorPayment = async function() {
   const vendor = document.getElementById('mBulkSelectVendor') ? document.getElementById('mBulkSelectVendor').value : '';
   if (!vendor) { alert('Please select a vendor.'); return; }
@@ -7546,41 +7843,88 @@ window.__submitBulkVendorPayment = async function() {
   const selectedIds = checkedCbs.map(c => c.value);
   const bills = cache.vendorBills || [];
   const selectedBills = bills.filter(b => selectedIds.includes(b.id));
-  const totalAmt = selectedBills.reduce((sum, b) => sum + getBillAmount(b), 0);
-  const mode = document.getElementById('mBulkPaymentMode').value;
-  const notes = document.getElementById('mBulkNotes').value.trim();
 
-  // 1. Update cache & mark as paid
+  const totalCashInput = prompt('Enter Total Cash Amount Paid (₹) for ' + vendor + ':', selectedBills.reduce((s,b)=>s+getBillBalanceAmount(b), 0));
+  if (totalCashInput === null) return;
+  
+  let remainingCash = Number(totalCashInput || 0);
+  if (remainingCash <= 0) { alert('Please enter a valid cash amount.'); return; }
+
   const nowIso = new Date().toISOString();
-  selectedBills.forEach(b => {
-    b.status = 'paid';
+  const mode = document.getElementById('mBulkPaymentMode') ? document.getElementById('mBulkPaymentMode').value : 'Cash';
+  const notes = document.getElementById('mBulkNotes') ? document.getElementById('mBulkNotes').value.trim() : 'Bulk settlement';
+
+  const affectedBills = [];
+  let totalSettled = 0;
+
+  for (const b of selectedBills) {
+    if (remainingCash <= 0) break;
+
+    const outstanding = getBillBalanceAmount(b);
+    if (outstanding <= 0) continue;
+
+    const payVal = Math.min(remainingCash, outstanding);
+    const totalAmt = getBillAmount(b);
+    const currentPaid = getBillPaidAmount(b);
+    const newPaid = currentPaid + payVal;
+    const newBalance = Math.max(0, totalAmt - newPaid);
+    const newStatus = newPaid >= totalAmt ? 'paid' : 'partial';
+
+    b.paid_amount = newPaid;
+    b.balance_amount = newBalance;
+    b.status = newStatus;
     b.paid_at = nowIso;
     b.paid_by = session.staffId;
-  });
 
-  // Background DB update
-  if (typeof supabase !== 'undefined' && session.businessId) {
-    for (const b of selectedBills) {
-      if (b.id && !b.id.startsWith('loc_')) {
-        Promise.resolve(supabase.from('vendor_bills').update({ status: 'paid', paid_at: nowIso, paid_by: session.staffId }).eq('id', b.id)).catch(()=>{});
-      }
+    remainingCash -= payVal;
+    totalSettled += payVal;
+    affectedBills.push(b);
+
+    const paymentEntry = {
+      id: 'vp_' + Date.now() + '_' + Math.random().toString(36).substring(2,6),
+      business_id: session.businessId,
+      bill_id: b.id,
+      vendor_name: getVendorName(b),
+      bill_no: getBillNo(b),
+      date: todayStr(),
+      amount: payVal,
+      payment_mode: mode,
+      remarks: notes,
+      created_by: session.staffId,
+      created_at: nowIso
+    };
+
+    if (!cache.vendorPayments) cache.vendorPayments = [];
+    cache.vendorPayments.unshift(paymentEntry);
+
+    if (typeof supabase !== 'undefined' && !b.id.startsWith('loc_')) {
+      Promise.resolve(supabase.from('vendor_bills').update({
+        paid_amount: newPaid, balance_amount: newBalance, status: newStatus, paid_at: nowIso, paid_by: session.staffId
+      }).eq('id', b.id)).catch(()=>{});
+      Promise.resolve(supabase.from('vendor_payments').insert(paymentEntry)).catch(()=>{});
     }
   }
 
+  try {
+    localStorage.setItem('br_vendor_bills_' + session.businessId, JSON.stringify(cache.vendorBills));
+    localStorage.setItem('br_vendor_payments_' + session.businessId, JSON.stringify(cache.vendorPayments));
+  } catch(e){}
+
   getModalHolder('vendorModalHolder').innerHTML = '';
-  logAuditEvent('Bulk Vendor Payment', `Paid ${selectedBills.length} bills for ${vendor} totaling ₹${totalAmt}`);
-  window.showToast(`✅ Settled ${selectedBills.length} bills (₹${totalAmt}) for ${vendor}!`, 'success');
+  logAuditEvent('Bulk Vendor Payment', `Paid ₹${totalSettled} across ${affectedBills.length} bills for ${vendor}`);
+  window.showToast(`✅ Distributed ₹${totalSettled} cash across ${affectedBills.length} bills!`, 'success');
   renderTabBody();
 
-  // 2. Open Printable Payment Voucher Modal matching Tally format!
+  // Open Payment Voucher Printable Modal
   window.__showPaymentVoucherModal({
     vendorName: vendor,
-    bills: selectedBills,
-    totalAmount: totalAmt,
+    bills: affectedBills,
+    totalAmount: totalSettled,
     paymentMode: mode,
     notes: notes
   });
 };
+
 
 /* ---------------- CALENDAR SUB-TAB ---------------- */
 
