@@ -161,6 +161,13 @@
   .bottom-nav button{flex:1;background:none;border:none;padding:9px 4px 8px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;font-size:0.6rem;font-weight:600;}
   .bottom-nav button.active{color:var(--turmeric-dark);}
   .bottom-nav .ic{font-size:1.15rem;}
+
+  /* Sit just above the mobile bottom-nav instead of flush at bottom:0, so it
+     doesn't cover the tab bar and block navigation while offline / syncing —
+     exactly when someone would most want to switch tabs. Desktop has no
+     bottom-nav, so the bar sits flush at the bottom there. */
+  #offlineSyncStatusBanner { bottom: calc(54px + env(safe-area-inset-bottom)); }
+  @media (min-width: 900px) { #offlineSyncStatusBanner { bottom: 0; } }
   
   .header-icon-btn{background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--ink);padding:6px;line-height:1;}
   .badge-chip{display:inline-flex;align-items:center;gap:5px;background:var(--amber-soft);border:1px solid var(--turmeric);color:var(--turmeric-dark);padding:6px 11px;border-radius:999px;font-size:0.78rem;font-weight:600;margin:0 6px 6px 0;}
@@ -1445,7 +1452,7 @@ function updateOfflineBadgeBar() {
   if (!bar) {
     bar = document.createElement('div');
     bar.id = 'offlineSyncStatusBanner';
-    bar.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9999;background:var(--turmeric-dark);color:white;padding:8px 14px;font-size:0.82rem;font-weight:700;display:none;align-items:center;justify-content:space-between;box-shadow:0 -4px 12px rgba(0,0,0,0.15);';
+    bar.style.cssText = 'position:fixed;left:0;right:0;z-index:9999;background:var(--turmeric-dark);color:white;padding:8px 14px;font-size:0.82rem;font-weight:700;display:none;align-items:center;justify-content:space-between;box-shadow:0 -4px 12px rgba(0,0,0,0.15);';
     document.body.appendChild(bar);
   }
 
@@ -5104,9 +5111,9 @@ function renderSalesmanTab(body){
           ${isSharing ? 'Stop Sharing' : 'Start Sharing Location'}
         </button>
       </div>
-      ${myLoc && myLoc.last_lat ? `
+      ${myLoc && myLoc.lat ? `
         <div style="font-size:0.8rem;color:var(--ink-soft);margin-top:4px;">
-          Last recorded position: <a class="link" href="${mapLink(myLoc.last_lat, myLoc.last_lng)}" target="_blank">${icon('pin',14)} View on Google Maps ↗</a>
+          Last recorded position: <a class="link" href="${mapLink(myLoc.lat, myLoc.lng)}" target="_blank">${icon('pin',14)} View on Google Maps ↗</a>
           ${myLoc.updated_at ? ` · ${timeStr(myLoc.updated_at)}` : ''}
         </div>
       ` : ''}
@@ -5128,8 +5135,8 @@ function renderSalesmanTab(body){
               ${loc && loc.updated_at ? `<span>${timeStr(loc.updated_at)}</span>` : ''}
             </div>
           </div>
-          ${loc && loc.last_lat != null ? `
-            <a class="stamp-btn small ghost" href="${mapLink(loc.last_lat, loc.last_lng)}" target="_blank" style="text-decoration:none;">${icon('pin',14)} Maps ↗</a>
+          ${loc && loc.lat != null ? `
+            <a class="stamp-btn small ghost" href="${mapLink(loc.lat, loc.lng)}" target="_blank" style="text-decoration:none;">${icon('pin',14)} Maps ↗</a>
           ` : ''}
         </div>
       `;
@@ -5156,18 +5163,17 @@ function renderSalesmanTab(body){
         business_id: session.businessId,
         staff_id: session.staffId,
         is_sharing: shouldShare,
-        last_lat: loc ? loc.lat : (existing ? existing.last_lat : null),
-        last_lng: loc ? loc.lng : (existing ? existing.last_lng : null),
+        // NOTE: the salesman_locations table's columns are "lat"/"lng" (not
+        // "last_lat"/"last_lng") — sending the wrong names made every save fail silently.
+        lat: loc ? loc.lat : (existing ? existing.lat : null),
+        lng: loc ? loc.lng : (existing ? existing.lng : null),
         updated_at: new Date().toISOString()
       };
-      if(existing) {
-        await sbCheck(supabase.from('salesman_locations').update(payload).eq('id', existing.id));
-        Object.assign(existing, payload);
-      } else {
-        const { data: newRow } = await supabase.from('salesman_locations').insert(payload).select().single();
-        if(newRow) cache.salesmanLocations.push(newRow);
-        else cache.salesmanLocations.push(payload);
-      }
+      // This table's primary key is staff_id (there is no separate "id" column),
+      // so upsert on staff_id instead of a broken update-by-id / insert branch.
+      const { data: savedRow } = await supabase.from('salesman_locations').upsert(payload, { onConflict: 'staff_id' }).select().single();
+      if (existing) Object.assign(existing, savedRow || payload);
+      else cache.salesmanLocations.push(savedRow || payload);
       await loadData();
       renderTabBody();
     } catch(e) {
@@ -5391,9 +5397,12 @@ function logAuditEvent(actionType, details) {
     localStorage.setItem('br_audit_logs_' + session.businessId, JSON.stringify(cache.auditLogs));
   } catch(e){}
 
-  // Sync to central Supabase DB asynchronously so ALL STAFF logs are captured
+  // Sync to central Supabase DB asynchronously so ALL STAFF logs are captured.
+  // Don't send our local text id — audit_logs.id is a uuid generated by the DB.
   if (typeof supabase !== 'undefined' && session.businessId) {
-    Promise.resolve(supabase.from('audit_logs').insert(entry)).catch(()=>{});
+    const dbEntry = Object.assign({}, entry);
+    delete dbEntry.id;
+    Promise.resolve(supabase.from('audit_logs').insert(dbEntry)).catch(()=>{});
   }
 }
 
@@ -6842,7 +6851,7 @@ window.__saveVendorBill = async function() {
     total_amount: amount,
     bill_amount: amount,
     bill_date: bill_date,
-    due_date: due_date,
+    due_date: due_date || null,
     notes: notes,
     photo_url: currentBillPhotoData,
     scanned_by: session.staffId,
