@@ -916,6 +916,75 @@
     100% { transform: rotate(360deg); }
   }
 
+
+  /* Mobile Responsiveness & Layout Alignment Overhaul */
+  @media (max-width: 480px) {
+    .wrap {
+      padding: 0 10px 140px !important;
+    }
+    header.top {
+      padding: 14px 10px 10px !important;
+      gap: 6px !important;
+    }
+    .header-title-area h1 {
+      font-size: 1.05rem !important;
+    }
+    .row-card {
+      padding: 12px 10px !important;
+      gap: 8px !important;
+    }
+    .stat-grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 8px !important;
+    }
+    .stat-card {
+      padding: 10px 8px !important;
+    }
+    .stat-card .num {
+      font-size: clamp(0.95rem, 4vw, 1.25rem) !important;
+    }
+    .modal {
+      max-width: min(520px, calc(100vw - 16px)) !important;
+      padding: 16px 12px !important;
+      max-height: 88vh !important;
+      overflow-y: auto !important;
+      border-radius: 12px !important;
+    }
+    .stamp-btn {
+      padding: 9px 12px !important;
+      font-size: 0.8rem !important;
+    }
+    .stamp-btn.small {
+      padding: 6px 9px !important;
+      font-size: 0.72rem !important;
+    }
+  }
+
+  .due-badge-overdue {
+    background: var(--brick-soft);
+    color: var(--brick);
+    border: 1px solid var(--brick);
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .due-badge-warning {
+    background: var(--amber-soft);
+    color: var(--turmeric-dark);
+    border: 1px solid var(--turmeric);
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+
 </style>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
@@ -2177,6 +2246,9 @@ function renderShell(){
           </div>
         </div>
         <div class="header-actions">
+          <button class="reload-btn" title="Global Quick Search (Ctrl + K)" onclick="window.__openGlobalSearchModal()">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
           <button class="reload-btn" title="Refresh App Data" onclick="window.__reloadAppData(this)">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3L21.5 8M22 12.5a10 10 0 0 1-18.8 4.3L2.5 16"/></svg>
           </button>
@@ -6687,6 +6759,75 @@ window.__printVendorBillReceipt = function(id) {
     100% { transform: rotate(360deg); }
   }
 
+
+  /* Mobile Responsiveness & Layout Alignment Overhaul */
+  @media (max-width: 480px) {
+    .wrap {
+      padding: 0 10px 140px !important;
+    }
+    header.top {
+      padding: 14px 10px 10px !important;
+      gap: 6px !important;
+    }
+    .header-title-area h1 {
+      font-size: 1.05rem !important;
+    }
+    .row-card {
+      padding: 12px 10px !important;
+      gap: 8px !important;
+    }
+    .stat-grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 8px !important;
+    }
+    .stat-card {
+      padding: 10px 8px !important;
+    }
+    .stat-card .num {
+      font-size: clamp(0.95rem, 4vw, 1.25rem) !important;
+    }
+    .modal {
+      max-width: min(520px, calc(100vw - 16px)) !important;
+      padding: 16px 12px !important;
+      max-height: 88vh !important;
+      overflow-y: auto !important;
+      border-radius: 12px !important;
+    }
+    .stamp-btn {
+      padding: 9px 12px !important;
+      font-size: 0.8rem !important;
+    }
+    .stamp-btn.small {
+      padding: 6px 9px !important;
+      font-size: 0.72rem !important;
+    }
+  }
+
+  .due-badge-overdue {
+    background: var(--brick-soft);
+    color: var(--brick);
+    border: 1px solid var(--brick);
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .due-badge-warning {
+    background: var(--amber-soft);
+    color: var(--turmeric-dark);
+    border: 1px solid var(--turmeric);
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+
 </style>
     </head>
     <body>
@@ -6850,7 +6991,8 @@ function renderVendorBillsTab(body) {
   const totalUnpaidBalance = unpaid.reduce((sum, b) => sum + getBillBalanceAmount(b), 0);
   const totalPaid = paid.reduce((sum, b) => sum + getBillAmount(b), 0);
 
-  const displayList = vendorSubTab === 'unpaid' ? unpaid : (vendorSubTab === 'paid' ? paid : bills);
+  const overdueList = bills.filter(b => getBillStatus(b) !== 'paid' && b.due_date && (new Date(b.due_date + 'T23:59:59').getTime() < new Date().getTime()));
+  const displayList = vendorSubTab === 'unpaid' ? unpaid : (vendorSubTab === 'overdue' ? overdueList : (vendorSubTab === 'paid' ? paid : bills));
 
   body.innerHTML = `
     <!-- Top Summary Banner Card -->
@@ -6880,6 +7022,7 @@ function renderVendorBillsTab(body) {
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
       <div style="display:flex;gap:6px;overflow-x:auto;">
         <button class="stamp-btn small ${vendorSubTab==='unpaid'?'':'ghost'}" onclick="window.__setVendorSubTab('unpaid')">Unpaid Bills (${unpaid.length})</button>
+        <button class="stamp-btn small ${vendorSubTab==='overdue'?'':'ghost'}" style="${vendorSubTab==='overdue'?'background:var(--brick);color:#fff;border-color:var(--brick);':''}" onclick="window.__setVendorSubTab('overdue')">Overdue (${bills.filter(b => getBillStatus(b)!=='paid' && b.due_date && (new Date(b.due_date+'T23:59:59').getTime() < new Date().getTime())).length})</button>
         <button class="stamp-btn small ${vendorSubTab==='paid'?'':'ghost'}" onclick="window.__setVendorSubTab('paid')">Paid History (${paid.length})</button>
         <button class="stamp-btn small ${vendorSubTab==='all'?'':'ghost'}" onclick="window.__setVendorSubTab('all')">All Bills (${bills.length})</button>
       </div>
@@ -6906,6 +7049,18 @@ function renderVendorBillCard(b) {
   const staffNameVal = staff ? staff.name : (b.scanned_by || 'Staff');
   const datePretty = new Date(b.bill_date + 'T00:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
   const duePretty = b.due_date ? new Date(b.due_date + 'T00:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short' }) : 'None';
+
+  let dueBadgeHtml = '';
+  if (!isPaid && b.due_date) {
+    const dueTime = new Date(b.due_date + 'T23:59:59').getTime();
+    const nowTime = new Date().getTime();
+    const daysLeft = Math.ceil((dueTime - nowTime) / (86400 * 1000));
+    if (daysLeft < 0) {
+      dueBadgeHtml = `<span class="due-badge-overdue">⚠️ ${Math.abs(daysLeft)}d Overdue</span>`;
+    } else if (daysLeft <= 3) {
+      dueBadgeHtml = `<span class="due-badge-warning">⏰ Due in ${daysLeft}d</span>`;
+    }
+  }
 
   const amt = getBillAmount(b);
   const paidAmt = getBillPaidAmount(b);
@@ -6937,7 +7092,7 @@ function renderVendorBillCard(b) {
               Bill No: <b>#${esc(getBillNo(b))}</b> &bull; Date: ${datePretty}
             </div>
             <div style="font-size:0.72rem;color:var(--ink-soft);margin-top:2px;">
-              Scanned by: <b>${esc(staffNameVal)}</b> ${b.due_date ? `&bull; Due: <span style="color:var(--brick);font-weight:600;">${duePretty}</span>` : ''}
+              Scanned by: <b>${esc(staffNameVal)}</b> ${b.due_date ? `&bull; Due: <span style="color:var(--brick);font-weight:600;">${duePretty}</span> ${dueBadgeHtml}` : ''}
             </div>
           </div>
         </div>
@@ -6967,6 +7122,7 @@ function renderVendorBillCard(b) {
         <div class="action-dropdown-holder">
           <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${b.id}')">More ▾</button>
           <div class="action-dropdown-menu" id="actionMenu_${b.id}">
+            <button onclick="window.__openVendorLedgerModal('${esc(getVendorName(b))}')">📊 Statement</button>
             ${b.photo_url ? `<button onclick="window.__viewVendorBillPhoto('${b.id}')">👁 View Photo</button>` : ''}
             <button onclick="window.__showPaymentVoucherModal({vendorName:'${esc(getVendorName(b))}', bills:[cache.vendorBills.find(x=>x.id==='${b.id}')], totalAmount:${amt}, paymentMode:'Cash'})">🖨 Print Voucher</button>
             ${(isPaid || isPartial) && isOwner() ? `<button onclick="window.__revertVendorBillToUnpaid('${b.id}')">↩ Move to Unpaid</button>` : ''}
@@ -7898,6 +8054,75 @@ window.__printPaymentVoucher = function() {
     100% { transform: rotate(360deg); }
   }
 
+
+  /* Mobile Responsiveness & Layout Alignment Overhaul */
+  @media (max-width: 480px) {
+    .wrap {
+      padding: 0 10px 140px !important;
+    }
+    header.top {
+      padding: 14px 10px 10px !important;
+      gap: 6px !important;
+    }
+    .header-title-area h1 {
+      font-size: 1.05rem !important;
+    }
+    .row-card {
+      padding: 12px 10px !important;
+      gap: 8px !important;
+    }
+    .stat-grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 8px !important;
+    }
+    .stat-card {
+      padding: 10px 8px !important;
+    }
+    .stat-card .num {
+      font-size: clamp(0.95rem, 4vw, 1.25rem) !important;
+    }
+    .modal {
+      max-width: min(520px, calc(100vw - 16px)) !important;
+      padding: 16px 12px !important;
+      max-height: 88vh !important;
+      overflow-y: auto !important;
+      border-radius: 12px !important;
+    }
+    .stamp-btn {
+      padding: 9px 12px !important;
+      font-size: 0.8rem !important;
+    }
+    .stamp-btn.small {
+      padding: 6px 9px !important;
+      font-size: 0.72rem !important;
+    }
+  }
+
+  .due-badge-overdue {
+    background: var(--brick-soft);
+    color: var(--brick);
+    border: 1px solid var(--brick);
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .due-badge-warning {
+    background: var(--amber-soft);
+    color: var(--turmeric-dark);
+    border: 1px solid var(--turmeric);
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+
 </style>
     </head>
     <body>
@@ -7916,6 +8141,258 @@ window.__printPaymentVoucher = function() {
 
 
 /* ---------------- RECORD PAYMENT & PAYMENT HISTORY MODALS ---------------- */
+
+/* ---------------- GLOBAL SEARCH & SUPPLIER LEDGER STATEMENT ENGINE ---------------- */
+window.__openGlobalSearchModal = function() {
+  const holder = getModalHolder('taskModalHolder');
+  holder.innerHTML = `
+  <div class="overlay show" onclick="if(event.target===this) this.remove()"><div class="modal" style="max-width:540px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <h2 style="margin:0;font-size:1.1rem;">🔍 Global Quick Search</h2>
+      <button class="stamp-btn ghost small" onclick="this.closest('.overlay').remove()">✕</button>
+    </div>
+    
+    <input id="mGlobalSearchInput" placeholder="Search Bill #, Vendor, Item, Staff, Task..." style="font-size:1.05rem;font-weight:600;padding:12px;margin-bottom:12px;width:100%;" oninput="window.__runGlobalSearch(this.value)" autofocus>
+    
+    <div id="mGlobalSearchResultsArea" style="max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;">
+      <div style="text-align:center;padding:20px;color:var(--ink-soft);font-size:0.85rem;">Type anything to search across Bills, Tasks, Items, & Staff...</div>
+    </div>
+  </div></div>`;
+
+  setTimeout(() => {
+    const el = document.getElementById('mGlobalSearchInput');
+    if (el) el.focus();
+  }, 100);
+};
+
+// Keyboard Shortcut Ctrl + K / Cmd + K for Global Search
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    window.__openGlobalSearchModal();
+  }
+});
+
+window.__runGlobalSearch = function(query) {
+  const area = document.getElementById('mGlobalSearchResultsArea');
+  if (!area) return;
+  const q = (query || '').trim().toLowerCase();
+  if (!q) {
+    area.innerHTML = `<div style="text-align:center;padding:20px;color:var(--ink-soft);font-size:0.85rem;">Type anything to search across Bills, Tasks, Items, & Staff...</div>`;
+    return;
+  }
+
+  const results = [];
+
+  // Search Vendor Bills
+  (cache.vendorBills || []).forEach(b => {
+    const vName = getVendorName(b);
+    const bNo = getBillNo(b);
+    if (vName.toLowerCase().includes(q) || bNo.toLowerCase().includes(q) || (b.notes || '').toLowerCase().includes(q)) {
+      results.push({
+        type: 'Vendor Bill',
+        title: `${vName} (Bill #${bNo})`,
+        meta: `₹${getBillAmount(b).toLocaleString('en-IN')} • Status: ${getBillStatus(b).toUpperCase()}`,
+        tab: 'vendors',
+        id: b.id
+      });
+    }
+  });
+
+  // Search Tasks
+  (cache.tasks || []).forEach(t => {
+    if ((t.title || '').toLowerCase().includes(q) || (t.notes || '').toLowerCase().includes(q)) {
+      results.push({
+        type: 'Task',
+        title: t.title,
+        meta: `Priority: ${t.priority} • Status: ${t.status}`,
+        tab: 'tasks',
+        id: t.id
+      });
+    }
+  });
+
+  // Search Low Stock
+  (cache.lowStocks || []).forEach(l => {
+    if ((l.item_name || '').toLowerCase().includes(q) || (l.category || '').toLowerCase().includes(q)) {
+      results.push({
+        type: 'Low Stock Item',
+        title: l.item_name,
+        meta: `Qty: ${l.current_qty} ${l.unit||'Pcs'} • Status: ${l.status}`,
+        tab: 'low_stock',
+        id: l.id
+      });
+    }
+  });
+
+  // Search Staff
+  (cache.staff || []).forEach(s => {
+    if ((s.name || '').toLowerCase().includes(q) || (s.role || '').toLowerCase().includes(q) || (s.phone || '').includes(q)) {
+      results.push({
+        type: 'Staff Member',
+        title: s.name,
+        meta: `Role: ${s.role} • Phone: ${s.phone||'N/A'}`,
+        tab: 'staff',
+        id: s.id
+      });
+    }
+  });
+
+  if (!results.length) {
+    area.innerHTML = `<div class="empty">No matching records found for "${esc(query)}".</div>`;
+    return;
+  }
+
+  area.innerHTML = results.slice(0, 15).map(r => `
+    <div style="background:var(--paper);border:1px solid var(--paper-line);border-radius:8px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="window.__gotoSearchResult('${r.tab}', '${r.id}')">
+      <div>
+        <span class="stamp low" style="font-size:0.65rem;">${r.type}</span>
+        <b style="font-size:0.9rem;display:block;margin-top:2px;">${esc(r.title)}</b>
+        <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">${esc(r.meta)}</div>
+      </div>
+      <span style="font-size:0.85rem;color:var(--turmeric-dark);font-weight:700;">Go ↗</span>
+    </div>
+  `).join('');
+};
+
+window.__gotoSearchResult = function(tab, id) {
+  const modal = document.getElementById('appAlertOverlay') || document.querySelector('.overlay.show');
+  if (modal) modal.remove();
+  window.__setTab(tab);
+};
+
+/* Supplier Ledger Statement Modal */
+window.__openVendorLedgerModal = function(vendorName) {
+  const bills = (cache.vendorBills || []).filter(b => getVendorName(b) === vendorName);
+  const payments = (cache.vendorPayments || []).filter(p => p.vendor_name === vendorName);
+
+  const totalBilled = bills.reduce((s, b) => s + getBillAmount(b), 0);
+  const totalPaid = bills.reduce((s, b) => s + getBillPaidAmount(b), 0);
+  const outstanding = Math.max(0, totalBilled - totalPaid);
+
+  // Build combined chronological ledger array
+  const entries = [];
+  bills.forEach(b => {
+    entries.push({
+      date: b.bill_date,
+      type: 'BILL',
+      ref: 'Bill #' + getBillNo(b),
+      debit: getBillAmount(b),
+      credit: 0,
+      notes: b.notes || ''
+    });
+  });
+  payments.forEach(p => {
+    entries.push({
+      date: p.date,
+      type: 'PAYMENT',
+      ref: 'Payment (' + (p.payment_mode || 'Cash') + ')',
+      debit: 0,
+      credit: Number(p.amount || 0),
+      notes: p.remarks || ''
+    });
+  });
+
+  entries.sort((a,b) => a.date.localeCompare(b.date));
+
+  let runningBal = 0;
+  entries.forEach(e => {
+    runningBal += (e.debit - e.credit);
+    e.balance = runningBal;
+  });
+
+  const holder = getModalHolder('vendorModalHolder');
+  holder.innerHTML = `
+  <div class="overlay show"><div class="modal" style="max-width:680px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--paper-line);">
+      <div>
+        <h2 style="margin:0;font-size:1.15rem;">📊 Account Statement</h2>
+        <div style="font-size:0.8rem;color:var(--ink-soft);font-weight:700;text-transform:uppercase;margin-top:2px;">${esc(vendorName)}</div>
+      </div>
+      <button class="stamp-btn ghost small" onclick="getModalHolder('vendorModalHolder').innerHTML=''">✕</button>
+    </div>
+
+    <!-- Summary Bar -->
+    <div style="background:var(--paper);border:1px solid var(--paper-line);border-radius:8px;padding:12px;margin-bottom:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center;">
+      <div>
+        <span style="font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;font-weight:700;">Total Billed</span>
+        <b style="display:block;font-family:'IBM Plex Mono',monospace;font-size:1.05rem;color:var(--ink);">₹${totalBilled.toLocaleString('en-IN')}</b>
+      </div>
+      <div>
+        <span style="font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;font-weight:700;">Total Paid</span>
+        <b style="display:block;font-family:'IBM Plex Mono',monospace;font-size:1.05rem;color:var(--leaf);">₹${totalPaid.toLocaleString('en-IN')}</b>
+      </div>
+      <div>
+        <span style="font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;font-weight:700;">Outstanding</span>
+        <b style="display:block;font-family:'IBM Plex Mono',monospace;font-size:1.05rem;color:${outstanding>0?'var(--brick)':'var(--leaf)'};">₹${outstanding.toLocaleString('en-IN')}</b>
+      </div>
+    </div>
+
+    <!-- Ledger Table Container -->
+    <div style="max-height:280px;overflow-y:auto;border:1px solid var(--paper-line);border-radius:8px;margin-bottom:14px;">
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;text-align:left;">
+        <thead>
+          <tr style="background:var(--paper);border-bottom:1px solid var(--paper-line);font-size:0.75rem;color:var(--ink-soft);">
+            <th style="padding:8px 10px;">Date</th>
+            <th style="padding:8px 10px;">Type / Ref</th>
+            <th style="padding:8px 10px;text-align:right;">Billed (₹)</th>
+            <th style="padding:8px 10px;text-align:right;">Paid (₹)</th>
+            <th style="padding:8px 10px;text-align:right;">Balance (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${entries.length ? entries.map(e => `
+            <tr style="border-bottom:1px solid var(--paper-line);">
+              <td style="padding:8px 10px;font-family:'IBM Plex Mono',monospace;">${e.date}</td>
+              <td style="padding:8px 10px;">
+                <b style="color:${e.type==='BILL'?'var(--ink)':'var(--leaf)'};">${esc(e.ref)}</b>
+                ${e.notes ? `<div style="font-size:0.72rem;color:var(--ink-soft);">${esc(e.notes)}</div>` : ''}
+              </td>
+              <td style="padding:8px 10px;text-align:right;font-family:'IBM Plex Mono',monospace;">${e.debit ? '₹'+e.debit.toLocaleString('en-IN') : '—'}</td>
+              <td style="padding:8px 10px;text-align:right;font-family:'IBM Plex Mono',monospace;color:var(--leaf);">${e.credit ? '₹'+e.credit.toLocaleString('en-IN') : '—'}</td>
+              <td style="padding:8px 10px;text-align:right;font-family:'IBM Plex Mono',monospace;font-weight:700;color:${e.balance>0?'var(--brick)':'var(--leaf)'};">₹${e.balance.toLocaleString('en-IN')}</td>
+            </tr>
+          `).join('') : `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--ink-soft);">No transactions found for this vendor.</td></tr>`}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="modal-actions">
+      <button class="stamp-btn ghost" onclick="getModalHolder('vendorModalHolder').innerHTML=''">Close</button>
+      <button class="stamp-btn" style="background:var(--leaf);color:#fff;border:none;" onclick="window.__printVendorStatement('${esc(vendorName)}')">🖨 Print Statement</button>
+    </div>
+  </div></div>`;
+};
+
+window.__printVendorStatement = function(vendorName) {
+  const printArea = document.querySelector('#vendorModalHolder .modal');
+  if (!printArea) return;
+  const printWindow = window.open('', '_blank', 'width=800,height=900');
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Statement - ${vendorName}</title>
+      <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Inter:wght@400;600;700&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
+      <style>
+        body { margin: 0; padding: 20px; font-family: 'Inter', sans-serif; color: #000; background: #fff; }
+        .no-print { display: none !important; }
+        table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+        th, td { border: 1px solid #ccc; padding: 8px; font-size: 0.85rem; }
+        @media print { body { padding: 0; } }
+      </style>
+    </head>
+    <body>
+      ${printArea.innerHTML}
+      <script>
+        window.onload = function() { window.print(); setTimeout(() => { window.close(); }, 500); };
+      <\/script>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+};
+
 window.__openRecordPaymentModal = function(billId) {
   const b = (cache.vendorBills || []).find(x => x.id === billId);
   if (!b) return;
