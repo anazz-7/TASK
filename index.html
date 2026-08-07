@@ -7597,6 +7597,13 @@ function formatVoucherDate(dateStr) {
   return `${day} ${month} ${year}`;
 }
 
+window.__closePaymentVoucherModal = function() {
+  const holder = getModalHolder('vendorVoucherModalHolder');
+  if (holder) holder.innerHTML = '';
+  const el = document.getElementById('vendorVoucherModalHolder');
+  if (el) el.innerHTML = '';
+};
+
 window.__showPaymentVoucherModal = function({ vendorName, bills, totalAmount, paymentMode = 'Cash', notes = '', voucherNo = '' }) {
   const holder = getModalHolder('vendorVoucherModalHolder');
   const bizName = session.businessName || 'BARAKKATH MARKETING';
@@ -7605,13 +7612,16 @@ window.__showPaymentVoucherModal = function({ vendorName, bills, totalAmount, pa
   const wordsAmount = numToWordsINR(totalAmount);
 
   holder.innerHTML = `
-  <div class="overlay show" style="z-index:99999;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;padding:12px;">
+  <div class="overlay show" onclick="if(event.target===this) window.__closePaymentVoucherModal()" style="z-index:99999;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;padding:12px;">
     <div class="modal" style="max-width:620px;width:100%;max-height:92vh;background:#fff;color:#000;border-radius:8px;padding:0;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,0.5);">
       
       <!-- Voucher Printable Card Container -->
       <div id="paymentVoucherPrintArea" style="padding:28px 24px;font-family:'Inter', Arial, sans-serif;color:#000;background:#ffffff;line-height:1.4;">
         
-        <!-- Header -->
+        <!-- Header & Close Button -->
+        <div style="display:flex;justify-content:flex-end;margin-bottom:-10px;" class="no-print">
+          <button class="stamp-btn ghost small" style="color:#000;border-color:#ccc;font-size:0.8rem;padding:4px 10px;" onclick="window.__closePaymentVoucherModal()">✕ Close</button>
+        </div>
         <div style="text-align:center;margin-bottom:18px;">
           <h2 style="margin:0 0 4px;font-family:'Space Grotesk', sans-serif;font-size:1.3rem;font-weight:800;letter-spacing:0.02em;text-transform:uppercase;color:#000;">${esc(bizName)}</h2>
           <div style="font-size:0.75rem;font-weight:600;color:#333;margin-bottom:2px;">44, PALLIVASAL STREET, VADAGARAI, PERIYAKULAM. Pin code: 625601</div>
