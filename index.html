@@ -1506,21 +1506,6 @@ function getVendorPartiesList() {
 }
 
 /* ---------------- data ---------------- */
-
-function loadDataFromLocalStorage() {
-  if (!session || !session.businessId) return;
-  const bizId = session.businessId;
-  try {
-    const keys = ['staff', 'tasks', 'attendance', 'sales', 'routines', 'points', 'labels', 'weeklyTasks', 'packages', 'salesmanLocations', 'salaries', 'salesTargets', 'trophies', 'stockChecks', 'auditLogs', 'salaryAdvances', 'lowStocks', 'vendorBills', 'vendorPayments', 'dailyAccounts'];
-    keys.forEach(k => {
-      const stored = localStorage.getItem('br_' + k + '_' + bizId);
-      if (stored) {
-        try { cache[k] = JSON.parse(stored); } catch(e){}
-      }
-    });
-  } catch(e){}
-}
-
 async function loadData(){
   showLoading();
   try {
@@ -1528,10 +1513,10 @@ async function loadData(){
     const [staffR, tasksR, attR, salesR, routinesR, pointsR, labelsR, weeklyR, packagesR, locR, salariesR, targetsR, trophiesR, stockR, auditR] = await Promise.all([
       supabase.from('staff').select('*').eq('business_id', bizId).order('name'),
       supabase.from('tasks').select('*').eq('business_id', bizId).order('due_date', {ascending:true, nullsFirst:false}),
-      supabase.from('attendance').select('*').eq('business_id', bizId).order('date', {ascending:false}).limit(200),
+      supabase.from('attendance').select('*').eq('business_id', bizId).order('date', {ascending:false}),
       supabase.from('sales').select('*').eq('business_id', bizId).order('date', {ascending:false}),
       supabase.from('routines').select('*').eq('business_id', bizId).order('title'),
-      supabase.from('points_log').select('*').eq('business_id', bizId).order('date', {ascending:false}).limit(200),
+      supabase.from('points_log').select('*').eq('business_id', bizId).order('date', {ascending:false}),
       supabase.from('labels').select('*').eq('business_id', bizId).order('date', {ascending:false}),
       supabase.from('weekly_tasks').select('*').eq('business_id', bizId).order('title'),
       supabase.from('packages').select('*').eq('business_id', bizId).order('date', {ascending:false}),
@@ -1540,7 +1525,7 @@ async function loadData(){
       supabase.from('sales_targets').select('*').eq('business_id', bizId),
       supabase.from('trophies').select('*').eq('business_id', bizId),
       supabase.from('stock_checks').select('*').eq('business_id', bizId).order('date', {ascending:false}),
-      supabase.from('audit_logs').select('*').eq('business_id', bizId).order('timestamp', {ascending:false}).limit(100).limit(300),
+      supabase.from('audit_logs').select('*').eq('business_id', bizId).order('timestamp', {ascending:false}).limit(300),
     ]);
     cache.staff = staffR.data || [];
     const cloudTasks = tasksR.data || [];
@@ -1578,29 +1563,21 @@ async function loadData(){
     cache.trophies = trophiesR.data || [];
     cache.stockChecks = stockR.data || [];
     cache.auditLogs = auditR.data || [];
-    let localSavedBills = [];
     try {
-      localSavedBills = JSON.parse(localStorage.getItem('br_vendor_bills_' + bizId) || '[]');
-    } catch(e){}
-
-    try {
-      const { data: vBillsData } = await supabase.from('vendor_bills').select('*').eq('business_id', bizId).order('bill_date', {ascending:false});
-      const cloudBills = vBillsData || [];
-      const localUnsynced = localSavedBills.filter(b => b.id && (b.id.startsWith('vbill_') || b.id.startsWith('loc_')));
-      const deletedIds = new Set(localSavedBills.filter(b => b.is_deleted).map(b => b.id));
-
-      // Combine cloud bills + local unsynced bills, removing deleted ones
-      const billMap = new Map();
-      cloudBills.forEach(b => { if (!deletedIds.has(b.id)) billMap.set(b.id, b); });
-      localUnsynced.forEach(b => { if (!deletedIds.has(b.id) && !billMap.has(b.id)) billMap.set(b.id, b); });
-
-      cache.vendorBills = Array.from(billMap.values());
-    } catch(e) {
-      cache.vendorBills = localSavedBills.filter(b => !b.is_deleted);
-    }
-    try {
+      const { data: vBillsData, error: vBillsErr } = await supabase.from('vendor_bills').select('*').eq('business_id', bizId).order('bill_date', {ascending:false});
+      if (vBillsErr) throw vBillsErr;
+      cache.vendorBills = vBillsData || [];
       localStorage.setItem('br_vendor_bills_' + bizId, JSON.stringify(cache.vendorBills));
-    } catch(e){}
+    } catch(e) {
+      // Query failed (bad connection, timeout, etc.) — Supabase resolves with
+      // {data:null, error} instead of throwing, so without the check above this
+      // would silently wipe the bills list to empty on this device instead of
+      // keeping the last-synced copy. This was why bills showed on some
+      // devices/loads and not others.
+      console.warn('vendor_bills load failed, using last-synced local copy:', e && e.message);
+      const localSaved = localStorage.getItem('br_vendor_bills_' + bizId);
+      cache.vendorBills = localSaved ? JSON.parse(localSaved) : (cache.vendorBills || []);
+    }
     try {
       const { data: lsData } = await supabase.from('low_stocks').select('*').eq('business_id', bizId).order('created_at', {ascending:false});
       cache.lowStocks = lsData || [];
@@ -6746,6 +6723,7 @@ function renderVendorBillCard(b) {
           <div class="action-dropdown-menu" id="actionMenu_${b.id}">
             ${b.photo_url ? `<button onclick="window.__viewVendorBillPhoto('${b.id}')">👁 View Photo</button>` : ''}
             <button onclick="window.__showPaymentVoucherModal({vendorName:'${esc(getVendorName(b))}', bills:[cache.vendorBills.find(x=>x.id==='${b.id}')], totalAmount:${amt}, paymentMode:'Cash'})">🖨 Print Voucher</button>
+            ${(isPaid || isPartial) && isOwner() ? `<button onclick="window.__revertVendorBillToUnpaid('${b.id}')">↩ Move to Unpaid</button>` : ''}
             ${isOwner() ? `<button class="danger" onclick="window.__deleteVendorBill('${b.id}')">🗑 Delete</button>` : ''}
           </div>
         </div>
@@ -6754,6 +6732,65 @@ function renderVendorBillCard(b) {
   `;
 }
 
+window.__revertVendorBillToUnpaid = async function(billId) {
+  const b = (cache.vendorBills || []).find(x => x.id === billId);
+  if (!b) return;
+
+  const paidSoFar = getBillPaidAmount(b);
+  const ok = confirm(
+    `Move this bill back to UNPAID?\n\n` +
+    `This clears the ₹${paidSoFar.toLocaleString('en-IN')} recorded as paid and deletes its ` +
+    `payment history entries — use this if it was marked paid by mistake.\n\n` +
+    `This cannot be undone.`
+  );
+  if (!ok) return;
+
+  // Find the payment transactions tied to this bill so we can remove them too —
+  // otherwise the History popup would still show old payments for a bill that
+  // now says nothing has been paid.
+  const vendorName = getVendorName(b);
+  const billNo = getBillNo(b);
+  const relatedPayments = (cache.vendorPayments || []).filter(p => p.bill_id === b.id || (p.vendor_name === vendorName && p.bill_no === billNo));
+
+  b.paid_amount = 0;
+  b.balance_amount = getBillAmount(b);
+  b.status = 'pending';
+  b.paid_at = null;
+  b.paid_by = null;
+
+  cache.vendorPayments = (cache.vendorPayments || []).filter(p => !relatedPayments.includes(p));
+
+  showLoading();
+  try {
+    localStorage.setItem('br_vendor_bills_' + session.businessId, JSON.stringify(cache.vendorBills));
+    localStorage.setItem('br_vendor_payments_' + session.businessId, JSON.stringify(cache.vendorPayments));
+
+    if (typeof supabase !== 'undefined' && !String(b.id).startsWith('loc_')) {
+      await supabase.from('vendor_bills').update({
+        paid_amount: 0,
+        balance_amount: getBillAmount(b),
+        status: 'pending',
+        paid_at: null,
+        paid_by: null
+      }).eq('id', b.id);
+
+      for (const p of relatedPayments) {
+        Promise.resolve(supabase.from('vendor_payments').delete().eq('id', p.id)).catch(()=>{});
+      }
+    }
+  } catch(e) {
+    console.warn('Revert-to-unpaid cloud save exception:', e);
+    if (typeof queueOfflineMutation === 'function') {
+      queueOfflineMutation('update', 'vendor_bills', { id: b.id, paid_amount: 0, balance_amount: getBillAmount(b), status: 'pending', paid_at: null, paid_by: null });
+    }
+  } finally {
+    hideLoading();
+  }
+
+  logAuditEvent('Vendor Bill Reverted to Unpaid', `Moved Bill #${billNo} (${vendorName}) back to Unpaid — cleared ₹${paidSoFar} recorded payment`);
+  window.showToast(`↩ Bill moved back to Unpaid`, 'success');
+  renderTabBody();
+};
 
 window.__closeVendorModal = function() {
   const holder = getModalHolder('taskModalHolder');
@@ -6921,43 +6958,12 @@ function runBillOCRScan(imageSrc) {
 }
 
 
-
-/* ---------------- HIGH-SPEED HTML5 CANVAS IMAGE COMPRESSOR (99% Size Reduction) ---------------- */
-function compressImageBase64(dataUrl, maxSide = 600, quality = 0.5) {
-  return new Promise((resolve) => {
-    if (!dataUrl || !dataUrl.startsWith('data:image')) { resolve(dataUrl); return; }
-    const img = new Image();
-    img.onload = () => {
-      let w = img.width;
-      let h = img.height;
-      if (w > maxSide || h > maxSide) {
-        if (w > h) {
-          h = Math.round((h * maxSide) / w);
-          w = maxSide;
-        } else {
-          w = Math.round((w * maxSide) / h);
-          h = maxSide;
-        }
-      }
-      const canvas = document.createElement('canvas');
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL('image/jpeg', quality));
-    };
-    img.onerror = () => resolve(dataUrl);
-    img.src = dataUrl;
-  });
-}
-
 window.__handleBillPhotoSelected = function(input) {
   if (input.files && input.files[0]) {
     const file = input.files[0];
     const reader = new FileReader();
-    reader.onload = async function(e) {
-      const rawData = e.target.result;
-      currentBillPhotoData = await compressImageBase64(rawData, 600, 0.5);
+    reader.onload = function(e) {
+      currentBillPhotoData = e.target.result;
       const img = document.getElementById('vBillPreviewImg');
       const area = document.getElementById('vBillPhotoArea');
       if (img) {
@@ -7054,33 +7060,15 @@ window.__saveVendorBill = async function() {
   };
 
   showLoading();
-  billObj.id = 'vbill_' + Date.now() + '_' + Math.random().toString(36).substring(2,6);
-
-  // 1. Instantly update local cache (0ms latency)
-  cache.vendorBills.unshift(billObj);
   try {
-    localStorage.setItem('br_vendor_bills_' + session.businessId, JSON.stringify(cache.vendorBills));
-  } catch(e){}
-
-  // 2. Cloud insert attempt with offline queue fallback
-  try {
-    if (navigator.onLine && typeof supabase !== 'undefined') {
-      const payload = Object.assign({}, billObj);
-      delete payload.id; // allow DB auto-uuid or insert
-      const { data, error } = await supabase.from('vendor_bills').insert(payload).select().single();
-      if (!error && data) {
-        Object.assign(billObj, data);
-        try { localStorage.setItem('br_vendor_bills_' + session.businessId, JSON.stringify(cache.vendorBills)); } catch(e){}
-      } else if (error) {
-        console.warn('Vendor bill cloud save warning:', error);
-        queueOfflineMutation('insert', 'vendor_bills', payload);
-      }
-    } else {
-      queueOfflineMutation('insert', 'vendor_bills', billObj);
-    }
+    const { data, error } = await supabase.from('vendor_bills').insert(billObj).select().single();
+    if (error) throw error;
+    if (data) cache.vendorBills.unshift(data);
+    else { billObj.id = 'vbill_' + Date.now(); cache.vendorBills.unshift(billObj); }
   } catch(e) {
-    console.warn('Vendor bill cloud save exception:', e);
-    queueOfflineMutation('insert', 'vendor_bills', billObj);
+    billObj.id = 'vbill_' + Date.now();
+    cache.vendorBills.unshift(billObj);
+    localStorage.setItem('br_vendor_bills_' + session.businessId, JSON.stringify(cache.vendorBills));
   } finally {
     hideLoading();
   }
@@ -7120,21 +7108,13 @@ window.__markVendorBillPaid = async function(id) {
 window.__deleteVendorBill = async function(id) {
   if (!confirm('Are you sure you want to delete this vendor bill?')) return;
 
-  const target = cache.vendorBills.find(b => b.id === id);
-  if (target) target.is_deleted = true;
-
   cache.vendorBills = cache.vendorBills.filter(b => b.id !== id);
-  try {
-    localStorage.setItem('br_vendor_bills_' + session.businessId, JSON.stringify(cache.vendorBills));
-  } catch(e){}
 
   showLoading();
   try {
-    if (!id.startsWith('vbill_') && !id.startsWith('loc_')) {
-      await supabase.from('vendor_bills').delete().eq('id', id);
-    }
+    await supabase.from('vendor_bills').delete().eq('id', id);
   } catch(e) {
-    queueOfflineMutation('delete', 'vendor_bills', { id });
+    localStorage.setItem('br_vendor_bills_' + session.businessId, JSON.stringify(cache.vendorBills));
   } finally {
     hideLoading();
   }
