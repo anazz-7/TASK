@@ -4475,11 +4475,11 @@ window.__openIncentiveTargetModal = (targetId) => {
     <label>Notes / Incentive Description</label>
     <textarea id="mTargetNotes" placeholder="Describe the bonus criteria...">${t?esc(t.notes||''):''}</textarea>
     <div class="modal-actions">
-      <button class="stamp-btn ghost" onclick="window.__closeTargetModal()">Cancel</button>
+      <button class="stamp-btn ghost" onclick="window.__closeIncentiveTargetModal()">Cancel</button>
       <button class="stamp-btn" onclick="window.__saveIncentiveTarget('${targetId||''}')">Save Target</button>
     </div>
   </div></div>`;
-  window.__closeTargetModal = () => { holder.innerHTML=''; };
+  window.__closeIncentiveTargetModal = () => { holder.innerHTML=''; };
   window.__saveIncentiveTarget = (id) => {
     const title = document.getElementById('mTargetTitle').value.trim();
     const type = document.getElementById('mTargetType').value;
@@ -6976,6 +6976,12 @@ window.__saveVendorBill = async function() {
     amount: amount,
     total_amount: amount,
     bill_amount: amount,
+    // A brand-new bill has nothing paid yet. Without setting these explicitly,
+    // the database's own default of 0 for balance_amount made every new bill
+    // look "fully paid" (balance <= 0), so it showed up in the Paid tab
+    // immediately with no payment ever recorded.
+    paid_amount: 0,
+    balance_amount: amount,
     bill_date: bill_date,
     due_date: due_date || null,
     notes: notes,
