@@ -1492,34 +1492,6 @@ async function safeSupabaseCall(promiseFn, fallbackData = null, timeoutMs = 7000
 
 
 
-/* ---------------- VENDOR BILL & PAYMENT DATA HELPERS ---------------- */
-function getBillAmount(b) {
-  if (!b) return 0;
-  return Number(b.amount || b.total_amount || b.bill_amount || 0);
-}
-
-function getBillPaidAmount(b) {
-  if (!b) return 0;
-  if (b.paid_amount != null) return Number(b.paid_amount || 0);
-  if (b.status === 'paid') return getBillAmount(b);
-  return 0;
-}
-
-function getBillBalanceAmount(b) {
-  const amt = getBillAmount(b);
-  const paid = getBillPaidAmount(b);
-  return Math.max(0, amt - paid);
-}
-
-function getBillStatus(b) {
-  if (!b) return 'unpaid';
-  const amt = getBillAmount(b);
-  const paid = getBillPaidAmount(b);
-  if (paid >= amt && amt > 0) return 'paid';
-  if (paid > 0) return 'partial';
-  return 'unpaid';
-}
-
 /* ---------------- VENDOR PARTY AUTO-COMPLETE HELPER ---------------- */
 function getVendorPartiesList() {
   const set = new Set();
