@@ -826,6 +826,62 @@
 
 
 
+
+  /* Top Sync Progress Bar & Floating Badge Pill */
+  .sync-progress-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 0%;
+    height: 3px;
+    background: linear-gradient(90deg, #F59E0B, #10B981, #3B82F6, #F59E0B);
+    background-size: 200% 100%;
+    z-index: 100000;
+    transition: width 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .sync-progress-bar.active {
+    opacity: 1;
+    width: 75%;
+    animation: syncProgressPulse 1.5s infinite linear;
+  }
+  .sync-progress-bar.complete {
+    width: 100%;
+    opacity: 1;
+  }
+  @keyframes syncProgressPulse {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 200% 0%; }
+  }
+
+  .sync-badge-pill {
+    position: fixed;
+    top: 14px;
+    right: 16px;
+    z-index: 99999;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #181B20;
+    color: #F59E0B;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+  }
+  .sync-badge-pill.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
 </style>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
@@ -847,13 +903,59 @@ const DEFAULT_SUPABASE_KEY = 'sb_publishable_g3dzrIJkPdEPu4Aw7LxsnA_hpQIo5Qw';  
 /* ================================================================ */
 
 
-function showLoading() {
+
+/* ---------------- COMPACT CLOUD SYNC PROGRESS BAR ENGINE ---------------- */
+window.__showSyncProgress = function(msg = 'Syncing to Cloud...') {
+  let bar = document.getElementById('topSyncProgressBar');
+  let pill = document.getElementById('topSyncBadgePill');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'topSyncProgressBar';
+    bar.className = 'sync-progress-bar';
+    document.body.appendChild(bar);
+  }
+  if (!pill) {
+    pill = document.createElement('div');
+    pill.id = 'topSyncBadgePill';
+    pill.className = 'sync-badge-pill';
+    document.body.appendChild(pill);
+  }
+
+  bar.classList.remove('complete');
+  bar.classList.add('active');
+  pill.innerHTML = `<span>☁️</span> <span>${msg}</span>`;
+  pill.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+  pill.style.color = '#F59E0B';
+  pill.classList.add('show');
+};
+
+window.__hideSyncProgress = function(successMsg = '✓ Cloud Synced') {
+  const bar = document.getElementById('topSyncProgressBar');
+  const pill = document.getElementById('topSyncBadgePill');
+  if (bar) {
+    bar.classList.remove('active');
+    bar.classList.add('complete');
+  }
+  if (pill) {
+    pill.innerHTML = `<span>✓</span> <span>${successMsg}</span>`;
+    pill.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+    pill.style.color = '#10B981';
+  }
+  setTimeout(() => {
+    if (bar) { bar.classList.remove('complete'); bar.style.opacity = '0'; }
+    if (pill) pill.classList.remove('show');
+  }, 1800);
+};
+
+function showLoading(msg) {
   const el = document.getElementById('globalLoader');
   if(el) el.classList.add('show');
+  if (typeof window.__showSyncProgress === 'function') window.__showSyncProgress(msg || 'Syncing to Cloud...');
 }
-function hideLoading() {
+function hideLoading(successMsg) {
   const el = document.getElementById('globalLoader');
   if(el) el.classList.remove('show');
+  if (typeof window.__hideSyncProgress === 'function') window.__hideSyncProgress(successMsg || '✓ Cloud Synced');
 }
 
 
@@ -6441,6 +6543,62 @@ window.__printVendorBillReceipt = function(id) {
       
 
 
+
+  /* Top Sync Progress Bar & Floating Badge Pill */
+  .sync-progress-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 0%;
+    height: 3px;
+    background: linear-gradient(90deg, #F59E0B, #10B981, #3B82F6, #F59E0B);
+    background-size: 200% 100%;
+    z-index: 100000;
+    transition: width 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .sync-progress-bar.active {
+    opacity: 1;
+    width: 75%;
+    animation: syncProgressPulse 1.5s infinite linear;
+  }
+  .sync-progress-bar.complete {
+    width: 100%;
+    opacity: 1;
+  }
+  @keyframes syncProgressPulse {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 200% 0%; }
+  }
+
+  .sync-badge-pill {
+    position: fixed;
+    top: 14px;
+    right: 16px;
+    z-index: 99999;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #181B20;
+    color: #F59E0B;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+  }
+  .sync-badge-pill.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
 </style>
     </head>
     <body>
@@ -7552,7 +7710,63 @@ window.__printPaymentVoucher = function() {
           body { padding: 0; }
           @page { margin: 15mm; size: auto; }
         }
-      </style>
+      
+  /* Top Sync Progress Bar & Floating Badge Pill */
+  .sync-progress-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 0%;
+    height: 3px;
+    background: linear-gradient(90deg, #F59E0B, #10B981, #3B82F6, #F59E0B);
+    background-size: 200% 100%;
+    z-index: 100000;
+    transition: width 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .sync-progress-bar.active {
+    opacity: 1;
+    width: 75%;
+    animation: syncProgressPulse 1.5s infinite linear;
+  }
+  .sync-progress-bar.complete {
+    width: 100%;
+    opacity: 1;
+  }
+  @keyframes syncProgressPulse {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 200% 0%; }
+  }
+
+  .sync-badge-pill {
+    position: fixed;
+    top: 14px;
+    right: 16px;
+    z-index: 99999;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #181B20;
+    color: #F59E0B;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+  }
+  .sync-badge-pill.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+</style>
     </head>
     <body>
       ${printArea.innerHTML}
