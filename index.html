@@ -6543,8 +6543,9 @@ function renderVendorBillsTab(body) {
         </div>
       </div>
 
-      <div style="margin-top:14px;">
-        <button class="stamp-btn" style="width:100%;padding:12px 0;font-size:0.95rem;" onclick="window.__openScanVendorBillModal()">Add Purchase Bill</button>
+      <div style="margin-top:14px;display:flex;gap:8px;">
+        <button class="stamp-btn" style="flex:1;padding:12px 0;font-size:0.9rem;" onclick="window.__openScanVendorBillModal()">➕ Add Purchase Bill</button>
+        <button class="stamp-btn" style="flex:1;padding:12px 0;font-size:0.9rem;background:var(--leaf);color:#fff;border-color:var(--leaf);" onclick="window.__openBulkVendorSettlementModal()">💳 Bulk Pay & Voucher</button>
       </div>
     </div>
 
@@ -7250,6 +7251,298 @@ window.__deleteLowStockItem = function(id) {
         renderTabBody();
       }
     }
+  });
+};
+
+
+/* ---------------- NUMBER TO WORDS (INR) & PAYMENT VOUCHER PRINT ENGINE ---------------- */
+function numToWordsINR(num) {
+  num = Math.round(Number(num) || 0);
+  if (num === 0) return 'Zero Rupees Only';
+  const a = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+  const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+  
+  function inWords(n) {
+    if (n < 20) return a[n];
+    if (n < 100) return b[Math.floor(n / 10)] + (n % 10 ? ' ' + a[n % 10] : '');
+    if (n < 1000) return a[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + inWords(n % 100) : '');
+    if (n < 100000) return inWords(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + inWords(n % 1000) : '');
+    if (n < 10000000) return inWords(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 ? ' ' + inWords(n % 100000) : '');
+    return inWords(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 ? ' ' + inWords(n % 10000000) : '');
+  }
+  return 'Rupee ' + inWords(num) + ' Only';
+}
+
+function formatVoucherDate(dateStr) {
+  const d = dateStr ? new Date(dateStr) : new Date();
+  if (isNaN(d.getTime())) return new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }).toUpperCase();
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = d.toLocaleDateString('en-IN', { month: 'short' }).toUpperCase();
+  const year = String(d.getFullYear()).slice(-2);
+  return `${day} ${month} ${year}`;
+}
+
+window.__showPaymentVoucherModal = function({ vendorName, bills, totalAmount, paymentMode = 'Cash', notes = '', voucherNo = '' }) {
+  const holder = getModalHolder('vendorVoucherModalHolder');
+  const bizName = session.businessName || 'BARAKKATH MARKETING';
+  const vNo = voucherNo || ('VCH-' + Math.floor(100 + Math.random() * 900));
+  const vDate = formatVoucherDate(todayStr());
+  const wordsAmount = numToWordsINR(totalAmount);
+
+  holder.innerHTML = `
+  <div class="overlay show" style="z-index:99999;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;padding:12px;">
+    <div class="modal" style="max-width:620px;width:100%;max-height:92vh;background:#fff;color:#000;border-radius:8px;padding:0;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,0.5);">
+      
+      <!-- Voucher Printable Card Container -->
+      <div id="paymentVoucherPrintArea" style="padding:28px 24px;font-family:'Inter', Arial, sans-serif;color:#000;background:#ffffff;line-height:1.4;">
+        
+        <!-- Header -->
+        <div style="text-align:center;margin-bottom:18px;">
+          <h2 style="margin:0 0 4px;font-family:'Space Grotesk', sans-serif;font-size:1.3rem;font-weight:800;letter-spacing:0.02em;text-transform:uppercase;color:#000;">${esc(bizName)}</h2>
+          <div style="font-size:0.75rem;font-weight:600;color:#333;margin-bottom:2px;">44, PALLIVASAL STREET, VADAGARAI, PERIYAKULAM. Pin code: 625601</div>
+          <div style="font-size:0.75rem;font-weight:600;color:#333;">E-Mail : 0786mdanas@gmail.com</div>
+          <h3 style="margin:12px 0 0;font-size:0.95rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid #000;display:inline-block;padding-bottom:2px;">Payment Voucher</h3>
+        </div>
+
+        <!-- Meta Info Row -->
+        <div style="display:flex;justify-content:space-between;font-size:0.82rem;font-weight:600;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #000;">
+          <div>No: <b>${esc(vNo)}</b></div>
+          <div>Dated: <b>${vDate}</b></div>
+        </div>
+
+        <!-- Main Particulars Table -->
+        <table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:0.82rem;">
+          <thead>
+            <tr style="border-bottom:1px solid #000;text-align:left;">
+              <th style="padding:6px 0;font-weight:700;width:75%;">Particulars</th>
+              <th style="padding:6px 0;font-weight:700;text-align:right;width:25%;">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding:8px 0 4px;vertical-align:top;">
+                <b>Account:</b>
+                <div style="margin-left:24px;margin-top:4px;">
+                  <b style="font-size:0.9rem;text-transform:uppercase;">${esc(vendorName)}</b>
+                  <div style="margin-top:6px;display:flex;flex-direction:column;gap:3px;font-family:'IBM Plex Mono', monospace;font-size:0.78rem;color:#111;">
+                    ${bills.map(b => `
+                      <div style="display:flex;gap:12px;">
+                        <span>Agst Ref &nbsp;<b>${esc(getBillNo(b))}</b></span>
+                        <span>₹ ${Number(getBillAmount(b)).toLocaleString('en-IN')}</span>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              </td>
+              <td style="padding:8px 0 4px;vertical-align:top;text-align:right;font-family:'IBM Plex Mono', monospace;font-size:0.92rem;font-weight:700;">
+                ₹ ${Number(totalAmount).toLocaleString('en-IN')}
+              </td>
+            </tr>
+
+            <!-- Payment Details Row -->
+            <tr style="border-top:1px solid #ddd;">
+              <td colspan="2" style="padding:10px 0 4px;">
+                <div style="font-size:0.8rem;margin-bottom:4px;"><b>Through:</b> ${esc(paymentMode)}</div>
+                ${notes ? `<div style="font-size:0.8rem;margin-bottom:4px;"><b>On Account Of:</b> ${esc(notes)}</div>` : ''}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Amount in Words & Total Box -->
+        <div style="border:1px solid #000;margin-top:14px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;font-size:0.82rem;background:#fafafa;">
+          <div style="flex:1;padding-right:12px;font-style:italic;">
+            <b>Amount (in words):</b> <span style="font-weight:600;">${wordsAmount}</span>
+          </div>
+          <div style="border-left:1px solid #000;padding-left:12px;text-align:right;font-family:'IBM Plex Mono', monospace;font-size:1.05rem;font-weight:800;white-space:nowrap;">
+            ₹ ${Number(totalAmount).toLocaleString('en-IN')}
+          </div>
+        </div>
+
+        <!-- Signatures Row -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:45px;padding-top:10px;font-size:0.8rem;font-weight:700;">
+          <div>Receiver's Signature : _________________</div>
+          <div style="text-align:right;">Authorised Signatory</div>
+        </div>
+      </div>
+
+      <!-- Action Footer (Hidden on Print) -->
+      <div class="no-print" style="padding:14px 20px;background:#f1f5f9;border-top:1px solid #cbd5e1;display:flex;justify-content:space-between;align-items:center;">
+        <button class="stamp-btn ghost" style="color:#475569;border-color:#cbd5e1;font-weight:700;" onclick="getModalHolder('vendorVoucherModalHolder').innerHTML=''">CANCEL</button>
+        <button class="stamp-btn" style="background:#d97706;color:#ffffff;border:none;font-weight:700;padding:10px 20px;display:flex;align-items:center;gap:8px;" onclick="window.__printPaymentVoucher()">
+          🖨 PRINT / SHARE PDF
+        </button>
+      </div>
+
+    </div>
+  </div>`;
+};
+
+window.__printPaymentVoucher = function() {
+  const printArea = document.getElementById('paymentVoucherPrintArea');
+  if (!printArea) return;
+
+  const printWindow = window.open('', '_blank', 'width=800,height=900');
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Payment Voucher</title>
+      <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Inter:wght@400;600;700&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
+      <style>
+        body { margin: 0; padding: 20px; font-family: 'Inter', sans-serif; color: #000; background: #fff; }
+        @media print {
+          body { padding: 0; }
+          @page { margin: 15mm; size: auto; }
+        }
+      </style>
+    </head>
+    <body>
+      ${printArea.innerHTML}
+      <script>
+        window.onload = function() {
+          window.print();
+          setTimeout(() => { window.close(); }, 500);
+        };
+      </script>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+};
+
+/* ---------------- BULK VENDOR SETTLEMENT MODAL ---------------- */
+window.__openBulkVendorSettlementModal = function() {
+  const holder = getModalHolder('vendorModalHolder');
+  const bills = cache.vendorBills || [];
+  const unpaid = bills.filter(b => b.status !== 'paid');
+
+  if (!unpaid.length) {
+    alert('No unpaid vendor bills available for bulk settlement!');
+    return;
+  }
+
+  const vendorsList = Array.from(new Set(unpaid.map(getVendorName).filter(Boolean))).sort();
+
+  holder.innerHTML = `
+  <div class="overlay show"><div class="modal" style="max-width:540px;">
+    <h2>💳 Bulk Vendor Bill Settlement & Voucher</h2>
+    <p style="font-size:0.82rem;color:var(--ink-soft);margin:0 0 12px;">Settle multiple bills for a vendor and generate an official printable Payment Voucher.</p>
+
+    <label>Select Vendor / Supplier *</label>
+    <select id="mBulkSelectVendor" onchange="window.__renderBulkVendorBillsList(this.value)">
+      <option value="">-- Pick a Vendor --</option>
+      ${vendorsList.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('')}
+    </select>
+
+    <div id="mBulkVendorBillsArea" style="margin-top:12px;"></div>
+
+    <label>Payment Mode</label>
+    <select id="mBulkPaymentMode">
+      <option value="Cash">Cash</option>
+      <option value="GPay / Online Transfer">GPay / Online Transfer</option>
+      <option value="Cheque">Cheque</option>
+      <option value="Bank NEFT / RTGS">Bank NEFT / RTGS</option>
+    </select>
+
+    <label>Notes / Voucher Description</label>
+    <input id="mBulkNotes" placeholder="e.g. Bulk settlement against monthly purchase invoices">
+
+    <div class="modal-actions" style="margin-top:20px;">
+      <button class="stamp-btn ghost" onclick="getModalHolder('vendorModalHolder').innerHTML=''">Cancel</button>
+      <button class="stamp-btn" style="background:var(--leaf);color:#fff;border-color:var(--leaf);" onclick="window.__submitBulkVendorPayment()">✓ Settle & Generate Voucher</button>
+    </div>
+  </div></div>`;
+
+  window.__renderBulkVendorBillsList = function(vendor) {
+    const area = document.getElementById('mBulkVendorBillsArea');
+    if (!area) return;
+    if (!vendor) { area.innerHTML = ''; return; }
+
+    const vBills = unpaid.filter(b => getVendorName(b) === vendor);
+    const totalV = vBills.reduce((s, b) => s + getBillAmount(b), 0);
+
+    area.innerHTML = `
+      <div style="background:var(--paper);border:1px solid var(--paper-line);border-radius:8px;padding:12px;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <b style="font-size:0.85rem;color:var(--turmeric-dark);">Unpaid Invoices (${vBills.length})</b>
+          <label style="font-size:0.75rem;font-weight:700;color:var(--leaf);cursor:pointer;margin:0;">
+            <input type="checkbox" checked onchange="document.querySelectorAll('.mBulkBillCb').forEach(c=>c.checked=this.checked);window.__calcBulkVendorTotal();"> Select All
+          </label>
+        </div>
+
+        <div style="max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">
+          ${vBills.map(b => `
+            <div style="display:flex;justify-content:space-between;align-items:center;background:#fff;padding:8px 10px;border-radius:6px;border:1px solid var(--paper-line);font-size:0.82rem;">
+              <label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;flex:1;">
+                <input type="checkbox" class="mBulkBillCb" value="${b.id}" data-amount="${getBillAmount(b)}" checked onchange="window.__calcBulkVendorTotal()">
+                <span>Bill <b>#${esc(getBillNo(b))}</b> (${b.bill_date})</span>
+              </label>
+              <b style="font-family:'IBM Plex Mono',monospace;color:var(--brick);">₹${getBillAmount(b).toFixed(0)}</b>
+            </div>
+          `).join('')}
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px dashed var(--paper-line);">
+          <span style="font-size:0.82rem;font-weight:700;">Total Settlement Amount:</span>
+          <b id="mBulkVendorTotalDisp" style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;color:var(--leaf);">₹${totalV.toFixed(0)}</b>
+        </div>
+      </div>
+    `;
+  };
+
+  window.__calcBulkVendorTotal = function() {
+    const cbs = document.querySelectorAll('.mBulkBillCb:checked');
+    let total = 0;
+    cbs.forEach(c => { total += Number(c.dataset.amount || 0); });
+    const disp = document.getElementById('mBulkVendorTotalDisp');
+    if (disp) disp.textContent = '₹' + total.toFixed(0);
+  };
+};
+
+window.__submitBulkVendorPayment = async function() {
+  const vendor = document.getElementById('mBulkSelectVendor') ? document.getElementById('mBulkSelectVendor').value : '';
+  if (!vendor) { alert('Please select a vendor.'); return; }
+
+  const checkedCbs = Array.from(document.querySelectorAll('.mBulkBillCb:checked'));
+  if (!checkedCbs.length) { alert('Please select at least one bill to settle.'); return; }
+
+  const selectedIds = checkedCbs.map(c => c.value);
+  const bills = cache.vendorBills || [];
+  const selectedBills = bills.filter(b => selectedIds.includes(b.id));
+  const totalAmt = selectedBills.reduce((sum, b) => sum + getBillAmount(b), 0);
+  const mode = document.getElementById('mBulkPaymentMode').value;
+  const notes = document.getElementById('mBulkNotes').value.trim();
+
+  // 1. Update cache & mark as paid
+  const nowIso = new Date().toISOString();
+  selectedBills.forEach(b => {
+    b.status = 'paid';
+    b.paid_at = nowIso;
+    b.paid_by = session.staffId;
+  });
+
+  // Background DB update
+  if (typeof supabase !== 'undefined' && session.businessId) {
+    for (const b of selectedBills) {
+      if (b.id && !b.id.startsWith('loc_')) {
+        Promise.resolve(supabase.from('vendor_bills').update({ status: 'paid', paid_at: nowIso, paid_by: session.staffId }).eq('id', b.id)).catch(()=>{});
+      }
+    }
+  }
+
+  getModalHolder('vendorModalHolder').innerHTML = '';
+  logAuditEvent('Bulk Vendor Payment', `Paid ${selectedBills.length} bills for ${vendor} totaling ₹${totalAmt}`);
+  window.showToast(`✅ Settled ${selectedBills.length} bills (₹${totalAmt}) for ${vendor}!`, 'success');
+  renderTabBody();
+
+  // 2. Open Printable Payment Voucher Modal matching Tally format!
+  window.__showPaymentVoucherModal({
+    vendorName: vendor,
+    bills: selectedBills,
+    totalAmount: totalAmt,
+    paymentMode: mode,
+    notes: notes
   });
 };
 
