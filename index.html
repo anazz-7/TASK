@@ -871,7 +871,7 @@ function _tasksRender() {
 const app = document.getElementById('app');
 let supabase = null;
 let session = JSON.parse(localStorage.getItem('br_session') || 'null'); // {staffId, name, role, businessId, businessName}
-let cache = { businesses: [], staff: [], tasks: [], attendance: [], sales: [], routines: [], routineLog: [], points: [], labels: [], weeklyTasks: [], weeklyTaskLog: [], packages: [], salesmanLocations: [], salaries: [], salesTargets: [], trophies: [], stockChecks: [], dailyAccounts: [], vendorBills: [] };
+let cache = { businesses: [], staff: [], tasks: [], attendance: [], sales: [], routines: [], routineLog: [], points: [], labels: [], weeklyTasks: [], weeklyTaskLog: [], packages: [], salesmanLocations: [], salaries: [], salesTargets: [], trophies: [], stockChecks: [], dailyAccounts: [], vendorBills: [], lowStocks: [], vendorParties: [] };
 let activeTab = 'tasks';
 let taskFilter = { staffId: '', priority: '', search: '' };
 let taskSubTab = 'active'; // 'active' | 'history'
@@ -1490,6 +1490,20 @@ async function safeSupabaseCall(promiseFn, fallbackData = null, timeoutMs = 7000
 }
 
 
+
+/* ---------------- VENDOR PARTY AUTO-COMPLETE HELPER ---------------- */
+function getVendorPartiesList() {
+  const set = new Set();
+  (cache.vendorBills || []).forEach(b => {
+    const name = b.vendor_name || b.vendor || b.supplier_name;
+    if (name && name.trim()) set.add(name.trim());
+  });
+  (cache.vendorParties || []).forEach(p => {
+    if (p && String(p).trim()) set.add(String(p).trim());
+  });
+  return Array.from(set).sort();
+}
+
 /* ---------------- data ---------------- */
 async function loadData(){
   showLoading();
@@ -1555,6 +1569,18 @@ async function loadData(){
       const localSaved = localStorage.getItem('br_vendor_bills_' + bizId);
       cache.vendorBills = localSaved ? JSON.parse(localSaved) : [];
     }
+    try {
+      const { data: lsData } = await supabase.from('low_stocks').select('*').eq('business_id', bizId).order('created_at', {ascending:false});
+      cache.lowStocks = lsData || [];
+    } catch(e) {
+      const localLS = localStorage.getItem('br_low_stocks_' + bizId);
+      cache.lowStocks = localLS ? JSON.parse(localLS) : [];
+    }
+
+    try {
+      const localParties = localStorage.getItem('br_vendor_parties_' + bizId);
+      cache.vendorParties = localParties ? JSON.parse(localParties) : [];
+    } catch(e) { cache.vendorParties = []; }
 
     try {
       const { data: dAccData, error: dErr } = await supabase.from('daily_accounts').select('*').eq('business_id', bizId).order('date', {ascending:false});
@@ -1872,6 +1898,7 @@ const ICONS = {
   handshake: '<path d="M2 12l4-4 4 3 3-3 4 4M9 15l2 2M13 12l3 3M6 8l-3 4 3 3M18 8l3 4-3 3" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
   sparkles: '<path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" fill="none" stroke-width="2" stroke-linecap="round"/>',
   vendors: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="none" stroke-width="2" stroke-linejoin="round"/><polyline points="14 2 14 8 20 8" fill="none" stroke-width="2"/><line x1="16" y1="13" x2="8" y2="13" stroke-width="2"/><line x1="16" y1="17" x2="8" y2="17" stroke-width="2"/><line x1="10" y1="9" x2="8" y2="9" stroke-width="2"/>',
+  low_stock: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" fill="none" stroke-width="2" stroke-linejoin="round"/><polyline points="3.27 6.96 12 12.01 20.73 6.96" fill="none" stroke-width="2"/><line x1="12" y1="22.08" x2="12" y2="12" stroke-width="2"/>',
 };
 function icon(name, size){
   size = size || 18;
@@ -1897,12 +1924,13 @@ const TAB_META = {
   accounts: {icon:'save', label:'Accounts'},
   audit: {icon:'clipboard', label:'Audit Log'},
   vendors: {icon:'vendors', label:'Vendor Bills'},
+  low_stock: {icon:'low_stock', label:'Low Stock'},
 };
 function currentTabs(){
-  if(session.role === 'salesman') return ['tasks', 'sales', 'salesman', 'accounts'];
+  if(session.role === 'salesman') return ['tasks', 'sales', 'salesman', 'accounts', 'low_stock'];
   return isManagerPlus()
-    ? (isOwner() ? ['dashboard','ai','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','salary','accounts','vendors','reports','audit','staff','settings'] : ['dashboard','ai','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','vendors','audit','staff'])
-    : ['tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','vendors'];
+    ? (isOwner() ? ['dashboard','ai','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','salary','accounts','vendors','low_stock','reports','audit','staff','settings'] : ['dashboard','ai','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','vendors','low_stock','audit','staff'])
+    : ['tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','vendors','low_stock'];
 }
 function quickTabs(){
   if(session.role === 'salesman') return ['tasks','attendance','sales','accounts'];
@@ -1919,6 +1947,7 @@ function getPrimaryActionBtn(t){
   if(t==='salary' && isOwner()) return `<button class="stamp-btn desktop-only" onclick="window.__openSalary()">+ Record Salary</button>`;
   if(t==='points' && isManagerPlus()) return `<button class="stamp-btn desktop-only" onclick="window.__openPoints()">+ Award Points</button>`;
   if(t==='vendors') return `<button class="stamp-btn desktop-only" onclick="window.__openScanVendorBillModal()">➕ Add Bill</button>`;
+  if(t==='low_stock') return `<button class="stamp-btn desktop-only" onclick="window.__openLowStockModal()">+ Report Low Stock</button>`;
   return '';
 }
 
@@ -2003,7 +2032,7 @@ function renderShell(){
       <div style="display:flex;flex-direction:column;gap:12px;">
         ${[
           { section: 'Overview', keys: ['dashboard','ai','reports'] },
-          { section: 'Work', keys: ['tasks','daily','weekly','attendance'] },
+          { section: 'Work', keys: ['tasks','daily','weekly','attendance','low_stock'] },
           { section: 'Sales', keys: ['sales','salesman','label','package'] },
           { section: 'Money', keys: ['accounts','vendors','salary','points'] },
           { section: 'Admin', keys: ['staff','stockkeeper','audit','settings'] }
@@ -2055,6 +2084,7 @@ function renderShell(){
     ${activeTab==='package' ? '<button class="fab mobile-only" onclick="window.__openPackage()">+</button>' : ''}
     ${activeTab==='points' && isManagerPlus() ? '<button class="fab mobile-only" onclick="window.__openPoints()">+</button>' : ''}
     ${activeTab==='vendors' ? '<button class="fab mobile-only" onclick="window.__openScanVendorBillModal()">+</button>' : ''}
+    ${activeTab==='low_stock' ? '<button class="fab mobile-only" onclick="window.__openLowStockModal()">+</button>' : ''}
   `}
   `;
 
@@ -2088,6 +2118,7 @@ function renderTabBody(){
   if(activeTab==='stockkeeper') return renderStockkeeperTab(body);
   if(activeTab==='accounts') return renderAccountsTab(body);
   if(activeTab==='vendors') return renderVendorBillsTab(body);
+  if(activeTab==='low_stock') return renderLowStockTab(body);
   if(activeTab==='audit' && isManagerPlus()) return renderAuditTab(body);
   if(activeTab==='salary' && isOwner()) return renderSalaryTab(body);
   if(activeTab==='salesman') return renderSalesmanTab(body);
@@ -6634,7 +6665,10 @@ window.__openScanVendorBillModal = function() {
         ${Array.from(new Set(cache.vendorBills.map(getVendorName).filter(Boolean))).map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('')}
       </select>
     ` : ''}
-    <input id="vBillVendor" placeholder="e.g. Modern Garments Wholesalers">
+    <input id="vBillVendor" list="vendorPartyDatalist" placeholder="e.g. Modern Garments Wholesalers" style="width:100%;">
+    <datalist id="vendorPartyDatalist">
+      ${getVendorPartiesList().map(v => `<option value="${esc(v)}"></option>`).join('')}
+    </datalist>
 
     <div class="two-col">
       <div>
@@ -6824,6 +6858,14 @@ window.__handleBillPhotoSelected = function(input) {
 };
 
 window.__saveVendorBill = async function() {
+  const vendor_name_input = document.getElementById('vBillVendor') ? document.getElementById('vBillVendor').value.trim() : '';
+  if (vendor_name_input) {
+    if (!cache.vendorParties) cache.vendorParties = [];
+    if (!cache.vendorParties.includes(vendor_name_input)) {
+      cache.vendorParties.push(vendor_name_input);
+      try { localStorage.setItem('br_vendor_parties_' + session.businessId, JSON.stringify(cache.vendorParties)); } catch(e){}
+    }
+  }
   const vendor_name = document.getElementById('vBillVendor') ? document.getElementById('vBillVendor').value.trim() : '';
   const bill_no = document.getElementById('vBillNo') ? document.getElementById('vBillNo').value.trim() : '';
   const amount = Number(document.getElementById('vBillAmount') ? document.getElementById('vBillAmount').value : 0);
@@ -6939,6 +6981,277 @@ window.__viewVendorBillPhoto = function(id) {
   </div></div>`;
 };
 
+
+
+/* ---------------- LOW STOCK MANAGEMENT TAB ---------------- */
+let lowStockFilter = 'pending';
+
+window.__setLowStockFilter = function(f) {
+  lowStockFilter = f;
+  renderTabBody();
+};
+
+function renderLowStockTab(body) {
+  const list = cache.lowStocks || [];
+  const pendingCount = list.filter(i => (i.status || 'pending') === 'pending').length;
+  const criticalCount = list.filter(i => (i.urgency || 'medium') === 'critical' && (i.status || 'pending') === 'pending').length;
+  const restockedCount = list.filter(i => i.status === 'restocked').length;
+
+  let filtered = list;
+  if (lowStockFilter === 'pending') filtered = list.filter(i => (i.status || 'pending') === 'pending');
+  else if (lowStockFilter === 'ordered') filtered = list.filter(i => i.status === 'ordered');
+  else if (lowStockFilter === 'restocked') filtered = list.filter(i => i.status === 'restocked');
+
+  body.innerHTML = `
+    <!-- Low Stock Summary KPI Banner -->
+    <div class="row-card" style="flex-direction:column;align-items:stretch;background:var(--card);border:1.5px solid var(--paper-line);padding:14px;margin-bottom:16px;border-radius:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div>
+          <h2 style="margin:0;font-size:1.05rem;color:var(--ink);font-family:'Space Grotesk',sans-serif;font-weight:700;">📦 Low Stock Alerts</h2>
+          <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">Track items running out & enter low stock reports</div>
+        </div>
+        <button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border:none;" onclick="window.__openLowStockModal()">+ Report Low Stock</button>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card" style="cursor:pointer;" onclick="window.__setLowStockFilter('pending')">
+          <div class="num" style="color:var(--brick);">${pendingCount}</div>
+          <div class="label">Pending Alerts</div>
+        </div>
+        <div class="stat-card" style="cursor:pointer;" onclick="window.__setLowStockFilter('pending')">
+          <div class="num" style="color:var(--brick);">${criticalCount}</div>
+          <div class="label">Critical Urgent</div>
+        </div>
+        <div class="stat-card" style="cursor:pointer;" onclick="window.__setLowStockFilter('restocked')">
+          <div class="num" style="color:var(--leaf);">${restockedCount}</div>
+          <div class="label">Restocked Items</div>
+        </div>
+        <div class="stat-card" style="cursor:pointer;" onclick="window.__setLowStockFilter('all')">
+          <div class="num">${list.length}</div>
+          <div class="label">Total Reported</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;">
+      <button class="stamp-btn small ${lowStockFilter==='pending'?'':'ghost'}" onclick="window.__setLowStockFilter('pending')">Pending (${pendingCount})</button>
+      <button class="stamp-btn small ${lowStockFilter==='ordered'?'':'ghost'}" onclick="window.__setLowStockFilter('ordered')">Ordered (${list.filter(i=>i.status==='ordered').length})</button>
+      <button class="stamp-btn small ${lowStockFilter==='restocked'?'':'ghost'}" onclick="window.__setLowStockFilter('restocked')">Restocked (${restockedCount})</button>
+      <button class="stamp-btn small ${lowStockFilter==='all'?'':'ghost'}" onclick="window.__setLowStockFilter('all')">All (${list.length})</button>
+    </div>
+
+    <div class="section-label">Low Stock List (${filtered.length})</div>
+
+    ${filtered.length ? filtered.map(item => {
+      const isCritical = item.urgency === 'critical';
+      const isMedium = item.urgency === 'medium' || !item.urgency;
+      const status = item.status || 'pending';
+
+      const statusStamp = status === 'restocked'
+        ? '<span class="stamp done">Restocked</span>'
+        : (status === 'ordered' ? '<span class="stamp sent">Ordered</span>' : '<span class="stamp pending">Pending</span>');
+
+      const urgencyStamp = isCritical
+        ? '<span class="stamp high">Critical</span>'
+        : (isMedium ? '<span class="stamp medium">Medium</span>' : '<span class="stamp low">Low</span>');
+
+      return `
+        <div class="row-card ${isCritical && status==='pending' ? 'overdue' : ''}">
+          <div class="row-main">
+            <div class="meta">
+              <span>${esc(item.category || 'General')}</span>
+              <span>Reported by: ${esc(staffName(item.created_by))}</span>
+              ${item.created_at ? `<span>${item.created_at.slice(0,10)}</span>` : ''}
+            </div>
+            <h3><span class="status-dot ${status==='restocked'?'green':'red'}"></span>${esc(item.item_name)}</h3>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:0.85rem;font-weight:700;margin-top:4px;color:var(--ink);">
+              Current Qty: <span style="color:${isCritical?'var(--brick)':'var(--turmeric-dark)'};">${item.current_qty} ${esc(item.unit||'Pcs')}</span>
+              ${item.min_qty ? ` &bull; Min Required: ${item.min_qty} ${esc(item.unit||'Pcs')}` : ''}
+            </div>
+            ${item.notes ? `<div class="notes">${esc(item.notes)}</div>` : ''}
+            <div style="margin-top:8px;display:flex;gap:6px;align-items:center;">
+              ${urgencyStamp}
+              ${statusStamp}
+            </div>
+          </div>
+          <div class="row-actions">
+            ${status === 'pending' ? `
+              <button class="stamp-btn small" style="background:var(--leaf);color:#fff;border-color:var(--leaf);" onclick="window.__markLowStockStatus('${item.id}', 'restocked')">✓ Restocked</button>
+              <button class="stamp-btn small ghost" onclick="window.__markLowStockStatus('${item.id}', 'ordered')">📦 Ordered</button>
+            ` : (status === 'ordered' ? `
+              <button class="stamp-btn small" style="background:var(--leaf);color:#fff;border-color:var(--leaf);" onclick="window.__markLowStockStatus('${item.id}', 'restocked')">✓ Restocked</button>
+            ` : `
+              <button class="stamp-btn small ghost" onclick="window.__markLowStockStatus('${item.id}', 'pending')">↺ Re-open</button>
+            `)}
+
+            <div class="action-dropdown-holder">
+              <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${item.id}')">More ▾</button>
+              <div class="action-dropdown-menu" id="actionMenu_${item.id}">
+                <button onclick="window.__openLowStockModal('${item.id}')">✎ Edit</button>
+                <button class="danger" onclick="window.__deleteLowStockItem('${item.id}')">🗑 Delete</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('') : `<div class="empty">No low stock items found in this view. Staff can tap "+ Report Low Stock" to report items running low!</div>`}
+
+    <div id="lowStockModalHolder"></div>
+  `;
+}
+
+window.__openLowStockModal = function(id) {
+  const item = id ? (cache.lowStocks || []).find(x => x.id === id) : null;
+  const holder = getModalHolder('lowStockModalHolder');
+
+  holder.innerHTML = `
+  <div class="overlay show"><div class="modal">
+    <h2>${item ? '✎ Edit Low Stock Item' : '📦 Report Low Stock'}</h2>
+    <p style="font-size:0.82rem;color:var(--ink-soft);margin:0 0 10px;">Enter items running low so managers & owners know what to re-order.</p>
+
+    <label>Item / Product Name *</label>
+    <input id="mLowItemName" value="${item ? esc(item.item_name) : ''}" placeholder="e.g. Thermal Paper Rolls 80mm, Milk Packets">
+
+    <div class="two-col">
+      <div>
+        <label>Category</label>
+        <input id="mLowCategory" value="${item ? esc(item.category || '') : ''}" placeholder="e.g. Stationery, Spices">
+      </div>
+      <div>
+        <label>Unit (e.g. Pcs, Kg, Ltr)</label>
+        <input id="mLowUnit" value="${item ? esc(item.unit || 'Pcs') : 'Pcs'}" placeholder="e.g. Pcs">
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <label>Current Qty Remaining *</label>
+        <input type="number" step="any" id="mLowCurrentQty" value="${item ? item.current_qty : ''}" placeholder="e.g. 2">
+      </div>
+      <div>
+        <label>Min Required Qty</label>
+        <input type="number" step="any" id="mLowMinQty" value="${item ? item.min_qty || '' : ''}" placeholder="e.g. 10">
+      </div>
+    </div>
+
+    <label>Urgency Level</label>
+    <select id="mLowUrgency">
+      <option value="critical" ${item && item.urgency === 'critical' ? 'selected' : ''}>Critical (Almost Empty)</option>
+      <option value="medium" ${!item || item.urgency === 'medium' ? 'selected' : ''}>Medium (Running Low)</option>
+      <option value="low" ${item && item.urgency === 'low' ? 'selected' : ''}>Low (Re-order Soon)</option>
+    </select>
+
+    <label>Notes / Vendor Preference</label>
+    <textarea id="mLowNotes" placeholder="Optional notes for purchaser or preferred supplier...">${item ? esc(item.notes || '') : ''}</textarea>
+
+    <div class="modal-actions">
+      <button class="stamp-btn ghost" onclick="getModalHolder('lowStockModalHolder').innerHTML=''">Cancel</button>
+      <button class="stamp-btn" style="background:var(--turmeric);color:#fff;" onclick="window.__saveLowStockItem('${id || ''}')">Save Low Stock Entry</button>
+    </div>
+  </div></div>`;
+};
+
+window.__saveLowStockItem = async function(id) {
+  const item_name = document.getElementById('mLowItemName').value.trim();
+  const current_qty = Number(document.getElementById('mLowCurrentQty').value || 0);
+
+  if (!item_name) { alert('Please enter Item / Product Name.'); return; }
+
+  const payload = {
+    business_id: session.businessId,
+    item_name,
+    category: document.getElementById('mLowCategory').value.trim() || 'General',
+    unit: document.getElementById('mLowUnit').value.trim() || 'Pcs',
+    current_qty,
+    min_qty: Number(document.getElementById('mLowMinQty').value || 0) || null,
+    urgency: document.getElementById('mLowUrgency').value,
+    notes: document.getElementById('mLowNotes').value.trim(),
+    created_by: session.staffId,
+    status: 'pending',
+    updated_at: new Date().toISOString()
+  };
+
+  showLoading();
+  try {
+    if (id && !id.startsWith('loc_ls_')) {
+      const { data, error } = await supabase.from('low_stocks').update(payload).eq('id', id).select().single();
+      if (error) throw error;
+      const idx = cache.lowStocks.findIndex(x => x.id === id);
+      if (idx !== -1) cache.lowStocks[idx] = data || payload;
+    } else {
+      payload.created_at = new Date().toISOString();
+      const { data, error } = await supabase.from('low_stocks').insert(payload).select().single();
+      if (error) throw error;
+      if (data) cache.lowStocks.unshift(data);
+      else { payload.id = 'loc_ls_' + Date.now(); cache.lowStocks.unshift(payload); }
+    }
+  } catch(e) {
+    if (id) {
+      const idx = cache.lowStocks.findIndex(x => x.id === id);
+      if (idx !== -1) Object.assign(cache.lowStocks[idx], payload);
+    } else {
+      payload.id = 'loc_ls_' + Date.now();
+      payload.created_at = new Date().toISOString();
+      cache.lowStocks.unshift(payload);
+    }
+    localStorage.setItem('br_low_stocks_' + session.businessId, JSON.stringify(cache.lowStocks));
+    queueOfflineMutation(id ? 'update' : 'insert', 'low_stocks', payload);
+  } finally {
+    hideLoading();
+  }
+
+  getModalHolder('lowStockModalHolder').innerHTML = '';
+  logAuditEvent('Low Stock Reported', `Reported low stock: ${item_name} (${current_qty} remaining)`);
+  window.showToast('📦 Low Stock item logged!', 'success');
+  renderTabBody();
+};
+
+window.__markLowStockStatus = async function(id, newStatus) {
+  const item = (cache.lowStocks || []).find(x => x.id === id);
+  if (!item) return;
+
+  item.status = newStatus;
+  item.updated_at = new Date().toISOString();
+
+  showLoading();
+  try {
+    if (!id.startsWith('loc_ls_')) {
+      await supabase.from('low_stocks').update({ status: newStatus, updated_at: item.updated_at }).eq('id', id);
+    }
+  } catch(e) {
+    localStorage.setItem('br_low_stocks_' + session.businessId, JSON.stringify(cache.lowStocks));
+    queueOfflineMutation('update', 'low_stocks', { id, status: newStatus, updated_at: item.updated_at });
+  } finally {
+    hideLoading();
+  }
+
+  logAuditEvent('Low Stock Status Updated', `Marked ${item.item_name} as ${newStatus}`);
+  window.showToast(`Low Stock status changed to ${newStatus}`, 'success');
+  renderTabBody();
+};
+
+window.__deleteLowStockItem = function(id) {
+  window.__showDeleteConfirm({
+    title: 'Delete low stock alert?',
+    message: 'This will remove this item alert. It cannot be undone.',
+    onConfirm: async () => {
+      showLoading();
+      try {
+        cache.lowStocks = (cache.lowStocks || []).filter(x => x.id !== id);
+        localStorage.setItem('br_low_stocks_' + session.businessId, JSON.stringify(cache.lowStocks));
+        if (!id.startsWith('loc_ls_')) {
+          await supabase.from('low_stocks').delete().eq('id', id);
+        }
+      } catch(e) {}
+      finally {
+        hideLoading();
+        window.showToast('🗑 Low Stock alert removed', 'info');
+        renderTabBody();
+      }
+    }
+  });
+};
 
 /* ---------------- CALENDAR SUB-TAB ---------------- */
 
