@@ -8596,9 +8596,10 @@ function renderStockkeeperTab(body){
   };
 
   window.__setStockCheckedToday = async (val) => {
-    if(val) {
-      window.__sendStockSmsAuto();
-    }
+    // NOTE: this used to auto-fire an SMS (which redirects the whole page to
+    // the phone's SMS app) just from tapping "Yes, checked" — before the
+    // staff member had even entered any notes. Sending is now only ever
+    // triggered by the explicit "SMS Owner" button below.
     const key = 'stockfield-'+session.staffId;
     if(__busyKeys.has(key)) return;
     __busyKeys.add(key);
@@ -8639,7 +8640,8 @@ function renderStockkeeperTab(body){
   };
 
   window.__saveStockNotes = async () => {
-    window.__sendStockSmsAuto();
+    // Saving the check record should just save it — sending an SMS is a
+    // separate, explicit action via the "SMS Owner" button.
     if(!myCheck) return;
     const rawNotes = document.getElementById('mStockNotes') ? document.getElementById('mStockNotes').value.trim() : '';
     const arr = Array.from(checkedGodowns);
