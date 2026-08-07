@@ -6336,6 +6336,30 @@ function getBillAmount(b) {
   return Number(b.amount || b.total_amount || b.invoice_amount || b.bill_amount || 0);
 }
 
+// Cumulative amount paid so far. Falls back to the old single-payment model
+// (status === 'paid' meaning the whole bill was paid) for bills created
+// before paid_amount/balance_amount tracking existed.
+function getBillPaidAmount(b) {
+  if (!b) return 0;
+  if (b.paid_amount != null) return Number(b.paid_amount) || 0;
+  return b.status === 'paid' ? getBillAmount(b) : 0;
+}
+
+function getBillBalanceAmount(b) {
+  if (!b) return 0;
+  if (b.balance_amount != null) return Math.max(0, Number(b.balance_amount) || 0);
+  return Math.max(0, getBillAmount(b) - getBillPaidAmount(b));
+}
+
+function getBillStatus(b) {
+  if (!b) return 'unpaid';
+  const balance = getBillBalanceAmount(b);
+  const paid = getBillPaidAmount(b);
+  if (balance <= 0 && getBillAmount(b) > 0) return 'paid';
+  if (paid > 0 && balance > 0) return 'partial';
+  return b.status === 'paid' ? 'paid' : 'unpaid';
+}
+
 function getVendorName(b) {
   if (!b) return 'Vendor';
   return (b.vendor_name || b.vendor || b.supplier_name || b.supplier || 'Vendor').trim();
@@ -9255,4 +9279,3 @@ boot();
 </script>
 </body>
 </html>
-
