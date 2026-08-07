@@ -985,6 +985,34 @@
     gap: 3px;
   }
 
+
+  /* Compact Card Density Mode (8-10 Items / Screen) */
+  .compact-density .row-card {
+    padding: 8px 10px !important;
+    margin-bottom: 6px !important;
+    gap: 6px !important;
+    border-radius: 8px !important;
+  }
+  .compact-density .row-main h3 {
+    font-size: 0.85rem !important;
+    margin-bottom: 1px !important;
+  }
+  .compact-density .row-main .meta {
+    font-size: 0.68rem !important;
+    margin-bottom: 1px !important;
+  }
+  .compact-density .row-main .notes {
+    display: none !important;
+  }
+  .compact-density .stamp {
+    font-size: 0.58rem !important;
+    padding: 2px 6px !important;
+  }
+  .compact-density .stamp-btn {
+    padding: 5px 8px !important;
+    font-size: 0.7rem !important;
+  }
+
 </style>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
@@ -1064,6 +1092,34 @@ window.__reloadAppData = async function(btn) {
   } finally {
     hideLoading('✓ Refreshed');
     if (btn) setTimeout(() => btn.classList.remove('spinning'), 500);
+  }
+};
+
+
+/* ---------------- MOBILE HAPTIC VIBRATION ENGINE (Feature 5) ---------------- */
+window.__vibrate = function(pattern = 15) {
+  try {
+    if ('vibrate' in navigator && typeof navigator.vibrate === 'function') {
+      navigator.vibrate(pattern);
+    }
+  } catch(e){}
+};
+
+/* ---------------- COMPACT CARD DENSITY TOGGLE ENGINE (Feature 2) ---------------- */
+let isCompactView = localStorage.getItem('br_compact_view') === '1';
+
+window.__toggleCompactView = function() {
+  isCompactView = !isCompactView;
+  localStorage.setItem('br_compact_view', isCompactView ? '1' : '0');
+  const appEl = document.getElementById('app');
+  if (appEl) {
+    if (isCompactView) appEl.classList.add('compact-density');
+    else appEl.classList.remove('compact-density');
+  }
+  window.__vibrate(20);
+  renderTabBody();
+  if (typeof window.showToast === 'function') {
+    window.showToast(isCompactView ? '📄 Compact View Enabled (8-10 items/screen)' : '📋 Detailed View Enabled', 'info');
   }
 };
 
@@ -1376,6 +1432,7 @@ document.addEventListener('click', () => {
 
 /* ---------------- UNIFIED PROFESSIONAL DIALOG & TOAST SYSTEM ---------------- */
 window.showToast = function(msg, type = 'success', duration = 3000) {
+  if (typeof window.__vibrate==='function') window.__vibrate(15);
   let container = document.getElementById('toastContainer');
   if(!container) {
     container = document.createElement('div');
@@ -6828,6 +6885,34 @@ window.__printVendorBillReceipt = function(id) {
     gap: 3px;
   }
 
+
+  /* Compact Card Density Mode (8-10 Items / Screen) */
+  .compact-density .row-card {
+    padding: 8px 10px !important;
+    margin-bottom: 6px !important;
+    gap: 6px !important;
+    border-radius: 8px !important;
+  }
+  .compact-density .row-main h3 {
+    font-size: 0.85rem !important;
+    margin-bottom: 1px !important;
+  }
+  .compact-density .row-main .meta {
+    font-size: 0.68rem !important;
+    margin-bottom: 1px !important;
+  }
+  .compact-density .row-main .notes {
+    display: none !important;
+  }
+  .compact-density .stamp {
+    font-size: 0.58rem !important;
+    padding: 2px 6px !important;
+  }
+  .compact-density .stamp-btn {
+    padding: 5px 8px !important;
+    font-size: 0.7rem !important;
+  }
+
 </style>
     </head>
     <body>
@@ -7025,6 +7110,7 @@ function renderVendorBillsTab(body) {
         <button class="stamp-btn small ${vendorSubTab==='overdue'?'':'ghost'}" style="${vendorSubTab==='overdue'?'background:var(--brick);color:#fff;border-color:var(--brick);':''}" onclick="window.__setVendorSubTab('overdue')">Overdue (${bills.filter(b => getBillStatus(b)!=='paid' && b.due_date && (new Date(b.due_date+'T23:59:59').getTime() < new Date().getTime())).length})</button>
         <button class="stamp-btn small ${vendorSubTab==='paid'?'':'ghost'}" onclick="window.__setVendorSubTab('paid')">Paid History (${paid.length})</button>
         <button class="stamp-btn small ${vendorSubTab==='all'?'':'ghost'}" onclick="window.__setVendorSubTab('all')">All Bills (${bills.length})</button>
+        <button class="stamp-btn small ${isCompactView?'':'ghost'}" onclick="window.__toggleCompactView()">${isCompactView?'📄 Compact':'📋 Detailed'}</button>
       </div>
 
       ${(isOwner() && unpaid.length > 0 && vendorSubTab !== 'paid') ? `
@@ -8123,6 +8209,34 @@ window.__printPaymentVoucher = function() {
     gap: 3px;
   }
 
+
+  /* Compact Card Density Mode (8-10 Items / Screen) */
+  .compact-density .row-card {
+    padding: 8px 10px !important;
+    margin-bottom: 6px !important;
+    gap: 6px !important;
+    border-radius: 8px !important;
+  }
+  .compact-density .row-main h3 {
+    font-size: 0.85rem !important;
+    margin-bottom: 1px !important;
+  }
+  .compact-density .row-main .meta {
+    font-size: 0.68rem !important;
+    margin-bottom: 1px !important;
+  }
+  .compact-density .row-main .notes {
+    display: none !important;
+  }
+  .compact-density .stamp {
+    font-size: 0.58rem !important;
+    padding: 2px 6px !important;
+  }
+  .compact-density .stamp-btn {
+    padding: 5px 8px !important;
+    font-size: 0.7rem !important;
+  }
+
 </style>
     </head>
     <body>
@@ -8380,7 +8494,35 @@ window.__printVendorStatement = function(vendorName) {
         table { width: 100%; border-collapse: collapse; margin-top: 14px; }
         th, td { border: 1px solid #ccc; padding: 8px; font-size: 0.85rem; }
         @media print { body { padding: 0; } }
-      </style>
+      
+  /* Compact Card Density Mode (8-10 Items / Screen) */
+  .compact-density .row-card {
+    padding: 8px 10px !important;
+    margin-bottom: 6px !important;
+    gap: 6px !important;
+    border-radius: 8px !important;
+  }
+  .compact-density .row-main h3 {
+    font-size: 0.85rem !important;
+    margin-bottom: 1px !important;
+  }
+  .compact-density .row-main .meta {
+    font-size: 0.68rem !important;
+    margin-bottom: 1px !important;
+  }
+  .compact-density .row-main .notes {
+    display: none !important;
+  }
+  .compact-density .stamp {
+    font-size: 0.58rem !important;
+    padding: 2px 6px !important;
+  }
+  .compact-density .stamp-btn {
+    padding: 5px 8px !important;
+    font-size: 0.7rem !important;
+  }
+
+</style>
     </head>
     <body>
       ${printArea.innerHTML}
