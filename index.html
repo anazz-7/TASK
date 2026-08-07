@@ -1578,13 +1578,29 @@ async function loadData(){
     cache.trophies = trophiesR.data || [];
     cache.stockChecks = stockR.data || [];
     cache.auditLogs = auditR.data || [];
+    let localSavedBills = [];
+    try {
+      localSavedBills = JSON.parse(localStorage.getItem('br_vendor_bills_' + bizId) || '[]');
+    } catch(e){}
+
     try {
       const { data: vBillsData } = await supabase.from('vendor_bills').select('*').eq('business_id', bizId).order('bill_date', {ascending:false});
-      cache.vendorBills = vBillsData || [];
+      const cloudBills = vBillsData || [];
+      const localUnsynced = localSavedBills.filter(b => b.id && (b.id.startsWith('vbill_') || b.id.startsWith('loc_')));
+      const deletedIds = new Set(localSavedBills.filter(b => b.is_deleted).map(b => b.id));
+
+      // Combine cloud bills + local unsynced bills, removing deleted ones
+      const billMap = new Map();
+      cloudBills.forEach(b => { if (!deletedIds.has(b.id)) billMap.set(b.id, b); });
+      localUnsynced.forEach(b => { if (!deletedIds.has(b.id) && !billMap.has(b.id)) billMap.set(b.id, b); });
+
+      cache.vendorBills = Array.from(billMap.values());
     } catch(e) {
-      const localSaved = localStorage.getItem('br_vendor_bills_' + bizId);
-      cache.vendorBills = localSaved ? JSON.parse(localSaved) : [];
+      cache.vendorBills = localSavedBills.filter(b => !b.is_deleted);
     }
+    try {
+      localStorage.setItem('br_vendor_bills_' + bizId, JSON.stringify(cache.vendorBills));
+    } catch(e){}
     try {
       const { data: lsData } = await supabase.from('low_stocks').select('*').eq('business_id', bizId).order('created_at', {ascending:false});
       cache.lowStocks = lsData || [];
@@ -7007,15 +7023,33 @@ window.__saveVendorBill = async function() {
   };
 
   showLoading();
+  billObj.id = 'vbill_' + Date.now() + '_' + Math.random().toString(36).substring(2,6);
+
+  // 1. Instantly update local cache (0ms latency)
+  cache.vendorBills.unshift(billObj);
   try {
-    const { data, error } = await supabase.from('vendor_bills').insert(billObj).select().single();
-    if (error) throw error;
-    if (data) cache.vendorBills.unshift(data);
-    else { billObj.id = 'vbill_' + Date.now(); cache.vendorBills.unshift(billObj); }
-  } catch(e) {
-    billObj.id = 'vbill_' + Date.now();
-    cache.vendorBills.unshift(billObj);
     localStorage.setItem('br_vendor_bills_' + session.businessId, JSON.stringify(cache.vendorBills));
+  } catch(e){}
+
+  // 2. Cloud insert attempt with offline queue fallback
+  try {
+    if (navigator.onLine && typeof supabase !== 'undefined') {
+      const payload = Object.assign({}, billObj);
+      delete payload.id; // allow DB auto-uuid or insert
+      const { data, error } = await supabase.from('vendor_bills').insert(payload).select().single();
+      if (!error && data) {
+        Object.assign(billObj, data);
+        try { localStorage.setItem('br_vendor_bills_' + session.businessId, JSON.stringify(cache.vendorBills)); } catch(e){}
+      } else if (error) {
+        console.warn('Vendor bill cloud save warning:', error);
+        queueOfflineMutation('insert', 'vendor_bills', payload);
+      }
+    } else {
+      queueOfflineMutation('insert', 'vendor_bills', billObj);
+    }
+  } catch(e) {
+    console.warn('Vendor bill cloud save exception:', e);
+    queueOfflineMutation('insert', 'vendor_bills', billObj);
   } finally {
     hideLoading();
   }
@@ -7055,13 +7089,21 @@ window.__markVendorBillPaid = async function(id) {
 window.__deleteVendorBill = async function(id) {
   if (!confirm('Are you sure you want to delete this vendor bill?')) return;
 
+  const target = cache.vendorBills.find(b => b.id === id);
+  if (target) target.is_deleted = true;
+
   cache.vendorBills = cache.vendorBills.filter(b => b.id !== id);
+  try {
+    localStorage.setItem('br_vendor_bills_' + session.businessId, JSON.stringify(cache.vendorBills));
+  } catch(e){}
 
   showLoading();
   try {
-    await supabase.from('vendor_bills').delete().eq('id', id);
+    if (!id.startsWith('vbill_') && !id.startsWith('loc_')) {
+      await supabase.from('vendor_bills').delete().eq('id', id);
+    }
   } catch(e) {
-    localStorage.setItem('br_vendor_bills_' + session.businessId, JSON.stringify(cache.vendorBills));
+    queueOfflineMutation('delete', 'vendor_bills', { id });
   } finally {
     hideLoading();
   }
