@@ -3987,7 +3987,11 @@ function renderLabelTab(body){
       </div>
       ${isOpen ? entries.map(e=>`
         <div class="row-card" style="align-items:center;">
-          <div class="row-main"><h3>${esc(e.item || '(item not named)')}</h3><div class="meta"><span>${esc(staffName(e.staff_id))}</span></div>${e.notes?`<div class="notes">${esc(e.notes)}</div>`:''}</div>
+          <div class="row-main">
+  <h3>${esc(e.item || '(item not named)')} ${(e.batch_code || e.batch_no) ? `<span class="stamp low" style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;padding:2px 6px;">Batch: ${esc(e.batch_code || e.batch_no)}</span>` : ''}</h3>
+  <div class="meta"><span>${esc(staffName(e.staff_id))}</span></div>
+  ${e.notes?`<div class="notes">${esc(e.notes)}</div>`:''}
+</div>
           <b style="font-family:'IBM Plex Mono',monospace;">${Number(e.qty)} qty</b>
           <div class="action-dropdown-holder">
     <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${e.id}')">More ▾</button>
@@ -4038,8 +4042,16 @@ function openEditLabelModal(labelId){
     <input type="date" id="mEditLabelDate" value="${e.date||todayStr()}">
     <label>Item Name</label>
     <input id="mEditLabelItem" value="${esc(e.item||'')}">
-    <label>Quantity</label>
-    <input type="number" id="mEditLabelQty" value="${e.qty||0}">
+    <div class="two-col">
+      <div>
+        <label>Quantity</label>
+        <input type="number" id="mEditLabelQty" value="${e.qty||0}">
+      </div>
+      <div>
+        <label>Batch Code</label>
+        <input id="mEditLabelBatchCode" value="${esc(e.batch_code || e.batch_no || '')}" placeholder="e.g. B-1092">
+      </div>
+    </div>
     <label>Notes</label>
     <textarea id="mEditLabelNotes">${esc(e.notes||'')}</textarea>
     <div class="modal-actions">
@@ -4053,11 +4065,14 @@ function openEditLabelModal(labelId){
     const qty = Number(document.getElementById('mEditLabelQty').value || 0);
     if(!item || qty <= 0){ alert('Enter item name and quantity.'); return; }
     await guardedSave('editLabel-' + id, async () => {
+      const bCode = document.getElementById('mEditLabelBatchCode') ? document.getElementById('mEditLabelBatchCode').value.trim() : '';
       await sbCheck(supabase.from('labels').update({
         staff_id: document.getElementById('mEditLabelStaff').value,
         date: document.getElementById('mEditLabelDate').value || todayStr(),
         item,
         qty,
+        batch_code: bCode || null,
+        batch_no: bCode || null,
         notes: document.getElementById('mEditLabelNotes').value.trim(),
       }).eq('id', id));
       holder.innerHTML = '';
@@ -4096,8 +4111,10 @@ window.__openLabel = () => {
       <input type="date" id="mLabelDate" value="${todayStr()}">
       <div id="labelItemRowsWrap" style="margin-top:10px;">${renderLabelItemRows()}</div>
       <div class="modal-actions"><button class="stamp-btn ghost small" style="flex:none;" onclick="window.__addLabelRow()">+ Add another item</button></div>
-      <label>Notes (optional, applies to this whole batch)</label>
-      <textarea id="mLabelNotes" placeholder="e.g. batch number, jar size"></textarea>
+      <label>Batch Code / Batch Number (Optional)</label>
+      <input id="mLabelBatchCode" placeholder="e.g. BATCH-2026-08A, B-1092" style="font-family:'IBM Plex Mono',monospace;font-weight:700;">
+      <label>Notes (optional)</label>
+      <textarea id="mLabelNotes" placeholder="e.g. jar size, expiry details"></textarea>
       <div class="modal-actions">
         <button class="stamp-btn ghost" onclick="window.__closeLabelModal()">Cancel</button>
         <button class="stamp-btn" onclick="window.__saveLabel()">Save all</button>
@@ -4112,12 +4129,13 @@ window.__openLabel = () => {
   window.__saveLabel = async () => {
     const staffId = document.getElementById('mLabelStaff').value;
     const date = document.getElementById('mLabelDate').value || todayStr();
+    const batch_code = document.getElementById('mLabelBatchCode') ? document.getElementById('mLabelBatchCode').value.trim() : '';
     const notes = document.getElementById('mLabelNotes').value.trim();
     const validRows = labelItemRows.filter(r => r.item.trim() && Number(r.qty) > 0);
     if(!validRows.length){ alert('Add at least one item with a name and quantity.'); return; }
     const records = validRows.map(r => ({
       business_id: session.businessId, staff_id: staffId, date,
-      item: r.item.trim(), qty: Number(r.qty), notes,
+      item: r.item.trim(), qty: Number(r.qty), batch_code: batch_code || null, batch_no: batch_code || null, notes,
     }));
     await guardedSave('label', async () => {
       await sbCheck(supabase.from('labels').insert(records));
@@ -4152,7 +4170,11 @@ function renderPackageTab(body){
       </div>
       ${isOpen ? entries.map(e=>`
         <div class="row-card" style="align-items:center;">
-          <div class="row-main"><h3>${esc(e.item || '(item not named)')}</h3><div class="meta"><span>${esc(staffName(e.staff_id))}</span></div>${e.notes?`<div class="notes">${esc(e.notes)}</div>`:''}</div>
+          <div class="row-main">
+  <h3>${esc(e.item || '(item not named)')} ${(e.batch_code || e.batch_no) ? `<span class="stamp low" style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;padding:2px 6px;">Batch: ${esc(e.batch_code || e.batch_no)}</span>` : ''}</h3>
+  <div class="meta"><span>${esc(staffName(e.staff_id))}</span></div>
+  ${e.notes?`<div class="notes">${esc(e.notes)}</div>`:''}
+</div>
           <b style="font-family:'IBM Plex Mono',monospace;">${Number(e.qty)} qty</b>
           <div class="action-dropdown-holder">
     <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${e.id}')">More ▾</button>
@@ -4203,8 +4225,16 @@ function openEditPackageModal(packageId){
     <input type="date" id="mEditPackageDate" value="${e.date||todayStr()}">
     <label>Item Name</label>
     <input id="mEditPackageItem" value="${esc(e.item||'')}">
-    <label>Quantity</label>
-    <input type="number" id="mEditPackageQty" value="${e.qty||0}">
+    <div class="two-col">
+      <div>
+        <label>Quantity</label>
+        <input type="number" id="mEditPackageQty" value="${e.qty||0}">
+      </div>
+      <div>
+        <label>Batch Code</label>
+        <input id="mEditPackageBatchCode" value="${esc(e.batch_code || e.batch_no || '')}" placeholder="e.g. B-1092">
+      </div>
+    </div>
     <label>Notes</label>
     <textarea id="mEditPackageNotes">${esc(e.notes||'')}</textarea>
     <div class="modal-actions">
@@ -4218,11 +4248,14 @@ function openEditPackageModal(packageId){
     const qty = Number(document.getElementById('mEditPackageQty').value || 0);
     if(!item || qty <= 0){ alert('Enter item name and quantity.'); return; }
     await guardedSave('editPackage-' + id, async () => {
+      const bCode = document.getElementById('mEditPackageBatchCode') ? document.getElementById('mEditPackageBatchCode').value.trim() : '';
       await sbCheck(supabase.from('packages').update({
         staff_id: document.getElementById('mEditPackageStaff').value,
         date: document.getElementById('mEditPackageDate').value || todayStr(),
         item,
         qty,
+        batch_code: bCode || null,
+        batch_no: bCode || null,
         notes: document.getElementById('mEditPackageNotes').value.trim(),
       }).eq('id', id));
       holder.innerHTML = '';
@@ -4261,8 +4294,10 @@ window.__openPackage = () => {
       <input type="date" id="mPackageDate" value="${todayStr()}">
       <div id="packageItemRowsWrap" style="margin-top:10px;">${renderPackageItemRows()}</div>
       <div class="modal-actions"><button class="stamp-btn ghost small" style="flex:none;" onclick="window.__addPackageRow()">+ Add another item</button></div>
-      <label>Notes (optional, applies to this whole batch)</label>
-      <textarea id="mPackageNotes" placeholder="e.g. batch number, carton size"></textarea>
+      <label>Batch Code / Batch Number (Optional)</label>
+      <input id="mPackageBatchCode" placeholder="e.g. BATCH-2026-08A, B-1092" style="font-family:'IBM Plex Mono',monospace;font-weight:700;">
+      <label>Notes (optional)</label>
+      <textarea id="mPackageNotes" placeholder="e.g. carton size, expiry details"></textarea>
       <div class="modal-actions">
         <button class="stamp-btn ghost" onclick="window.__closePackageModal()">Cancel</button>
         <button class="stamp-btn" onclick="window.__savePackage()">Save all</button>
@@ -4277,12 +4312,13 @@ window.__openPackage = () => {
   window.__savePackage = async () => {
     const staffId = document.getElementById('mPackageStaff').value;
     const date = document.getElementById('mPackageDate').value || todayStr();
+    const batch_code = document.getElementById('mPackageBatchCode') ? document.getElementById('mPackageBatchCode').value.trim() : '';
     const notes = document.getElementById('mPackageNotes').value.trim();
     const validRows = packageItemRows.filter(r => r.item.trim() && Number(r.qty) > 0);
     if(!validRows.length){ alert('Add at least one item with a name and quantity.'); return; }
     const records = validRows.map(r => ({
       business_id: session.businessId, staff_id: staffId, date,
-      item: r.item.trim(), qty: Number(r.qty), notes,
+      item: r.item.trim(), qty: Number(r.qty), batch_code: batch_code || null, batch_no: batch_code || null, notes,
     }));
     await guardedSave('package', async () => {
       await sbCheck(supabase.from('packages').insert(records));
