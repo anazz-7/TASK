@@ -2202,8 +2202,7 @@ function icon(name, size){
 }
 const TAB_META = {
   dashboard: {icon:'dashboard', label:'Dashboard'},
-  ai: {icon:'sparkles', label:'AI Insights'},
-  tasks: {icon:'tasks', label:'Tasks'},
+    tasks: {icon:'tasks', label:'Tasks'},
   daily: {icon:'daily', label:'Daily'},
   weekly: {icon:'weekly', label:'Weekly'},
   attendance: {icon:'attendance', label:'Attendance'},
@@ -2225,7 +2224,7 @@ const TAB_META = {
 function currentTabs(){
   if(session.role === 'salesman') return ['tasks', 'sales', 'salesman', 'accounts', 'low_stock'];
   return isManagerPlus()
-    ? (isOwner() ? ['dashboard','ai','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','salary','accounts','vendors','low_stock','reports','audit','staff','settings'] : ['dashboard','ai','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','vendors','low_stock','audit','staff'])
+    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','salary','accounts','vendors','low_stock','reports','audit','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','vendors','low_stock','audit','staff'])
     : ['tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','vendors','low_stock'];
 }
 function quickTabs(){
@@ -2333,7 +2332,7 @@ function renderShell(){
       <!-- Regrouped 5 Labeled Sections -->
       <div style="display:flex;flex-direction:column;gap:12px;">
         ${[
-          { section: 'Overview', keys: ['dashboard','ai','reports'] },
+          { section: 'Overview', keys: ['dashboard','reports'] },
           { section: 'Work', keys: ['tasks','daily','weekly','attendance','low_stock'] },
           { section: 'Sales', keys: ['sales','salesman','label','package'] },
           { section: 'Money', keys: ['accounts','vendors','salary','points'] },
@@ -2409,7 +2408,6 @@ function renderShell(){
 function renderTabBody(){
   const body = document.getElementById('tabBody');
   if(activeTab==='dashboard') return renderDashboardTab(body);
-  if(activeTab==='ai') return renderAiInsightsTab(body);
   if(activeTab==='tasks') return renderTasksTab(body);
   if(activeTab==='daily') return renderDailyTab(body);
   if(activeTab==='weekly') return renderWeeklyTab(body);
@@ -5066,267 +5064,6 @@ let aiAssistantMessages = [
   { sender: 'ai', text: 'Hello! I am your AI Business Assistant. Ask me anything about your sales, cash tally, task completion velocity, or staff performance!' }
 ];
 
-function renderAiInsightsTab(body){
-  const curMonth = monthKey(todayStr());
-  const today = todayStr();
-
-  // 1. Calculate Real Business Metrics
-  const monthSalesList = cache.sales.filter(s=>monthKey(s.date)===curMonth);
-  const monthSalesTotal = monthSalesList.reduce((sum,s)=>sum+Number(s.order_value||0),0);
-  const daysInMonthSoFar = new Date(today).getDate();
-  const daysInMonthTotal = new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).getDate();
-  const avgDailySales = daysInMonthSoFar ? (monthSalesTotal / daysInMonthSoFar) : 0;
-  const projectedMonthSales = avgDailySales * daysInMonthTotal;
-
-  // Task Velocity
-  const monthTasks = cache.tasks.filter(t=>t.due_date && monthKey(t.due_date)===curMonth);
-  const completedTasks = monthTasks.filter(t=>t.status==='done').length;
-  const taskVelocityPct = monthTasks.length ? Math.round((completedTasks / monthTasks.length) * 100) : 100;
-  const overdueTasksCount = cache.tasks.filter(t=>isOverdue(t)).length;
-
-  // Attendance
-  const monthAtt = cache.attendance.filter(a=>monthKey(a.date)===curMonth);
-  const presentCount = monthAtt.filter(a=>a.status==='present').length;
-  const totalAttLogs = monthAtt.length;
-  const attPct = totalAttLogs ? Math.round((presentCount / totalAttLogs) * 100) : 100;
-
-  // Top Performer
-  const pointsByStaff = {};
-  cache.points.forEach(p=> { pointsByStaff[p.staff_id] = (pointsByStaff[p.staff_id]||0) + Number(p.points||0); });
-  const topStaffId = Object.keys(pointsByStaff).sort((a,b)=>pointsByStaff[b]-pointsByStaff[a])[0];
-  const topStaffName = topStaffId ? staffName(topStaffId) : 'N/A';
-
-  // Pending Credit
-  const totalPendingCredit = cache.dailyAccounts.reduce((sum,a)=>sum + Number(a.credit||0) - Number(a.credit_received||0), 0);
-
-  // Business Health Score Calculation (0 to 100)
-  let healthScore = 70; // baseline
-  if(taskVelocityPct >= 80) healthScore += 10;
-  if(attPct >= 85) healthScore += 10;
-  if(overdueTasksCount === 0) healthScore += 10;
-  if(totalPendingCredit < 5000) healthScore += 5;
-  healthScore = Math.min(100, healthScore);
-
-  body.innerHTML = `
-    
-    <!-- Business Health Score Ring Card (Clean UI) -->
-    <div class="row-card" style="flex-direction:column;align-items:stretch;background:#181B20;color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 10px 30px rgba(0,0,0,0.3);">
-      <div style="font-size:0.85rem;font-weight:600;color:#A0AEC0;margin-bottom:14px;font-family:'Space Grotesk',sans-serif;">Business health score</div>
-
-      <div style="display:flex;align-items:center;gap:18px;margin-bottom:20px;flex-wrap:wrap;">
-        <!-- SVG Gauge Ring -->
-        <div style="position:relative;width:96px;height:96px;flex-shrink:0;">
-          <svg width="96" height="96" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="8"/>
-            <circle cx="50" cy="50" r="40" fill="none" stroke="${healthScore >= 80 ? '#68D391' : healthScore >= 60 ? '#ECC94B' : '#F56565'}" stroke-width="8" stroke-linecap="round" stroke-dasharray="251.2" stroke-dashoffset="${251.2 - (251.2 * healthScore / 100)}" transform="rotate(-90 50 50)"/>
-          </svg>
-          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
-            <div style="font-family:'Space Grotesk',sans-serif;font-size:1.45rem;font-weight:700;color:#FFFFFF;line-height:1;">${healthScore}</div>
-            <div style="font-size:0.65rem;color:#A0AEC0;margin-top:2px;">/ 100</div>
-          </div>
-        </div>
-
-        <div style="flex:1;min-width:180px;">
-          <h3 style="margin:0 0 4px;font-size:1.2rem;font-weight:700;color:#FFFFFF;font-family:'Space Grotesk',sans-serif;">
-            ${healthScore >= 85 ? 'Good growth' : healthScore >= 70 ? 'High stability' : 'Needs attention'}
-          </h3>
-          <p style="margin:0;font-size:0.82rem;color:#A0AEC0;line-height:1.4;font-family:'Inter',sans-serif;">
-            Based on task completion, attendance and pending credit.
-          </p>
-        </div>
-      </div>
-
-      <!-- 3 Honest Metric Bars (No Emojis) -->
-      <div style="display:flex;flex-direction:column;gap:10px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.08);">
-        <!-- Tasks Done -->
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-          <span style="font-size:0.82rem;color:#CBD5E0;min-width:110px;">Tasks done</span>
-          <div style="flex:1;background:rgba(255,255,255,0.1);height:7px;border-radius:999px;overflow:hidden;">
-            <div style="background:#68D391;height:100%;width:${taskVelocityPct}%;border-radius:999px;"></div>
-          </div>
-          <span style="font-family:'IBM Plex Mono',monospace;font-size:0.85rem;font-weight:700;color:#FFFFFF;min-width:40px;text-align:right;">${taskVelocityPct}%</span>
-        </div>
-
-        <!-- Attendance -->
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-          <span style="font-size:0.82rem;color:#CBD5E0;min-width:110px;">Attendance</span>
-          <div style="flex:1;background:rgba(255,255,255,0.1);height:7px;border-radius:999px;overflow:hidden;">
-            <div style="background:#68D391;height:100%;width:${attPct}%;border-radius:999px;"></div>
-          </div>
-          <span style="font-family:'IBM Plex Mono',monospace;font-size:0.85rem;font-weight:700;color:#FFFFFF;min-width:40px;text-align:right;">${attPct}%</span>
-        </div>
-
-        <!-- Credit Pending -->
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-          <span style="font-size:0.82rem;color:#CBD5E0;min-width:110px;">Credit pending</span>
-          <div style="flex:1;background:rgba(255,255,255,0.1);height:7px;border-radius:999px;overflow:hidden;">
-            <div style="background:#DD6B20;height:100%;width:${Math.min(100, Math.round((totalPendingCredit/20000)*100))}%;border-radius:999px;"></div>
-          </div>
-          <span style="font-family:'IBM Plex Mono',monospace;font-size:0.85rem;font-weight:700;color:#DD6B20;min-width:45px;text-align:right;">₹${totalPendingCredit >= 1000 ? (totalPendingCredit/1000).toFixed(1)+'k' : totalPendingCredit.toFixed(0)}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- AI Action Recommendations -->
-    <div class="section-label">Strategic AI Action Recommendations</div>
-    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
-      ${totalPendingCredit > 0 ? `
-        <div class="row-card" style="border-left:4px solid var(--brick);align-items:center;">
-          <div class="row-main">
-            <h3 style="color:var(--brick);margin:0 0 2px;">💰 Collect Pending Credit</h3>
-            <div class="notes">You have ₹${totalPendingCredit.toFixed(0)} in net customer credit. Send payment reminders to improve cash flow.</div>
-          </div>
-          <button class="stamp-btn small" onclick="activeTab='accounts';renderTabBody();">Collect Credit</button>
-        </div>
-      ` : ''}
-
-      ${overdueTasksCount > 0 ? `
-        <div class="row-card" style="border-left:4px solid var(--brick);align-items:center;">
-          <div class="row-main">
-            <h3 style="color:var(--brick);margin:0 0 2px;">⚡ Resolve ${overdueTasksCount} Overdue Tasks</h3>
-            <div class="notes">${overdueTasksCount} task(s) are past their due time. Reassign or clear them to maintain team velocity.</div>
-          </div>
-          <button class="stamp-btn small" onclick="activeTab='tasks';renderTabBody();">View Tasks</button>
-        </div>
-      ` : ''}
-
-      <div class="row-card" style="border-left:4px solid var(--leaf);align-items:center;">
-        <div class="row-main">
-          <h3 style="color:var(--leaf);margin:0 0 2px;">🎯 Target Incentive Boost</h3>
-          <div class="notes">Setting monthly sales & task targets increases staff productivity by up to 35%.</div>
-        </div>
-        <button class="stamp-btn small" style="background:var(--leaf);color:#fff;border-color:var(--leaf);" onclick="activeTab='points';pointsTabMode='targets';renderTabBody();">Set Targets</button>
-      </div>
-    </div>
-
-    <!-- Interactive AI Assistant Chatbox -->
-    <div class="section-label">Ask AI Assistant</div>
-    <div class="row-card" style="flex-direction:column;align-items:stretch;background:var(--card);">
-      <div id="aiChatBox" style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:8px 0;margin-bottom:12px;">
-        ${aiAssistantMessages.map(m => `
-          <div style="align-self:${m.sender==='user'?'flex-end':'flex-start'};max-width:85%;padding:10px 14px;border-radius:12px;font-size:0.85rem;line-height:1.4;background:${m.sender==='user'?'var(--ink)':'var(--paper)'};color:${m.sender==='user'?'#fff':'var(--ink)'};">
-            ${m.sender==='ai'?`<span style="font-weight:700;color:var(--purple);">${icon('sparkles',14)} AI Assistant:</span><br>`:''}
-            ${esc(m.text).replace(/\n/g, '<br>')}
-          </div>
-        `).join('')}
-      </div>
-
-      <!-- Quick Prompt Pills -->
-      <div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:10px;padding-bottom:4px;">
-        <button class="stamp-btn small ghost" style="font-size:0.72rem;" onclick="window.__sendAiPrompt('Give me today\'s summary')">📊 Today's Summary</button>
-        <button class="stamp-btn small ghost" style="font-size:0.72rem;" onclick="window.__sendAiPrompt('Who is top performer?')">👑 Top Performer</button>
-        <button class="stamp-btn small ghost" style="font-size:0.72rem;" onclick="window.__sendAiPrompt('Revenue forecast')">📈 Revenue Forecast</button>
-        <button class="stamp-btn small ghost" style="font-size:0.72rem;" onclick="window.__sendAiPrompt('Check pending credit')">💰 Pending Credit</button>
-      </div>
-
-      <!-- Chat Input Field -->
-      <div style="display:flex;gap:8px;">
-        <input type="text" id="aiInput" placeholder="Ask AI about sales, cash tally, staff or tasks..." onkeydown="if(event.key==='Enter') window.__sendAiMessage()" style="flex:1;padding:10px 14px;border:1px solid var(--paper-line);border-radius:8px;font-size:0.88rem;">
-        <button class="stamp-btn" onclick="window.__sendAiMessage()">${icon('sparkles',16)} Ask</button>
-      </div>
-    </div>
-  `;
-
-  // Scroll Chat to Bottom
-  setTimeout(() => {
-    const chat = document.getElementById('aiChatBox');
-    if(chat) chat.scrollTop = chat.scrollHeight;
-  }, 100);
-}
-
-window.__sendAiPrompt = (promptText) => {
-  const input = document.getElementById('aiInput');
-  if(input) { input.value = promptText; window.__sendAiMessage(); }
-};
-
-window.__sendAiMessage = () => {
-  const input = document.getElementById('aiInput');
-  if(!input) return;
-  const query = input.value.trim();
-  if(!query) return;
-
-  aiAssistantMessages.push({ sender: 'user', text: query });
-  input.value = '';
-  renderTabBody();
-
-  setTimeout(() => {
-    const reply = window.__generateAiReply(query);
-    aiAssistantMessages.push({ sender: 'ai', text: reply });
-    renderTabBody();
-  }, 300);
-};
-
-window.__generateAiReply = (q) => {
-  const qLower = q.toLowerCase();
-  const curMonth = monthKey(todayStr());
-  const today = todayStr();
-
-  if(qLower.includes('today') || qLower.includes('summary')){
-    const salesToday = cache.sales.filter(s=>s.date===today).reduce((sum,s)=>sum+Number(s.order_value||0),0);
-    const attToday = cache.attendance.filter(a=>a.date===today && a.status==='present').length;
-    const tasksDoneToday = cache.tasks.filter(t=>t.status==='done' && (t.due_date===today || t.created_at?.startsWith(today))).length;
-    return `Today's Business Snapshot (${today}):\n• Total Sales Logged: ₹${salesToday.toFixed(0)}\n• Staff Present: ${attToday} member(s)\n• Tasks Completed: ${tasksDoneToday} task(s)`;
-  }
-
-  if(qLower.includes('top') || qLower.includes('performer') || qLower.includes('best staff')){
-    const pointsByStaff = {};
-    cache.points.forEach(p=> { pointsByStaff[p.staff_id] = (pointsByStaff[p.staff_id]||0) + Number(p.points||0); });
-    const topId = Object.keys(pointsByStaff).sort((a,b)=>pointsByStaff[b]-pointsByStaff[a])[0];
-    if(topId){
-      return `Top Staff Performer is ${staffName(topId)} with ${pointsByStaff[topId]} incentive points!`;
-    }
-    return `Currently all staff members are working well! Check the Points & Incentives tab for full leaderboard rankings.`;
-  }
-
-  if(qLower.includes('credit') || qLower.includes('pending') || qLower.includes('due')){
-    const totalCredit = cache.dailyAccounts.reduce((sum,a)=>sum + Number(a.credit||0) - Number(a.credit_received||0), 0);
-    return `Net Outstanding Customer Credit: ₹${Math.max(0, totalCredit).toFixed(0)}.\n\nTip: You can track and collect outstanding credit in the Accounts tab!`;
-  }
-
-  if(qLower.includes('forecast') || qLower.includes('revenue') || qLower.includes('sales')){
-    const monthSales = cache.sales.filter(s=>monthKey(s.date)===curMonth).reduce((sum,s)=>sum+Number(s.order_value||0),0);
-    const daysPassed = new Date(today).getDate();
-    const totalDays = new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).getDate();
-    const proj = daysPassed ? Math.round((monthSales / daysPassed) * totalDays) : 0;
-    return `Month Sales so far: ₹${monthSales.toFixed(0)}.\nDaily Average: ₹${(daysPassed ? Math.round(monthSales/daysPassed) : 0)}/day.\nProjected Month-End Sales: ₹${proj.toFixed(0)}.`;
-  }
-
-  return `Here is your AI Business Analysis:\n\n• Monthly Revenue: ₹${cache.sales.filter(s=>monthKey(s.date)===curMonth).reduce((sum,s)=>sum+Number(s.order_value||0),0).toFixed(0)}\n• Staff Present Today: ${cache.attendance.filter(a=>a.date===today && a.status==='present').length}\n• Pending Tasks: ${cache.tasks.filter(t=>t.status!=='done').length}\n\nAsk me specifically about sales, staff, tasks, or credit!`;
-};
-
-/* ---------------- REPORTS (owner only — detailed analysis with date range) ---------------- */
-let reportRange = { from: null, to: null };
-function reportDefaultRange(){
-  const now = new Date();
-  const first = localDateStr(new Date(now.getFullYear(), now.getMonth(), 1));
-  return { from: first, to: todayStr() };
-}
-function buildAttendanceGridHtml(from, to){
-  const start = new Date(from), end = new Date(to);
-  const dayCount = Math.round((end-start)/86400000) + 1;
-  if(dayCount > 31){
-    return `<div class="empty">Pick a range of 31 days or less to see the day-by-day tick/cross grid (currently ${dayCount} days).</div>`;
-  }
-  if(dayCount < 1 || !cache.staff.length) return `<div class="empty">No data for this range.</div>`;
-  const dates = [];
-  for(let i=0;i<dayCount;i++){ const d=new Date(start); d.setDate(d.getDate()+i); dates.push(localDateStr(d)); }
-  const cellStyle = 'padding:6px 8px;text-align:center;font-size:0.85rem;border-bottom:1px solid var(--paper-line);';
-  const headStyle = 'padding:6px 8px;text-align:center;font-size:0.65rem;font-family:\'IBM Plex Mono\',monospace;color:var(--ink-soft);white-space:nowrap;border-bottom:1.5px solid var(--paper-line);';
-  const rows = cache.staff.map(s=>{
-    const cells = dates.map(d=>{
-      const present = cache.attendance.some(a=>a.staff_id===s.id && a.date===d && a.status==='present');
-      return `<td style="${cellStyle}">${present?'<span style="color:var(--leaf);font-weight:700;">✓</span>':'<span style="color:var(--brick);">✗</span>'}</td>`;
-    }).join('');
-    return `<tr><td style="${cellStyle}text-align:left;font-weight:600;white-space:nowrap;">${esc(s.name)}</td>${cells}</tr>`;
-  }).join('');
-  const headerCells = dates.map(d=>`<th style="${headStyle}">${d.slice(5)}</th>`).join('');
-  return `<div class="row-card" style="overflow-x:auto;display:block;">
-    <table style="border-collapse:collapse;width:100%;">
-      <thead><tr><th style="${headStyle}text-align:left;">Staff</th>${headerCells}</tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
-  </div>`;
-}
 function renderReportsTab(body){
   if(!reportRange.from) reportRange = reportDefaultRange();
   const { from, to } = reportRange;
