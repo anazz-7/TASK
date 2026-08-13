@@ -14,8 +14,41 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+
+  /* Global Roboto Mono Font & Uppercase Capitalization Styling */
+  body, button, input, select, textarea, h1, h2, h3, h4, .stamp-btn, .section-label, label, .stamp, .stat-card, .row-card, .leaderboard-card, .drawer-item, .bottom-nav button, .sidebar-item, .sidebar-section-title {
+    font-family: 'Roboto Mono', monospace, sans-serif !important;
+  }
+
+  h1, h2, h3, h4,
+  .section-label,
+  .stamp-btn,
+  .stamp,
+  label,
+  nav.tabs button,
+  .drawer-item,
+  .sidebar-item,
+  .sidebar-section-title,
+  .bottom-nav button,
+  .dash-kpi-title,
+  .dash-kpi-sub,
+  .stat-card .label,
+  .row-main h3,
+  .kv span,
+  .role-pill,
+  .owner-fab-item,
+  .owner-fab-btn,
+  .badge-chip,
+  .action-dropdown-menu button,
+  table th,
+  .modal h2,
+  .auth-card h1 {
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
   :root{
   --paper:#EEF2F7; --paper-line:#D7E0EA; --card:#FFFFFF;
   --ink:#14213B; --ink-soft:#5C6B85;
@@ -29,7 +62,7 @@
   *{box-sizing:border-box;}
   @keyframes fadeInUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
   @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
-  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Roboto Mono',monospace;-webkit-font-smoothing:antialiased;}
   button,input,select,textarea{transition:background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease, transform 0.1s ease;}
   
   /* Layout Containers */
@@ -49,30 +82,30 @@
 
   .wrap{max-width:760px;margin:0 auto;padding:0 16px 130px;animation:fadeIn 0.25s ease;width:100%;}
   header.top{padding:24px 16px 14px;max-width:760px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;}
-  header.top h1{font-family:'Space Grotesk',sans-serif;font-size:1.4rem;font-weight:700;margin:0 0 2px;letter-spacing:-0.01em;}
+  header.top h1{font-family:'Roboto Mono',monospace;font-size:1.4rem;font-weight:700;margin:0 0 2px;letter-spacing:-0.01em;}
   header.top p{margin:0;color:var(--ink-soft);font-size:0.82rem;}
   .header-actions{display:flex;gap:10px;align-items:center;flex-shrink:0;}
 
-  .stamp-btn{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:0.85rem;background:var(--ink);color:var(--paper);border:none;border-radius:8px;padding:11px 16px;cursor:pointer;white-space:nowrap;box-shadow:0 2px 0 rgba(0,0,0,0.15);}
+  .stamp-btn{font-family:'Roboto Mono',monospace;font-weight:600;font-size:0.85rem;background:var(--ink);color:var(--paper);border:none;border-radius:8px;padding:11px 16px;cursor:pointer;white-space:nowrap;box-shadow:0 2px 0 rgba(0,0,0,0.15);}
   .stamp-btn:active{transform:translateY(1px) scale(0.98);box-shadow:none;}
   .stamp-btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--ink);box-shadow:none;}
   .stamp-btn.small{padding:7px 11px;font-size:0.75rem;}
   .stamp-btn:disabled{opacity:0.5;cursor:not-allowed;}
   
   nav.tabs{display:flex;gap:6px;max-width:760px;margin:0 auto;padding:0 16px 14px;overflow-x:auto;}
-  nav.tabs button{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;font-weight:600;letter-spacing:0.03em;text-transform:uppercase;padding:8px 13px;border-radius:999px;border:1.5px solid var(--paper-line);background:var(--card);color:var(--ink-soft);cursor:pointer;white-space:nowrap;transition:all 0.15s ease;}
+  nav.tabs button{font-family:'Roboto Mono',monospace;font-size:0.72rem;font-weight:600;letter-spacing:0.03em;text-transform:uppercase;padding:8px 13px;border-radius:999px;border:1.5px solid var(--paper-line);background:var(--card);color:var(--ink-soft);cursor:pointer;white-space:nowrap;transition:all 0.15s ease;}
   nav.tabs button.active{background:var(--ink);border-color:var(--ink);color:var(--paper);}
   
-  .section-label{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-soft);margin:22px 2px 8px;display:flex;justify-content:space-between;align-items:center;}
+  .section-label{font-family:'Roboto Mono',monospace;font-size:0.7rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-soft);margin:22px 2px 8px;display:flex;justify-content:space-between;align-items:center;}
   .section-label a{color:var(--turmeric-dark);font-weight:600;cursor:pointer;text-decoration:none;}
   
   .row-card{background:var(--card);border:1px solid var(--paper-line);border-radius:var(--radius);padding:14px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;animation:fadeInUp 0.3s ease;}
   .row-main{flex:1;min-width:180px;}
   .row-main h3{margin:0 0 3px;font-size:0.98rem;font-weight:600;}
-  .row-main .meta{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--ink-soft);display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
+  .row-main .meta{font-family:'Roboto Mono',monospace;font-size:0.72rem;color:var(--ink-soft);display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
   .row-main .notes{font-size:0.85rem;color:var(--ink-soft);margin-top:4px;line-height:1.4;}
   
-  .stamp{font-family:'Space Grotesk',sans-serif;font-size:0.62rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:4px 9px;border-radius:999px;border:1.5px solid currentColor;display:inline-block;margin-right:6px;}
+  .stamp{font-family:'Roboto Mono',monospace;font-size:0.62rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:4px 9px;border-radius:999px;border:1.5px solid currentColor;display:inline-block;margin-right:6px;}
   .stamp.pending{color:var(--turmeric-dark);background:var(--amber-soft);}
   .stamp.sent{color:var(--blue);background:var(--blue-soft);}
   .stamp.done{color:var(--leaf);background:var(--leaf-soft);}
@@ -105,10 +138,10 @@
   .overlay.show{opacity:1;visibility:visible;}
   .modal{background:var(--paper);width:100%;max-width:520px;border-radius:16px 16px 0 0;padding:22px 20px calc(22px + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto;transform:translateY(16px);transition:transform 0.25s ease;}
   .overlay.show .modal{transform:translateY(0);}
-  .modal h2{font-family:'Space Grotesk',sans-serif;font-size:1.1rem;margin:0 0 14px;}
+  .modal h2{font-family:'Roboto Mono',monospace;font-size:1.1rem;margin:0 0 14px;}
   
-  label{display:block;font-size:0.72rem;font-weight:600;color:var(--ink-soft);margin:13px 0 5px;font-family:'IBM Plex Mono',monospace;letter-spacing:0.03em;text-transform:uppercase;}
-  input,select,textarea{width:100%;padding:11px 12px;border-radius:8px;border:1.5px solid var(--paper-line);background:#fff;font-family:'Inter',sans-serif;font-size:0.92rem;color:var(--ink);}
+  label{display:block;font-size:0.72rem;font-weight:600;color:var(--ink-soft);margin:13px 0 5px;font-family:'Roboto Mono',monospace;letter-spacing:0.03em;text-transform:uppercase;}
+  input,select,textarea{width:100%;padding:11px 12px;border-radius:8px;border:1.5px solid var(--paper-line);background:#fff;font-family:'Roboto Mono',monospace;font-size:0.92rem;color:var(--ink);}
   textarea{resize:vertical;min-height:60px;}
   .modal-actions{display:flex;gap:10px;margin-top:20px;}
   .modal-actions button{flex:1;}
@@ -121,22 +154,22 @@
   
   .center-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
   .auth-card{background:var(--card);border:1px solid var(--paper-line);border-radius:14px;padding:28px 22px;max-width:380px;width:100%;}
-  .auth-card h1{font-family:'Space Grotesk',sans-serif;font-size:1.3rem;margin:0 0 6px;}
+  .auth-card h1{font-family:'Roboto Mono',monospace;font-size:1.3rem;margin:0 0 6px;}
   .auth-card p{color:var(--ink-soft);font-size:0.85rem;margin:0 0 18px;}
   .err{color:var(--brick);font-size:0.8rem;margin-top:10px;}
   
   .kv{display:flex;justify-content:space-between;font-size:0.85rem;padding:4px 0;}
-  .kv b{font-family:'IBM Plex Mono',monospace;}
-  .role-pill{font-family:'IBM Plex Mono',monospace;font-size:0.65rem;text-transform:uppercase;background:var(--ink);color:var(--paper);padding:3px 8px;border-radius:999px;margin-left:6px;}
+  .kv b{font-family:'Roboto Mono',monospace;}
+  .role-pill{font-family:'Roboto Mono',monospace;font-size:0.65rem;text-transform:uppercase;background:var(--ink);color:var(--paper);padding:3px 8px;border-radius:999px;margin-left:6px;}
   .role-pill.owner{background:var(--purple);}
   a.link{color:var(--turmeric-dark);font-weight:600;cursor:pointer;text-decoration:none;font-size:0.85rem;}
   
   .stat-card{background:var(--card);border:1px solid var(--paper-line);border-radius:var(--radius);padding:16px;margin-bottom:10px;}
-  .stat-card .num{font-family:'Space Grotesk',sans-serif;font-size:1.7rem;font-weight:700;}
-  .stat-card .label{font-family:'IBM Plex Mono',monospace;font-size:0.68rem;text-transform:uppercase;color:var(--ink-soft);letter-spacing:0.04em;}
+  .stat-card .num{font-family:'Roboto Mono',monospace;font-size:1.7rem;font-weight:700;}
+  .stat-card .label{font-family:'Roboto Mono',monospace;font-size:0.68rem;text-transform:uppercase;color:var(--ink-soft);letter-spacing:0.04em;}
   .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
   
-  .avatar-circle{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem;color:#fff;flex-shrink:0;background:var(--ink);}
+  .avatar-circle{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Roboto Mono',monospace;font-weight:700;font-size:1rem;color:#fff;flex-shrink:0;background:var(--ink);}
   .avatar-circle.gold{background:linear-gradient(135deg,#E8B84B,#B5761C);}
   .avatar-circle.silver{background:linear-gradient(135deg,#C7CDD6,#8B92A0);}
   .avatar-circle.bronze{background:linear-gradient(135deg,#D0906A,#9C5A34);}
@@ -144,10 +177,10 @@
   .leaderboard-card{background:var(--card);border:1px solid var(--paper-line);border-radius:12px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;animation:fadeInUp 0.3s ease;}
   .leaderboard-card.top{background:linear-gradient(135deg, var(--amber-soft), var(--card));border-color:var(--turmeric);}
   .leaderboard-card.me{border-color:var(--turmeric);border-width:2px;}
-  .leaderboard-rank{font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--ink-soft);font-size:0.85rem;width:22px;text-align:center;flex-shrink:0;}
+  .leaderboard-rank{font-family:'Roboto Mono',monospace;font-weight:700;color:var(--ink-soft);font-size:0.85rem;width:22px;text-align:center;flex-shrink:0;}
   .leaderboard-name{font-weight:600;font-size:0.95rem;}
-  .leaderboard-meta{font-family:'IBM Plex Mono',monospace;font-size:0.68rem;color:var(--ink-soft);margin-top:2px;}
-  .leaderboard-points{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.1rem;color:var(--turmeric-dark);flex-shrink:0;}
+  .leaderboard-meta{font-family:'Roboto Mono',monospace;font-size:0.68rem;color:var(--ink-soft);margin-top:2px;}
+  .leaderboard-points{font-family:'Roboto Mono',monospace;font-weight:700;font-size:1.1rem;color:var(--turmeric-dark);flex-shrink:0;}
   
   .drawer-overlay{position:fixed;inset:0;background:rgba(32,38,47,0.45);z-index:80;opacity:0;visibility:hidden;transition:opacity 0.2s ease;}
   .drawer-overlay.show{opacity:1;visibility:visible;}
@@ -158,7 +191,7 @@
   .drawer-item .ic{font-size:1.1rem;width:22px;text-align:center;}
   
   .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--paper-line);display:flex;z-index:15;padding-bottom:env(safe-area-inset-bottom);}
-  .bottom-nav button{flex:1;background:none;border:none;padding:9px 4px 8px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;font-size:0.6rem;font-weight:600;}
+  .bottom-nav button{flex:1;background:none;border:none;padding:9px 4px 8px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;color:var(--ink-soft);font-family:'Roboto Mono',monospace;font-size:0.6rem;font-weight:600;}
   .bottom-nav button.active{color:var(--turmeric-dark);}
   .bottom-nav .ic{font-size:1.15rem;}
 
@@ -171,7 +204,7 @@
   
   .header-icon-btn{background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--ink);padding:6px;line-height:1;}
   .badge-chip{display:inline-flex;align-items:center;gap:5px;background:var(--amber-soft);border:1px solid var(--turmeric);color:var(--turmeric-dark);padding:6px 11px;border-radius:999px;font-size:0.78rem;font-weight:600;margin:0 6px 6px 0;}
-  .celebrate-banner{position:fixed;top:22%;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:14px 26px;border-radius:14px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.15rem;z-index:300;box-shadow:0 10px 30px rgba(0,0,0,0.35);animation:celebratePop 0.35s ease, celebrateFade 0.4s ease 1.25s forwards;}
+  .celebrate-banner{position:fixed;top:22%;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:14px 26px;border-radius:14px;font-family:'Roboto Mono',monospace;font-weight:700;font-size:1.15rem;z-index:300;box-shadow:0 10px 30px rgba(0,0,0,0.35);animation:celebratePop 0.35s ease, celebrateFade 0.4s ease 1.25s forwards;}
   @keyframes celebratePop{from{transform:translateX(-50%) scale(0.6);opacity:0;}to{transform:translateX(-50%) scale(1);opacity:1;}}
   @keyframes celebrateFade{to{opacity:0;transform:translateX(-50%) scale(0.92);}}
   .confetti-piece{position:fixed;top:-24px;width:9px;height:15px;z-index:299;border-radius:2px;animation-name:confettiFall;animation-timing-function:cubic-bezier(.35,0,.65,1);animation-fill-mode:forwards;}
@@ -206,7 +239,7 @@
       margin-bottom: 16px;
     }
     .sidebar-brand .biz-name {
-      font-family: 'Space Grotesk', sans-serif;
+      font-family: 'Roboto Mono', monospace;
       font-weight: 700;
       font-size: 1.05rem;
       color: var(--ink);
@@ -225,7 +258,7 @@
     }
     
     .sidebar-section-title {
-      font-family: 'IBM Plex Mono', monospace;
+      font-family: 'Roboto Mono', monospace;
       font-size: 0.65rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -249,7 +282,7 @@
       border: none;
       background: transparent;
       color: var(--ink);
-      font-family: 'Inter', sans-serif;
+      font-family: 'Roboto Mono', monospace;
       font-weight: 600;
       font-size: 0.88rem;
       cursor: pointer;
@@ -472,7 +505,7 @@
     min-width: 0;
   }
   .header-title-area h1 {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: 'Roboto Mono', monospace;
     font-size: 1.2rem;
     font-weight: 700;
     margin: 0;
@@ -571,7 +604,7 @@
     min-width: 0;
   }
   .header-title-area h1 {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: 'Roboto Mono', monospace;
     font-size: 1.15rem;
     font-weight: 700;
     margin: 0;
@@ -608,7 +641,7 @@
     display: inline-block;
   }
   .action-more-btn {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Roboto Mono', monospace;
     font-size: 0.78rem;
     font-weight: 600;
     padding: 5px 10px;
@@ -712,7 +745,7 @@
     border: 1.5px solid var(--turmeric);
     padding: 10px 16px;
     border-radius: 30px;
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: 'Roboto Mono', monospace;
     font-weight: 600;
     font-size: 0.85rem;
     box-shadow: 0 4px 18px rgba(0,0,0,0.18);
@@ -731,7 +764,7 @@
     border: 1px solid rgba(255,255,255,0.3);
     border-radius: 24px;
     padding: 8px 14px;
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: 'Roboto Mono', monospace;
     font-size: 0.78rem;
     font-weight: 700;
     box-shadow: 0 4px 14px rgba(30,58,110,0.3);
@@ -784,7 +817,7 @@
     margin-bottom: 4px;
   }
   .dash-kpi-val {
-    font-family: 'Space Grotesk', 'IBM Plex Mono', monospace;
+    font-family: 'Space Grotesk', 'Roboto Mono', monospace;
     font-size: 1.25rem;
     font-weight: 800;
     line-height: 1.2;
@@ -860,7 +893,7 @@
     top: 14px;
     right: 16px;
     z-index: 99999;
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'Roboto Mono', monospace;
     font-size: 0.72rem;
     font-weight: 700;
     padding: 4px 10px;
@@ -1295,8 +1328,8 @@ window.__showAppAlert = function({ title, message, buttonText }) {
   const html = `
   <div class="overlay show" id="appAlertOverlay" style="z-index:999;background:rgba(0,0,0,0.65);">
     <div class="modal" style="max-width:340px;width:90%;background:#181B20;border:1px solid rgba(255,255,255,0.15);border-radius:16px;padding:22px 20px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,0.6);margin:auto;">
-      <h3 style="margin:0 0 8px;font-size:1.1rem;font-weight:700;color:#FFFFFF;font-family:'Space Grotesk',sans-serif;">${esc(title || 'Notice')}</h3>
-      <p style="margin:0 0 18px;font-size:0.85rem;color:#A0AEC0;line-height:1.4;font-family:'Inter',sans-serif;">${esc(message || '')}</p>
+      <h3 style="margin:0 0 8px;font-size:1.1rem;font-weight:700;color:#FFFFFF;font-family:'Roboto Mono',monospace;">${esc(title || 'Notice')}</h3>
+      <p style="margin:0 0 18px;font-size:0.85rem;color:#A0AEC0;line-height:1.4;font-family:'Roboto Mono',monospace;">${esc(message || '')}</p>
       <button class="stamp-btn" style="width:100%;background:var(--turmeric);color:#FFFFFF;border:none;padding:10px 0;" onclick="document.getElementById('appAlertOverlay').remove()">${esc(buttonText || 'OK')}</button>
     </div>
   </div>`;
@@ -1314,8 +1347,8 @@ window.__showDeleteConfirm = function({ title, message, onConfirm }) {
       <div style="width:48px;height:48px;border-radius:50%;background:rgba(229,62,62,0.18);color:#E53E3E;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:1.3rem;">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
       </div>
-      <h3 style="margin:0 0 8px;font-size:1.15rem;font-weight:700;color:#FFFFFF;font-family:'Space Grotesk',sans-serif;">${title || 'Delete this entry?'}</h3>
-      <p style="margin:0 0 20px;font-size:0.85rem;color:#A0AEC0;line-height:1.4;font-family:'Inter',sans-serif;">${message || "This removes it for everyone on this business. It can't be undone."}</p>
+      <h3 style="margin:0 0 8px;font-size:1.15rem;font-weight:700;color:#FFFFFF;font-family:'Roboto Mono',monospace;">${title || 'Delete this entry?'}</h3>
+      <p style="margin:0 0 20px;font-size:0.85rem;color:#A0AEC0;line-height:1.4;font-family:'Roboto Mono',monospace;">${message || "This removes it for everyone on this business. It can't be undone."}</p>
       <div style="display:flex;gap:10px;">
         <button class="stamp-btn ghost" style="flex:1;border-color:rgba(255,255,255,0.2);color:#E2E8F0;background:rgba(255,255,255,0.05);padding:10px 0;" onclick="document.getElementById('deleteConfirmOverlay').remove()">Cancel</button>
         <button class="stamp-btn" style="flex:1;background:#E53E3E;color:#FFFFFF;border:none;padding:10px 0;" id="deleteConfirmBtn">Delete</button>
@@ -1451,7 +1484,7 @@ window.showToast = function(msg, type = 'success', duration = 3000) {
     border-left: 4px solid ${bgColors[type] || bgColors.success};
     border-radius: 10px;
     padding: 12px 16px;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Roboto Mono', monospace;
     font-size: 0.85rem;
     font-weight: 500;
     box-shadow: 0 10px 30px rgba(0,0,0,0.4);
@@ -1491,8 +1524,8 @@ window.__showAppAlert = function({ title, message, type = 'info', buttonText = '
   <div class="overlay show" id="appAlertOverlay" style="z-index:9999;background:rgba(0,0,0,0.7);">
     <div class="modal" style="max-width:340px;width:90%;background:#181B20;border:1px solid rgba(255,255,255,0.12);border-radius:16px;padding:24px 20px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,0.6);margin:auto;">
       ${typeIcons[type] || typeIcons.info}
-      <h3 style="margin:0 0 8px;font-size:1.1rem;font-weight:700;color:#FFFFFF;font-family:'Space Grotesk',sans-serif;">${esc(title || 'Notice')}</h3>
-      <p style="margin:0 0 20px;font-size:0.85rem;color:#A0AEC0;line-height:1.4;font-family:'Inter',sans-serif;">${esc(message || '')}</p>
+      <h3 style="margin:0 0 8px;font-size:1.1rem;font-weight:700;color:#FFFFFF;font-family:'Roboto Mono',monospace;">${esc(title || 'Notice')}</h3>
+      <p style="margin:0 0 20px;font-size:0.85rem;color:#A0AEC0;line-height:1.4;font-family:'Roboto Mono',monospace;">${esc(message || '')}</p>
       <button class="stamp-btn" style="width:100%;background:var(--turmeric);color:#FFFFFF;border:none;padding:10px 0;border-radius:8px;font-weight:600;" onclick="document.getElementById('appAlertOverlay').remove()">${esc(buttonText)}</button>
     </div>
   </div>`;
@@ -2342,7 +2375,7 @@ function renderShell(){
           if(!validKeys.length) return '';
           return `
             <div>
-              <div style="font-size:11px;color:var(--ink-soft);margin:0 0 6px 4px;font-family:'IBM Plex Mono',monospace;letter-spacing:0.04em;text-transform:uppercase;">${grp.section}</div>
+              <div style="font-size:11px;color:var(--ink-soft);margin:0 0 6px 4px;font-family:'Roboto Mono',monospace;letter-spacing:0.04em;text-transform:uppercase;">${grp.section}</div>
               <div style="display:flex;flex-direction:column;gap:2px;">
                 ${validKeys.map(k => `
                   <div class="drawer-item ${activeTab===k?'active':''}" onclick="window.__setTab('${k}')">
@@ -2451,7 +2484,7 @@ function buildStaffTargetsHtml(curMonth, monthSales){
           <div class="row-card" style="flex-direction:column;align-items:stretch;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
               <h3 style="margin:0;font-size:0.92rem;">${esc(s.name)}</h3>
-              <span style="font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:0.82rem;color:var(--turmeric-dark);">
+              <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.82rem;color:var(--turmeric-dark);">
                 ₹${sSales.toFixed(0)} / ₹${targetVal.toFixed(0)} (${pct}%)
               </span>
             </div>
@@ -2502,7 +2535,7 @@ function buildDashboardVendorBillsHtml() {
           <b style="font-size:0.95rem;color:var(--brick);">Total Payable to Suppliers</b>
           <div style="font-size:0.75rem;color:var(--ink-soft);">${unpaid.length} Pending Bills Awaiting Payment</div>
         </div>
-        <b style="font-family:'IBM Plex Mono',monospace;font-size:1.25rem;color:var(--brick);">₹${totalUnpaid.toFixed(0)}</b>
+        <b style="font-family:'Roboto Mono',monospace;font-size:1.25rem;color:var(--brick);">₹${totalUnpaid.toFixed(0)}</b>
       </div>
 
       <div style="display:flex;flex-direction:column;gap:8px;">
@@ -2510,10 +2543,10 @@ function buildDashboardVendorBillsHtml() {
           <div style="display:flex;justify-content:space-between;align-items:center;background:var(--paper);padding:8px 12px;border-radius:6px;border:1px solid var(--paper-line);">
             <div>
               <b style="font-size:0.88rem;color:var(--ink);">${esc(getVendorName(b))}</b>
-              <div style="font-size:0.75rem;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;">Bill #${esc(getBillNo(b))} ${b.due_date ? '&bull; Due: ' + b.due_date : ''}</div>
+              <div style="font-size:0.75rem;color:var(--ink-soft);font-family:'Roboto Mono',monospace;">Bill #${esc(getBillNo(b))} ${b.due_date ? '&bull; Due: ' + b.due_date : ''}</div>
             </div>
             <div style="display:flex;align-items:center;gap:8px;">
-              <b style="font-family:'IBM Plex Mono',monospace;font-size:0.95rem;color:var(--brick);">₹${getBillAmount(b).toFixed(0)}</b>
+              <b style="font-family:'Roboto Mono',monospace;font-size:0.95rem;color:var(--brick);">₹${getBillAmount(b).toFixed(0)}</b>
               ${isOwner() ? `<button class="stamp-btn small" style="background:var(--leaf);color:#fff;border-color:var(--leaf);padding:4px 8px;font-size:0.72rem;" onclick="window.__markVendorBillPaid('${b.id}')">✓ Pay</button>` : ''}
             </div>
           </div>
@@ -2541,7 +2574,7 @@ function buildDashboardActivityFeedHtml() {
             <div style="flex:1;">
               <div style="display:flex;justify-content:space-between;align-items:center;">
                 <b style="font-size:0.84rem;color:var(--ink);">${esc(item.actionType)}</b>
-                <span style="font-size:0.7rem;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;">${item.timestamp ? item.timestamp.slice(11,16) : ''}</span>
+                <span style="font-size:0.7rem;color:var(--ink-soft);font-family:'Roboto Mono',monospace;">${item.timestamp ? item.timestamp.slice(11,16) : ''}</span>
               </div>
               <div style="font-size:0.78rem;color:var(--ink-soft);margin-top:2px;">${esc(item.details)}</div>
             </div>
@@ -2608,7 +2641,7 @@ function renderDashboardTab(body){
     <div class="row-card" style="flex-direction:column;align-items:stretch;background:var(--card);border:1.5px solid var(--paper-line);padding:14px;margin-bottom:16px;border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,0.04);">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px dashed var(--paper-line);">
         <div>
-          <h2 style="margin:0;font-size:1.05rem;color:var(--ink);font-family:'Space Grotesk',sans-serif;font-weight:700;">Executive Overview</h2>
+          <h2 style="margin:0;font-size:1.05rem;color:var(--ink);font-family:'Roboto Mono',monospace;font-weight:700;">Executive Overview</h2>
           <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">${esc(session.businessName)} &bull; ${new Date().toLocaleDateString('en-IN', {weekday:'short', day:'numeric', month:'short'})}</div>
         </div>
         ${isManagerPlus() ? `<button class="stamp-btn small" style="background:var(--leaf);color:#fff;border-color:var(--leaf);padding:4px 10px;font-size:0.78rem;" onclick="window.__sendSmsDailySummary()">SMS Report</button>` : ''}
@@ -2679,11 +2712,11 @@ function renderDashboardTab(body){
     </div>
     ${leaderboard.length ? `
     <div class="section-label">Top sellers this month</div>
-    ${leaderboard.map(([id,val])=>`<div class="row-card" style="align-items:center;"><div class="row-main"><h3>${esc(staffName(id))}</h3></div><b style="font-family:'IBM Plex Mono',monospace;">₹${val.toFixed(0)}</b></div>`).join('')}
+    ${leaderboard.map(([id,val])=>`<div class="row-card" style="align-items:center;"><div class="row-main"><h3>${esc(staffName(id))}</h3></div><b style="font-family:'Roboto Mono',monospace;">₹${val.toFixed(0)}</b></div>`).join('')}
     ` : ''}
 
     <div class="section-label">Incentive points — ${curMonth}</div>
-    ${pointsLeaderboard.length ? pointsLeaderboard.map(([id,val])=>`<div class="row-card" style="align-items:center;"><div class="row-main"><h3>${esc(staffName(id))}</h3></div><b style="font-family:'IBM Plex Mono',monospace;color:var(--turmeric-dark);">${val} pts</b></div>`).join('') : `<div class="empty">No points awarded this month yet.</div>`}
+    ${pointsLeaderboard.length ? pointsLeaderboard.map(([id,val])=>`<div class="row-card" style="align-items:center;"><div class="row-main"><h3>${esc(staffName(id))}</h3></div><b style="font-family:'Roboto Mono',monospace;color:var(--turmeric-dark);">${val} pts</b></div>`).join('') : `<div class="empty">No points awarded this month yet.</div>`}
 
     ${buildStaffTargetsHtml(curMonth, monthSales)}
     ${isOwner() ? `
@@ -2820,7 +2853,7 @@ function buildAccountsSalesReportHtml(){
           ${points.map(p => `
             <g>
               <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="var(--paper)" stroke="var(--turmeric-dark)" stroke-width="2.5"/>
-              <text x="${p.x}" y="${p.y - 8}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink)" font-family="'IBM Plex Mono',monospace">
+              <text x="${p.x}" y="${p.y - 8}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink)" font-family="'Roboto Mono',monospace">
                 ${p.val > 0 ? '₹' + (p.val >= 1000 ? Math.round(p.val/1000)+'k' : Math.round(p.val)) : ''}
               </text>
               <text x="${p.x}" y="${height - 4}" text-anchor="middle" font-size="10" font-weight="600" fill="var(--ink-soft)">
@@ -2835,19 +2868,19 @@ function buildAccountsSalesReportHtml(){
       <div class="cards-grid" style="grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:8px;margin-bottom:0;">
         <div style="background:var(--paper);padding:8px 10px;border-radius:8px;text-align:center;">
           <div style="font-size:0.68rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">Period Sales</div>
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--leaf);margin-top:2px;">₹${totalSalesPeriod.toFixed(0)}</div>
+          <div style="font-family:'Roboto Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--leaf);margin-top:2px;">₹${totalSalesPeriod.toFixed(0)}</div>
         </div>
         <div style="background:var(--paper);padding:8px 10px;border-radius:8px;text-align:center;">
           <div style="font-size:0.68rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">Period Average</div>
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--turmeric-dark);margin-top:2px;">₹${avgSalesPeriod.toFixed(0)}</div>
+          <div style="font-family:'Roboto Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--turmeric-dark);margin-top:2px;">₹${avgSalesPeriod.toFixed(0)}</div>
         </div>
         <div style="background:var(--paper);padding:8px 10px;border-radius:8px;text-align:center;">
           <div style="font-size:0.68rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">Peak Sales</div>
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--purple);margin-top:2px;">₹${maxSales.toFixed(0)}</div>
+          <div style="font-family:'Roboto Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--purple);margin-top:2px;">₹${maxSales.toFixed(0)}</div>
         </div>
         <div style="background:var(--paper);padding:8px 10px;border-radius:8px;text-align:center;">
           <div style="font-size:0.68rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">Tally Count</div>
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--ink);margin-top:2px;">${cache.dailyAccounts.length} Days</div>
+          <div style="font-family:'Roboto Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--ink);margin-top:2px;">${cache.dailyAccounts.length} Days</div>
         </div>
       </div>
     </div>
@@ -3446,7 +3479,7 @@ function renderDailyTab(body){
           <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--paper-line)" stroke-width="4" />
           <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--leaf)" stroke-width="4" stroke-dasharray="${list.length ? Math.round((doneList.length / list.length) * 100) : 0}, 100" />
         </svg>
-        <span style="font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:0.8rem;color:var(--leaf);">${list.length ? Math.round((doneList.length / list.length) * 100) : 0}%</span>
+        <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.8rem;color:var(--leaf);">${list.length ? Math.round((doneList.length / list.length) * 100) : 0}%</span>
         <span style="color:var(--ink-soft);font-size:0.75rem;">(${doneList.length}/${list.length})</span>
       </div>
     </div>
@@ -4005,11 +4038,11 @@ function renderSalesTab(body){
     ${dates.length ? dates.map(d=>{
       const entries = byDate[d];
       const dayTotal = entries.reduce((s,e)=>s+Number(e.order_value||0),0);
-      return `<div class="section-label" style="margin-top:14px;"><span>${d}</span><span style="font-family:'IBM Plex Mono',monospace;">₹${dayTotal.toFixed(0)}</span></div>
+      return `<div class="section-label" style="margin-top:14px;"><span>${d}</span><span style="font-family:'Roboto Mono',monospace;">₹${dayTotal.toFixed(0)}</span></div>
       ${entries.map(e=>`
         <div class="row-card" style="align-items:center;">
           <div class="row-main"><h3>${esc(staffName(e.staff_id))}</h3>${e.notes?`<div class="notes">${esc(e.notes)}</div>`:''}</div>
-          <b style="font-family:'IBM Plex Mono',monospace;">₹${Number(e.order_value).toFixed(0)}</b>
+          <b style="font-family:'Roboto Mono',monospace;">₹${Number(e.order_value).toFixed(0)}</b>
           <div class="action-dropdown-holder">
     <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${e.id}')">More ▾</button>
     <div class="action-dropdown-menu" id="actionMenu_${e.id}">
@@ -4121,10 +4154,10 @@ function buildSalesReportHtml(){
         ${points.map(p => `
           <g>
             <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="var(--paper)" stroke="var(--turmeric-dark)" stroke-width="2.5"/>
-            <text x="${p.x}" y="${Math.max(14, p.y - 10)}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--turmeric-dark)" font-family="'IBM Plex Mono',monospace">
+            <text x="${p.x}" y="${Math.max(14, p.y - 10)}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--turmeric-dark)" font-family="'Roboto Mono',monospace">
               ${p.val > 0 ? '₹' + (p.val >= 1000 ? Math.round(p.val/1000)+'k' : Math.round(p.val)) : ''}
             </text>
-            <text x="${p.x}" y="${height - 8}" text-anchor="middle" font-size="10" font-weight="600" fill="var(--ink-soft)" font-family="'IBM Plex Mono',monospace">
+            <text x="${p.x}" y="${height - 8}" text-anchor="middle" font-size="10" font-weight="600" fill="var(--ink-soft)" font-family="'Roboto Mono',monospace">
               ${p.label}
             </text>
           </g>
@@ -4288,8 +4321,8 @@ function buildQtyGraphHtml(items, mode, setModeGlobalName, unitLabel, valueField
         <!-- Dots & Data Labels -->
         ${points.map(p=>`
           <circle cx="${p.x}" cy="${p.y}" r="5" fill="#FFFFFF" stroke="var(--turmeric)" stroke-width="3" />
-          <text x="${p.x}" y="${p.y - 8}" text-anchor="middle" font-size="10" font-family="'IBM Plex Mono', monospace" font-weight="700" fill="var(--ink)">${p.val > 0 ? prefix + Math.round(p.val) : ''}</text>
-          <text x="${p.x}" y="${height - 6}" text-anchor="middle" font-size="9" font-family="'Inter', sans-serif" fill="var(--ink-soft)">${p.label}</text>
+          <text x="${p.x}" y="${p.y - 8}" text-anchor="middle" font-size="10" font-family="'Roboto Mono', monospace" font-weight="700" fill="var(--ink)">${p.val > 0 ? prefix + Math.round(p.val) : ''}</text>
+          <text x="${p.x}" y="${height - 6}" text-anchor="middle" font-size="9" font-family="'Roboto Mono', monospace" fill="var(--ink-soft)">${p.label}</text>
         `).join('')}
       </svg>
     </div>
@@ -4304,7 +4337,7 @@ function buildQtyGraphHtml(items, mode, setModeGlobalName, unitLabel, valueField
           <button class="stamp-btn small ${mode==='weekly'?'':'ghost'}" onclick="window.${setModeGlobalName}('weekly')">Weekly</button>
           <button class="stamp-btn small ${mode==='monthly'?'':'ghost'}" onclick="window.${setModeGlobalName}('monthly')">Monthly</button>
         </div>
-        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.1rem;color:var(--turmeric-dark);">
+        <div style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:1.1rem;color:var(--turmeric-dark);">
           ${prefix}${periodTotal.toFixed(0)} ${unitLabel}
         </div>
       </div>
@@ -4333,17 +4366,17 @@ function renderLabelTab(body){
       return `<div class="row-card collapse-row" style="padding:10px 14px;margin-top:14px;" onclick="window.__toggleLabelDate('${d}')">
         <div class="row-main" style="display:flex;align-items:center;justify-content:space-between;">
           <span><span class="collapse-arrow ${isOpen?'open':''}">▸</span>${d}</span>
-          <span style="font-family:'IBM Plex Mono',monospace;font-size:0.8rem;">${dayQty} qty total, ${entries.length} item(s)</span>
+          <span style="font-family:'Roboto Mono',monospace;font-size:0.8rem;">${dayQty} qty total, ${entries.length} item(s)</span>
         </div>
       </div>
       ${isOpen ? entries.map(e=>`
         <div class="row-card" style="align-items:center;">
           <div class="row-main">
-  <h3>${esc(e.item || '(item not named)')} ${(e.batch_code || e.batch_no) ? `<span class="stamp low" style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;padding:2px 6px;">Batch: ${esc(e.batch_code || e.batch_no)}</span>` : ''}</h3>
+  <h3>${esc(e.item || '(item not named)')} ${(e.batch_code || e.batch_no) ? `<span class="stamp low" style="font-family:'Roboto Mono',monospace;font-size:0.7rem;padding:2px 6px;">Batch: ${esc(e.batch_code || e.batch_no)}</span>` : ''}</h3>
   <div class="meta"><span>${esc(staffName(e.staff_id))}</span></div>
   ${e.notes?`<div class="notes">${esc(e.notes)}</div>`:''}
 </div>
-          <b style="font-family:'IBM Plex Mono',monospace;">${Number(e.qty)} qty</b>
+          <b style="font-family:'Roboto Mono',monospace;">${Number(e.qty)} qty</b>
           <div class="action-dropdown-holder">
     <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${e.id}')">More ▾</button>
     <div class="action-dropdown-menu" id="actionMenu_${e.id}">
@@ -4463,7 +4496,7 @@ window.__openLabel = () => {
       <div id="labelItemRowsWrap" style="margin-top:10px;">${renderLabelItemRows()}</div>
       <div class="modal-actions"><button class="stamp-btn ghost small" style="flex:none;" onclick="window.__addLabelRow()">+ Add another item</button></div>
       <label>Batch Code / Batch Number (Optional)</label>
-      <input id="mLabelBatchCode" placeholder="e.g. BATCH-2026-08A, B-1092" style="font-family:'IBM Plex Mono',monospace;font-weight:700;">
+      <input id="mLabelBatchCode" placeholder="e.g. BATCH-2026-08A, B-1092" style="font-family:'Roboto Mono',monospace;font-weight:700;">
       <label>Notes (optional)</label>
       <textarea id="mLabelNotes" placeholder="e.g. jar size, expiry details"></textarea>
       <div class="modal-actions">
@@ -4516,17 +4549,17 @@ function renderPackageTab(body){
       return `<div class="row-card collapse-row" style="padding:10px 14px;margin-top:14px;" onclick="window.__togglePackageDate('${d}')">
         <div class="row-main" style="display:flex;align-items:center;justify-content:space-between;">
           <span><span class="collapse-arrow ${isOpen?'open':''}">▸</span>${d}</span>
-          <span style="font-family:'IBM Plex Mono',monospace;font-size:0.8rem;">${dayQty} qty total, ${entries.length} item(s)</span>
+          <span style="font-family:'Roboto Mono',monospace;font-size:0.8rem;">${dayQty} qty total, ${entries.length} item(s)</span>
         </div>
       </div>
       ${isOpen ? entries.map(e=>`
         <div class="row-card" style="align-items:center;">
           <div class="row-main">
-  <h3>${esc(e.item || '(item not named)')} ${(e.batch_code || e.batch_no) ? `<span class="stamp low" style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;padding:2px 6px;">Batch: ${esc(e.batch_code || e.batch_no)}</span>` : ''}</h3>
+  <h3>${esc(e.item || '(item not named)')} ${(e.batch_code || e.batch_no) ? `<span class="stamp low" style="font-family:'Roboto Mono',monospace;font-size:0.7rem;padding:2px 6px;">Batch: ${esc(e.batch_code || e.batch_no)}</span>` : ''}</h3>
   <div class="meta"><span>${esc(staffName(e.staff_id))}</span></div>
   ${e.notes?`<div class="notes">${esc(e.notes)}</div>`:''}
 </div>
-          <b style="font-family:'IBM Plex Mono',monospace;">${Number(e.qty)} qty</b>
+          <b style="font-family:'Roboto Mono',monospace;">${Number(e.qty)} qty</b>
           <div class="action-dropdown-holder">
     <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${e.id}')">More ▾</button>
     <div class="action-dropdown-menu" id="actionMenu_${e.id}">
@@ -4646,7 +4679,7 @@ window.__openPackage = () => {
       <div id="packageItemRowsWrap" style="margin-top:10px;">${renderPackageItemRows()}</div>
       <div class="modal-actions"><button class="stamp-btn ghost small" style="flex:none;" onclick="window.__addPackageRow()">+ Add another item</button></div>
       <label>Batch Code / Batch Number (Optional)</label>
-      <input id="mPackageBatchCode" placeholder="e.g. BATCH-2026-08A, B-1092" style="font-family:'IBM Plex Mono',monospace;font-weight:700;">
+      <input id="mPackageBatchCode" placeholder="e.g. BATCH-2026-08A, B-1092" style="font-family:'Roboto Mono',monospace;font-weight:700;">
       <label>Notes (optional)</label>
       <textarea id="mPackageNotes" placeholder="e.g. carton size, expiry details"></textarea>
       <div class="modal-actions">
@@ -4709,7 +4742,7 @@ function trophyCabinetHtml(){
         const holder = record ? cache.staff.find(s=>s.id===record.staff_id) : null;
         return `<div style="text-align:center;flex:1;min-width:100px;">
           <div style="font-size:2.2rem;line-height:1;">${icon(t.icon,36)}</div>
-          <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:0.78rem;margin:6px 0 2px;">${t.name}</div>
+          <div style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.78rem;margin:6px 0 2px;">${t.name}</div>
           <div style="font-size:0.78rem;color:var(--ink-soft);">${holder?esc(holder.name):'Not assigned'}</div>
           ${isManagerPlus()?`<button class="icon-btn" style="margin-top:4px;" onclick="window.__assignTrophy('${t.key}')">${holder?'Reassign':'Assign'}</button>`:''}
         </div>`;
@@ -4909,7 +4942,7 @@ function renderPointsTab(body){
               Cash Equivalent: <b style="color:var(--leaf);">₹${(Number(p.points||0)*INCENTIVE_RATE).toFixed(0)}</b>
             </div>
           </div>
-          <b style="font-family:'IBM Plex Mono',monospace;font-size:1.05rem;color:${p.points<0?'var(--brick)':'var(--leaf)'};">${p.points>0?'+':''}${p.points} pts</b>
+          <b style="font-family:'Roboto Mono',monospace;font-size:1.05rem;color:${p.points<0?'var(--brick)':'var(--leaf)'};">${p.points>0?'+':''}${p.points} pts</b>
           <div class="action-dropdown-holder">
     <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${p.id}')">More ▾</button>
     <div class="action-dropdown-menu" id="actionMenu_${p.id}">
@@ -4981,7 +5014,7 @@ function renderPointsTab(body){
                   <div>
                     <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:4px;">
                       <span style="font-weight:600;">${esc(s.name)} ${s.id===session.staffId?'(You)':''}</span>
-                      <span style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:${prog.isDone?'var(--leaf)':'var(--ink-soft)'};">
+                      <span style="font-family:'Roboto Mono',monospace;font-weight:700;color:${prog.isDone?'var(--leaf)':'var(--ink-soft)'};">
                         ${prog.type==='sales'?'₹'+prog.currentVal.toFixed(0):prog.currentVal} / ${prog.type==='sales'?'₹'+prog.goal.toFixed(0):prog.goal} (${prog.pct}%)
                       </span>
                     </div>
@@ -5029,7 +5062,7 @@ function renderPointsTab(body){
           </div>
         </div>
         <div style="text-align:right;">
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:1.6rem;font-weight:700;color:var(--leaf-soft);">${myPts} <span style="font-size:0.7rem;">pts</span></div>
+          <div style="font-family:'Roboto Mono',monospace;font-size:1.6rem;font-weight:700;color:var(--leaf-soft);">${myPts} <span style="font-size:0.7rem;">pts</span></div>
           <div style="font-size:0.8rem;color:#4ADE80;font-weight:700;margin-top:2px;">Cash Bonus: ₹${myCash.toFixed(0)}</div>
         </div>
       </div>
@@ -5184,15 +5217,15 @@ function renderReportsTab(body){
       </div></div>`).join('') : `<div class="empty">No staff yet.</div>`}
     ${undatedTasks ? `<p style="font-size:0.78rem;color:var(--ink-soft);">${undatedTasks} task(s) have no due date, so aren't counted in this range.</p>` : ''}
 
-    <div class="section-label"><span>Sales — detailed</span><span style="font-family:'IBM Plex Mono',monospace;">₹${salesTotal.toFixed(0)} total</span></div>
+    <div class="section-label"><span>Sales — detailed</span><span style="font-family:'Roboto Mono',monospace;">₹${salesTotal.toFixed(0)} total</span></div>
     ${salesRows.map(r=>`
       <div class="row-card" style="align-items:center;"><div class="row-main"><h3>${esc(r.name)}</h3><div class="meta"><span>${r.orders} order(s)</span></div></div>
-      <b style="font-family:'IBM Plex Mono',monospace;">₹${r.total.toFixed(0)}</b></div>`).join('')}
+      <b style="font-family:'Roboto Mono',monospace;">₹${r.total.toFixed(0)}</b></div>`).join('')}
 
     <div class="section-label">Points — detailed</div>
     ${pointsRows.map(r=>`
       <div class="row-card" style="align-items:center;"><div class="row-main"><h3>${esc(r.name)}</h3></div>
-      <b style="font-family:'IBM Plex Mono',monospace;color:var(--turmeric-dark);">${r.total} pts</b></div>`).join('')}
+      <b style="font-family:'Roboto Mono',monospace;color:var(--turmeric-dark);">${r.total} pts</b></div>`).join('')}
 
     <div class="modal-actions" style="margin-top:20px;">
       <button class="stamp-btn ghost" onclick="window.__exportReportCsv()">Export this report as CSV</button>
@@ -5621,7 +5654,7 @@ function renderAuditTab(body) {
                           <span class="stamp small" style="background:var(--paper);color:var(--turmeric-dark);font-weight:600;">${esc(l.action_type)}</span>
                         </div>
                         <div style="font-size:0.82rem;color:var(--ink);line-height:1.4;">${esc(l.details)}</div>
-                        <div style="font-size:0.72rem;color:var(--ink-soft);margin-top:4px;font-family:'IBM Plex Mono',monospace;">
+                        <div style="font-size:0.72rem;color:var(--ink-soft);margin-top:4px;font-family:'Roboto Mono',monospace;">
                           ${new Date(l.timestamp).toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'})}
                         </div>
                       </div>
@@ -5897,7 +5930,7 @@ function renderAccEntryHtml(existing){
     const secs = isFinite(unlockStatus.remainingMs) ? Math.floor((unlockStatus.remainingMs % 60000) / 1000) : 0;
     statusBanner = `<div style="background:var(--leaf-soft);color:var(--leaf);font-size:0.82rem;font-weight:600;padding:10px 14px;border-radius:8px;margin-bottom:14px;border:1px solid var(--leaf);display:flex;align-items:center;justify-content:space-between;">
       <span>✓ Edit Access Unlocked for ${accountsDate}!</span>
-      <span style="font-family:'IBM Plex Mono',monospace;background:var(--card);padding:3px 8px;border-radius:4px;border:1px solid var(--leaf);">⏱️ Closes in ${mins}m ${secs}s</span>
+      <span style="font-family:'Roboto Mono',monospace;background:var(--card);padding:3px 8px;border-radius:4px;border:1px solid var(--leaf);">⏱️ Closes in ${mins}m ${secs}s</span>
     </div>`;
   } else if(existing){
     statusBanner = `<div style="background:var(--leaf-soft);color:var(--leaf);font-size:0.78rem;font-weight:600;padding:8px 12px;border-radius:6px;margin-bottom:14px;">✓ Entry already saved for this day — editing will update it</div>`;
@@ -5924,7 +5957,7 @@ function renderAccEntryHtml(existing){
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;background:var(--paper);padding:8px 12px;border-radius:8px;border:1px solid var(--paper-line);">
         <button class="stamp-btn ghost small" onclick="window.__shiftAccDate(-1)">‹ Prev</button>
         <div style="text-align:center;">
-          <input type="date" id="accDateInput" value="${accountsDate}" style="font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:1.05rem;border:none;background:transparent;text-align:center;">
+          <input type="date" id="accDateInput" value="${accountsDate}" style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:1.05rem;border:none;background:transparent;text-align:center;">
           <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">${new Date(accountsDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</div>
         </div>
         <button class="stamp-btn ghost small" onclick="window.__shiftAccDate(1)">Next ›</button>
@@ -5961,12 +5994,12 @@ function renderAccEntryHtml(existing){
       <!-- Live Summary Bar Pinned Footer for Owner -->
       <div style="margin-top:16px;background:var(--card);border:2px solid var(--paper-line);border-radius:10px;padding:14px;box-shadow:0 4px 12px rgba(0,0,0,0.05);">
         <div class="two-col">
-          <div class="kv"><span>Calculated Total</span><b id="accSumTotal" style="font-family:'IBM Plex Mono',monospace;font-size:1.15rem;color:var(--turmeric-dark);">₹${totals.total.toFixed(0)}</b></div>
-          <div class="kv"><span>Total Sales</span><b style="font-family:'IBM Plex Mono',monospace;font-size:1.15rem;">₹${totals.totalSales.toFixed(0)}</b></div>
+          <div class="kv"><span>Calculated Total</span><b id="accSumTotal" style="font-family:'Roboto Mono',monospace;font-size:1.15rem;color:var(--turmeric-dark);">₹${totals.total.toFixed(0)}</b></div>
+          <div class="kv"><span>Total Sales</span><b style="font-family:'Roboto Mono',monospace;font-size:1.15rem;">₹${totals.totalSales.toFixed(0)}</b></div>
         </div>
         <div class="two-col" style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--paper-line);">
-          <div class="kv"><span>Excess (Surplus)</span><b id="accSumExcess" style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--leaf);">₹${totals.excess.toFixed(0)}</b></div>
-          <div class="kv"><span>Less (Shortage)</span><b id="accSumLess" style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--brick);">₹${totals.less.toFixed(0)}</b></div>
+          <div class="kv"><span>Excess (Surplus)</span><b id="accSumExcess" style="font-family:'Roboto Mono',monospace;font-weight:700;color:var(--leaf);">₹${totals.excess.toFixed(0)}</b></div>
+          <div class="kv"><span>Less (Shortage)</span><b id="accSumLess" style="font-family:'Roboto Mono',monospace;font-weight:700;color:var(--brick);">₹${totals.less.toFixed(0)}</b></div>
         </div>
 
         <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">
@@ -6076,7 +6109,7 @@ window.__openChooseStaffSmsModal = function(smsType) {
             <b style="font-size:0.88rem;color:var(--ink);">${esc(s.name)}</b>
             <span class="role-pill ${s.role}">${s.role}</span>
           </div>
-          <span style="font-family:'IBM Plex Mono',monospace;font-size:0.78rem;color:var(--ink-soft);">${esc(s.phone)}</span>
+          <span style="font-family:'Roboto Mono',monospace;font-size:0.78rem;color:var(--ink-soft);">${esc(s.phone)}</span>
         </label>
       `).join('')}
     </div>
@@ -6320,8 +6353,8 @@ function renderAccHistoryRows(records){
         <!-- Top Row: Date & Status Badge -->
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;">
           <div>
-            <b style="font-size:0.95rem;color:var(--ink);display:block;margin-bottom:2px;font-family:'Space Grotesk',sans-serif;">${datePretty}</b>
-<div style="font-size:0.78rem;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;">
+            <b style="font-size:0.95rem;color:var(--ink);display:block;margin-bottom:2px;font-family:'Roboto Mono',monospace;">${datePretty}</b>
+<div style="font-size:0.78rem;color:var(--ink-soft);font-family:'Roboto Mono',monospace;">
               Sales: ₹${Number(rec.total_sales||0).toFixed(0)} &bull; Total: ₹${Number(rec.total||0).toFixed(0)}
             </div>
           </div>
@@ -6347,7 +6380,7 @@ function renderAccHistoryRows(records){
               ${ACC_FIELDS.map(f => `
                 <div style="display:flex;justify-content:space-between;font-size:0.75rem;padding:3px 0;border-bottom:1px dashed var(--paper-line);">
                   <span style="color:var(--ink-soft);">${f.label}:</span>
-                  <span style="font-family:'IBM Plex Mono',monospace;font-weight:600;">₹${Number(rec[f.key]||0).toFixed(0)}</span>
+                  <span style="font-family:'Roboto Mono',monospace;font-weight:600;">₹${Number(rec[f.key]||0).toFixed(0)}</span>
                 </div>
               `).join('')}
             </div>
@@ -6494,6 +6527,39 @@ window.__printVendorBillReceipt = function(id) {
     <head>
         <title>Payment Voucher - ${esc(vNo)}</title>
       <style>
+
+  /* Global Roboto Mono Font & Uppercase Capitalization Styling */
+  body, button, input, select, textarea, h1, h2, h3, h4, .stamp-btn, .section-label, label, .stamp, .stat-card, .row-card, .leaderboard-card, .drawer-item, .bottom-nav button, .sidebar-item, .sidebar-section-title {
+    font-family: 'Roboto Mono', monospace, sans-serif !important;
+  }
+
+  h1, h2, h3, h4,
+  .section-label,
+  .stamp-btn,
+  .stamp,
+  label,
+  nav.tabs button,
+  .drawer-item,
+  .sidebar-item,
+  .sidebar-section-title,
+  .bottom-nav button,
+  .dash-kpi-title,
+  .dash-kpi-sub,
+  .stat-card .label,
+  .row-main h3,
+  .kv span,
+  .role-pill,
+  .owner-fab-item,
+  .owner-fab-btn,
+  .badge-chip,
+  .action-dropdown-menu button,
+  table th,
+  .modal h2,
+  .auth-card h1 {
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
         body { font-family: 'Courier New', Courier, monospace; margin: 30px; color: #111; background: #fff; }
         .voucher-box { border: 2px solid #000; padding: 24px; max-width: 700px; margin: 0 auto; }
         .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 16px; }
@@ -6548,7 +6614,7 @@ window.__printVendorBillReceipt = function(id) {
     top: 14px;
     right: 16px;
     z-index: 99999;
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'Roboto Mono', monospace;
     font-size: 0.72rem;
     font-weight: 700;
     padding: 4px 10px;
@@ -6873,12 +6939,12 @@ function renderVendorBillsTab(body) {
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
         <div>
           <span style="font-size:0.75rem;font-weight:700;color:var(--ink-soft);letter-spacing:0.04em;text-transform:uppercase;">Total Outstanding Balance</span>
-          <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.6rem;font-weight:800;color:var(--brick);margin:4px 0 0;">₹${totalUnpaidBalance.toLocaleString('en-IN')}</h2>
+          <h2 style="font-family:'Roboto Mono',monospace;font-size:1.6rem;font-weight:800;color:var(--brick);margin:4px 0 0;">₹${totalUnpaidBalance.toLocaleString('en-IN')}</h2>
           <div style="font-size:0.78rem;color:var(--ink-soft);margin-top:2px;">${unpaid.length} Pending Bills (${partial.length} Partially Paid)</div>
         </div>
         <div style="text-align:right;">
           <span style="font-size:0.72rem;font-weight:600;color:var(--leaf);display:block;">Settled Bills Total</span>
-          <b style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;color:var(--leaf);">₹${totalPaid.toLocaleString('en-IN')}</b>
+          <b style="font-family:'Roboto Mono',monospace;font-size:1.1rem;color:var(--leaf);">₹${totalPaid.toLocaleString('en-IN')}</b>
         </div>
       </div>
 
@@ -6961,8 +7027,8 @@ function renderVendorBillCard(b) {
             </div>
           `}
           <div>
-            <b style="font-size:1rem;color:var(--ink);display:block;margin-bottom:2px;font-family:'Space Grotesk',sans-serif;">${esc(getVendorName(b))}</b>
-            <div style="font-size:0.78rem;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;">
+            <b style="font-size:1rem;color:var(--ink);display:block;margin-bottom:2px;font-family:'Roboto Mono',monospace;">${esc(getVendorName(b))}</b>
+            <div style="font-size:0.78rem;color:var(--ink-soft);font-family:'Roboto Mono',monospace;">
               Bill No: <b>#${esc(getBillNo(b))}</b> &bull; Date: ${datePretty}
             </div>
             <div style="font-size:0.72rem;color:var(--ink-soft);margin-top:2px;">
@@ -6973,13 +7039,13 @@ function renderVendorBillCard(b) {
         
         <div style="text-align:right;flex-shrink:0;">
           <span class="stamp ${statusStampClass}" style="margin-bottom:4px;display:inline-block;">${statusStampText}</span>
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:0.95rem;font-weight:700;color:var(--ink);">
+          <div style="font-family:'Roboto Mono',monospace;font-size:0.95rem;font-weight:700;color:var(--ink);">
             Bill: <b>₹${amt.toLocaleString('en-IN')}</b>
           </div>
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:0.78rem;color:var(--leaf);">
+          <div style="font-family:'Roboto Mono',monospace;font-size:0.78rem;color:var(--leaf);">
             Paid: ₹${paidAmt.toLocaleString('en-IN')}
           </div>
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:0.82rem;font-weight:700;color:${balance>0?'var(--brick)':'var(--leaf)'};">
+          <div style="font-family:'Roboto Mono',monospace;font-size:0.82rem;font-weight:700;color:${balance>0?'var(--brick)':'var(--leaf)'};">
             Balance: ₹${balance.toLocaleString('en-IN')}
           </div>
         </div>
@@ -7441,7 +7507,7 @@ function renderLowStockTab(body) {
     <div class="row-card" style="flex-direction:column;align-items:stretch;background:var(--card);border:1.5px solid var(--paper-line);padding:14px;margin-bottom:16px;border-radius:12px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <div>
-          <h2 style="margin:0;font-size:1.05rem;color:var(--ink);font-family:'Space Grotesk',sans-serif;font-weight:700;">📦 Low Stock Alerts</h2>
+          <h2 style="margin:0;font-size:1.05rem;color:var(--ink);font-family:'Roboto Mono',monospace;font-weight:700;">📦 Low Stock Alerts</h2>
           <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">Track items running out & enter low stock reports</div>
         </div>
         <button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border:none;" onclick="window.__openLowStockModal()">+ Report Low Stock</button>
@@ -7499,7 +7565,7 @@ function renderLowStockTab(body) {
               ${item.created_at ? `<span>${item.created_at.slice(0,10)}</span>` : ''}
             </div>
             <h3><span class="status-dot ${status==='restocked'?'green':'red'}"></span>${esc(item.item_name)}</h3>
-            <div style="font-family:'IBM Plex Mono',monospace;font-size:0.85rem;font-weight:700;margin-top:4px;color:var(--ink);">
+            <div style="font-family:'Roboto Mono',monospace;font-size:0.85rem;font-weight:700;margin-top:4px;color:var(--ink);">
               Current Qty: <span style="color:${isCritical?'var(--brick)':'var(--turmeric-dark)'};">${item.current_qty} ${esc(item.unit||'Pcs')}</span>
               ${item.min_qty ? ` &bull; Min Required: ${item.min_qty} ${esc(item.unit||'Pcs')}` : ''}
             </div>
@@ -7741,7 +7807,7 @@ window.__showPaymentVoucherModal = function({ vendorName, bills, totalAmount, pa
           <button class="stamp-btn ghost small" style="color:#000;border-color:#ccc;font-size:0.8rem;padding:4px 10px;" onclick="window.__closePaymentVoucherModal()">✕ Close</button>
         </div>
         <div style="text-align:center;margin-bottom:18px;">
-          <h2 style="margin:0 0 4px;font-family:'Space Grotesk', sans-serif;font-size:1.3rem;font-weight:800;letter-spacing:0.02em;text-transform:uppercase;color:#000;">${esc(bizName)}</h2>
+          <h2 style="margin:0 0 4px;font-family:'Roboto Mono', monospace;font-size:1.3rem;font-weight:800;letter-spacing:0.02em;text-transform:uppercase;color:#000;">${esc(bizName)}</h2>
           <div style="font-size:0.75rem;font-weight:600;color:#333;margin-bottom:2px;">44, PALLIVASAL STREET, VADAGARAI, PERIYAKULAM. Pin code: 625601</div>
           <div style="font-size:0.75rem;font-weight:600;color:#333;">E-Mail : 0786mdanas@gmail.com</div>
           <h3 style="margin:12px 0 0;font-size:0.95rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid #000;display:inline-block;padding-bottom:2px;">Payment Voucher</h3>
@@ -7767,7 +7833,7 @@ window.__showPaymentVoucherModal = function({ vendorName, bills, totalAmount, pa
                 <b>Account:</b>
                 <div style="margin-left:24px;margin-top:4px;">
                   <b style="font-size:0.9rem;text-transform:uppercase;">${esc(vendorName)}</b>
-                  <div style="margin-top:6px;display:flex;flex-direction:column;gap:3px;font-family:'IBM Plex Mono', monospace;font-size:0.78rem;color:#111;">
+                  <div style="margin-top:6px;display:flex;flex-direction:column;gap:3px;font-family:'Roboto Mono', monospace;font-size:0.78rem;color:#111;">
                     ${bills.map(b => `
                       <div style="display:flex;gap:12px;">
                         <span>Agst Ref &nbsp;<b>${esc(getBillNo(b))}</b></span>
@@ -7777,7 +7843,7 @@ window.__showPaymentVoucherModal = function({ vendorName, bills, totalAmount, pa
                   </div>
                 </div>
               </td>
-              <td style="padding:8px 0 4px;vertical-align:top;text-align:right;font-family:'IBM Plex Mono', monospace;font-size:0.92rem;font-weight:700;">
+              <td style="padding:8px 0 4px;vertical-align:top;text-align:right;font-family:'Roboto Mono', monospace;font-size:0.92rem;font-weight:700;">
                 ₹ ${Number(totalAmount).toLocaleString('en-IN')}
               </td>
             </tr>
@@ -7797,7 +7863,7 @@ window.__showPaymentVoucherModal = function({ vendorName, bills, totalAmount, pa
           <div style="flex:1;padding-right:12px;font-style:italic;">
             <b>Amount (in words):</b> <span style="font-weight:600;">${wordsAmount}</span>
           </div>
-          <div style="border-left:1px solid #000;padding-left:12px;text-align:right;font-family:'IBM Plex Mono', monospace;font-size:1.05rem;font-weight:800;white-space:nowrap;">
+          <div style="border-left:1px solid #000;padding-left:12px;text-align:right;font-family:'Roboto Mono', monospace;font-size:1.05rem;font-weight:800;white-space:nowrap;">
             ₹ ${Number(totalAmount).toLocaleString('en-IN')}
           </div>
         </div>
@@ -7833,7 +7899,40 @@ window.__printPaymentVoucher = function() {
       <title>Payment Voucher</title>
       <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Inter:wght@400;600;700&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
       <style>
-        body { margin: 0; padding: 20px; font-family: 'Inter', sans-serif; color: #000; background: #fff; }
+
+  /* Global Roboto Mono Font & Uppercase Capitalization Styling */
+  body, button, input, select, textarea, h1, h2, h3, h4, .stamp-btn, .section-label, label, .stamp, .stat-card, .row-card, .leaderboard-card, .drawer-item, .bottom-nav button, .sidebar-item, .sidebar-section-title {
+    font-family: 'Roboto Mono', monospace, sans-serif !important;
+  }
+
+  h1, h2, h3, h4,
+  .section-label,
+  .stamp-btn,
+  .stamp,
+  label,
+  nav.tabs button,
+  .drawer-item,
+  .sidebar-item,
+  .sidebar-section-title,
+  .bottom-nav button,
+  .dash-kpi-title,
+  .dash-kpi-sub,
+  .stat-card .label,
+  .row-main h3,
+  .kv span,
+  .role-pill,
+  .owner-fab-item,
+  .owner-fab-btn,
+  .badge-chip,
+  .action-dropdown-menu button,
+  table th,
+  .modal h2,
+  .auth-card h1 {
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+        body { margin: 0; padding: 20px; font-family: 'Roboto Mono', monospace; color: #000; background: #fff; }
         @media print {
           body { padding: 0; }
           @page { margin: 15mm; size: auto; }
@@ -7872,7 +7971,7 @@ window.__printPaymentVoucher = function() {
     top: 14px;
     right: 16px;
     z-index: 99999;
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'Roboto Mono', monospace;
     font-size: 0.72rem;
     font-weight: 700;
     padding: 4px 10px;
@@ -8218,15 +8317,15 @@ window.__openVendorLedgerModal = function(vendorName) {
     <div style="background:var(--paper);border:1px solid var(--paper-line);border-radius:8px;padding:12px;margin-bottom:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center;">
       <div>
         <span style="font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;font-weight:700;">Total Billed</span>
-        <b style="display:block;font-family:'IBM Plex Mono',monospace;font-size:1.05rem;color:var(--ink);">₹${totalBilled.toLocaleString('en-IN')}</b>
+        <b style="display:block;font-family:'Roboto Mono',monospace;font-size:1.05rem;color:var(--ink);">₹${totalBilled.toLocaleString('en-IN')}</b>
       </div>
       <div>
         <span style="font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;font-weight:700;">Total Paid</span>
-        <b style="display:block;font-family:'IBM Plex Mono',monospace;font-size:1.05rem;color:var(--leaf);">₹${totalPaid.toLocaleString('en-IN')}</b>
+        <b style="display:block;font-family:'Roboto Mono',monospace;font-size:1.05rem;color:var(--leaf);">₹${totalPaid.toLocaleString('en-IN')}</b>
       </div>
       <div>
         <span style="font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;font-weight:700;">Outstanding</span>
-        <b style="display:block;font-family:'IBM Plex Mono',monospace;font-size:1.05rem;color:${outstanding>0?'var(--brick)':'var(--leaf)'};">₹${outstanding.toLocaleString('en-IN')}</b>
+        <b style="display:block;font-family:'Roboto Mono',monospace;font-size:1.05rem;color:${outstanding>0?'var(--brick)':'var(--leaf)'};">₹${outstanding.toLocaleString('en-IN')}</b>
       </div>
     </div>
 
@@ -8245,14 +8344,14 @@ window.__openVendorLedgerModal = function(vendorName) {
         <tbody>
           ${entries.length ? entries.map(e => `
             <tr style="border-bottom:1px solid var(--paper-line);">
-              <td style="padding:8px 10px;font-family:'IBM Plex Mono',monospace;">${e.date}</td>
+              <td style="padding:8px 10px;font-family:'Roboto Mono',monospace;">${e.date}</td>
               <td style="padding:8px 10px;">
                 <b style="color:${e.type==='BILL'?'var(--ink)':'var(--leaf)'};">${esc(e.ref)}</b>
                 ${e.notes ? `<div style="font-size:0.72rem;color:var(--ink-soft);">${esc(e.notes)}</div>` : ''}
               </td>
-              <td style="padding:8px 10px;text-align:right;font-family:'IBM Plex Mono',monospace;">${e.debit ? '₹'+e.debit.toLocaleString('en-IN') : '—'}</td>
-              <td style="padding:8px 10px;text-align:right;font-family:'IBM Plex Mono',monospace;color:var(--leaf);">${e.credit ? '₹'+e.credit.toLocaleString('en-IN') : '—'}</td>
-              <td style="padding:8px 10px;text-align:right;font-family:'IBM Plex Mono',monospace;font-weight:700;color:${e.balance>0?'var(--brick)':'var(--leaf)'};">₹${e.balance.toLocaleString('en-IN')}</td>
+              <td style="padding:8px 10px;text-align:right;font-family:'Roboto Mono',monospace;">${e.debit ? '₹'+e.debit.toLocaleString('en-IN') : '—'}</td>
+              <td style="padding:8px 10px;text-align:right;font-family:'Roboto Mono',monospace;color:var(--leaf);">${e.credit ? '₹'+e.credit.toLocaleString('en-IN') : '—'}</td>
+              <td style="padding:8px 10px;text-align:right;font-family:'Roboto Mono',monospace;font-weight:700;color:${e.balance>0?'var(--brick)':'var(--leaf)'};">₹${e.balance.toLocaleString('en-IN')}</td>
             </tr>
           `).join('') : `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--ink-soft);">No transactions found for this vendor.</td></tr>`}
         </tbody>
@@ -8277,7 +8376,40 @@ window.__printVendorStatement = function(vendorName) {
       <title>Statement - ${vendorName}</title>
       <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Inter:wght@400;600;700&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
       <style>
-        body { margin: 0; padding: 20px; font-family: 'Inter', sans-serif; color: #000; background: #fff; }
+
+  /* Global Roboto Mono Font & Uppercase Capitalization Styling */
+  body, button, input, select, textarea, h1, h2, h3, h4, .stamp-btn, .section-label, label, .stamp, .stat-card, .row-card, .leaderboard-card, .drawer-item, .bottom-nav button, .sidebar-item, .sidebar-section-title {
+    font-family: 'Roboto Mono', monospace, sans-serif !important;
+  }
+
+  h1, h2, h3, h4,
+  .section-label,
+  .stamp-btn,
+  .stamp,
+  label,
+  nav.tabs button,
+  .drawer-item,
+  .sidebar-item,
+  .sidebar-section-title,
+  .bottom-nav button,
+  .dash-kpi-title,
+  .dash-kpi-sub,
+  .stat-card .label,
+  .row-main h3,
+  .kv span,
+  .role-pill,
+  .owner-fab-item,
+  .owner-fab-btn,
+  .badge-chip,
+  .action-dropdown-menu button,
+  table th,
+  .modal h2,
+  .auth-card h1 {
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+        body { margin: 0; padding: 20px; font-family: 'Roboto Mono', monospace; color: #000; background: #fff; }
         .no-print { display: none !important; }
         table { width: 100%; border-collapse: collapse; margin-top: 14px; }
         th, td { border: 1px solid #ccc; padding: 8px; font-size: 0.85rem; }
@@ -8348,28 +8480,28 @@ window.__openRecordPaymentModal = function(billId) {
       </div>
       <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
         <span style="color:var(--ink-soft);">Bill No:</span>
-        <b style="font-family:'IBM Plex Mono',monospace;">#${esc(billNo)}</b>
+        <b style="font-family:'Roboto Mono',monospace;">#${esc(billNo)}</b>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
         <span style="color:var(--ink-soft);">Bill Amount:</span>
-        <b style="font-family:'IBM Plex Mono',monospace;">₹${billAmt.toLocaleString('en-IN')}</b>
+        <b style="font-family:'Roboto Mono',monospace;">₹${billAmt.toLocaleString('en-IN')}</b>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
         <span style="color:var(--ink-soft);">Already Paid:</span>
-        <b style="font-family:'IBM Plex Mono',monospace;color:var(--leaf);">₹${paidAmt.toLocaleString('en-IN')}</b>
+        <b style="font-family:'Roboto Mono',monospace;color:var(--leaf);">₹${paidAmt.toLocaleString('en-IN')}</b>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:0.95rem;padding-top:6px;border-top:1px dashed var(--paper-line);">
         <b style="color:var(--brick);">Outstanding Balance:</b>
-        <b style="font-family:'IBM Plex Mono',monospace;color:var(--brick);font-size:1.05rem;">₹${balance.toLocaleString('en-IN')}</b>
+        <b style="font-family:'Roboto Mono',monospace;color:var(--brick);font-size:1.05rem;">₹${balance.toLocaleString('en-IN')}</b>
       </div>
     </div>
 
     <label>Payment Amount (₹) *</label>
-    <input type="number" step="any" id="mSinglePayAmount" value="${balance}" placeholder="Enter amount paid" style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;font-weight:700;" oninput="window.__calcSinglePayRemaining(${balance})">
+    <input type="number" step="any" id="mSinglePayAmount" value="${balance}" placeholder="Enter amount paid" style="font-family:'Roboto Mono',monospace;font-size:1.1rem;font-weight:700;" oninput="window.__calcSinglePayRemaining(${balance})">
 
     <div style="margin-top:6px;font-size:0.82rem;font-weight:600;display:flex;justify-content:space-between;" id="mSinglePayRemainingDisp">
       <span>Remaining Balance after payment:</span>
-      <b style="color:var(--leaf);font-family:'IBM Plex Mono',monospace;">₹0</b>
+      <b style="color:var(--leaf);font-family:'Roboto Mono',monospace;">₹0</b>
     </div>
 
     <label style="margin-top:12px;">Payment Mode</label>
@@ -8399,7 +8531,7 @@ window.__calcSinglePayRemaining = function(balance) {
   const rem = Math.max(0, balance - payVal);
   disp.innerHTML = `
     <span>Remaining Balance after payment:</span>
-    <b style="color:${rem > 0 ? 'var(--brick)' : 'var(--leaf)'};font-family:'IBM Plex Mono',monospace;">₹${rem.toLocaleString('en-IN')}</b>
+    <b style="color:${rem > 0 ? 'var(--brick)' : 'var(--leaf)'};font-family:'Roboto Mono',monospace;">₹${rem.toLocaleString('en-IN')}</b>
   `;
 };
 
@@ -8510,7 +8642,7 @@ window.__openVendorPaymentHistoryModal = function(billId) {
     <div style="background:var(--paper);border:1px solid var(--paper-line);border-radius:8px;padding:10px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
       <div>
         <b style="font-size:0.9rem;">${esc(vendorName)}</b>
-        <div style="font-size:0.75rem;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;">Bill #${esc(billNo)} &bull; Total ₹${billAmt.toLocaleString('en-IN')}</div>
+        <div style="font-size:0.75rem;color:var(--ink-soft);font-family:'Roboto Mono',monospace;">Bill #${esc(billNo)} &bull; Total ₹${billAmt.toLocaleString('en-IN')}</div>
       </div>
       <div style="text-align:right;">
         <span class="stamp ${newStatusClass(getBillStatus(b))}">${getBillStatus(b).toUpperCase()}</span>
@@ -8524,7 +8656,7 @@ window.__openVendorPaymentHistoryModal = function(billId) {
         ${payments.map(p => `
           <div style="display:flex;justify-content:space-between;align-items:center;background:#fff;padding:10px 12px;border-radius:6px;border:1px solid var(--paper-line);font-size:0.82rem;">
             <div>
-              <b style="font-family:'IBM Plex Mono',monospace;color:var(--leaf);font-size:0.95rem;">₹${Number(p.amount||0).toLocaleString('en-IN')}</b>
+              <b style="font-family:'Roboto Mono',monospace;color:var(--leaf);font-size:0.95rem;">₹${Number(p.amount||0).toLocaleString('en-IN')}</b>
               <div style="font-size:0.72rem;color:var(--ink-soft);margin-top:2px;">
                 ${p.date} &bull; ${esc(p.payment_mode||'Cash')} &bull; By ${esc(staffName(p.created_by))}
               </div>
@@ -8537,8 +8669,8 @@ window.__openVendorPaymentHistoryModal = function(billId) {
     ` : `<div class="empty" style="padding:20px;">No individual payment logs recorded yet.</div>`}
 
     <div style="margin-top:14px;padding-top:10px;border-top:1px dashed var(--paper-line);display:flex;justify-content:space-between;align-items:center;font-size:0.88rem;">
-      <span>Total Paid: <b style="color:var(--leaf);font-family:'IBM Plex Mono',monospace;">₹${paidAmt.toLocaleString('en-IN')}</b></span>
-      <span>Balance: <b style="color:${balance > 0 ? 'var(--brick)' : 'var(--leaf)'};font-family:'IBM Plex Mono',monospace;">₹${balance.toLocaleString('en-IN')}</b></span>
+      <span>Total Paid: <b style="color:var(--leaf);font-family:'Roboto Mono',monospace;">₹${paidAmt.toLocaleString('en-IN')}</b></span>
+      <span>Balance: <b style="color:${balance > 0 ? 'var(--brick)' : 'var(--leaf)'};font-family:'Roboto Mono',monospace;">₹${balance.toLocaleString('en-IN')}</b></span>
     </div>
 
     <div class="modal-actions" style="margin-top:16px;">
@@ -8633,14 +8765,14 @@ window.__openBulkVendorSettlementModal = function() {
                 <input type="checkbox" class="mBulkBillCb" value="${b.id}" data-amount="${getBillAmount(b)}" checked onchange="window.__calcBulkVendorTotal()">
                 <span>Bill <b>#${esc(getBillNo(b))}</b> (${b.bill_date})</span>
               </label>
-              <b style="font-family:'IBM Plex Mono',monospace;color:var(--brick);">₹${getBillAmount(b).toFixed(0)}</b>
+              <b style="font-family:'Roboto Mono',monospace;color:var(--brick);">₹${getBillAmount(b).toFixed(0)}</b>
             </div>
           `).join('')}
         </div>
 
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px dashed var(--paper-line);">
           <span style="font-size:0.82rem;font-weight:700;">Total Settlement Amount:</span>
-          <b id="mBulkVendorTotalDisp" style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;color:var(--leaf);">₹${totalV.toFixed(0)}</b>
+          <b id="mBulkVendorTotalDisp" style="font-family:'Roboto Mono',monospace;font-size:1.1rem;color:var(--leaf);">₹${totalV.toFixed(0)}</b>
         </div>
       </div>
     `;
@@ -8798,7 +8930,7 @@ function renderAccCalendarHtml(){
           <span style="font-weight:700;font-size:0.8rem;color:${isToday?'var(--turmeric-dark)':'var(--ink)'}">${day}</span>
           ${rec && rec.is_checked ? '<span style="color:var(--leaf);font-size:0.65rem;">✓</span>' : ''}
         </div>
-        <div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;font-weight:700;color:${color};text-align:right;">
+        <div style="font-family:'Roboto Mono',monospace;font-size:0.65rem;font-weight:700;color:${color};text-align:right;">
           ${badgeText}
         </div>
       </div>
@@ -8811,7 +8943,7 @@ function renderAccCalendarHtml(){
         <h3 style="margin:0;font-size:1.05rem;color:var(--turmeric-dark);">Monthly Accounts Calendar</h3>
         <div style="display:flex;align-items:center;gap:6px;">
           <button class="stamp-btn ghost small" onclick="window.__shiftAccCalMonth(-1)">‹ Prev</button>
-          <input type="month" value="${curM}" onchange="accCalMonth=this.value;renderTabBody();" style="font-family:'IBM Plex Mono',monospace;font-weight:700;padding:4px 8px;border:1px solid var(--paper-line);border-radius:6px;">
+          <input type="month" value="${curM}" onchange="accCalMonth=this.value;renderTabBody();" style="font-family:'Roboto Mono',monospace;font-weight:700;padding:4px 8px;border:1px solid var(--paper-line);border-radius:6px;">
           <button class="stamp-btn ghost small" onclick="window.__shiftAccCalMonth(1)">Next ›</button>
         </div>
       </div>
@@ -8946,10 +9078,10 @@ function renderAccReportsHtml(){
           ${points.map(p => `
             <g>
               <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="var(--paper)" stroke="var(--turmeric-dark)" stroke-width="2.5"/>
-              <text x="${p.x}" y="${Math.max(16, p.y - 12)}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--turmeric-dark)" font-family="'IBM Plex Mono',monospace">
+              <text x="${p.x}" y="${Math.max(16, p.y - 12)}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--turmeric-dark)" font-family="'Roboto Mono',monospace">
                 ${p.val > 0 ? '₹' + (p.val >= 1000 ? Math.round(p.val/1000)+'k' : Math.round(p.val)) : ''}
               </text>
-              <text x="${p.x}" y="${height - 12}" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink-soft)" font-family="'IBM Plex Mono',monospace">
+              <text x="${p.x}" y="${height - 12}" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink-soft)" font-family="'Roboto Mono',monospace">
                 ${p.label}
               </text>
             </g>
@@ -8960,19 +9092,19 @@ function renderAccReportsHtml(){
       <div class="cards-grid" style="grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-top:16px;">
         <div style="background:var(--paper);padding:10px;border-radius:8px;text-align:center;">
           <div style="font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">Period Total Sales</div>
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:1.15rem;font-weight:700;color:var(--leaf);margin-top:2px;">₹${totalSalesPeriod.toFixed(0)}</div>
+          <div style="font-family:'Roboto Mono',monospace;font-size:1.15rem;font-weight:700;color:var(--leaf);margin-top:2px;">₹${totalSalesPeriod.toFixed(0)}</div>
         </div>
         <div style="background:var(--paper);padding:10px;border-radius:8px;text-align:center;">
           <div style="font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">Average Sales</div>
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:1.15rem;font-weight:700;color:var(--turmeric-dark);margin-top:2px;">₹${avgSalesPeriod.toFixed(0)}</div>
+          <div style="font-family:'Roboto Mono',monospace;font-size:1.15rem;font-weight:700;color:var(--turmeric-dark);margin-top:2px;">₹${avgSalesPeriod.toFixed(0)}</div>
         </div>
         <div style="background:var(--paper);padding:10px;border-radius:8px;text-align:center;">
           <div style="font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">Highest Sales</div>
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:1.15rem;font-weight:700;color:var(--purple);margin-top:2px;">₹${highestBucket.toFixed(0)}</div>
+          <div style="font-family:'Roboto Mono',monospace;font-size:1.15rem;font-weight:700;color:var(--purple);margin-top:2px;">₹${highestBucket.toFixed(0)}</div>
         </div>
         <div style="background:var(--paper);padding:10px;border-radius:8px;text-align:center;">
           <div style="font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">Days Recorded</div>
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:1.15rem;font-weight:700;color:var(--ink);margin-top:2px;">${cache.dailyAccounts.length} Days</div>
+          <div style="font-family:'Roboto Mono',monospace;font-size:1.15rem;font-weight:700;color:var(--ink);margin-top:2px;">${cache.dailyAccounts.length} Days</div>
         </div>
       </div>
     </div>
@@ -8993,17 +9125,17 @@ function renderAccReportsHtml(){
       <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:10px;margin-bottom:14px;">
         <div style="background:var(--paper);padding:10px;border-radius:8px;border:1px solid var(--paper-line);">
           <div style="font-size:0.7rem;color:var(--ink-soft);font-weight:700;text-transform:uppercase;">Digital / UPI Ratio</div>
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:1.15rem;font-weight:700;color:var(--turmeric-dark);margin-top:2px;">${digitalPct}%</div>
+          <div style="font-family:'Roboto Mono',monospace;font-size:1.15rem;font-weight:700;color:var(--turmeric-dark);margin-top:2px;">${digitalPct}%</div>
           <div style="font-size:0.68rem;color:var(--ink-soft);margin-top:2px;">GPay & Bank Receipts</div>
         </div>
         <div style="background:var(--paper);padding:10px;border-radius:8px;border:1px solid var(--paper-line);">
           <div style="font-size:0.7rem;color:var(--ink-soft);font-weight:700;text-transform:uppercase;">Credit Dependency</div>
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:1.15rem;font-weight:700;color:${creditPct>25?'var(--brick)':'var(--leaf)'};margin-top:2px;">${creditPct}%</div>
+          <div style="font-family:'Roboto Mono',monospace;font-size:1.15rem;font-weight:700;color:${creditPct>25?'var(--brick)':'var(--leaf)'};margin-top:2px;">${creditPct}%</div>
           <div style="font-size:0.68rem;color:var(--ink-soft);margin-top:2px;">${creditPct>25?'High Credit Risk':'Controlled Credit'}</div>
         </div>
         <div style="background:var(--paper);padding:10px;border-radius:8px;border:1px solid var(--paper-line);">
           <div style="font-size:0.7rem;color:var(--ink-soft);font-weight:700;text-transform:uppercase;">Total Shop Expenses</div>
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:1.15rem;font-weight:700;color:var(--brick);margin-top:2px;">₹${totExpAll.toFixed(0)}</div>
+          <div style="font-family:'Roboto Mono',monospace;font-size:1.15rem;font-weight:700;color:var(--brick);margin-top:2px;">₹${totExpAll.toFixed(0)}</div>
           <div style="font-size:0.68rem;color:var(--ink-soft);margin-top:2px;">Operational Cash Out</div>
         </div>
       </div>
@@ -9212,7 +9344,7 @@ window.__importAccExcel = async function(input) {
           ${cloudErrorCount > 0 ? `<div style="font-size:0.88rem;color:var(--brick);font-weight:700;">⚠️ Cloud Save Failures: ${cloudErrorCount}</div>` : ''}
         </div>
         ${failedLogs.length ? `
-          <div style="max-height:120px;overflow-y:auto;background:var(--brick-soft);padding:8px 10px;border-radius:6px;font-size:0.75rem;color:var(--brick);font-family:'IBM Plex Mono',monospace;margin-bottom:14px;">
+          <div style="max-height:120px;overflow-y:auto;background:var(--brick-soft);padding:8px 10px;border-radius:6px;font-size:0.75rem;color:var(--brick);font-family:'Roboto Mono',monospace;margin-bottom:14px;">
             ${failedLogs.map(l => `<div>${esc(l)}</div>`).join('')}
           </div>
         ` : ''}
@@ -9297,7 +9429,7 @@ window.__restoreAccJson = async function(input) {
           ${cloudErrorCount > 0 ? `<div style="font-size:0.88rem;color:var(--brick);font-weight:700;">⚠️ Cloud Save Failures: ${cloudErrorCount}</div>` : ''}
         </div>
         ${failedLogs.length ? `
-          <div style="max-height:120px;overflow-y:auto;background:var(--brick-soft);padding:8px 10px;border-radius:6px;font-size:0.75rem;color:var(--brick);font-family:'IBM Plex Mono',monospace;margin-bottom:14px;">
+          <div style="max-height:120px;overflow-y:auto;background:var(--brick-soft);padding:8px 10px;border-radius:6px;font-size:0.75rem;color:var(--brick);font-family:'Roboto Mono',monospace;margin-bottom:14px;">
             ${failedLogs.map(l => `<div>${esc(l)}</div>`).join('')}
           </div>
         ` : ''}
@@ -9621,7 +9753,7 @@ function renderSalaryTab(body){
       ${cache.salaries.length ? cache.salaries.map(sa=>`
         <div class="row-card" style="align-items:center;">
           <div class="row-main"><h3>${esc(staffName(sa.staff_id))}</h3><div class="meta"><span>${sa.paid_date}</span></div>${sa.notes?`<div class="notes">${esc(sa.notes)}</div>`:''}</div>
-          <b style="font-family:'IBM Plex Mono',monospace;">₹${Number(sa.amount).toFixed(0)}</b>
+          <b style="font-family:'Roboto Mono',monospace;">₹${Number(sa.amount).toFixed(0)}</b>
           <div class="action-dropdown-holder">
             <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${sa.id}')">More ▾</button>
             <div class="action-dropdown-menu" id="actionMenu_${sa.id}">
@@ -9650,8 +9782,8 @@ function renderSalaryTab(body){
                   <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">${payScheduleLabel(s)}</div>
                 </div>
                 <div style="text-align:right;">
-                  <div style="font-size:0.68rem;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;">ADVANCES THIS MONTH</div>
-                  <b style="font-size:1rem;color:${totalAdv > 0 ? 'var(--brick)' : 'var(--leaf)'};font-family:'IBM Plex Mono',monospace;">₹${totalAdv.toFixed(0)}</b>
+                  <div style="font-size:0.68rem;color:var(--ink-soft);font-family:'Roboto Mono',monospace;">ADVANCES THIS MONTH</div>
+                  <b style="font-size:1rem;color:${totalAdv > 0 ? 'var(--brick)' : 'var(--leaf)'};font-family:'Roboto Mono',monospace;">₹${totalAdv.toFixed(0)}</b>
                 </div>
               </div>
               ${staffAdvs.length ? `
@@ -9659,7 +9791,7 @@ function renderSalaryTab(body){
                   ${staffAdvs.map(a => `
                     <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">
                       <span>${a.date} (${esc(a.notes||'Advance')})</span>
-                      <span style="font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--brick);">₹${Number(a.amount).toFixed(0)}</span>
+                      <span style="font-family:'Roboto Mono',monospace;font-weight:600;color:var(--brick);">₹${Number(a.amount).toFixed(0)}</span>
                     </div>
                   `).join('')}
                 </div>
@@ -9677,7 +9809,7 @@ function renderSalaryTab(body){
             <div class="meta"><span>${a.date}</span></div>
             ${a.notes ? `<div class="notes">${esc(a.notes)}</div>` : ''}
           </div>
-          <b style="font-family:'IBM Plex Mono',monospace;color:var(--brick);">₹${Number(a.amount).toFixed(0)}</b>
+          <b style="font-family:'Roboto Mono',monospace;color:var(--brick);">₹${Number(a.amount).toFixed(0)}</b>
           <div class="action-dropdown-holder">
             <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${a.id}')">More ▾</button>
             <div class="action-dropdown-menu" id="actionMenu_${a.id}">
@@ -9841,7 +9973,7 @@ function renderAccountTab(body){
     
     <div class="row-card" style="flex-direction:column;align-items:center;text-align:center;padding:26px 16px;">
       <div class="avatar-circle ${rankClass(myRank)}" style="width:76px;height:76px;font-size:1.8rem;margin-bottom:10px;">${initials(s.name)}</div>
-      <h2 style="margin:0 0 4px;font-family:'Space Grotesk',sans-serif;">${esc(s.name)}</h2>
+      <h2 style="margin:0 0 4px;font-family:'Roboto Mono',monospace;">${esc(s.name)}</h2>
       <span class="role-pill ${s.role}">${s.role}</span>
     </div>
 
