@@ -4076,12 +4076,63 @@ function buildSalesReportHtml(){
   const max = Math.max(1, ...buckets.map(b=>b.total));
   const periodTotal = buckets.reduce((s,b)=>s+b.total,0);
   const avg = periodTotal / buckets.length;
-  const bars = buckets.map(b => `
-    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;">
-      <div style="font-size:0.62rem;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;">${b.total>0?'₹'+Math.round(b.total):''}</div>
-      <div style="width:100%;background:var(--turmeric);border-radius:4px 4px 0 0;height:${Math.max(3,(b.total/max)*110)}px;transition:height 0.3s ease;"></div>
-      <div style="font-size:0.6rem;color:var(--ink-soft);white-space:nowrap;transform:rotate(-40deg);transform-origin:top left;width:1px;">${b.label}</div>
-    </div>`).join('');
+
+  const width = 640;
+  const height = 180;
+  const paddingX = 36;
+  const paddingY = 28;
+
+  const points = buckets.map((b, i) => {
+    const x = paddingX + (i / Math.max(1, buckets.length - 1)) * (width - paddingX * 2);
+    const y = height - paddingY - (b.total / max) * (height - paddingY * 2);
+    return { x, y, val: b.total, label: b.label };
+  });
+
+  let pathD = '';
+  let areaD = '';
+  if (points.length > 0) {
+    pathD = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+      const prev = points[i - 1];
+      const curr = points[i];
+      const cx = (prev.x + curr.x) / 2;
+      pathD += ` C ${cx} ${prev.y}, ${cx} ${curr.y}, ${curr.x} ${curr.y}`;
+    }
+    areaD = pathD + ` L ${points[points.length - 1].x} ${height - paddingY} L ${points[0].x} ${height - paddingY} Z`;
+  }
+
+  const lineGraphHtml = `
+    <div style="position:relative;width:100%;overflow-x:auto;">
+      <svg viewBox="0 0 ${width} ${height}" style="width:100%;height:auto;min-width:320px;overflow:visible;">
+        <defs>
+          <linearGradient id="salesReportGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--turmeric)" stop-opacity="0.35"/>
+            <stop offset="100%" stop-color="var(--turmeric)" stop-opacity="0.0"/>
+          </linearGradient>
+        </defs>
+
+        <line x1="${paddingX}" y1="${paddingY}" x2="${width-paddingX}" y2="${paddingY}" stroke="var(--paper-line)" stroke-dasharray="3,3"/>
+        <line x1="${paddingX}" y1="${height/2}" x2="${width-paddingX}" y2="${height/2}" stroke="var(--paper-line)" stroke-dasharray="3,3"/>
+        <line x1="${paddingX}" y1="${height-paddingY}" x2="${width-paddingX}" y2="${height-paddingY}" stroke="var(--paper-line)"/>
+
+        ${areaD ? `<path d="${areaD}" fill="url(#salesReportGrad)"/>` : ''}
+        ${pathD ? `<path d="${pathD}" fill="none" stroke="var(--turmeric-dark)" stroke-width="3" stroke-linecap="round"/>` : ''}
+
+        ${points.map(p => `
+          <g>
+            <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="var(--paper)" stroke="var(--turmeric-dark)" stroke-width="2.5"/>
+            <text x="${p.x}" y="${Math.max(14, p.y - 10)}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--turmeric-dark)" font-family="'IBM Plex Mono',monospace">
+              ${p.val > 0 ? '₹' + (p.val >= 1000 ? Math.round(p.val/1000)+'k' : Math.round(p.val)) : ''}
+            </text>
+            <text x="${p.x}" y="${height - 8}" text-anchor="middle" font-size="10" font-weight="600" fill="var(--ink-soft)" font-family="'IBM Plex Mono',monospace">
+              ${p.label}
+            </text>
+          </g>
+        `).join('')}
+      </svg>
+    </div>
+  `;
+
   return `
     <div class="section-label">Sales report</div>
     <div class="row-card" style="flex-direction:column;align-items:stretch;">
@@ -4089,8 +4140,8 @@ function buildSalesReportHtml(){
         <button class="stamp-btn small ${mode==='weekly'?'':'ghost'}" onclick="window.__setSalesMode('weekly')">Weekly</button>
         <button class="stamp-btn small ${mode==='monthly'?'':'ghost'}" onclick="window.__setSalesMode('monthly')">Monthly</button>
       </div>
-      <div style="display:flex;align-items:flex-end;gap:4px;height:140px;padding-bottom:20px;overflow-x:auto;">${bars}</div>
-      <div class="two-col" style="margin-top:10px;">
+      ${lineGraphHtml}
+      <div class="two-col" style="margin-top:14px;">
         <div class="kv"><span>Total (${mode==='weekly'?'last 8 weeks':'last 6 months'})</span><b>₹${periodTotal.toFixed(0)}</b></div>
         <div class="kv"><span>${mode==='weekly'?'Weekly':'Monthly'} average</span><b>₹${avg.toFixed(0)}</b></div>
       </div>
