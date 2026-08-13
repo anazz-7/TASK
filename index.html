@@ -24,23 +24,31 @@
   }
 
   :root {
-    --paper: #FFFFFF;
-    --paper-line: #DCE6F5;
+    --paper: #F8FAFC;
+    --paper-line: #E2E8F0;
     --card: #FFFFFF;
-    --ink: #1E3A6E;
-    --ink-soft: #4B6584;
+    
+    /* Executive Black & Deep Slate */
+    --ink: #0F172A;
+    --ink-soft: #475569;
 
-    /* 2-Color Theme Mapping: Only Blue & White */
+    /* Signature Executive Blue */
     --turmeric: #1E3A6E;
     --turmeric-dark: #1E3A6E;
-    --leaf: #1E3A6E;
-    --leaf-soft: #F0F4FA;
-    --brick: #1E3A6E;
-    --brick-soft: #F0F4FA;
-    --amber-soft: #F0F4FA;
-    --blue-soft: #F0F4FA;
     --blue: #1E3A6E;
-    --purple-soft: #F0F4FA;
+    --blue-soft: #EFF6FF;
+
+    /* RED (Overdue / Warning / Deficit / Danger / Absent / Shortage) */
+    --brick: #DC2626;
+    --brick-soft: #FEE2E2;
+
+    /* GREEN (Revenue / Completed / Present / Surplus / Success) */
+    --leaf: #16A34A;
+    --leaf-soft: #DCFCE7;
+
+    /* Amber & Accent Tints */
+    --amber-soft: #FEF3C7;
+    --purple-soft: #EFF6FF;
     --purple: #1E3A6E;
     --radius: 10px;
   }
@@ -260,16 +268,17 @@
     line-height: 1;
   }
   
-  .stamp.pending, .stamp.sent, .stamp.done, .stamp.high, .stamp.medium, .stamp.low, .stamp.overdue-badge, .stamp.present, .stamp.absent, .stamp.unmarked {
-    color: var(--turmeric);
-    background: var(--blue-soft);
-    border-color: var(--turmeric);
-  }
+  .stamp.pending { color: var(--turmeric); background: var(--blue-soft); border-color: var(--turmeric); }
+  .stamp.sent { color: var(--blue); background: var(--blue-soft); border-color: var(--blue); }
+  .stamp.done, .stamp.present { color: var(--leaf); background: var(--leaf-soft); border-color: var(--leaf); }
+  .stamp.high, .stamp.overdue-badge, .stamp.absent { color: var(--brick); background: var(--brick-soft); border-color: var(--brick); }
+  .stamp.medium { color: #D97706; background: var(--amber-soft); border-color: #D97706; }
+  .stamp.low, .stamp.unmarked { color: var(--ink-soft); background: #F1F5F9; border-color: var(--paper-line); }
   
-  .row-card.overdue{border-color:var(--turmeric);border-width:1.5px;}
+  .row-card.overdue{border-color:var(--brick);border-width:1.5px;}
   .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle;flex-shrink:0;}
-  .status-dot.red{background:var(--turmeric);box-shadow:0 0 0 3px var(--blue-soft);}
-  .status-dot.green{background:var(--turmeric);box-shadow:0 0 0 3px var(--blue-soft);}
+  .status-dot.red{background:var(--brick);box-shadow:0 0 0 3px var(--brick-soft);}
+  .status-dot.green{background:var(--leaf);box-shadow:0 0 0 3px var(--leaf-soft);}
   
   .collapse-row{cursor:pointer;}
   .collapse-arrow{display:inline-block;transition:transform 0.2s ease;font-size:0.7rem;color:var(--ink-soft);margin-right:6px;}
@@ -278,8 +287,8 @@
   .icon-btn{border:none;background:none;cursor:pointer;font-size:0.82rem;padding:4px;color:var(--ink-soft);display:inline-flex;align-items:center;justify-content:center;}
   .wa-btn{background:var(--turmeric);color:#fff;border:none;border-radius:7px;padding:8px 12px;font-size:0.78rem;font-weight:700;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;text-transform:uppercase !important;}
   .attend-btn{border:1.5px solid var(--paper-line);background:#fff;border-radius:7px;padding:8px 12px;font-size:0.76rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;text-transform:uppercase !important;}
-  .attend-btn.present.active{background:var(--turmeric);border-color:var(--turmeric);color:#fff;}
-  .attend-btn.absent.active{background:var(--turmeric);border-color:var(--turmeric);color:#fff;}
+  .attend-btn.present.active{background:var(--leaf);border-color:var(--leaf);color:#fff;}
+  .attend-btn.absent.active{background:var(--brick);border-color:var(--brick);color:#fff;}
   .empty{text-align:center;padding:36px 20px;color:var(--ink-soft);font-size:0.85rem;border:1.5px dashed var(--paper-line);border-radius:var(--radius);text-transform:uppercase !important;}
   
   /* Modals */
