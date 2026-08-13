@@ -32,24 +32,24 @@
     --ink: #0F172A;
     --ink-soft: #475569;
 
-    /* Signature Executive Blue */
-    --turmeric: #1E3A6E;
-    --turmeric-dark: #1E3A6E;
-    --blue: #1E3A6E;
-    --blue-soft: #EFF6FF;
+    /* Signature Red & Accents */
+    --turmeric: #DC2626;
+    --turmeric-dark: #B91C1C;
+    --blue: #0F172A;
+    --blue-soft: #F1F5F9;
 
-    /* RED (Overdue / Warning / Deficit / Danger / Absent / Shortage) */
+    /* RED (Overdue / Danger / Shortage / Absent / Warning) */
     --brick: #DC2626;
     --brick-soft: #FEE2E2;
 
-    /* GREEN (Revenue / Completed / Present / Surplus / Success) */
-    --leaf: #16A34A;
-    --leaf-soft: #DCFCE7;
+    /* Neutral Black / Dark Slate */
+    --leaf: #0F172A;
+    --leaf-soft: #F1F5F9;
 
-    /* Amber & Accent Tints */
+    /* Tints */
     --amber-soft: #FEF3C7;
-    --purple-soft: #EFF6FF;
-    --purple: #1E3A6E;
+    --purple-soft: #F1F5F9;
+    --purple: #0F172A;
     --radius: 10px;
   }
 
@@ -268,12 +268,21 @@
     line-height: 1;
   }
   
-  .stamp.pending { color: var(--turmeric); background: var(--blue-soft); border-color: var(--turmeric); }
-  .stamp.sent { color: var(--blue); background: var(--blue-soft); border-color: var(--blue); }
-  .stamp.done, .stamp.present { color: var(--leaf); background: var(--leaf-soft); border-color: var(--leaf); }
-  .stamp.high, .stamp.overdue-badge, .stamp.absent { color: var(--brick); background: var(--brick-soft); border-color: var(--brick); }
-  .stamp.medium { color: #D97706; background: var(--amber-soft); border-color: #D97706; }
-  .stamp.low, .stamp.unmarked { color: var(--ink-soft); background: #F1F5F9; border-color: var(--paper-line); }
+  .stamp.pending, .stamp.sent, .stamp.done, .stamp.present, .stamp.low, .stamp.unmarked {
+    color: #0F172A;
+    background: #F1F5F9;
+    border-color: #0F172A;
+  }
+  .stamp.high, .stamp.overdue-badge, .stamp.absent {
+    color: #DC2626;
+    background: #FEE2E2;
+    border-color: #DC2626;
+  }
+  .stamp.medium {
+    color: #DC2626;
+    background: #FEE2E2;
+    border-color: #DC2626;
+  }
   
   .row-card.overdue{border-color:var(--brick);border-width:1.5px;}
   .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle;flex-shrink:0;}
@@ -482,7 +491,7 @@
       background: var(--turmeric) !important;
       color: #FFFFFF !important;
       font-weight: 700;
-      box-shadow: 0 4px 12px rgba(30, 58, 110, 0.22) !important;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.22) !important;
     }
 
     .sidebar-item .ic {
@@ -697,7 +706,7 @@
     font-family: 'Roboto Mono', monospace !important;
     font-size: 0.78rem;
     font-weight: 700;
-    box-shadow: 0 4px 14px rgba(30,58,110,0.3);
+    box-shadow: 0 4px 14px rgba(220,38,38,0.3);
     cursor: pointer;
     z-index: 44;
     transition: all 0.2s ease;
@@ -760,7 +769,7 @@
     left: 0;
     width: 0%;
     height: 3px;
-    background: linear-gradient(90deg, #F59E0B, #10B981, #3B82F6, #F59E0B);
+    background: linear-gradient(90deg, #F59E0B, #10B981, #0F172A, #F59E0B);
     background-size: 200% 100%;
     z-index: 100000;
     transition: width 0.3s ease, opacity 0.3s ease;
@@ -1241,7 +1250,7 @@ window.showToast = function(msg, type = 'success', duration = 3000) {
   }
 
   const icons = { success: '✓', error: '⚠', info: 'ℹ', warning: '⚡' };
-  const bgColors = { success: '#0D8A63', error: '#C0362C', info: '#1E3A6E', warning: '#DD6B20' };
+  const bgColors = { success: '#0D8A63', error: '#C0362C', info: '#0F172A', warning: '#DD6B20' };
 
   const toast = document.createElement('div');
   toast.style.cssText = `
@@ -1283,7 +1292,7 @@ window.__showAppAlert = function({ title, message, type = 'info', buttonText = '
   const typeIcons = {
     error: `<div style="width:48px;height:48px;border-radius:50%;background:rgba(192,54,44,0.15);color:#C0362C;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:1.4rem;">⚠</div>`,
     success: `<div style="width:48px;height:48px;border-radius:50%;background:rgba(13,138,99,0.15);color:#0D8A63;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:1.4rem;">✓</div>`,
-    info: `<div style="width:48px;height:48px;border-radius:50%;background:rgba(30,58,110,0.15);color:#1E3A6E;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:1.4rem;">ℹ</div>`
+    info: `<div style="width:48px;height:48px;border-radius:50%;background:rgba(30,58,110,0.15);color:#0F172A;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:1.4rem;">ℹ</div>`
   };
 
   const html = `
@@ -2604,8 +2613,8 @@ function buildAccountsSalesReportHtml(){
         <svg viewBox="0 0 ${width} ${height}" style="width:100%;max-height:150px;min-width:320px;overflow:visible;">
           <defs>
             <linearGradient id="dashAccGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="var(--turmeric)" stop-opacity="0.35"/>
-              <stop offset="100%" stop-color="var(--turmeric)" stop-opacity="0.0"/>
+              <stop offset="0%" stop-color="#DC2626" stop-opacity="0.35"/>
+              <stop offset="100%" stop-color="#DC2626" stop-opacity="0.0"/>
             </linearGradient>
           </defs>
 
@@ -2614,11 +2623,11 @@ function buildAccountsSalesReportHtml(){
           <line x1="${padding}" y1="${height-18}" x2="${width-padding}" y2="${height-18}" stroke="var(--paper-line)"/>
 
           ${areaD ? `<path d="${areaD}" fill="url(#dashAccGrad)"/>` : ''}
-          ${pathD ? `<path d="${pathD}" fill="none" stroke="var(--turmeric-dark)" stroke-width="3" stroke-linecap="round"/>` : ''}
+          ${pathD ? `<path d="${pathD}" fill="none" stroke="#DC2626" stroke-width="3" stroke-linecap="round"/>` : ''}
 
           ${points.map(p => `
             <g>
-              <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="var(--paper)" stroke="var(--turmeric-dark)" stroke-width="2.5"/>
+              <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="var(--paper)" stroke="#DC2626" stroke-width="2.5"/>
               <text x="${p.x}" y="${p.y - 8}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink)" font-family="'Roboto Mono',monospace">
                 ${p.val > 0 ? '₹' + (p.val >= 1000 ? Math.round(p.val/1000)+'k' : Math.round(p.val)) : ''}
               </text>
@@ -3905,8 +3914,8 @@ function buildSalesReportHtml(){
       <svg viewBox="0 0 ${width} ${height}" style="width:100%;height:auto;min-width:320px;overflow:visible;">
         <defs>
           <linearGradient id="salesReportGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="var(--turmeric)" stop-opacity="0.35"/>
-            <stop offset="100%" stop-color="var(--turmeric)" stop-opacity="0.0"/>
+            <stop offset="0%" stop-color="#DC2626" stop-opacity="0.35"/>
+            <stop offset="100%" stop-color="#DC2626" stop-opacity="0.0"/>
           </linearGradient>
         </defs>
 
@@ -3915,11 +3924,11 @@ function buildSalesReportHtml(){
         <line x1="${paddingX}" y1="${height-paddingY}" x2="${width-paddingX}" y2="${height-paddingY}" stroke="var(--paper-line)"/>
 
         ${areaD ? `<path d="${areaD}" fill="url(#salesReportGrad)"/>` : ''}
-        ${pathD ? `<path d="${pathD}" fill="none" stroke="var(--turmeric-dark)" stroke-width="3" stroke-linecap="round"/>` : ''}
+        ${pathD ? `<path d="${pathD}" fill="none" stroke="#DC2626" stroke-width="3" stroke-linecap="round"/>` : ''}
 
         ${points.map(p => `
           <g>
-            <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="var(--paper)" stroke="var(--turmeric-dark)" stroke-width="2.5"/>
+            <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="var(--paper)" stroke="#DC2626" stroke-width="2.5"/>
             <text x="${p.x}" y="${Math.max(14, p.y - 10)}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--turmeric-dark)" font-family="'Roboto Mono',monospace">
               ${p.val > 0 ? '₹' + (p.val >= 1000 ? Math.round(p.val/1000)+'k' : Math.round(p.val)) : ''}
             </text>
@@ -4069,8 +4078,8 @@ function buildQtyGraphHtml(items, mode, setModeGlobalName, unitLabel, valueField
       <svg viewBox="0 0 ${width} ${height}" style="width:100%;height:auto;display:block;min-width:320px;">
         <defs>
           <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="var(--turmeric)" stop-opacity="0.35"/>
-            <stop offset="100%" stop-color="var(--turmeric)" stop-opacity="0.0"/>
+            <stop offset="0%" stop-color="#DC2626" stop-opacity="0.35"/>
+            <stop offset="100%" stop-color="#DC2626" stop-opacity="0.0"/>
           </linearGradient>
         </defs>
         <!-- Horizontal Gridlines -->
@@ -4555,7 +4564,7 @@ window.__setPointsTabMode = (m) => { pointsTabMode = m; renderTabBody(); };
 function getStaffLevel(pts){
   if(pts >= 1000) return { level: 5, title: 'Legend', min: 1000, next: 2500, color: 'var(--turmeric-dark)' };
   if(pts >= 500) return { level: 4, title: 'Master Specialist', min: 500, next: 1000, color: '#8B5CF6' };
-  if(pts >= 250) return { level: 3, title: 'Pro Performer', min: 250, next: 500, color: '#3B82F6' };
+  if(pts >= 250) return { level: 3, title: 'Pro Performer', min: 250, next: 500, color: '#0F172A' };
   if(pts >= 100) return { level: 2, title: 'Achiever', min: 100, next: 250, color: '#10B981' };
   return { level: 1, title: 'Rookie', min: 0, next: 100, color: '#64748B' };
 }
@@ -6366,7 +6375,7 @@ window.__printVendorBillReceipt = function(id) {
     left: 0;
     width: 0%;
     height: 3px;
-    background: linear-gradient(90deg, #F59E0B, #10B981, #3B82F6, #F59E0B);
+    background: linear-gradient(90deg, #F59E0B, #10B981, #0F172A, #F59E0B);
     background-size: 200% 100%;
     z-index: 100000;
     transition: width 0.3s ease, opacity 0.3s ease;
@@ -7723,7 +7732,7 @@ window.__printPaymentVoucher = function() {
     left: 0;
     width: 0%;
     height: 3px;
-    background: linear-gradient(90deg, #F59E0B, #10B981, #3B82F6, #F59E0B);
+    background: linear-gradient(90deg, #F59E0B, #10B981, #0F172A, #F59E0B);
     background-size: 200% 100%;
     z-index: 100000;
     transition: width 0.3s ease, opacity 0.3s ease;
@@ -8841,8 +8850,8 @@ function renderAccReportsHtml(){
         <svg viewBox="0 0 ${width} ${height}" style="width:100%;height:auto;min-width:320px;overflow:visible;">
           <defs>
             <linearGradient id="accLineGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="var(--turmeric)" stop-opacity="0.35"/>
-              <stop offset="100%" stop-color="var(--turmeric)" stop-opacity="0.0"/>
+              <stop offset="0%" stop-color="#DC2626" stop-opacity="0.35"/>
+              <stop offset="100%" stop-color="#DC2626" stop-opacity="0.0"/>
             </linearGradient>
           </defs>
 
@@ -8851,11 +8860,11 @@ function renderAccReportsHtml(){
           <line x1="${padding}" y1="${height-padding}" x2="${width-padding}" y2="${height-padding}" stroke="var(--paper-line)"/>
 
           ${areaD ? `<path d="${areaD}" fill="url(#accLineGrad)"/>` : ''}
-          ${pathD ? `<path d="${pathD}" fill="none" stroke="var(--turmeric-dark)" stroke-width="3" stroke-linecap="round"/>` : ''}
+          ${pathD ? `<path d="${pathD}" fill="none" stroke="#DC2626" stroke-width="3" stroke-linecap="round"/>` : ''}
 
           ${points.map(p => `
             <g>
-              <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="var(--paper)" stroke="var(--turmeric-dark)" stroke-width="2.5"/>
+              <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="var(--paper)" stroke="#DC2626" stroke-width="2.5"/>
               <text x="${p.x}" y="${Math.max(16, p.y - 12)}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--turmeric-dark)" font-family="'Roboto Mono',monospace">
                 ${p.val > 0 ? '₹' + (p.val >= 1000 ? Math.round(p.val/1000)+'k' : Math.round(p.val)) : ''}
               </text>
