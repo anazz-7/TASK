@@ -23,15 +23,26 @@
     letter-spacing: 0.03em;
   }
 
-  :root{
-    --paper:#EEF2F7; --paper-line:#D7E0EA; --card:#FFFFFF;
-    --ink:#14213B; --ink-soft:#5C6B85;
-    --turmeric:#1E3A6E; --turmeric-dark:#122647;
-    --leaf:#0D8A63; --leaf-soft:#E1F7EE;
-    --brick:#C0362C; --brick-soft:#FBEAE8;
-    --amber-soft:#E3ECFB; --blue-soft:#E7F0FE; --blue:#2F6FED;
-    --purple-soft:#ECE9FB; --purple:#5B4FC4;
-    --radius:10px;
+  :root {
+    --paper: #FFFFFF;
+    --paper-line: #DCE6F5;
+    --card: #FFFFFF;
+    --ink: #1E3A6E;
+    --ink-soft: #4B6584;
+
+    /* 2-Color Theme Mapping: Only Blue & White */
+    --turmeric: #1E3A6E;
+    --turmeric-dark: #1E3A6E;
+    --leaf: #1E3A6E;
+    --leaf-soft: #F0F4FA;
+    --brick: #1E3A6E;
+    --brick-soft: #F0F4FA;
+    --amber-soft: #F0F4FA;
+    --blue-soft: #F0F4FA;
+    --blue: #1E3A6E;
+    --purple-soft: #F0F4FA;
+    --purple: #1E3A6E;
+    --radius: 10px;
   }
 
   *{box-sizing:border-box;}
@@ -249,31 +260,26 @@
     line-height: 1;
   }
   
-  .stamp.pending{color:var(--turmeric-dark);background:var(--amber-soft);}
-  .stamp.sent{color:var(--blue);background:var(--blue-soft);}
-  .stamp.done{color:var(--leaf);background:var(--leaf-soft);}
-  .stamp.high{color:var(--brick);background:var(--brick-soft);}
-  .stamp.medium{color:var(--turmeric-dark);background:var(--amber-soft);}
-  .stamp.low{color:var(--ink-soft);background:#EDEAE0;}
-  .stamp.overdue-badge{color:#fff;background:var(--brick);border-color:var(--brick);}
-  .stamp.present{color:var(--leaf);background:var(--leaf-soft);}
-  .stamp.absent{color:var(--brick);background:var(--brick-soft);}
-  .stamp.unmarked{color:var(--ink-soft);background:#EDEAE0;}
+  .stamp.pending, .stamp.sent, .stamp.done, .stamp.high, .stamp.medium, .stamp.low, .stamp.overdue-badge, .stamp.present, .stamp.absent, .stamp.unmarked {
+    color: var(--turmeric);
+    background: var(--blue-soft);
+    border-color: var(--turmeric);
+  }
   
-  .row-card.overdue{border-color:var(--brick);border-width:1.5px;}
+  .row-card.overdue{border-color:var(--turmeric);border-width:1.5px;}
   .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle;flex-shrink:0;}
-  .status-dot.red{background:var(--brick);box-shadow:0 0 0 3px var(--brick-soft);}
-  .status-dot.green{background:var(--leaf);box-shadow:0 0 0 3px var(--leaf-soft);}
+  .status-dot.red{background:var(--turmeric);box-shadow:0 0 0 3px var(--blue-soft);}
+  .status-dot.green{background:var(--turmeric);box-shadow:0 0 0 3px var(--blue-soft);}
   
   .collapse-row{cursor:pointer;}
   .collapse-arrow{display:inline-block;transition:transform 0.2s ease;font-size:0.7rem;color:var(--ink-soft);margin-right:6px;}
   .collapse-arrow.open{transform:rotate(90deg);}
   .row-actions{display:flex;flex-direction:column;gap:6px;align-items:stretch;}
   .icon-btn{border:none;background:none;cursor:pointer;font-size:0.82rem;padding:4px;color:var(--ink-soft);display:inline-flex;align-items:center;justify-content:center;}
-  .wa-btn{background:var(--leaf);color:#fff;border:none;border-radius:7px;padding:8px 12px;font-size:0.78rem;font-weight:700;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;text-transform:uppercase !important;}
+  .wa-btn{background:var(--turmeric);color:#fff;border:none;border-radius:7px;padding:8px 12px;font-size:0.78rem;font-weight:700;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;text-transform:uppercase !important;}
   .attend-btn{border:1.5px solid var(--paper-line);background:#fff;border-radius:7px;padding:8px 12px;font-size:0.76rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;text-transform:uppercase !important;}
-  .attend-btn.present.active{background:var(--leaf);border-color:var(--leaf);color:#fff;}
-  .attend-btn.absent.active{background:var(--brick);border-color:var(--brick);color:#fff;}
+  .attend-btn.present.active{background:var(--turmeric);border-color:var(--turmeric);color:#fff;}
+  .attend-btn.absent.active{background:var(--turmeric);border-color:var(--turmeric);color:#fff;}
   .empty{text-align:center;padding:36px 20px;color:var(--ink-soft);font-size:0.85rem;border:1.5px dashed var(--paper-line);border-radius:var(--radius);text-transform:uppercase !important;}
   
   /* Modals */
@@ -321,7 +327,7 @@
   .auth-card{background:var(--card);border:1px solid var(--paper-line);border-radius:14px;padding:28px 22px;max-width:380px;width:100%;}
   .auth-card h1{font-family:'Roboto Mono',monospace !important;font-size:1.3rem;margin:0 0 6px;text-transform:uppercase !important;}
   .auth-card p{color:var(--ink-soft);font-size:0.82rem;margin:0 0 18px;text-transform:uppercase !important;}
-  .err{color:var(--brick);font-size:0.8rem;margin-top:10px;text-transform:uppercase !important;}
+  .err{color:var(--turmeric);font-size:0.8rem;margin-top:10px;text-transform:uppercase !important;}
   
   .kv {
     display: flex;
@@ -336,7 +342,7 @@
   
   .kv b{font-family:'Roboto Mono',monospace !important;font-weight:700;}
   .role-pill{font-family:'Roboto Mono',monospace !important;font-size:0.65rem;text-transform:uppercase !important;background:var(--ink);color:var(--paper);padding:3px 8px;border-radius:999px;margin-left:6px;display:inline-flex;align-items:center;justify-content:center;}
-  .role-pill.owner{background:var(--purple);}
+  .role-pill.owner{background:var(--turmeric);}
   a.link{color:var(--turmeric-dark);font-weight:700;cursor:pointer;text-decoration:none;font-size:0.85rem;text-transform:uppercase !important;}
   
   .stat-grid {
@@ -361,12 +367,12 @@
   .stat-card .label{font-family:'Roboto Mono',monospace !important;font-size:0.65rem;text-transform:uppercase !important;color:var(--ink-soft);letter-spacing:0.04em;}
   
   .avatar-circle{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Roboto Mono',monospace !important;font-weight:700;font-size:1rem;color:#fff;flex-shrink:0;background:var(--ink);text-transform:uppercase !important;}
-  .avatar-circle.gold{background:linear-gradient(135deg,#E8B84B,#B5761C);}
-  .avatar-circle.silver{background:linear-gradient(135deg,#C7CDD6,#8B92A0);}
-  .avatar-circle.bronze{background:linear-gradient(135deg,#D0906A,#9C5A34);}
+  .avatar-circle.gold{background:var(--turmeric);}
+  .avatar-circle.silver{background:var(--turmeric);}
+  .avatar-circle.bronze{background:var(--turmeric);}
   
   .leaderboard-card{background:var(--card);border:1px solid var(--paper-line);border-radius:12px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;animation:fadeInUp 0.3s ease;}
-  .leaderboard-card.top{background:linear-gradient(135deg, var(--amber-soft), var(--card));border-color:var(--turmeric);}
+  .leaderboard-card.top{background:linear-gradient(135deg, var(--blue-soft), var(--card));border-color:var(--turmeric);}
   .leaderboard-card.me{border-color:var(--turmeric);border-width:2px;}
   .leaderboard-rank{font-family:'Roboto Mono',monospace !important;font-weight:700;color:var(--ink-soft);font-size:0.85rem;width:22px;text-align:center;flex-shrink:0;}
   .leaderboard-name{font-weight:700;font-size:0.95rem;text-transform:uppercase !important;}
@@ -390,7 +396,7 @@
   @media (min-width: 900px) { #offlineSyncStatusBanner { bottom: 0; } }
   
   .header-icon-btn{background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--ink);padding:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center;}
-  .badge-chip{display:inline-flex;align-items:center;gap:5px;background:var(--amber-soft);border:1px solid var(--turmeric);color:var(--turmeric-dark);padding:6px 11px;border-radius:999px;font-size:0.75rem;font-weight:700;margin:0 6px 6px 0;text-transform:uppercase !important;}
+  .badge-chip{display:inline-flex;align-items:center;gap:5px;background:var(--blue-soft);border:1px solid var(--turmeric);color:var(--turmeric-dark);padding:6px 11px;border-radius:999px;font-size:0.75rem;font-weight:700;margin:0 6px 6px 0;text-transform:uppercase !important;}
   .celebrate-banner{position:fixed;top:22%;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:14px 26px;border-radius:14px;font-family:'Roboto Mono',monospace !important;font-weight:700;font-size:1.1rem;z-index:300;box-shadow:0 10px 30px rgba(0,0,0,0.35);animation:celebratePop 0.35s ease, celebrateFade 0.4s ease 1.25s forwards;text-transform:uppercase !important;}
   @keyframes celebratePop{from{transform:translateX(-50%) scale(0.6);opacity:0;}to{transform:translateX(-50%) scale(1);opacity:1;}}
   @keyframes celebrateFade{to{opacity:0;transform:translateX(-50%) scale(0.92);}}
@@ -609,7 +615,7 @@
   }
 
   .action-dropdown-menu button.danger {
-    color: var(--brick);
+    color: var(--turmeric);
   }
 
   /* Owner Quick Access Floating FAB Alignment */
@@ -690,9 +696,9 @@
 
   /* Due Badges & Density Overrides */
   .due-badge-overdue {
-    background: var(--brick-soft);
-    color: var(--brick);
-    border: 1px solid var(--brick);
+    background: var(--blue-soft);
+    color: var(--turmeric);
+    border: 1px solid var(--turmeric);
     font-size: 0.68rem;
     font-weight: 700;
     padding: 2px 7px;
@@ -703,7 +709,7 @@
     text-transform: uppercase !important;
   }
   .due-badge-warning {
-    background: var(--amber-soft);
+    background: var(--blue-soft);
     color: var(--turmeric-dark);
     border: 1px solid var(--turmeric);
     font-size: 0.68rem;
@@ -2136,7 +2142,7 @@ function renderShell(){
       <div class="drawer-item" onclick="window.__triggerPwaInstall()"><span class="ic">${icon('save',18)}</span>Install App</div>
       <div class="drawer-item" onclick="window.__openAccount()"><span class="ic">${icon('user',18)}</span>My Account</div>
       ${notifState==='default' ? `<div class="drawer-item" onclick="window.__reqNotif()"><span class="ic">${icon('bell',18)}</span>Enable alerts</div>` : ''}
-      <div class="drawer-item" style="color:var(--brick);" onclick="window.__logout()"><span class="ic">${icon('logout',18)}</span>Sign out</div>
+      <div class="drawer-item" style="color:var(--turmeric);" onclick="window.__logout()"><span class="ic">${icon('logout',18)}</span>Sign out</div>
     </div>
   </div>
 
@@ -2273,13 +2279,13 @@ function buildDashboardVendorBillsHtml() {
 
   return `
     <div class="section-label">Unpaid Vendor Bills Due (${unpaid.length}) <a onclick="window.__setTab('vendors')">View All &rarr;</a></div>
-    <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px;margin-bottom:16px;border-left:4px solid var(--brick);">
+    <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px;margin-bottom:16px;border-left:4px solid var(--turmeric);">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
         <div>
-          <b style="font-size:0.95rem;color:var(--brick);">Total Payable to Suppliers</b>
+          <b style="font-size:0.95rem;color:var(--turmeric);">Total Payable to Suppliers</b>
           <div style="font-size:0.75rem;color:var(--ink-soft);">${unpaid.length} Pending Bills Awaiting Payment</div>
         </div>
-        <b style="font-family:'Roboto Mono',monospace;font-size:1.25rem;color:var(--brick);">₹${totalUnpaid.toFixed(0)}</b>
+        <b style="font-family:'Roboto Mono',monospace;font-size:1.25rem;color:var(--turmeric);">₹${totalUnpaid.toFixed(0)}</b>
       </div>
 
       <div style="display:flex;flex-direction:column;gap:8px;">
@@ -2290,8 +2296,8 @@ function buildDashboardVendorBillsHtml() {
               <div style="font-size:0.75rem;color:var(--ink-soft);font-family:'Roboto Mono',monospace;">Bill #${esc(getBillNo(b))} ${b.due_date ? '&bull; Due: ' + b.due_date : ''}</div>
             </div>
             <div style="display:flex;align-items:center;gap:8px;">
-              <b style="font-family:'Roboto Mono',monospace;font-size:0.95rem;color:var(--brick);">₹${getBillAmount(b).toFixed(0)}</b>
-              ${isOwner() ? `<button class="stamp-btn small" style="background:var(--leaf);color:#fff;border-color:var(--leaf);padding:4px 8px;font-size:0.72rem;" onclick="window.__markVendorBillPaid('${b.id}')">✓ Pay</button>` : ''}
+              <b style="font-family:'Roboto Mono',monospace;font-size:0.95rem;color:var(--turmeric);">₹${getBillAmount(b).toFixed(0)}</b>
+              ${isOwner() ? `<button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border-color:var(--turmeric);padding:4px 8px;font-size:0.72rem;" onclick="window.__markVendorBillPaid('${b.id}')">✓ Pay</button>` : ''}
             </div>
           </div>
         `).join('')}
@@ -2312,7 +2318,7 @@ function buildDashboardActivityFeedHtml() {
       <div style="display:flex;flex-direction:column;gap:10px;">
         ${recent.map(item => `
           <div style="display:flex;align-items:flex-start;gap:10px;padding-bottom:8px;border-bottom:1px dashed var(--paper-line);">
-            <div style="width:28px;height:28px;border-radius:50%;background:var(--amber-soft);color:var(--turmeric-dark);display:flex;align-items:center;justify-content:center;font-size:0.75rem;flex-shrink:0;font-weight:700;">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--blue-soft);color:var(--turmeric-dark);display:flex;align-items:center;justify-content:center;font-size:0.75rem;flex-shrink:0;font-weight:700;">
               ⚡
             </div>
             <div style="flex:1;">
@@ -2388,20 +2394,20 @@ function renderDashboardTab(body){
           <h2 style="margin:0;font-size:1.05rem;color:var(--ink);font-family:'Roboto Mono',monospace;font-weight:700;">Executive Overview</h2>
           <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">${esc(session.businessName)} &bull; ${new Date().toLocaleDateString('en-IN', {weekday:'short', day:'numeric', month:'short'})}</div>
         </div>
-        ${isManagerPlus() ? `<button class="stamp-btn small" style="background:var(--leaf);color:#fff;border-color:var(--leaf);padding:4px 10px;font-size:0.78rem;" onclick="window.__sendSmsDailySummary()">SMS Report</button>` : ''}
+        ${isManagerPlus() ? `<button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border-color:var(--turmeric);padding:4px 10px;font-size:0.78rem;" onclick="window.__sendSmsDailySummary()">SMS Report</button>` : ''}
       </div>
 
       <div class="dash-kpi-grid">
         <div class="dash-kpi-card" onclick="window.__setTab('sales')">
           <div class="dash-kpi-title">Sales Today</div>
-          <div class="dash-kpi-val" style="color:var(--leaf);">₹${todaySalesTotal.toFixed(0)}</div>
+          <div class="dash-kpi-val" style="color:var(--turmeric);">₹${todaySalesTotal.toFixed(0)}</div>
           <div class="dash-kpi-sub">Today's Revenue</div>
         </div>
 
         <div class="dash-kpi-card" onclick="window.__setTab('vendors')">
           <div class="dash-kpi-title">Vendor Bills Due</div>
-          <div class="dash-kpi-val" style="color:${unpaidVendorBills.length?'var(--brick)':'var(--ink)'}">₹${unpaidVendorTotal.toFixed(0)}</div>
-          <div class="dash-kpi-sub" style="color:${unpaidVendorBills.length?'var(--brick)':'var(--ink-soft)'}">${unpaidVendorBills.length} Bill${unpaidVendorBills.length!==1?'s':''} Unpaid</div>
+          <div class="dash-kpi-val" style="color:${unpaidVendorBills.length?'var(--turmeric)':'var(--ink)'}">₹${unpaidVendorTotal.toFixed(0)}</div>
+          <div class="dash-kpi-sub" style="color:${unpaidVendorBills.length?'var(--turmeric)':'var(--ink-soft)'}">${unpaidVendorBills.length} Bill${unpaidVendorBills.length!==1?'s':''} Unpaid</div>
         </div>
 
         <div class="dash-kpi-card" onclick="window.__setTab('attendance')">
@@ -2412,8 +2418,8 @@ function renderDashboardTab(body){
 
         <div class="dash-kpi-card" onclick="window.__setTab('tasks')">
           <div class="dash-kpi-title">Open Tasks</div>
-          <div class="dash-kpi-val" style="color:${overdue?'var(--brick)':'var(--ink)'}">${total - done}</div>
-          <div class="dash-kpi-sub" style="color:${overdue?'var(--brick)':'var(--ink-soft)'}">${overdue ? overdue+' Overdue' : rate+'% Done'}</div>
+          <div class="dash-kpi-val" style="color:${overdue?'var(--turmeric)':'var(--ink)'}">${total - done}</div>
+          <div class="dash-kpi-sub" style="color:${overdue?'var(--turmeric)':'var(--ink-soft)'}">${overdue ? overdue+' Overdue' : rate+'% Done'}</div>
         </div>
       </div>
     </div>
@@ -2426,7 +2432,7 @@ function renderDashboardTab(body){
     <div class="stat-grid">
       <div class="stat-card"><div class="num">${total}</div><div class="label">Total tasks</div></div>
       <div class="stat-card"><div class="num">${rate}%</div><div class="label">Completion rate</div></div>
-      <div class="stat-card"><div class="num" style="color:${overdue?'var(--brick)':'inherit'}">${overdue}</div><div class="label">Overdue</div></div>
+      <div class="stat-card"><div class="num" style="color:${overdue?'var(--turmeric)':'inherit'}">${overdue}</div><div class="label">Overdue</div></div>
       <div class="stat-card"><div class="num" style="font-size:1rem;">${esc(topPerformer)}</div><div class="label">Top performer</div></div>
     </div>
 
@@ -2612,7 +2618,7 @@ function buildAccountsSalesReportHtml(){
       <div class="cards-grid" style="grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:8px;margin-bottom:0;">
         <div style="background:var(--paper);padding:8px 10px;border-radius:8px;text-align:center;">
           <div style="font-size:0.68rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">Period Sales</div>
-          <div style="font-family:'Roboto Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--leaf);margin-top:2px;">₹${totalSalesPeriod.toFixed(0)}</div>
+          <div style="font-family:'Roboto Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--turmeric);margin-top:2px;">₹${totalSalesPeriod.toFixed(0)}</div>
         </div>
         <div style="background:var(--paper);padding:8px 10px;border-radius:8px;text-align:center;">
           <div style="font-size:0.68rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">Period Average</div>
@@ -2620,7 +2626,7 @@ function buildAccountsSalesReportHtml(){
         </div>
         <div style="background:var(--paper);padding:8px 10px;border-radius:8px;text-align:center;">
           <div style="font-size:0.68rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">Peak Sales</div>
-          <div style="font-family:'Roboto Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--purple);margin-top:2px;">₹${maxSales.toFixed(0)}</div>
+          <div style="font-family:'Roboto Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--turmeric);margin-top:2px;">₹${maxSales.toFixed(0)}</div>
         </div>
         <div style="background:var(--paper);padding:8px 10px;border-radius:8px;text-align:center;">
           <div style="font-size:0.68rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">Tally Count</div>
@@ -2793,7 +2799,7 @@ window.__openQuickTaskModal = function() {
     <p style="font-size:0.8rem;color:var(--ink-soft);margin-bottom:12px;">Type naturally with <b>@StaffName</b>, <b>!high/!low</b>, and <b>tomorrow/friday/today</b>.</p>
     <label>Task Input Command</label>
     <input id="quickModalInput" placeholder="e.g. Clean warehouse tomorrow @Anas !high" style="font-size:0.95rem;padding:12px;margin-bottom:14px;" onkeypress="if(event.key==='Enter') window.__submitQuickModal()">
-    <div style="background:var(--amber-soft);padding:10px;border-radius:8px;border:1px solid var(--turmeric);font-size:0.75rem;color:var(--turmeric-dark);margin-bottom:14px;">
+    <div style="background:var(--blue-soft);padding:10px;border-radius:8px;border:1px solid var(--turmeric);font-size:0.75rem;color:var(--turmeric-dark);margin-bottom:14px;">
       💡 <b>Examples:</b><br>
       • "Send invoice Friday @Ramesh"<br>
       • "Check stock balance today !urgent @Anas"
@@ -2941,7 +2947,7 @@ function renderTasksTab(body){
         </div>
       </div>
       <div class="row-actions" style="display:flex;align-items:center;gap:6px;">
-        ${t.status!=='done'?`<button class="icon-btn" style="font-weight:600;color:var(--leaf);" onclick="window.__markDone('${t.id}')">${icon('check',14)} Done</button>`:''}
+        ${t.status!=='done'?`<button class="icon-btn" style="font-weight:600;color:var(--turmeric);" onclick="window.__markDone('${t.id}')">${icon('check',14)} Done</button>`:''}
         <div class="action-dropdown-holder">
           <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${t.id}')">More ▾</button>
           <div class="action-dropdown-menu" id="actionMenu_${t.id}">
@@ -3221,9 +3227,9 @@ function renderDailyTab(body){
       <div style="display:inline-flex;align-items:center;gap:6px;">
         <svg width="22" height="22" viewBox="0 0 36 36" style="transform:rotate(-90deg);vertical-align:middle;">
           <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--paper-line)" stroke-width="4" />
-          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--leaf)" stroke-width="4" stroke-dasharray="${list.length ? Math.round((doneList.length / list.length) * 100) : 0}, 100" />
+          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--turmeric)" stroke-width="4" stroke-dasharray="${list.length ? Math.round((doneList.length / list.length) * 100) : 0}, 100" />
         </svg>
-        <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.8rem;color:var(--leaf);">${list.length ? Math.round((doneList.length / list.length) * 100) : 0}%</span>
+        <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.8rem;color:var(--turmeric);">${list.length ? Math.round((doneList.length / list.length) * 100) : 0}%</span>
         <span style="color:var(--ink-soft);font-size:0.75rem;">(${doneList.length}/${list.length})</span>
       </div>
     </div>
@@ -3592,7 +3598,7 @@ function renderAttendanceTab(body){
   const myStreak = computePresenceStreak(session.staffId);
   const selfSection = `
     <div class="section-label">Your attendance — ${today}</div>
-    ${myStreak>1 ? `<div class="row-card" style="align-items:center;background:var(--amber-soft);border-color:var(--turmeric);"><div class="row-main"><h3 style="margin:0;">${icon('fire',18)} ${myStreak}-day streak</h3></div></div>` : ''}
+    ${myStreak>1 ? `<div class="row-card" style="align-items:center;background:var(--blue-soft);border-color:var(--turmeric);"><div class="row-main"><h3 style="margin:0;">${icon('fire',18)} ${myStreak}-day streak</h3></div></div>` : ''}
     <div class="row-card" style="flex-direction:column;align-items:stretch;">
       <div class="row-main">
         <div class="meta">
@@ -3688,8 +3694,8 @@ function renderAttendanceTab(body){
         const daysAbsent = mine.filter(a=>a.status==='absent').length;
         return `<div class="row-card" style="align-items:center;">
           <div class="row-main"><h3>${esc(s.name)}</h3>
-            <div class="kv"><span>Days present</span><b style="color:var(--leaf)">${daysPresent}</b></div>
-            <div class="kv"><span>Days absent</span><b style="color:var(--brick)">${daysAbsent}</b></div>
+            <div class="kv"><span>Days present</span><b style="color:var(--turmeric)">${daysPresent}</b></div>
+            <div class="kv"><span>Days absent</span><b style="color:var(--turmeric)">${daysAbsent}</b></div>
           </div>
         </div>`;
       }).join('')}
@@ -3731,7 +3737,7 @@ function buildTargetsHtml(){
           <div class="kv"><span>₹${staffTotal.toFixed(0)} of ₹${Number(t.target_amount).toFixed(0)}</span><b>${pct}%</b></div>
         </div>
         <div style="background:var(--paper-line);border-radius:6px;height:8px;overflow:hidden;">
-          <div style="background:${pct>=100?'var(--leaf)':'var(--turmeric)'};height:100%;width:${pct}%;transition:width 0.3s ease;"></div>
+          <div style="background:${pct>=100?'var(--turmeric)':'var(--turmeric)'};height:100%;width:${pct}%;transition:width 0.3s ease;"></div>
         </div>
       </div>`;
     }).join('') || `<div class="empty">No targets set for this month yet.</div>`}
@@ -4221,7 +4227,7 @@ function renderLabelItemRows(){
         ${i===0?'<label style="margin-top:0;">Qty</label>':''}
         <input type="number" step="1" placeholder="Qty" value="${row.qty}" oninput="window.__updateLabelRow(${i},'qty',this.value)">
       </div>
-      ${labelItemRows.length>1?`<button class="icon-btn" style="color:var(--brick);flex-shrink:0;" onclick="window.__removeLabelRow(${i})">✕</button>`:''}
+      ${labelItemRows.length>1?`<button class="icon-btn" style="color:var(--turmeric);flex-shrink:0;" onclick="window.__removeLabelRow(${i})">✕</button>`:''}
     </div>
   `).join('');
 }
@@ -4404,7 +4410,7 @@ function renderPackageItemRows(){
         ${i===0?'<label style="margin-top:0;">Qty</label>':''}
         <input type="number" step="1" placeholder="Qty" value="${row.qty}" oninput="window.__updatePackageRow(${i},'qty',this.value)">
       </div>
-      ${packageItemRows.length>1?`<button class="icon-btn" style="color:var(--brick);flex-shrink:0;" onclick="window.__removePackageRow(${i})">✕</button>`:''}
+      ${packageItemRows.length>1?`<button class="icon-btn" style="color:var(--turmeric);flex-shrink:0;" onclick="window.__removePackageRow(${i})">✕</button>`:''}
     </div>
   `).join('');
 }
@@ -4683,10 +4689,10 @@ function renderPointsTab(body){
             </div>
             ${p.reason?`<div class="notes">${esc(p.reason)}</div>`:''}
             <div style="margin-top:6px;font-size:0.75rem;color:var(--ink-soft);">
-              Cash Equivalent: <b style="color:var(--leaf);">₹${(Number(p.points||0)*INCENTIVE_RATE).toFixed(0)}</b>
+              Cash Equivalent: <b style="color:var(--turmeric);">₹${(Number(p.points||0)*INCENTIVE_RATE).toFixed(0)}</b>
             </div>
           </div>
-          <b style="font-family:'Roboto Mono',monospace;font-size:1.05rem;color:${p.points<0?'var(--brick)':'var(--leaf)'};">${p.points>0?'+':''}${p.points} pts</b>
+          <b style="font-family:'Roboto Mono',monospace;font-size:1.05rem;color:${p.points<0?'var(--turmeric)':'var(--turmeric)'};">${p.points>0?'+':''}${p.points} pts</b>
           <div class="action-dropdown-holder">
     <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${p.id}')">More ▾</button>
     <div class="action-dropdown-menu" id="actionMenu_${p.id}">
@@ -4747,7 +4753,7 @@ function renderPointsTab(body){
               </div>
               <div style="text-align:right;">
                 <span class="stamp present" style="font-size:0.78rem;font-weight:700;">+${t.reward_pts} Pts (₹${t.reward_pts*INCENTIVE_RATE})</span>
-                ${isOwner()?`<div style="margin-top:4px;"><button class="icon-btn" onclick="window.__openIncentiveTargetModal('${t.id}')">Edit</button> <button class="icon-btn" style="color:var(--brick);" onclick="window.__deleteIncentiveTarget('${t.id}')">Delete</button></div>`:''}
+                ${isOwner()?`<div style="margin-top:4px;"><button class="icon-btn" onclick="window.__openIncentiveTargetModal('${t.id}')">Edit</button> <button class="icon-btn" style="color:var(--turmeric);" onclick="window.__deleteIncentiveTarget('${t.id}')">Delete</button></div>`:''}
               </div>
             </div>
 
@@ -4758,17 +4764,17 @@ function renderPointsTab(body){
                   <div>
                     <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:4px;">
                       <span style="font-weight:600;">${esc(s.name)} ${s.id===session.staffId?'(You)':''}</span>
-                      <span style="font-family:'Roboto Mono',monospace;font-weight:700;color:${prog.isDone?'var(--leaf)':'var(--ink-soft)'};">
+                      <span style="font-family:'Roboto Mono',monospace;font-weight:700;color:${prog.isDone?'var(--turmeric)':'var(--ink-soft)'};">
                         ${prog.type==='sales'?'₹'+prog.currentVal.toFixed(0):prog.currentVal} / ${prog.type==='sales'?'₹'+prog.goal.toFixed(0):prog.goal} (${prog.pct}%)
                       </span>
                     </div>
                     <div style="width:100%;height:8px;background:var(--paper-line);border-radius:999px;overflow:hidden;">
-                      <div style="width:${prog.pct}%;height:100%;background:${prog.isDone?'var(--leaf)':'var(--turmeric)'};transition:width 0.4s ease;"></div>
+                      <div style="width:${prog.pct}%;height:100%;background:${prog.isDone?'var(--turmeric)':'var(--turmeric)'};transition:width 0.4s ease;"></div>
                     </div>
                     ${prog.isDone ? `
                       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
-                        <span style="color:var(--leaf);font-size:0.75rem;font-weight:700;">🎉 Target Achieved!</span>
-                        ${isOwner() ? `<button class="stamp-btn small" style="background:var(--leaf);color:#fff;border-color:var(--leaf);padding:3px 8px;font-size:0.7rem;" onclick="window.__awardTargetBonus('${s.id}', '${esc(t.title)}', ${t.reward_pts})">Award +${t.reward_pts} Pts Bonus</button>` : ''}
+                        <span style="color:var(--turmeric);font-size:0.75rem;font-weight:700;">🎉 Target Achieved!</span>
+                        ${isOwner() ? `<button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border-color:var(--turmeric);padding:3px 8px;font-size:0.7rem;" onclick="window.__awardTargetBonus('${s.id}', '${esc(t.title)}', ${t.reward_pts})">Award +${t.reward_pts} Pts Bonus</button>` : ''}
                       </div>
                     ` : ''}
                   </div>
@@ -4806,7 +4812,7 @@ function renderPointsTab(body){
           </div>
         </div>
         <div style="text-align:right;">
-          <div style="font-family:'Roboto Mono',monospace;font-size:1.6rem;font-weight:700;color:var(--leaf-soft);">${myPts} <span style="font-size:0.7rem;">pts</span></div>
+          <div style="font-family:'Roboto Mono',monospace;font-size:1.6rem;font-weight:700;color:var(--blue-soft);">${myPts} <span style="font-size:0.7rem;">pts</span></div>
           <div style="font-size:0.8rem;color:#4ADE80;font-weight:700;margin-top:2px;">Cash Bonus: ₹${myCash.toFixed(0)}</div>
         </div>
       </div>
@@ -4839,7 +4845,7 @@ function renderPointsTab(body){
           <div class="avatar-circle ${rankClass(i)}" style="width:40px;height:40px;">${initials(s.name)}</div>
           <div style="flex:1;">
             <div class="leaderboard-name">${esc(s.name)} <span class="stamp" style="font-size:0.6rem;padding:2px 6px;color:${lvl.color};border-color:currentColor;">${lvl.title}</span></div>
-            <div class="leaderboard-meta">Incentive Cash: <b style="color:var(--leaf);">₹${cashVal.toFixed(0)}</b></div>
+            <div class="leaderboard-meta">Incentive Cash: <b style="color:var(--turmeric);">₹${cashVal.toFixed(0)}</b></div>
           </div>
           <div class="leaderboard-points">${pts} <span style="font-size:0.65rem;color:var(--ink-soft);">pts</span></div>
         </div>
@@ -4944,8 +4950,8 @@ function renderReportsTab(body){
     <div class="section-label">Attendance — detailed</div>
     ${attRows.length ? attRows.map(r=>`
       <div class="row-card"><div class="row-main"><h3>${esc(r.name)}</h3>
-        <div class="kv"><span>Days present</span><b style="color:var(--leaf)">${r.daysPresent}</b></div>
-        <div class="kv"><span>Days absent</span><b style="color:var(--brick)">${r.daysAbsent}</b></div>
+        <div class="kv"><span>Days present</span><b style="color:var(--turmeric)">${r.daysPresent}</b></div>
+        <div class="kv"><span>Days absent</span><b style="color:var(--turmeric)">${r.daysAbsent}</b></div>
       </div></div>`).join('') : `<div class="empty">No staff yet.</div>`}
 
     <div class="section-label">Attendance — day by day</div>
@@ -4955,8 +4961,8 @@ function renderReportsTab(body){
     ${taskRows.length ? taskRows.map(r=>`
       <div class="row-card"><div class="row-main"><h3>${esc(r.name)}</h3>
         <div class="kv"><span>Assigned (in range)</span><b>${r.assigned}</b></div>
-        <div class="kv"><span>Completed</span><b style="color:var(--leaf)">${r.done}</b></div>
-        <div class="kv"><span>Overdue right now</span><b style="color:${r.overdue?'var(--brick)':'inherit'}">${r.overdue}</b></div>
+        <div class="kv"><span>Completed</span><b style="color:var(--turmeric)">${r.done}</b></div>
+        <div class="kv"><span>Overdue right now</span><b style="color:${r.overdue?'var(--turmeric)':'inherit'}">${r.overdue}</b></div>
         <div class="kv"><span>Completion rate</span><b>${r.rate}%</b></div>
       </div></div>`).join('') : `<div class="empty">No staff yet.</div>`}
     ${undatedTasks ? `<p style="font-size:0.78rem;color:var(--ink-soft);">${undatedTasks} task(s) have no due date, so aren't counted in this range.</p>` : ''}
@@ -5038,10 +5044,10 @@ function renderSalesmanTab(body){
         <div>
           <h3 style="margin:0;">Location Sharing</h3>
           <div style="font-size:0.8rem;color:var(--ink-soft);margin-top:2px;">
-            ${isSharing ? '<span style="color:var(--leaf);font-weight:700;">● Active — sharing location</span>' : '<span style="color:var(--ink-soft);">○ Inactive — not sharing</span>'}
+            ${isSharing ? '<span style="color:var(--turmeric);font-weight:700;">● Active — sharing location</span>' : '<span style="color:var(--ink-soft);">○ Inactive — not sharing</span>'}
           </div>
         </div>
-        <button class="stamp-btn ${isSharing?'ghost':''}" style="${isSharing?'color:var(--brick);border-color:var(--brick);':''}" onclick="window.__toggleSalesmanSharing(${!isSharing})">
+        <button class="stamp-btn ${isSharing?'ghost':''}" style="${isSharing?'color:var(--turmeric);border-color:var(--turmeric);':''}" onclick="window.__toggleSalesmanSharing(${!isSharing})">
           ${isSharing ? 'Stop Sharing' : 'Start Sharing Location'}
         </button>
       </div>
@@ -5381,7 +5387,7 @@ function renderAuditTab(body) {
                 <div style="display:flex;align-items:center;gap:8px;">
                   <span style="font-size:0.85rem;font-weight:700;color:var(--turmeric-dark);">${isCollapsed ? '▶' : '▼'}</span>
                   <b style="font-size:0.95rem;color:var(--ink);">${datePretty}</b>
-                  <span class="stamp small" style="background:var(--amber-soft);color:var(--turmeric-dark);font-weight:700;">${dayLogs.length} Action${dayLogs.length!==1?'s':''}</span>
+                  <span class="stamp small" style="background:var(--blue-soft);color:var(--turmeric-dark);font-weight:700;">${dayLogs.length} Action${dayLogs.length!==1?'s':''}</span>
                 </div>
                 <span style="font-size:0.75rem;color:var(--ink-soft);">${isCollapsed ? 'Tap to Expand' : 'Tap to Collapse'}</span>
               </div>
@@ -5570,7 +5576,7 @@ window.__toggleOwnerManualUnlock = async function(date) {
 function renderPendingBannerHtml(pendingReqs) {
   if (!pendingReqs || !pendingReqs.length) return '';
   return `
-    <div style="background:var(--amber-soft);border:1.5px solid var(--turmeric);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+    <div style="background:var(--blue-soft);border:1.5px solid var(--turmeric);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
       <div style="font-weight:700;font-size:0.92rem;color:var(--turmeric-dark);margin-bottom:8px;">
         📩 Pending Past Date Edit Requests (${pendingReqs.length})
       </div>
@@ -5582,8 +5588,8 @@ function renderPendingBannerHtml(pendingReqs) {
               <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">"${esc(req.notes||'')}"</div>
             </div>
             <div style="display:flex;gap:6px;">
-              <button class="stamp-btn small" style="background:var(--leaf);color:white;" onclick="window.__respondAccEditRequest('${req.id}', 'approved')">✓ Approve</button>
-              <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);" onclick="window.__respondAccEditRequest('${req.id}', 'rejected')">✕ Reject</button>
+              <button class="stamp-btn small" style="background:var(--turmeric);color:white;" onclick="window.__respondAccEditRequest('${req.id}', 'approved')">✓ Approve</button>
+              <button class="stamp-btn small ghost" style="color:var(--turmeric);border-color:var(--turmeric);" onclick="window.__respondAccEditRequest('${req.id}', 'rejected')">✕ Reject</button>
             </div>
           </div>
         `).join('')}
@@ -5657,27 +5663,27 @@ function renderAccEntryHtml(existing){
   let statusBanner = '';
   if(isLockedForNonOwner){
     if(unlockStatus.isExpired){
-      statusBanner = `<div style="background:var(--brick-soft);color:var(--brick);font-size:0.82rem;font-weight:600;padding:10px 14px;border-radius:8px;margin-bottom:14px;border:1px solid var(--brick);">
+      statusBanner = `<div style="background:var(--blue-soft);color:var(--turmeric);font-size:0.82rem;font-weight:600;padding:10px 14px;border-radius:8px;margin-bottom:14px;border:1px solid var(--turmeric);">
         🔒 30-Minute Edit Access Expired for ${accountsDate}. Tap below to request a new edit window.
       </div>`;
     } else if(pendingReq){
-      statusBanner = `<div style="background:var(--amber-soft);color:var(--turmeric);font-size:0.82rem;font-weight:600;padding:10px 14px;border-radius:8px;margin-bottom:14px;border:1px solid var(--turmeric);">
+      statusBanner = `<div style="background:var(--blue-soft);color:var(--turmeric);font-size:0.82rem;font-weight:600;padding:10px 14px;border-radius:8px;margin-bottom:14px;border:1px solid var(--turmeric);">
         ⏳ Edit Request Pending Approval by Owner for ${accountsDate}. ("${esc(pendingReq.notes||'')}")
       </div>`;
     } else {
-      statusBanner = `<div style="background:var(--brick-soft);color:var(--brick);font-size:0.8rem;font-weight:600;padding:10px 14px;border-radius:8px;margin-bottom:14px;border:1px solid var(--brick);">
+      statusBanner = `<div style="background:var(--blue-soft);color:var(--turmeric);font-size:0.8rem;font-weight:600;padding:10px 14px;border-radius:8px;margin-bottom:14px;border:1px solid var(--turmeric);">
         🔒 Editing past date accounts (${accountsDate}) is restricted to the Owner.
       </div>`;
     }
   } else if(!isOwner() && isPastDate){
     const mins = isFinite(unlockStatus.remainingMs) ? Math.floor(unlockStatus.remainingMs / 60000) : 30;
     const secs = isFinite(unlockStatus.remainingMs) ? Math.floor((unlockStatus.remainingMs % 60000) / 1000) : 0;
-    statusBanner = `<div style="background:var(--leaf-soft);color:var(--leaf);font-size:0.82rem;font-weight:600;padding:10px 14px;border-radius:8px;margin-bottom:14px;border:1px solid var(--leaf);display:flex;align-items:center;justify-content:space-between;">
+    statusBanner = `<div style="background:var(--blue-soft);color:var(--turmeric);font-size:0.82rem;font-weight:600;padding:10px 14px;border-radius:8px;margin-bottom:14px;border:1px solid var(--turmeric);display:flex;align-items:center;justify-content:space-between;">
       <span>✓ Edit Access Unlocked for ${accountsDate}!</span>
-      <span style="font-family:'Roboto Mono',monospace;background:var(--card);padding:3px 8px;border-radius:4px;border:1px solid var(--leaf);">⏱️ Closes in ${mins}m ${secs}s</span>
+      <span style="font-family:'Roboto Mono',monospace;background:var(--card);padding:3px 8px;border-radius:4px;border:1px solid var(--turmeric);">⏱️ Closes in ${mins}m ${secs}s</span>
     </div>`;
   } else if(existing){
-    statusBanner = `<div style="background:var(--leaf-soft);color:var(--leaf);font-size:0.78rem;font-weight:600;padding:8px 12px;border-radius:6px;margin-bottom:14px;">✓ Entry already saved for this day — editing will update it</div>`;
+    statusBanner = `<div style="background:var(--blue-soft);color:var(--turmeric);font-size:0.78rem;font-weight:600;padding:8px 12px;border-radius:6px;margin-bottom:14px;">✓ Entry already saved for this day — editing will update it</div>`;
   }
 
   let nonOwnerBtnHtml = '';
@@ -5731,7 +5737,7 @@ function renderAccEntryHtml(existing){
       ${isOwner() ? `
       ${(isOwner() && accountsDate < todayStr()) ? `
         <div style="margin-top:12px;margin-bottom:8px;width:100%;">
-          <button class="stamp-btn ghost small" style="width:100%;font-size:0.8rem;padding:9px 0;${isDateUnlockedForStaff(accountsDate)?'color:var(--leaf);border-color:var(--leaf);':'color:var(--brick);border-color:var(--brick);'}" onclick="window.__toggleOwnerManualUnlock('${accountsDate}')">
+          <button class="stamp-btn ghost small" style="width:100%;font-size:0.8rem;padding:9px 0;${isDateUnlockedForStaff(accountsDate)?'color:var(--turmeric);border-color:var(--turmeric);':'color:var(--turmeric);border-color:var(--turmeric);'}" onclick="window.__toggleOwnerManualUnlock('${accountsDate}')">
             ${isDateUnlockedForStaff(accountsDate) ? '🔓 DATE IS UNLOCKED FOR STAFF EDIT — TAP TO LOCK' : '🔒 DATE IS LOCKED FOR STAFF EDIT — TAP TO UNLOCK'}
           </button>
         </div>` : ''}
@@ -5750,11 +5756,11 @@ function renderAccEntryHtml(existing){
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--paper-line);">
           <div class="kv" style="flex-direction:column;align-items:flex-start;gap:2px;">
             <span style="font-size:0.68rem;font-weight:700;color:var(--ink-soft);">EXCESS (SURPLUS)</span>
-            <b id="accSumExcess" style="font-family:'Roboto Mono',monospace !important;font-size:1.15rem;font-weight:700;color:var(--leaf);">₹${totals.excess.toFixed(0)}</b>
+            <b id="accSumExcess" style="font-family:'Roboto Mono',monospace !important;font-size:1.15rem;font-weight:700;color:var(--turmeric);">₹${totals.excess.toFixed(0)}</b>
           </div>
           <div class="kv" style="flex-direction:column;align-items:flex-start;gap:2px;">
             <span style="font-size:0.68rem;font-weight:700;color:var(--ink-soft);">LESS (SHORTAGE)</span>
-            <b id="accSumLess" style="font-family:'Roboto Mono',monospace !important;font-size:1.15rem;font-weight:700;color:var(--brick);">₹${totals.less.toFixed(0)}</b>
+            <b id="accSumLess" style="font-family:'Roboto Mono',monospace !important;font-size:1.15rem;font-weight:700;color:var(--turmeric);">₹${totals.less.toFixed(0)}</b>
           </div>
         </div>
 
@@ -5763,7 +5769,7 @@ function renderAccEntryHtml(existing){
             <button class="stamp-btn" style="padding:12px 0;font-size:0.9rem;width:100%;" onclick="window.__saveAccEntry()">💾 SAVE DAY'S ACCOUNT</button>
             <button class="stamp-btn ghost" style="padding:12px 0;font-size:0.8rem;background:var(--blue-soft);color:var(--blue);border-color:var(--blue);width:100%;" onclick="window.__openChooseStaffSmsModal('summary')">📲 SEND SMS</button>
           </div>
-          <button class="stamp-btn ghost" style="width:100%;padding:11px 0;font-size:0.8rem;background:var(--amber-soft);color:var(--turmeric-dark);border-color:var(--turmeric);" onclick="window.__openChooseStaffSmsModal('surplus')">📢 CHOOSE STAFF & SEND SURPLUS/DEFICIT SMS</button>
+          <button class="stamp-btn ghost" style="width:100%;padding:11px 0;font-size:0.8rem;background:var(--blue-soft);color:var(--turmeric-dark);border-color:var(--turmeric);" onclick="window.__openChooseStaffSmsModal('surplus')">📢 CHOOSE STAFF & SEND SURPLUS/DEFICIT SMS</button>
         </div>
       </div>` : `
       <!-- Simple Data Entry Footer for Non-Owner Roles -->
@@ -6105,7 +6111,7 @@ function renderAccHistoryRows(records){
     const isChecked = checkedSet.has(rec.id) || checkedSet.has(rec.date) || Boolean(rec.is_checked);
 
     return `
-      <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px 16px;margin-bottom:10px;${isChecked ? 'border-left:4px solid var(--leaf);background:var(--leaf-soft);' : ''}">
+      <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px 16px;margin-bottom:10px;${isChecked ? 'border-left:4px solid var(--turmeric);background:var(--blue-soft);' : ''}">
         <!-- Top Row: Date & Status Badge -->
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;">
           <div>
@@ -6121,7 +6127,7 @@ function renderAccHistoryRows(records){
 
         <!-- Bottom Action Bar: Check Button & View Details -->
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px dashed var(--paper-line);">
-          <button class="stamp-btn small ${isChecked ? '' : 'ghost'}" style="${isChecked ? 'background:var(--leaf);color:#fff;border-color:var(--leaf);font-weight:700;' : ''}" onclick="event.stopPropagation();window.__toggleAccChecked('${rec.date}', ${!isChecked})">
+          <button class="stamp-btn small ${isChecked ? '' : 'ghost'}" style="${isChecked ? 'background:var(--turmeric);color:#fff;border-color:var(--turmeric);font-weight:700;' : ''}" onclick="event.stopPropagation();window.__toggleAccChecked('${rec.date}', ${!isChecked})">
             ${isChecked ? '✓ Checked' : '☐ Check'}
           </button>
 
@@ -6145,7 +6151,7 @@ function renderAccHistoryRows(records){
 
             <div style="display:flex;gap:8px;margin-top:8px;">
               <button class="stamp-btn ghost small" style="flex:1;" onclick="accountsDate='${rec.date}';accountsSubTab='entry';renderTabBody();">✎ Edit</button>
-              <button class="stamp-btn ghost small" style="color:var(--brick);border-color:var(--brick);flex:1;" onclick="window.__deleteAcc('${rec.id||rec.date}')">🗑 Delete</button>
+              <button class="stamp-btn ghost small" style="color:var(--turmeric);border-color:var(--turmeric);flex:1;" onclick="window.__deleteAcc('${rec.id||rec.date}')">🗑 Delete</button>
             </div>
           </div>
         ` : ''}
@@ -6471,9 +6477,9 @@ window.__printVendorBillReceipt = function(id) {
   }
 
   .due-badge-overdue {
-    background: var(--brick-soft);
-    color: var(--brick);
-    border: 1px solid var(--brick);
+    background: var(--blue-soft);
+    color: var(--turmeric);
+    border: 1px solid var(--turmeric);
     font-size: 0.7rem;
     font-weight: 700;
     padding: 2px 7px;
@@ -6483,7 +6489,7 @@ window.__printVendorBillReceipt = function(id) {
     gap: 3px;
   }
   .due-badge-warning {
-    background: var(--amber-soft);
+    background: var(--blue-soft);
     color: var(--turmeric-dark);
     border: 1px solid var(--turmeric);
     font-size: 0.7rem;
@@ -6623,12 +6629,12 @@ window.__updateBulkVendorSummary = function() {
   const summaryEl = document.getElementById('vBillBulkSummaryArea');
   if (summaryEl) {
     summaryEl.innerHTML = selectedCount > 0 ? `
-      <div style="background:var(--amber-soft);border:1.5px solid var(--turmeric);padding:10px 14px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div style="background:var(--blue-soft);border:1.5px solid var(--turmeric);padding:10px 14px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <div>
           <b style="font-size:0.9rem;color:var(--turmeric-dark);">${selectedCount} Bill${selectedCount!==1?'s':''} Selected for Bulk Settlement</b>
           <div style="font-size:0.75rem;color:var(--ink-soft);">Total Selected Amount: ₹${totalAmt.toFixed(0)}</div>
         </div>
-        <button class="stamp-btn" style="background:var(--leaf);color:#fff;border-color:var(--leaf);font-weight:700;padding:8px 14px;" onclick="window.__paySelectedVendorBillsBulk()">💳 Pay ${selectedCount} Bill${selectedCount!==1?'s':''} (₹${totalAmt.toFixed(0)})</button>
+        <button class="stamp-btn" style="background:var(--turmeric);color:#fff;border-color:var(--turmeric);font-weight:700;padding:8px 14px;" onclick="window.__paySelectedVendorBillsBulk()">💳 Pay ${selectedCount} Bill${selectedCount!==1?'s':''} (₹${totalAmt.toFixed(0)})</button>
       </div>
     ` : '';
   }
@@ -6695,18 +6701,18 @@ function renderVendorBillsTab(body) {
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
         <div>
           <span style="font-size:0.75rem;font-weight:700;color:var(--ink-soft);letter-spacing:0.04em;text-transform:uppercase;">Total Outstanding Balance</span>
-          <h2 style="font-family:'Roboto Mono',monospace;font-size:1.6rem;font-weight:800;color:var(--brick);margin:4px 0 0;">₹${totalUnpaidBalance.toLocaleString('en-IN')}</h2>
+          <h2 style="font-family:'Roboto Mono',monospace;font-size:1.6rem;font-weight:800;color:var(--turmeric);margin:4px 0 0;">₹${totalUnpaidBalance.toLocaleString('en-IN')}</h2>
           <div style="font-size:0.78rem;color:var(--ink-soft);margin-top:2px;">${unpaid.length} Pending Bills (${partial.length} Partially Paid)</div>
         </div>
         <div style="text-align:right;">
-          <span style="font-size:0.72rem;font-weight:600;color:var(--leaf);display:block;">Settled Bills Total</span>
-          <b style="font-family:'Roboto Mono',monospace;font-size:1.1rem;color:var(--leaf);">₹${totalPaid.toLocaleString('en-IN')}</b>
+          <span style="font-size:0.72rem;font-weight:600;color:var(--turmeric);display:block;">Settled Bills Total</span>
+          <b style="font-family:'Roboto Mono',monospace;font-size:1.1rem;color:var(--turmeric);">₹${totalPaid.toLocaleString('en-IN')}</b>
         </div>
       </div>
 
       <div style="margin-top:14px;display:flex;gap:8px;">
         <button class="stamp-btn" style="flex:1;padding:12px 0;font-size:0.9rem;" onclick="window.__openScanVendorBillModal()">➕ Add Purchase Bill</button>
-        <button class="stamp-btn" style="flex:1;padding:12px 0;font-size:0.9rem;background:var(--leaf);color:#fff;border-color:var(--leaf);" onclick="window.__openBulkVendorSettlementModal()">💳 Bulk Pay & Voucher</button>
+        <button class="stamp-btn" style="flex:1;padding:12px 0;font-size:0.9rem;background:var(--turmeric);color:#fff;border-color:var(--turmeric);" onclick="window.__openBulkVendorSettlementModal()">💳 Bulk Pay & Voucher</button>
       </div>
     </div>
 
@@ -6717,7 +6723,7 @@ function renderVendorBillsTab(body) {
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
       <div style="display:flex;gap:6px;overflow-x:auto;">
         <button class="stamp-btn small ${vendorSubTab==='unpaid'?'':'ghost'}" onclick="window.__setVendorSubTab('unpaid')">Unpaid Bills (${unpaid.length})</button>
-        <button class="stamp-btn small ${vendorSubTab==='overdue'?'':'ghost'}" style="${vendorSubTab==='overdue'?'background:var(--brick);color:#fff;border-color:var(--brick);':''}" onclick="window.__setVendorSubTab('overdue')">Overdue (${bills.filter(b => getBillStatus(b)!=='paid' && b.due_date && (new Date(b.due_date+'T23:59:59').getTime() < new Date().getTime())).length})</button>
+        <button class="stamp-btn small ${vendorSubTab==='overdue'?'':'ghost'}" style="${vendorSubTab==='overdue'?'background:var(--turmeric);color:#fff;border-color:var(--turmeric);':''}" onclick="window.__setVendorSubTab('overdue')">Overdue (${bills.filter(b => getBillStatus(b)!=='paid' && b.due_date && (new Date(b.due_date+'T23:59:59').getTime() < new Date().getTime())).length})</button>
         <button class="stamp-btn small ${vendorSubTab==='paid'?'':'ghost'}" onclick="window.__setVendorSubTab('paid')">Paid History (${paid.length})</button>
         <button class="stamp-btn small ${vendorSubTab==='all'?'':'ghost'}" onclick="window.__setVendorSubTab('all')">All Bills (${bills.length})</button>
         <button class="stamp-btn small ${isCompactView?'':'ghost'}" onclick="window.__toggleCompactView()">${isCompactView?'📄 Compact':'📋 Detailed'}</button>
@@ -6764,7 +6770,7 @@ function renderVendorBillCard(b) {
 
   const statusStampText = isPaid ? 'PAID' : (isPartial ? 'PARTIALLY PAID' : 'UNPAID');
   const statusStampClass = isPaid ? 'done' : (isPartial ? 'medium' : 'pending');
-  const borderLeftColor = isPaid ? 'var(--leaf)' : (isPartial ? 'var(--turmeric)' : 'var(--brick)');
+  const borderLeftColor = isPaid ? 'var(--turmeric)' : (isPartial ? 'var(--turmeric)' : 'var(--turmeric)');
 
   return `
     <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px 16px;margin-bottom:12px;border-left:4px solid ${borderLeftColor};">
@@ -6788,7 +6794,7 @@ function renderVendorBillCard(b) {
               Bill No: <b>#${esc(getBillNo(b))}</b> &bull; Date: ${datePretty}
             </div>
             <div style="font-size:0.72rem;color:var(--ink-soft);margin-top:2px;">
-              Scanned by: <b>${esc(staffNameVal)}</b> ${b.due_date ? `&bull; Due: <span style="color:var(--brick);font-weight:600;">${duePretty}</span> ${dueBadgeHtml}` : ''}
+              Scanned by: <b>${esc(staffNameVal)}</b> ${b.due_date ? `&bull; Due: <span style="color:var(--turmeric);font-weight:600;">${duePretty}</span> ${dueBadgeHtml}` : ''}
             </div>
           </div>
         </div>
@@ -6798,10 +6804,10 @@ function renderVendorBillCard(b) {
           <div style="font-family:'Roboto Mono',monospace;font-size:0.95rem;font-weight:700;color:var(--ink);">
             Bill: <b>₹${amt.toLocaleString('en-IN')}</b>
           </div>
-          <div style="font-family:'Roboto Mono',monospace;font-size:0.78rem;color:var(--leaf);">
+          <div style="font-family:'Roboto Mono',monospace;font-size:0.78rem;color:var(--turmeric);">
             Paid: ₹${paidAmt.toLocaleString('en-IN')}
           </div>
-          <div style="font-family:'Roboto Mono',monospace;font-size:0.82rem;font-weight:700;color:${balance>0?'var(--brick)':'var(--leaf)'};">
+          <div style="font-family:'Roboto Mono',monospace;font-size:0.82rem;font-weight:700;color:${balance>0?'var(--turmeric)':'var(--turmeric)'};">
             Balance: ₹${balance.toLocaleString('en-IN')}
           </div>
         </div>
@@ -7030,7 +7036,7 @@ function parseExtractedBillText(rawText) {
 
   const area = document.getElementById('vBillPhotoArea');
   if (area) {
-    area.innerHTML = `<span style="font-size:0.8rem;color:var(--leaf);font-weight:700;">✨ AI OCR Scan Complete! Detected ${amount > 0 ? '₹'+amount : ''} ${billNo ? '#'+billNo : ''}</span>`;
+    area.innerHTML = `<span style="font-size:0.8rem;color:var(--turmeric);font-weight:700;">✨ AI OCR Scan Complete! Detected ${amount > 0 ? '₹'+amount : ''} ${billNo ? '#'+billNo : ''}</span>`;
   }
 
   if (typeof window.showToast === 'function') {
@@ -7050,7 +7056,7 @@ function runBillOCRScan(imageSrc) {
         parseExtractedBillText(text);
       })
       .catch(() => {
-        if (area) area.innerHTML = '<span style="font-size:0.8rem;color:var(--leaf);font-weight:700;">✓ Bill Photo Attached & Details Auto-Filled!</span>';
+        if (area) area.innerHTML = '<span style="font-size:0.8rem;color:var(--turmeric);font-weight:700;">✓ Bill Photo Attached & Details Auto-Filled!</span>';
       });
   }
 }
@@ -7069,7 +7075,7 @@ window.__handleBillPhotoSelected = function(input) {
         img.style.display = 'block';
       }
       if (area) {
-        area.innerHTML = '<span style="font-size:0.8rem;color:var(--leaf);font-weight:700;">✓ Bill Photo Attached & Details Auto-Filled!</span>';
+        area.innerHTML = '<span style="font-size:0.8rem;color:var(--turmeric);font-weight:700;">✓ Bill Photo Attached & Details Auto-Filled!</span>';
       }
 
       // Auto-fill Bill Number if empty
@@ -7271,15 +7277,15 @@ function renderLowStockTab(body) {
 
       <div class="stat-grid">
         <div class="stat-card" style="cursor:pointer;" onclick="window.__setLowStockFilter('pending')">
-          <div class="num" style="color:var(--brick);">${pendingCount}</div>
+          <div class="num" style="color:var(--turmeric);">${pendingCount}</div>
           <div class="label">Pending Alerts</div>
         </div>
         <div class="stat-card" style="cursor:pointer;" onclick="window.__setLowStockFilter('pending')">
-          <div class="num" style="color:var(--brick);">${criticalCount}</div>
+          <div class="num" style="color:var(--turmeric);">${criticalCount}</div>
           <div class="label">Critical Urgent</div>
         </div>
         <div class="stat-card" style="cursor:pointer;" onclick="window.__setLowStockFilter('restocked')">
-          <div class="num" style="color:var(--leaf);">${restockedCount}</div>
+          <div class="num" style="color:var(--turmeric);">${restockedCount}</div>
           <div class="label">Restocked Items</div>
         </div>
         <div class="stat-card" style="cursor:pointer;" onclick="window.__setLowStockFilter('all')">
@@ -7322,7 +7328,7 @@ function renderLowStockTab(body) {
             </div>
             <h3><span class="status-dot ${status==='restocked'?'green':'red'}"></span>${esc(item.item_name)}</h3>
             <div style="font-family:'Roboto Mono',monospace;font-size:0.85rem;font-weight:700;margin-top:4px;color:var(--ink);">
-              Current Qty: <span style="color:${isCritical?'var(--brick)':'var(--turmeric-dark)'};">${item.current_qty} ${esc(item.unit||'Pcs')}</span>
+              Current Qty: <span style="color:${isCritical?'var(--turmeric)':'var(--turmeric-dark)'};">${item.current_qty} ${esc(item.unit||'Pcs')}</span>
               ${item.min_qty ? ` &bull; Min Required: ${item.min_qty} ${esc(item.unit||'Pcs')}` : ''}
             </div>
             ${item.notes ? `<div class="notes">${esc(item.notes)}</div>` : ''}
@@ -7333,10 +7339,10 @@ function renderLowStockTab(body) {
           </div>
           <div class="row-actions">
             ${status === 'pending' ? `
-              <button class="stamp-btn small" style="background:var(--leaf);color:#fff;border-color:var(--leaf);" onclick="window.__markLowStockStatus('${item.id}', 'restocked')">✓ Restocked</button>
+              <button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border-color:var(--turmeric);" onclick="window.__markLowStockStatus('${item.id}', 'restocked')">✓ Restocked</button>
               <button class="stamp-btn small ghost" onclick="window.__markLowStockStatus('${item.id}', 'ordered')">📦 Ordered</button>
             ` : (status === 'ordered' ? `
-              <button class="stamp-btn small" style="background:var(--leaf);color:#fff;border-color:var(--leaf);" onclick="window.__markLowStockStatus('${item.id}', 'restocked')">✓ Restocked</button>
+              <button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border-color:var(--turmeric);" onclick="window.__markLowStockStatus('${item.id}', 'restocked')">✓ Restocked</button>
             ` : `
               <button class="stamp-btn small ghost" onclick="window.__markLowStockStatus('${item.id}', 'pending')">↺ Re-open</button>
             `)}
@@ -7828,9 +7834,9 @@ window.__printPaymentVoucher = function() {
   }
 
   .due-badge-overdue {
-    background: var(--brick-soft);
-    color: var(--brick);
-    border: 1px solid var(--brick);
+    background: var(--blue-soft);
+    color: var(--turmeric);
+    border: 1px solid var(--turmeric);
     font-size: 0.7rem;
     font-weight: 700;
     padding: 2px 7px;
@@ -7840,7 +7846,7 @@ window.__printPaymentVoucher = function() {
     gap: 3px;
   }
   .due-badge-warning {
-    background: var(--amber-soft);
+    background: var(--blue-soft);
     color: var(--turmeric-dark);
     border: 1px solid var(--turmeric);
     font-size: 0.7rem;
@@ -8077,11 +8083,11 @@ window.__openVendorLedgerModal = function(vendorName) {
       </div>
       <div>
         <span style="font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;font-weight:700;">Total Paid</span>
-        <b style="display:block;font-family:'Roboto Mono',monospace;font-size:1.05rem;color:var(--leaf);">₹${totalPaid.toLocaleString('en-IN')}</b>
+        <b style="display:block;font-family:'Roboto Mono',monospace;font-size:1.05rem;color:var(--turmeric);">₹${totalPaid.toLocaleString('en-IN')}</b>
       </div>
       <div>
         <span style="font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;font-weight:700;">Outstanding</span>
-        <b style="display:block;font-family:'Roboto Mono',monospace;font-size:1.05rem;color:${outstanding>0?'var(--brick)':'var(--leaf)'};">₹${outstanding.toLocaleString('en-IN')}</b>
+        <b style="display:block;font-family:'Roboto Mono',monospace;font-size:1.05rem;color:${outstanding>0?'var(--turmeric)':'var(--turmeric)'};">₹${outstanding.toLocaleString('en-IN')}</b>
       </div>
     </div>
 
@@ -8102,12 +8108,12 @@ window.__openVendorLedgerModal = function(vendorName) {
             <tr style="border-bottom:1px solid var(--paper-line);">
               <td style="padding:8px 10px;font-family:'Roboto Mono',monospace;">${e.date}</td>
               <td style="padding:8px 10px;">
-                <b style="color:${e.type==='BILL'?'var(--ink)':'var(--leaf)'};">${esc(e.ref)}</b>
+                <b style="color:${e.type==='BILL'?'var(--ink)':'var(--turmeric)'};">${esc(e.ref)}</b>
                 ${e.notes ? `<div style="font-size:0.72rem;color:var(--ink-soft);">${esc(e.notes)}</div>` : ''}
               </td>
               <td style="padding:8px 10px;text-align:right;font-family:'Roboto Mono',monospace;">${e.debit ? '₹'+e.debit.toLocaleString('en-IN') : '—'}</td>
-              <td style="padding:8px 10px;text-align:right;font-family:'Roboto Mono',monospace;color:var(--leaf);">${e.credit ? '₹'+e.credit.toLocaleString('en-IN') : '—'}</td>
-              <td style="padding:8px 10px;text-align:right;font-family:'Roboto Mono',monospace;font-weight:700;color:${e.balance>0?'var(--brick)':'var(--leaf)'};">₹${e.balance.toLocaleString('en-IN')}</td>
+              <td style="padding:8px 10px;text-align:right;font-family:'Roboto Mono',monospace;color:var(--turmeric);">${e.credit ? '₹'+e.credit.toLocaleString('en-IN') : '—'}</td>
+              <td style="padding:8px 10px;text-align:right;font-family:'Roboto Mono',monospace;font-weight:700;color:${e.balance>0?'var(--turmeric)':'var(--turmeric)'};">₹${e.balance.toLocaleString('en-IN')}</td>
             </tr>
           `).join('') : `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--ink-soft);">No transactions found for this vendor.</td></tr>`}
         </tbody>
@@ -8116,7 +8122,7 @@ window.__openVendorLedgerModal = function(vendorName) {
 
     <div class="modal-actions">
       <button class="stamp-btn ghost" onclick="getModalHolder('vendorModalHolder').innerHTML=''">Close</button>
-      <button class="stamp-btn" style="background:var(--leaf);color:#fff;border:none;" onclick="window.__printVendorStatement('${esc(vendorName)}')">🖨 Print Statement</button>
+      <button class="stamp-btn" style="background:var(--turmeric);color:#fff;border:none;" onclick="window.__printVendorStatement('${esc(vendorName)}')">🖨 Print Statement</button>
     </div>
   </div></div>`;
 };
@@ -8244,11 +8250,11 @@ window.__openRecordPaymentModal = function(billId) {
       </div>
       <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
         <span style="color:var(--ink-soft);">Already Paid:</span>
-        <b style="font-family:'Roboto Mono',monospace;color:var(--leaf);">₹${paidAmt.toLocaleString('en-IN')}</b>
+        <b style="font-family:'Roboto Mono',monospace;color:var(--turmeric);">₹${paidAmt.toLocaleString('en-IN')}</b>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:0.95rem;padding-top:6px;border-top:1px dashed var(--paper-line);">
-        <b style="color:var(--brick);">Outstanding Balance:</b>
-        <b style="font-family:'Roboto Mono',monospace;color:var(--brick);font-size:1.05rem;">₹${balance.toLocaleString('en-IN')}</b>
+        <b style="color:var(--turmeric);">Outstanding Balance:</b>
+        <b style="font-family:'Roboto Mono',monospace;color:var(--turmeric);font-size:1.05rem;">₹${balance.toLocaleString('en-IN')}</b>
       </div>
     </div>
 
@@ -8257,7 +8263,7 @@ window.__openRecordPaymentModal = function(billId) {
 
     <div style="margin-top:6px;font-size:0.82rem;font-weight:600;display:flex;justify-content:space-between;" id="mSinglePayRemainingDisp">
       <span>Remaining Balance after payment:</span>
-      <b style="color:var(--leaf);font-family:'Roboto Mono',monospace;">₹0</b>
+      <b style="color:var(--turmeric);font-family:'Roboto Mono',monospace;">₹0</b>
     </div>
 
     <label style="margin-top:12px;">Payment Mode</label>
@@ -8287,7 +8293,7 @@ window.__calcSinglePayRemaining = function(balance) {
   const rem = Math.max(0, balance - payVal);
   disp.innerHTML = `
     <span>Remaining Balance after payment:</span>
-    <b style="color:${rem > 0 ? 'var(--brick)' : 'var(--leaf)'};font-family:'Roboto Mono',monospace;">₹${rem.toLocaleString('en-IN')}</b>
+    <b style="color:${rem > 0 ? 'var(--turmeric)' : 'var(--turmeric)'};font-family:'Roboto Mono',monospace;">₹${rem.toLocaleString('en-IN')}</b>
   `;
 };
 
@@ -8412,7 +8418,7 @@ window.__openVendorPaymentHistoryModal = function(billId) {
         ${payments.map(p => `
           <div style="display:flex;justify-content:space-between;align-items:center;background:#fff;padding:10px 12px;border-radius:6px;border:1px solid var(--paper-line);font-size:0.82rem;">
             <div>
-              <b style="font-family:'Roboto Mono',monospace;color:var(--leaf);font-size:0.95rem;">₹${Number(p.amount||0).toLocaleString('en-IN')}</b>
+              <b style="font-family:'Roboto Mono',monospace;color:var(--turmeric);font-size:0.95rem;">₹${Number(p.amount||0).toLocaleString('en-IN')}</b>
               <div style="font-size:0.72rem;color:var(--ink-soft);margin-top:2px;">
                 ${p.date} &bull; ${esc(p.payment_mode||'Cash')} &bull; By ${esc(staffName(p.created_by))}
               </div>
@@ -8425,8 +8431,8 @@ window.__openVendorPaymentHistoryModal = function(billId) {
     ` : `<div class="empty" style="padding:20px;">No individual payment logs recorded yet.</div>`}
 
     <div style="margin-top:14px;padding-top:10px;border-top:1px dashed var(--paper-line);display:flex;justify-content:space-between;align-items:center;font-size:0.88rem;">
-      <span>Total Paid: <b style="color:var(--leaf);font-family:'Roboto Mono',monospace;">₹${paidAmt.toLocaleString('en-IN')}</b></span>
-      <span>Balance: <b style="color:${balance > 0 ? 'var(--brick)' : 'var(--leaf)'};font-family:'Roboto Mono',monospace;">₹${balance.toLocaleString('en-IN')}</b></span>
+      <span>Total Paid: <b style="color:var(--turmeric);font-family:'Roboto Mono',monospace;">₹${paidAmt.toLocaleString('en-IN')}</b></span>
+      <span>Balance: <b style="color:${balance > 0 ? 'var(--turmeric)' : 'var(--turmeric)'};font-family:'Roboto Mono',monospace;">₹${balance.toLocaleString('en-IN')}</b></span>
     </div>
 
     <div class="modal-actions" style="margin-top:16px;">
@@ -8493,7 +8499,7 @@ window.__openBulkVendorSettlementModal = function() {
 
     <div class="modal-actions" style="margin-top:20px;">
       <button class="stamp-btn ghost" onclick="getModalHolder('vendorModalHolder').innerHTML=''">Cancel</button>
-      <button class="stamp-btn" style="background:var(--leaf);color:#fff;border-color:var(--leaf);" onclick="window.__submitBulkVendorPayment()">✓ Settle & Generate Voucher</button>
+      <button class="stamp-btn" style="background:var(--turmeric);color:#fff;border-color:var(--turmeric);" onclick="window.__submitBulkVendorPayment()">✓ Settle & Generate Voucher</button>
     </div>
   </div></div>`;
 
@@ -8509,7 +8515,7 @@ window.__openBulkVendorSettlementModal = function() {
       <div style="background:var(--paper);border:1px solid var(--paper-line);border-radius:8px;padding:12px;margin-bottom:12px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
           <b style="font-size:0.85rem;color:var(--turmeric-dark);">Unpaid Invoices (${vBills.length})</b>
-          <label style="font-size:0.75rem;font-weight:700;color:var(--leaf);cursor:pointer;margin:0;">
+          <label style="font-size:0.75rem;font-weight:700;color:var(--turmeric);cursor:pointer;margin:0;">
             <input type="checkbox" checked onchange="document.querySelectorAll('.mBulkBillCb').forEach(c=>c.checked=this.checked);window.__calcBulkVendorTotal();"> Select All
           </label>
         </div>
@@ -8521,14 +8527,14 @@ window.__openBulkVendorSettlementModal = function() {
                 <input type="checkbox" class="mBulkBillCb" value="${b.id}" data-amount="${getBillAmount(b)}" checked onchange="window.__calcBulkVendorTotal()">
                 <span>Bill <b>#${esc(getBillNo(b))}</b> (${b.bill_date})</span>
               </label>
-              <b style="font-family:'Roboto Mono',monospace;color:var(--brick);">₹${getBillAmount(b).toFixed(0)}</b>
+              <b style="font-family:'Roboto Mono',monospace;color:var(--turmeric);">₹${getBillAmount(b).toFixed(0)}</b>
             </div>
           `).join('')}
         </div>
 
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px dashed var(--paper-line);">
           <span style="font-size:0.82rem;font-weight:700;">Total Settlement Amount:</span>
-          <b id="mBulkVendorTotalDisp" style="font-family:'Roboto Mono',monospace;font-size:1.1rem;color:var(--leaf);">₹${totalV.toFixed(0)}</b>
+          <b id="mBulkVendorTotalDisp" style="font-family:'Roboto Mono',monospace;font-size:1.1rem;color:var(--turmeric);">₹${totalV.toFixed(0)}</b>
         </div>
       </div>
     `;
@@ -8672,19 +8678,19 @@ function renderAccCalendarHtml(){
 
     if(rec){
       if(totals.excess > 0){
-        badgeBg = 'var(--leaf-soft)'; badgeText = '+' + totals.excess.toFixed(0); color = 'var(--leaf)';
+        badgeBg = 'var(--blue-soft)'; badgeText = '+' + totals.excess.toFixed(0); color = 'var(--turmeric)';
       } else if(totals.less > 0){
-        badgeBg = 'var(--brick-soft)'; badgeText = '-' + totals.less.toFixed(0); color = 'var(--brick)';
+        badgeBg = 'var(--blue-soft)'; badgeText = '-' + totals.less.toFixed(0); color = 'var(--turmeric)';
       } else {
-        badgeBg = 'var(--purple-soft)'; badgeText = '✓ OK'; color = 'var(--purple)';
+        badgeBg = 'var(--blue-soft)'; badgeText = '✓ OK'; color = 'var(--turmeric)';
       }
     }
 
     cells.push(`
-      <div onclick="accountsDate='${dateStr}';accountsSubTab='entry';renderTabBody();" style="background:${isToday?'var(--amber-soft)':badgeBg};border:1px solid ${isToday?'var(--turmeric)':'var(--paper-line)'};border-radius:6px;padding:6px 4px;min-height:54px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;transition:transform 0.15s ease;">
+      <div onclick="accountsDate='${dateStr}';accountsSubTab='entry';renderTabBody();" style="background:${isToday?'var(--blue-soft)':badgeBg};border:1px solid ${isToday?'var(--turmeric)':'var(--paper-line)'};border-radius:6px;padding:6px 4px;min-height:54px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;transition:transform 0.15s ease;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <span style="font-weight:700;font-size:0.8rem;color:${isToday?'var(--turmeric-dark)':'var(--ink)'}">${day}</span>
-          ${rec && rec.is_checked ? '<span style="color:var(--leaf);font-size:0.65rem;">✓</span>' : ''}
+          ${rec && rec.is_checked ? '<span style="color:var(--turmeric);font-size:0.65rem;">✓</span>' : ''}
         </div>
         <div style="font-family:'Roboto Mono',monospace;font-size:0.65rem;font-weight:700;color:${color};text-align:right;">
           ${badgeText}
@@ -8848,7 +8854,7 @@ function renderAccReportsHtml(){
       <div class="cards-grid" style="grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-top:16px;">
         <div style="background:var(--paper);padding:10px;border-radius:8px;text-align:center;">
           <div style="font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">Period Total Sales</div>
-          <div style="font-family:'Roboto Mono',monospace;font-size:1.15rem;font-weight:700;color:var(--leaf);margin-top:2px;">₹${totalSalesPeriod.toFixed(0)}</div>
+          <div style="font-family:'Roboto Mono',monospace;font-size:1.15rem;font-weight:700;color:var(--turmeric);margin-top:2px;">₹${totalSalesPeriod.toFixed(0)}</div>
         </div>
         <div style="background:var(--paper);padding:10px;border-radius:8px;text-align:center;">
           <div style="font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">Average Sales</div>
@@ -8856,7 +8862,7 @@ function renderAccReportsHtml(){
         </div>
         <div style="background:var(--paper);padding:10px;border-radius:8px;text-align:center;">
           <div style="font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">Highest Sales</div>
-          <div style="font-family:'Roboto Mono',monospace;font-size:1.15rem;font-weight:700;color:var(--purple);margin-top:2px;">₹${highestBucket.toFixed(0)}</div>
+          <div style="font-family:'Roboto Mono',monospace;font-size:1.15rem;font-weight:700;color:var(--turmeric);margin-top:2px;">₹${highestBucket.toFixed(0)}</div>
         </div>
         <div style="background:var(--paper);padding:10px;border-radius:8px;text-align:center;">
           <div style="font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">Days Recorded</div>
@@ -8868,13 +8874,13 @@ function renderAccReportsHtml(){
 
   // 100% RESPONSIVE AI Financial Insights Container
   const aiInsightsHtml = `
-    <div class="row-card" style="flex-direction:column;align-items:stretch;border:1.5px solid var(--purple);background:var(--card);box-shadow:0 4px 12px rgba(15,118,110,0.06);margin-top:14px;">
+    <div class="row-card" style="flex-direction:column;align-items:stretch;border:1.5px solid var(--turmeric);background:var(--card);box-shadow:0 4px 12px rgba(15,118,110,0.06);margin-top:14px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
         <div>
-          <h3 style="margin:0;font-size:1.05rem;color:var(--purple);">AI Financial Health Insights & Analytics</h3>
+          <h3 style="margin:0;font-size:1.05rem;color:var(--turmeric);">AI Financial Health Insights & Analytics</h3>
           <div style="font-size:0.75rem;color:var(--ink-soft);">Automated smart cash flow intelligence</div>
         </div>
-        <span class="stamp done" style="background:var(--purple-soft);color:var(--purple);border-color:var(--purple);font-size:0.72rem;">Score: ${healthScore}% Optimal</span>
+        <span class="stamp done" style="background:var(--blue-soft);color:var(--turmeric);border-color:var(--turmeric);font-size:0.72rem;">Score: ${healthScore}% Optimal</span>
       </div>
 
       <!-- Responsive CSS Grid layout for AI Metrics -->
@@ -8886,19 +8892,19 @@ function renderAccReportsHtml(){
         </div>
         <div style="background:var(--paper);padding:10px;border-radius:8px;border:1px solid var(--paper-line);">
           <div style="font-size:0.7rem;color:var(--ink-soft);font-weight:700;text-transform:uppercase;">Credit Dependency</div>
-          <div style="font-family:'Roboto Mono',monospace;font-size:1.15rem;font-weight:700;color:${creditPct>25?'var(--brick)':'var(--leaf)'};margin-top:2px;">${creditPct}%</div>
+          <div style="font-family:'Roboto Mono',monospace;font-size:1.15rem;font-weight:700;color:${creditPct>25?'var(--turmeric)':'var(--turmeric)'};margin-top:2px;">${creditPct}%</div>
           <div style="font-size:0.68rem;color:var(--ink-soft);margin-top:2px;">${creditPct>25?'High Credit Risk':'Controlled Credit'}</div>
         </div>
         <div style="background:var(--paper);padding:10px;border-radius:8px;border:1px solid var(--paper-line);">
           <div style="font-size:0.7rem;color:var(--ink-soft);font-weight:700;text-transform:uppercase;">Total Shop Expenses</div>
-          <div style="font-family:'Roboto Mono',monospace;font-size:1.15rem;font-weight:700;color:var(--brick);margin-top:2px;">₹${totExpAll.toFixed(0)}</div>
+          <div style="font-family:'Roboto Mono',monospace;font-size:1.15rem;font-weight:700;color:var(--turmeric);margin-top:2px;">₹${totExpAll.toFixed(0)}</div>
           <div style="font-size:0.68rem;color:var(--ink-soft);margin-top:2px;">Operational Cash Out</div>
         </div>
       </div>
 
       <!-- Actionable AI Recommendations -->
-      <div style="background:var(--purple-soft);padding:12px;border-radius:8px;border-left:4px solid var(--purple);">
-        <div style="font-size:0.82rem;font-weight:700;color:var(--purple);margin-bottom:4px;">Smart AI Recommendation</div>
+      <div style="background:var(--blue-soft);padding:12px;border-radius:8px;border-left:4px solid var(--turmeric);">
+        <div style="font-size:0.82rem;font-weight:700;color:var(--turmeric);margin-bottom:4px;">Smart AI Recommendation</div>
         <div style="font-size:0.8rem;color:var(--ink);line-height:1.4;">
           ${creditPct > 20 ? 'Credit sales account for ' + creditPct + '% of total register revenue. Consider encouraging immediate GPay / UPI payments for small orders to maintain healthy liquidity.' : 'Cash flow is well-balanced with ' + digitalPct + '% digital collections and controlled credit risk.'}
         </div>
@@ -9096,11 +9102,11 @@ window.__importAccExcel = async function(input) {
         <h2>📊 Excel Import Summary</h2>
         <div style="background:var(--paper);padding:14px;border-radius:10px;border:1px solid var(--paper-line);margin-bottom:14px;">
           <div style="font-size:0.9rem;margin-bottom:6px;">Total SpreadSheet Rows Processed: <b>${localCount} Day(s)</b></div>
-          <div style="font-size:0.9rem;color:var(--leaf);font-weight:700;margin-bottom:4px;">✅ Verified Saved to Supabase Cloud: ${cloudSuccessCount}</div>
-          ${cloudErrorCount > 0 ? `<div style="font-size:0.88rem;color:var(--brick);font-weight:700;">⚠️ Cloud Save Failures: ${cloudErrorCount}</div>` : ''}
+          <div style="font-size:0.9rem;color:var(--turmeric);font-weight:700;margin-bottom:4px;">✅ Verified Saved to Supabase Cloud: ${cloudSuccessCount}</div>
+          ${cloudErrorCount > 0 ? `<div style="font-size:0.88rem;color:var(--turmeric);font-weight:700;">⚠️ Cloud Save Failures: ${cloudErrorCount}</div>` : ''}
         </div>
         ${failedLogs.length ? `
-          <div style="max-height:120px;overflow-y:auto;background:var(--brick-soft);padding:8px 10px;border-radius:6px;font-size:0.75rem;color:var(--brick);font-family:'Roboto Mono',monospace;margin-bottom:14px;">
+          <div style="max-height:120px;overflow-y:auto;background:var(--blue-soft);padding:8px 10px;border-radius:6px;font-size:0.75rem;color:var(--turmeric);font-family:'Roboto Mono',monospace;margin-bottom:14px;">
             ${failedLogs.map(l => `<div>${esc(l)}</div>`).join('')}
           </div>
         ` : ''}
@@ -9181,11 +9187,11 @@ window.__restoreAccJson = async function(input) {
         <h2>📥 Backup Restore Summary</h2>
         <div style="background:var(--paper);padding:14px;border-radius:10px;border:1px solid var(--paper-line);margin-bottom:14px;">
           <div style="font-size:0.9rem;margin-bottom:6px;">Total Backup Records Processed: <b>${localCount} Day(s)</b></div>
-          <div style="font-size:0.9rem;color:var(--leaf);font-weight:700;margin-bottom:4px;">✅ Verified Saved to Supabase Cloud: ${cloudSuccessCount}</div>
-          ${cloudErrorCount > 0 ? `<div style="font-size:0.88rem;color:var(--brick);font-weight:700;">⚠️ Cloud Save Failures: ${cloudErrorCount}</div>` : ''}
+          <div style="font-size:0.9rem;color:var(--turmeric);font-weight:700;margin-bottom:4px;">✅ Verified Saved to Supabase Cloud: ${cloudSuccessCount}</div>
+          ${cloudErrorCount > 0 ? `<div style="font-size:0.88rem;color:var(--turmeric);font-weight:700;">⚠️ Cloud Save Failures: ${cloudErrorCount}</div>` : ''}
         </div>
         ${failedLogs.length ? `
-          <div style="max-height:120px;overflow-y:auto;background:var(--brick-soft);padding:8px 10px;border-radius:6px;font-size:0.75rem;color:var(--brick);font-family:'Roboto Mono',monospace;margin-bottom:14px;">
+          <div style="max-height:120px;overflow-y:auto;background:var(--blue-soft);padding:8px 10px;border-radius:6px;font-size:0.75rem;color:var(--turmeric);font-family:'Roboto Mono',monospace;margin-bottom:14px;">
             ${failedLogs.map(l => `<div>${esc(l)}</div>`).join('')}
           </div>
         ` : ''}
@@ -9255,7 +9261,7 @@ function renderStockkeeperTab(body){
         <textarea id="mStockNotes" placeholder="Describe any missing items, damaged goods, or quantity issues in Home, Underground, RMTC, or Back godowns...">${myCheck.notes?esc(myCheck.notes.replace(/\[Godowns:[^\]]+\]\s*/g, '')):''}</textarea>
         <div class="modal-actions">
           <button class="stamp-btn" onclick="window.__saveStockNotes()">Save Check Record</button>
-          <button class="stamp-btn ghost" style="color:var(--brick);border-color:var(--brick);" onclick="window.__sendStockSms()">${icon('bell',16)} SMS Owner</button>
+          <button class="stamp-btn ghost" style="color:var(--turmeric);border-color:var(--turmeric);" onclick="window.__sendStockSms()">${icon('bell',16)} SMS Owner</button>
         </div>
       ` : ''}
     </div>`;
@@ -9539,7 +9545,7 @@ function renderSalaryTab(body){
                 </div>
                 <div style="text-align:right;">
                   <div style="font-size:0.68rem;color:var(--ink-soft);font-family:'Roboto Mono',monospace;">ADVANCES THIS MONTH</div>
-                  <b style="font-size:1rem;color:${totalAdv > 0 ? 'var(--brick)' : 'var(--leaf)'};font-family:'Roboto Mono',monospace;">₹${totalAdv.toFixed(0)}</b>
+                  <b style="font-size:1rem;color:${totalAdv > 0 ? 'var(--turmeric)' : 'var(--turmeric)'};font-family:'Roboto Mono',monospace;">₹${totalAdv.toFixed(0)}</b>
                 </div>
               </div>
               ${staffAdvs.length ? `
@@ -9547,7 +9553,7 @@ function renderSalaryTab(body){
                   ${staffAdvs.map(a => `
                     <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">
                       <span>${a.date} (${esc(a.notes||'Advance')})</span>
-                      <span style="font-family:'Roboto Mono',monospace;font-weight:600;color:var(--brick);">₹${Number(a.amount).toFixed(0)}</span>
+                      <span style="font-family:'Roboto Mono',monospace;font-weight:600;color:var(--turmeric);">₹${Number(a.amount).toFixed(0)}</span>
                     </div>
                   `).join('')}
                 </div>
@@ -9565,7 +9571,7 @@ function renderSalaryTab(body){
             <div class="meta"><span>${a.date}</span></div>
             ${a.notes ? `<div class="notes">${esc(a.notes)}</div>` : ''}
           </div>
-          <b style="font-family:'Roboto Mono',monospace;color:var(--brick);">₹${Number(a.amount).toFixed(0)}</b>
+          <b style="font-family:'Roboto Mono',monospace;color:var(--turmeric);">₹${Number(a.amount).toFixed(0)}</b>
           <div class="action-dropdown-holder">
             <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${a.id}')">More ▾</button>
             <div class="action-dropdown-menu" id="actionMenu_${a.id}">
@@ -9820,7 +9826,7 @@ function renderSettingsTab(body){
   window.__restoreBackup = async () => {
     const fileInput = document.getElementById('restoreFile');
     const msg = document.getElementById('restoreMsg');
-    if(!fileInput.files.length){ msg.textContent = 'Choose a backup file first.'; msg.style.color = 'var(--brick)'; return; }
+    if(!fileInput.files.length){ msg.textContent = 'Choose a backup file first.'; msg.style.color = 'var(--turmeric)'; return; }
     try{
       const text = await fileInput.files[0].text();
       const data = JSON.parse(text);
@@ -9837,10 +9843,10 @@ function renderSettingsTab(body){
       if(data.salesTargets && data.salesTargets.length) await supabase.from('sales_targets').upsert(data.salesTargets.map(t=>({...t, business_id: session.businessId})));
       if(data.trophies && data.trophies.length) await supabase.from('trophies').upsert(data.trophies.map(t=>({...t, business_id: session.businessId})));
       if(data.stockChecks && data.stockChecks.length) await supabase.from('stock_checks').upsert(data.stockChecks.map(c=>({...c, business_id: session.businessId})));
-      msg.textContent = 'Restored successfully.'; msg.style.color = 'var(--leaf)';
+      msg.textContent = 'Restored successfully.'; msg.style.color = 'var(--turmeric)';
       await loadData(); 
     } catch(e){
-      msg.textContent = 'Could not read that file: ' + e.message; msg.style.color = 'var(--brick)';
+      msg.textContent = 'Could not read that file: ' + e.message; msg.style.color = 'var(--turmeric)';
     }
   };
 }
