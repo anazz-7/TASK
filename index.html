@@ -2181,6 +2181,7 @@ const TAB_META = {
   settings: {icon:'settings', label:'Settings'},
   stockkeeper: {icon:'clipboard', label:'Stockkeeper'},
   accounts: {icon:'save', label:'Accounts'},
+  followups: {icon:'handshake', label:'Follow Ups'},
   audit: {icon:'clipboard', label:'Audit Log'},
   vendors: {icon:'vendors', label:'Vendor Bills'},
   low_stock: {icon:'low_stock', label:'Low Stock'},
@@ -2188,7 +2189,7 @@ const TAB_META = {
 function currentTabs(){
   if(session.role === 'salesman') return ['tasks', 'sales', 'salesman', 'accounts', 'low_stock'];
   return isManagerPlus()
-    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','salary','accounts','vendors','low_stock','reports','audit','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','vendors','low_stock','audit','staff'])
+    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','salary','accounts','followups','vendors','low_stock','reports','audit','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','followups','vendors','low_stock','audit','staff'])
     : ['tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','vendors','low_stock'];
 }
 function quickTabs(){
@@ -2207,6 +2208,7 @@ function getPrimaryActionBtn(t){
   if(t==='points' && isManagerPlus()) return `<button class="stamp-btn desktop-only" onclick="window.__openPoints()">+ Award Points</button>`;
   if(t==='vendors') return `<button class="stamp-btn desktop-only" onclick="window.__openScanVendorBillModal()">➕ Add Bill</button>`;
   if(t==='low_stock') return `<button class="stamp-btn desktop-only" onclick="window.__openLowStockModal()">+ Report Low Stock</button>`;
+  if(t==='followups') return `<button class="stamp-btn desktop-only" onclick="window.__openImportFollowupJsonModal()">📥 Import JSON</button><button class="stamp-btn desktop-only" style="margin-left:6px;" onclick="window.__openAddFollowupModal()">+ Add Customer Due</button>`;
   return '';
 }
 
@@ -2379,6 +2381,7 @@ function renderTabBody(){
   if(activeTab==='package') return renderPackageTab(body);
   if(activeTab==='stockkeeper') return renderStockkeeperTab(body);
   if(activeTab==='accounts') return renderAccountsTab(body);
+  if(activeTab==='followups') return renderFollowupsTab(body);
   if(activeTab==='vendors') return renderVendorBillsTab(body);
   if(activeTab==='low_stock') return renderLowStockTab(body);
   if(activeTab==='audit' && isManagerPlus()) return renderAuditTab(body);
