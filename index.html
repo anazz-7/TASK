@@ -912,6 +912,36 @@
     }
   }
 
+
+  /* Multi-Column Grid Cards System (4-5 Cards per Row on Desktop) */
+  .cards-grid-multi {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    width: 100%;
+  }
+
+  @media (min-width: 640px) {
+    .cards-grid-multi {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+  }
+
+  @media (min-width: 1000px) {
+    .cards-grid-multi {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+  }
+
+  @media (min-width: 1400px) {
+    .cards-grid-multi {
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px;
+    }
+  }
+
 </style>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
@@ -1787,8 +1817,14 @@ async function loadData(){
     }
     const cSet = getAccCheckedSet();
     cache.dailyAccounts.forEach(a => {
-      if(cSet.has(a.date) || (a.id && cSet.has(a.id))) a.is_checked = true;
+      if (Boolean(a.is_checked)) {
+        cSet.add(a.date);
+        if (a.id) cSet.add(a.id);
+      } else if (cSet.has(a.date) || (a.id && cSet.has(a.id))) {
+        a.is_checked = true;
+      }
     });
+    saveAccCheckedSet(cSet);
     await ensurePresetAccountsSeeded(bizId);
     localStorage.setItem('br_daily_accounts_' + bizId, JSON.stringify(cache.dailyAccounts));
 
@@ -5400,6 +5436,13 @@ function calcAccTotals(data) {
   return { totalSales, total, excess, less };
 }
 
+
+function isAccRecordChecked(rec) {
+  if (!rec) return false;
+  const checkedSet = getAccCheckedSet();
+  return Boolean(rec.is_checked || checkedSet.has(rec.date) || (rec.id && checkedSet.has(rec.id)));
+}
+
 function getAccCheckedSet(){
   try {
     return new Set(JSON.parse(localStorage.getItem('br_acc_checked_' + session.businessId) || '[]'));
@@ -6113,7 +6156,7 @@ window.__saveAccEntry = function() {
 
     // Build DB payload (strip local-only fields)
     const dbPayload = Object.assign({}, data);
-    delete dbPayload.is_checked;
+    // dbPayload.is_checked preserved for cloud sync
     // NOTE: do NOT add legacy "ac"/"salary" keys here — the daily_accounts table
     // only has "personal_ac" and "salary_paid" columns. Sending unknown columns
     // makes every Supabase upsert fail, which was causing entries to get stuck
@@ -6211,7 +6254,7 @@ function renderAccHistoryHtml(){
     <div class="section-label">Account History Ledger</div>
     <input type="text" id="accHistorySearch" placeholder="Search by date (e.g. 2026-07)..." oninput="window.__filterAccHistory(this.value)" style="width:100%;margin-bottom:12px;padding:8px 12px;border:1px solid var(--paper-line);border-radius:6px;font-size:0.85rem;">
     
-    <div id="accHistoryList" class="cards-grid">
+    <div id="accHistoryList" class="cards-grid-multi">
       ${renderAccHistoryRows(records)}
     </div>
   `;
@@ -6224,7 +6267,7 @@ function renderAccHistoryRows(records){
   return records.map(rec => {
     const isOpen = expandedAccDates.has(rec.date);
     const datePretty = new Date(rec.date + 'T00:00:00').toLocaleDateString('en-IN', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
-    const isChecked = checkedSet.has(rec.id) || checkedSet.has(rec.date) || Boolean(rec.is_checked);
+    const isChecked = isAccRecordChecked(rec);
 
     return `
       <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px 16px;margin-bottom:10px;${isChecked ? 'border-left:4px solid var(--turmeric);background:var(--blue-soft);' : ''}">
@@ -6278,22 +6321,34 @@ function renderAccHistoryRows(records){
 
 window.__toggleAccChecked = async function(recDate, isChecked) {
   const checkedSet = getAccCheckedSet();
-  if(isChecked) checkedSet.add(recDate); else checkedSet.delete(recDate);
+  const rec = cache.dailyAccounts.find(a => a.date === recDate || a.id === recDate);
+  
+  if (isChecked) {
+    checkedSet.add(recDate);
+    if (rec && rec.id) checkedSet.add(rec.id);
+  } else {
+    checkedSet.delete(recDate);
+    if (rec && rec.id) checkedSet.delete(rec.id);
+  }
   saveAccCheckedSet(checkedSet);
 
-  const rec = cache.dailyAccounts.find(a => a.date === recDate || a.id === recDate);
-  if(rec) rec.is_checked = isChecked;
+  if (rec) rec.is_checked = isChecked;
 
-  // Persist into daily accounts cache as well
-  localStorage.setItem('br_daily_accounts_' + session.businessId, JSON.stringify(cache.dailyAccounts));
+  // Persist into daily accounts cache
+  try { localStorage.setItem('br_daily_accounts_' + session.businessId, JSON.stringify(cache.dailyAccounts)); } catch(e){}
 
-  try {
-    if(rec && rec.id && !rec.id.startsWith('loc_')){
-      await supabase.from('daily_accounts').update({ is_checked: isChecked }).eq('id', rec.id);
-    } else {
-      await supabase.from('daily_accounts').update({ is_checked: isChecked }).eq('business_id', session.businessId).eq('date', recDate);
-    }
-  } catch(e){}
+  // Non-blocking Cloud Sync to Supabase so checked state appears across all devices
+  if (navigator.onLine && typeof supabase !== 'undefined' && session && session.businessId) {
+    (async function() {
+      try {
+        if (rec && rec.id && !rec.id.startsWith('loc_')) {
+          await supabase.from('daily_accounts').update({ is_checked: isChecked }).eq('id', rec.id);
+        } else {
+          await supabase.from('daily_accounts').update({ is_checked: isChecked }).eq('business_id', session.businessId).eq('date', recDate);
+        }
+      } catch(e) { console.error('Cloud checked sync error:', e); }
+    })();
+  }
 
   renderTabBody();
 };
@@ -8815,7 +8870,7 @@ function renderAccCalendarHtml(){
       <div onclick="accountsDate='${dateStr}';accountsSubTab='entry';renderTabBody();" style="background:${isToday?'var(--blue-soft)':badgeBg};border:1px solid ${isToday?'var(--turmeric)':'var(--paper-line)'};border-radius:6px;padding:6px 4px;min-height:54px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;transition:transform 0.15s ease;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <span style="font-weight:700;font-size:0.8rem;color:${isToday?'var(--turmeric-dark)':'var(--ink)'}">${day}</span>
-          ${rec && rec.is_checked ? '<span style="color:var(--turmeric);font-size:0.65rem;">✓</span>' : ''}
+          ${rec && isAccRecordChecked(rec) ? '<span style="color:var(--turmeric);font-size:0.75rem;font-weight:700;">✓ CHECKED</span>' : ''}
         </div>
         <div style="font-family:'Roboto Mono',monospace;font-size:0.65rem;font-weight:700;color:${color};text-align:right;">
           ${badgeText}
