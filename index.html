@@ -2181,7 +2181,7 @@ const TAB_META = {
   settings: {icon:'settings', label:'Settings'},
   stockkeeper: {icon:'clipboard', label:'Stockkeeper'},
   accounts: {icon:'save', label:'Accounts'},
-  followups: {icon:'handshake', label:'Follow Ups'},
+  customer_report: {icon:'user', label:'Customer Report'},
   audit: {icon:'clipboard', label:'Audit Log'},
   vendors: {icon:'vendors', label:'Vendor Bills'},
   low_stock: {icon:'low_stock', label:'Low Stock'},
@@ -2189,7 +2189,7 @@ const TAB_META = {
 function currentTabs(){
   if(session.role === 'salesman') return ['tasks', 'sales', 'salesman', 'accounts', 'low_stock'];
   return isManagerPlus()
-    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','salary','accounts','followups','vendors','low_stock','reports','audit','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','followups','vendors','low_stock','audit','staff'])
+    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','salary','accounts','customer_report','vendors','low_stock','reports','audit','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','customer_report','vendors','low_stock','audit','staff'])
     : ['tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','vendors','low_stock'];
 }
 function quickTabs(){
@@ -2208,7 +2208,7 @@ function getPrimaryActionBtn(t){
   if(t==='points' && isManagerPlus()) return `<button class="stamp-btn desktop-only" onclick="window.__openPoints()">+ Award Points</button>`;
   if(t==='vendors') return `<button class="stamp-btn desktop-only" onclick="window.__openScanVendorBillModal()">➕ Add Bill</button>`;
   if(t==='low_stock') return `<button class="stamp-btn desktop-only" onclick="window.__openLowStockModal()">+ Report Low Stock</button>`;
-  if(t==='followups') return `<button class="stamp-btn desktop-only" onclick="window.__openImportFollowupJsonModal()">📥 Import JSON</button><button class="stamp-btn desktop-only" style="margin-left:6px;" onclick="window.__openAddFollowupModal()">+ Add Customer Due</button>`;
+  if(t==='customer_report') return `<button class="stamp-btn desktop-only" onclick="window.__openImportFollowupJsonModal()">📥 Import JSON</button><button class="stamp-btn desktop-only" style="margin-left:6px;" onclick="window.__openAddFollowupModal()">+ Add Customer Due</button>`;
   return '';
 }
 
@@ -2381,7 +2381,7 @@ function renderTabBody(){
   if(activeTab==='package') return renderPackageTab(body);
   if(activeTab==='stockkeeper') return renderStockkeeperTab(body);
   if(activeTab==='accounts') return renderAccountsTab(body);
-  if(activeTab==='followups') return renderFollowupsTab(body);
+  if(activeTab==='customer_report') return renderFollowupsTab(body);
   if(activeTab==='vendors') return renderVendorBillsTab(body);
   if(activeTab==='low_stock') return renderLowStockTab(body);
   if(activeTab==='audit' && isManagerPlus()) return renderAuditTab(body);
@@ -10249,3 +10249,397 @@ boot();
 </script>
 </body>
 </html>
+
+/* ================================================================
+   >>> CUSTOMER REPORT TAB & CHATGPT JSON IMPORT MODULE <<<
+================================================================ */
+let customerSegmentFilter = 'all';
+let customerSearchQuery = '';
+
+function getCustomerReportsData() {
+  if (!cache.customerReports) {
+    try {
+      cache.customerReports = JSON.parse(localStorage.getItem('br_customer_reports_' + session.businessId) || '[]');
+    } catch(e) {
+      cache.customerReports = [];
+    }
+  }
+  return cache.customerReports;
+}
+
+function saveCustomerReportsData() {
+  try {
+    localStorage.setItem('br_customer_reports_' + session.businessId, JSON.stringify(cache.customerReports || []));
+  } catch(e){}
+  // Sync to Supabase in background
+  if (navigator.onLine && typeof supabase !== 'undefined' && session && session.businessId) {
+    (async function() {
+      try {
+        const payload = {
+          business_id: session.businessId,
+          title: '[CUSTOMER_REPORTS_DATA]',
+          notes: JSON.stringify(cache.customerReports || []),
+          status: 'done',
+          priority: 'high'
+        };
+        await supabase.from('tasks').upsert(payload, { onConflict: 'business_id,title' });
+      } catch(err){}
+    })();
+  }
+}
+
+function renderCustomerReportTab(body) {
+  const reports = getCustomerReportsData();
+  const totalSpent = reports.reduce((sum, r) => sum + Number(r.total_spent || 0), 0);
+  const totalCount = reports.length;
+  const vipCount = reports.filter(r => r.segment === 'VIP').length;
+  const avgSpend = totalCount > 0 ? Math.round(totalSpent / totalCount) : 0;
+
+  let filtered = reports.slice();
+  if (customerSegmentFilter !== 'all') {
+    filtered = filtered.filter(r => r.segment === customerSegmentFilter);
+  }
+
+  if (customerSearchQuery.trim()) {
+    const q = customerSearchQuery.trim().toLowerCase();
+    filtered = filtered.filter(r =>
+      (r.customer_name && r.customer_name.toLowerCase().includes(q)) ||
+      (r.phone && r.phone.includes(q)) ||
+      (r.city && r.city.toLowerCase().includes(q)) ||
+      (r.favorite_item && r.favorite_item.toLowerCase().includes(q)) ||
+      (r.remarks && r.remarks.toLowerCase().includes(q))
+    );
+  }
+
+  body.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <h2 style="margin:0 0 4px;font-size:1.25rem;">CUSTOMER INTELLIGENCE & ANALYTICS REPORT</h2>
+        <p style="margin:0;color:var(--ink-soft);font-size:0.78rem;">Import ChatGPT ledger JSON, analyze party purchase behavior, track order volume, and engage customers.</p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="stamp-btn" onclick="window.__openImportCustomerJsonModal()">📥 Import ChatGPT JSON</button>
+        <button class="stamp-btn ghost" onclick="window.__openAddCustomerReportModal()">➕ Add Customer Entry</button>
+        <button class="stamp-btn ghost" onclick="window.__copyChatGPTCustomerPrompt()">📋 Copy ChatGPT Prompt</button>
+      </div>
+    </div>
+
+    <!-- Overview Stat KPI Cards -->
+    <div class="dash-kpi-grid" style="margin-bottom:20px;">
+      <div class="dash-kpi-card">
+        <div class="dash-kpi-title">Total Customers</div>
+        <div class="dash-kpi-val" style="color:var(--ink);">${totalCount}</div>
+        <div class="dash-kpi-sub">Customer Profiles</div>
+      </div>
+      <div class="dash-kpi-card">
+        <div class="dash-kpi-title">Total Ledger Sales</div>
+        <div class="dash-kpi-val" style="color:var(--turmeric-dark);">₹${totalSpent.toLocaleString('en-IN')}</div>
+        <div class="dash-kpi-sub">Cumulative Business Volume</div>
+      </div>
+      <div class="dash-kpi-card">
+        <div class="dash-kpi-title">VIP Key Accounts</div>
+        <div class="dash-kpi-val" style="color:var(--turmeric);">${vipCount}</div>
+        <div class="dash-kpi-sub">High Priority Clients</div>
+      </div>
+      <div class="dash-kpi-card">
+        <div class="dash-kpi-title">Avg Spend / Customer</div>
+        <div class="dash-kpi-val" style="color:var(--ink);">₹${avgSpend.toLocaleString('en-IN')}</div>
+        <div class="dash-kpi-sub">Average Party Lifetime Value</div>
+      </div>
+    </div>
+
+    <!-- Search & Filter Bar -->
+    <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
+      <input type="text" placeholder="Search customer name, phone, city, or items..." value="${esc(customerSearchQuery)}" oninput="customerSearchQuery=this.value;renderTabBody();" style="flex:1;min-width:240px;padding:10px 14px;border:1.5px solid var(--paper-line);border-radius:8px;">
+      
+      <div style="display:flex;gap:6px;overflow-x:auto;">
+        <button class="stamp-btn small ${customerSegmentFilter==='all'?'':'ghost'}" onclick="customerSegmentFilter='all';renderTabBody();">ALL (${totalCount})</button>
+        <button class="stamp-btn small ${customerSegmentFilter==='VIP'?'':'ghost'}" style="${customerSegmentFilter==='VIP'?'background:var(--turmeric-dark);color:#fff;border-color:var(--turmeric-dark);':''}" onclick="customerSegmentFilter='VIP';renderTabBody();">⭐ VIP (${vipCount})</button>
+        <button class="stamp-btn small ${customerSegmentFilter==='REGULAR'?'':'ghost'}" onclick="customerSegmentFilter='REGULAR';renderTabBody();">👥 REGULAR</button>
+        <button class="stamp-btn small ${customerSegmentFilter==='NEW'?'':'ghost'}" onclick="customerSegmentFilter='NEW';renderTabBody();">✨ NEW</button>
+        <button class="stamp-btn small ${customerSegmentFilter==='INACTIVE'?'':'ghost'}" onclick="customerSegmentFilter='INACTIVE';renderTabBody();">💤 INACTIVE</button>
+      </div>
+    </div>
+
+    <!-- Customer Cards Grid -->
+    ${!filtered.length ? '<div class="empty">No customer report records found. Click "Import ChatGPT JSON" or "Add Customer Entry" to add customer profiles!</div>' : `
+      <div class="cards-grid-multi">
+        ${filtered.map(r => {
+          const isVip = r.segment === 'VIP';
+          const statusClass = isVip ? 'high' : r.segment === 'NEW' ? 'present' : r.segment === 'INACTIVE' ? 'low' : 'done';
+          const cleanPhone = (r.phone || '').replace(/[^0-9]/g, '');
+          const waMessage = encodeURIComponent(`Hi ${r.customer_name || 'Valued Customer'}, thank you for doing business with ${session.businessName || 'B-INDUSTRIES'}. We appreciate your continued partnership!`);
+          
+          return `
+            <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px;margin-bottom:0;${isVip ? 'border-left:4px solid var(--turmeric);background:var(--blue-soft);' : ''}">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;">
+                <div>
+                  <b style="font-size:0.95rem;color:var(--ink);display:block;margin-bottom:2px;">${esc(r.customer_name || 'UNNAMED PARTY')}</b>
+                  <div style="font-size:0.75rem;color:var(--ink-soft);">📍 ${esc(r.city || 'LOCATION N/A')} &bull; 📞 ${esc(r.phone || 'No Phone')}</div>
+                </div>
+                <span class="stamp ${statusClass}" style="flex-shrink:0;">${isVip ? '⭐ VIP' : r.segment || 'REGULAR'}</span>
+              </div>
+
+              <div style="display:flex;justify-content:space-between;align-items:center;background:var(--paper);padding:8px 10px;border-radius:6px;margin:6px 0 10px;">
+                <div>
+                  <div style="font-size:0.68rem;color:var(--ink-soft);font-weight:700;">TOTAL SPENT:</div>
+                  <b style="font-size:1.1rem;color:var(--turmeric-dark);">₹${Number(r.total_spent || 0).toLocaleString('en-IN')}</b>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:0.68rem;color:var(--ink-soft);font-weight:700;">ORDERS:</div>
+                  <b style="font-size:1.05rem;color:var(--ink);">${r.total_orders || 0} Orders</b>
+                </div>
+              </div>
+
+              <div style="font-size:0.72rem;color:var(--ink-soft);margin-bottom:8px;">
+                ${r.favorite_item ? `<div><b>PREFERRED ITEM:</b> ${esc(r.favorite_item)}</div>` : ''}
+                ${r.last_order_date ? `<div><b>LAST ORDER:</b> ${r.last_order_date}</div>` : ''}
+                ${r.remarks ? `<div style="margin-top:4px;color:var(--ink);"><b>NOTES:</b> ${esc(r.remarks)}</div>` : ''}
+              </div>
+
+              <div style="display:flex;gap:6px;border-top:1px dashed var(--paper-line);padding-top:10px;margin-top:auto;flex-wrap:wrap;">
+                ${cleanPhone ? `<a href="tel:${cleanPhone}" class="stamp-btn small ghost" style="flex:1;text-decoration:none;">📞 Call</a>` : ''}
+                ${cleanPhone ? `<a href="https://wa.me/${cleanPhone.length===10?'91'+cleanPhone:cleanPhone}?text=${waMessage}" target="_blank" class="stamp-btn small" style="background:#25D366;color:#fff;border-color:#25D366;flex:1;text-decoration:none;">💬 WhatsApp</a>` : ''}
+                <button class="stamp-btn small ghost" onclick="window.__editCustomerReportModal('${r.id}')">✎ Edit</button>
+                <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);" onclick="window.__deleteCustomerReport('${r.id}')">🗑</button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `}
+  `;
+}
+
+/* Modal for importing ChatGPT JSON */
+window.__openImportCustomerJsonModal = function() {
+  let modal = document.getElementById('importCustomerJsonModal');
+  if (!modal) {
+    const div = document.createElement('div');
+    div.id = 'importCustomerJsonModal';
+    div.className = 'overlay';
+    div.innerHTML = `
+      <div class="modal" style="max-width:640px;">
+        <h2>📥 Import Customer Report JSON from ChatGPT</h2>
+        <p style="font-size:0.78rem;color:var(--ink-soft);margin-bottom:12px;">Paste the customer report JSON array generated by ChatGPT. We will automatically parse customer names, cities, phone numbers, order counts, sales amounts, and notes!</p>
+        
+        <label>CHATGPT CUSTOMER JSON DATA:</label>
+        <textarea id="customerJsonInput" style="height:180px;font-family:monospace;font-size:0.8rem;" placeholder='[&#10;  { "customer_name": "ROHIT TRADERS", "city": "MUMBAI", "phone": "9876543210", "total_spent": 48500, "total_orders": 12, "favorite_item": "FLANGE 2 INCH", "segment": "VIP", "remarks": "High volume client" }&#10;]'></textarea>
+
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="stamp-btn small ghost" onclick="window.__copyChatGPTCustomerPrompt()">📋 Copy ChatGPT Prompt Guide</button>
+        </div>
+
+        <div class="modal-actions" style="margin-top:20px;">
+          <button class="stamp-btn ghost" onclick="document.getElementById('importCustomerJsonModal').classList.remove('show')">Cancel</button>
+          <button class="stamp-btn" onclick="window.__submitImportCustomerJson()">📥 Import & Save Customer Report</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(div);
+    modal = div;
+  }
+  modal.classList.add('show');
+};
+
+window.__submitImportCustomerJson = function() {
+  const input = document.getElementById('customerJsonInput').value.trim();
+  if (!input) {
+    alert('Please paste valid JSON data into the text box.');
+    return;
+  }
+
+  try {
+    let parsed = JSON.parse(input);
+    if (!Array.isArray(parsed)) {
+      if (typeof parsed === 'object' && parsed !== null) parsed = [parsed];
+      else throw new Error('Input must be a JSON array or object.');
+    }
+
+    const current = getCustomerReportsData();
+    let count = 0;
+
+    parsed.forEach(item => {
+      const name = item.customer_name || item.customerName || item.party_name || item.partyName || item.name || item.customer || 'Customer ' + (current.length + 1);
+      const phone = String(item.phone || item.phone_number || item.mobile || item.contact || '');
+      const city = String(item.city || item.location || item.address || '');
+      const totalSpent = parseFloat(item.total_spent || item.totalSpent || item.sales || item.amount || item.spent || item.total || 0);
+      const totalOrders = parseInt(item.total_orders || item.totalOrders || item.order_count || item.orders || 1, 10);
+      const lastOrder = item.last_order_date || item.lastOrderDate || item.last_date || item.date || '';
+      const favItem = item.favorite_item || item.favoriteItem || item.item || item.category || '';
+      let segment = String(item.segment || item.type || item.status || 'REGULAR').toUpperCase();
+      if (!['VIP', 'REGULAR', 'NEW', 'INACTIVE'].includes(segment)) segment = 'REGULAR';
+      const remarks = item.remarks || item.notes || item.comments || '';
+
+      current.push({
+        id: 'cust_rep_' + Date.now() + '_' + Math.random().toString(36).substring(2,6),
+        customer_name: name,
+        phone: phone,
+        city: city,
+        total_spent: isNaN(totalSpent) ? 0 : totalSpent,
+        total_orders: isNaN(totalOrders) ? 1 : totalOrders,
+        last_order_date: lastOrder,
+        favorite_item: favItem,
+        segment: segment,
+        remarks: remarks
+      });
+      count++;
+    });
+
+    saveCustomerReportsData();
+    document.getElementById('importCustomerJsonModal').classList.remove('show');
+    window.showToast(`✅ Successfully imported ${count} customer reports!`, 'success');
+    renderTabBody();
+  } catch(e) {
+    alert('Invalid JSON format: ' + e.message + '
+
+Please copy the prompt guide and ask ChatGPT to generate valid JSON format.');
+  }
+};
+
+window.__copyChatGPTCustomerPrompt = function() {
+  const promptText = `Convert the following customer sales/ledger list into a clean JSON array with keys: "customer_name", "phone", "city", "total_spent", "total_orders", "last_order_date", "favorite_item", "segment" (VIP/REGULAR/NEW/INACTIVE), "remarks". Output ONLY valid JSON array without markdown code blocks.`;
+  navigator.clipboard.writeText(promptText).then(() => {
+    window.showToast('📋 Copied ChatGPT prompt to clipboard!', 'success');
+  }).catch(() => {
+    alert('ChatGPT Prompt:
+
+' + promptText);
+  });
+};
+
+window.__openAddCustomerReportModal = function(editId) {
+  const reports = getCustomerReportsData();
+  const existing = editId ? reports.find(r => r.id === editId) : null;
+  const r = existing || {};
+
+  let modal = document.getElementById('addCustomerReportModal');
+  if (!modal) {
+    const div = document.createElement('div');
+    div.id = 'addCustomerReportModal';
+    div.className = 'overlay';
+    document.body.appendChild(div);
+    modal = div;
+  }
+
+  modal.innerHTML = `
+    <div class="modal">
+      <h2>${existing ? '✎ Edit Customer Report' : '➕ Add Customer Profile'}</h2>
+      <label>CUSTOMER / PARTY NAME:</label>
+      <input type="text" id="custName" value="${esc(r.customer_name || '')}" placeholder="e.g. ROHIT TRADERS">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label>PHONE NUMBER:</label>
+          <input type="text" id="custPhone" value="${esc(r.phone || '')}" placeholder="e.g. 9876543210">
+        </div>
+        <div>
+          <label>CITY / LOCATION:</label>
+          <input type="text" id="custCity" value="${esc(r.city || '')}" placeholder="e.g. MUMBAI">
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label>TOTAL SPENT (₹):</label>
+          <input type="number" id="custSpent" value="${r.total_spent || ''}" placeholder="e.g. 48500">
+        </div>
+        <div>
+          <label>TOTAL ORDERS:</label>
+          <input type="number" id="custOrders" value="${r.total_orders || '1'}" placeholder="e.g. 12">
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label>SEGMENT:</label>
+          <select id="custSegment">
+            <option value="REGULAR" ${r.segment==='REGULAR'?'selected':''}>👥 REGULAR</option>
+            <option value="VIP" ${r.segment==='VIP'?'selected':''}>⭐ VIP</option>
+            <option value="NEW" ${r.segment==='NEW'?'selected':''}>✨ NEW</option>
+            <option value="INACTIVE" ${r.segment==='INACTIVE'?'selected':''}>💤 INACTIVE</option>
+          </select>
+        </div>
+        <div>
+          <label>LAST ORDER DATE:</label>
+          <input type="date" id="custLastDate" value="${r.last_order_date || ''}">
+        </div>
+      </div>
+
+      <label>PREFERRED ITEM / CATEGORY:</label>
+      <input type="text" id="custFavItem" value="${esc(r.favorite_item || '')}" placeholder="e.g. STAINLESS STEEL FLANGE 2 INCH">
+
+      <label>REMARKS / NOTES:</label>
+      <textarea id="custNotes" placeholder="e.g. High volume buyer. Prefers Express delivery.">${esc(r.remarks || '')}</textarea>
+
+      <div class="modal-actions">
+        <button class="stamp-btn ghost" onclick="document.getElementById('addCustomerReportModal').classList.remove('show')">Cancel</button>
+        <button class="stamp-btn" onclick="window.__saveCustomerReportModal('${editId || ''}')">Save Customer Report</button>
+      </div>
+    </div>
+  `;
+  modal.classList.add('show');
+};
+
+window.__editCustomerReportModal = function(id) {
+  window.__openAddCustomerReportModal(id);
+};
+
+window.__saveCustomerReportModal = function(editId) {
+  const name = document.getElementById('custName').value.trim();
+  const phone = document.getElementById('custPhone').value.trim();
+  const city = document.getElementById('custCity').value.trim();
+  const spent = parseFloat(document.getElementById('custSpent').value) || 0;
+  const orders = parseInt(document.getElementById('custOrders').value, 10) || 1;
+  const segment = document.getElementById('custSegment').value;
+  const date = document.getElementById('custLastDate').value;
+  const favItem = document.getElementById('custFavItem').value.trim();
+  const notes = document.getElementById('custNotes').value.trim();
+
+  if (!name) {
+    alert('Please enter a customer or party name.');
+    return;
+  }
+
+  const reports = getCustomerReportsData();
+  if (editId) {
+    const existing = reports.find(r => r.id === editId);
+    if (existing) {
+      existing.customer_name = name;
+      existing.phone = phone;
+      existing.city = city;
+      existing.total_spent = spent;
+      existing.total_orders = orders;
+      existing.segment = segment;
+      existing.last_order_date = date;
+      existing.favorite_item = favItem;
+      existing.remarks = notes;
+    }
+  } else {
+    reports.push({
+      id: 'cust_rep_' + Date.now(),
+      customer_name: name,
+      phone: phone,
+      city: city,
+      total_spent: spent,
+      total_orders: orders,
+      segment: segment,
+      last_order_date: date,
+      favorite_item: favItem,
+      remarks: notes
+    });
+  }
+
+  saveCustomerReportsData();
+  document.getElementById('addCustomerReportModal').classList.remove('show');
+  window.showToast('✅ Customer report saved!', 'success');
+  renderTabBody();
+};
+
+window.__deleteCustomerReport = function(id) {
+  if (!confirm('Are you sure you want to delete this customer report entry?')) return;
+  cache.customerReports = getCustomerReportsData().filter(r => r.id !== id);
+  saveCustomerReportsData();
+  window.showToast('🗑 Customer report deleted.', 'info');
+  renderTabBody();
+};
