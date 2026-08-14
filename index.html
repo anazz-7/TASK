@@ -558,15 +558,19 @@
     }
 
     .wrap {
-      max-width: 1040px;
-      margin: 0;
-      padding: 0 32px 64px;
+      max-width: 100% !important;
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 0 32px 64px !important;
+      box-sizing: border-box;
     }
 
     header.top {
-      max-width: 1040px;
-      margin: 0;
-      padding: 24px 32px 16px;
+      max-width: 100% !important;
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 24px 32px 16px !important;
+      box-sizing: border-box;
     }
 
     nav.tabs {
@@ -880,6 +884,34 @@
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
+
+  /* Widescreen 1400px+ Desktop Responsive Expansion */
+  @media (min-width: 1200px) {
+    .dash-kpi-grid {
+      grid-template-columns: repeat(4, 1fr) !important;
+      gap: 16px !important;
+    }
+    .stat-grid {
+      grid-template-columns: repeat(4, 1fr) !important;
+      gap: 16px !important;
+    }
+  }
+
+  @media (min-width: 1440px) {
+    .wrap {
+      padding: 0 48px 64px !important;
+    }
+    header.top {
+      padding: 28px 48px 20px !important;
+    }
+    .dash-kpi-grid {
+      gap: 20px !important;
+    }
+    .stat-grid {
+      gap: 20px !important;
+    }
+  }
+
 </style>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
@@ -6613,6 +6645,9 @@ window.__printVendorBillReceipt = function(id) {
     font-size: 0.7rem !important;
   }
 
+
+
+
 </style>
     </head>
     <body>
@@ -7970,6 +8005,9 @@ window.__printPaymentVoucher = function() {
     font-size: 0.7rem !important;
   }
 
+
+
+
 </style>
     </head>
     <body>
@@ -8287,6 +8325,9 @@ window.__printVendorStatement = function(vendorName) {
     padding: 5px 8px !important;
     font-size: 0.7rem !important;
   }
+
+
+
 
 </style>
     </head>
