@@ -106,7 +106,12 @@
   }
 
   header.top {
-    padding: 24px 16px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 90;
+    background: var(--paper);
+    border-bottom: 1.5px solid var(--paper-line);
+    padding: 16px;
     max-width: 760px;
     margin: 0 auto;
     display: flex;
@@ -199,7 +204,7 @@
     gap: 8px;
   }
   
-  nav.tabs button.active { background: var(--ink); border-color: var(--ink); color: #FFFFFF; }
+  nav.tabs button.active { background: #0F172A !important; border-color: #0F172A !important; color: #FFFFFF !important; }
   
   .section-label {
     font-family: 'Roboto Mono', monospace !important;
@@ -542,10 +547,10 @@
     }
 
     .sidebar-item.active {
-      background: var(--turmeric) !important;
+      background: #0F172A !important;
       color: #FFFFFF !important;
       font-weight: 700;
-      box-shadow: 0 4px 12px rgba(30, 58, 110, 0.22) !important;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25) !important;
     }
 
     .sidebar-item .ic {
@@ -913,7 +918,7 @@
   }
 
 
-  /* Multi-Column Grid Cards System (4-5 Cards per Row on Desktop) */
+  /* Multi-Column Grid Cards System (Compact & Perfectly Aligned) */
   .cards-grid-multi {
     display: grid;
     grid-template-columns: 1fr;
@@ -928,17 +933,17 @@
     }
   }
 
-  @media (min-width: 1000px) {
+  @media (min-width: 900px) {
     .cards-grid-multi {
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
     }
   }
 
-  @media (min-width: 1400px) {
+  @media (min-width: 1300px) {
     .cards-grid-multi {
-      grid-template-columns: repeat(5, 1fr);
-      gap: 16px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
     }
   }
 
@@ -2237,9 +2242,7 @@ function renderShell(){
           </div>
         </div>
         <div class="header-actions">
-          <button class="reload-btn" title="Global Quick Search (Ctrl + K)" onclick="window.__openGlobalSearchModal()">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          </button>
+
           <button class="reload-btn" title="Refresh App Data" onclick="window.__reloadAppData(this)">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3L21.5 8M22 12.5a10 10 0 0 1-18.8 4.3L2.5 16"/></svg>
           </button>
@@ -6270,7 +6273,7 @@ function renderAccHistoryRows(records){
     const isChecked = isAccRecordChecked(rec);
 
     return `
-      <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px 16px;margin-bottom:10px;${isChecked ? 'border-left:4px solid var(--turmeric);background:var(--blue-soft);' : ''}">
+      <div class="row-card" style="flex-direction:column;align-items:stretch;padding:12px 14px;margin-bottom:0;${isChecked ? 'border-left:4px solid var(--turmeric);background:var(--blue-soft);' : ''}">
         <!-- Top Row: Date & Status Badge -->
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;">
           <div>
