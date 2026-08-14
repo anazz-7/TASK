@@ -1829,9 +1829,31 @@ async function loadData(){
         if (a.id) cSet.add(a.id);
       } else if (cSet.has(a.date) || (a.id && cSet.has(a.id))) {
         a.is_checked = true;
+        if (!a.notes || !String(a.notes).includes('[CHECKED]')) {
+          a.notes = (String(a.notes || '') + ' [CHECKED]').trim();
+        }
       }
     });
     saveAccCheckedSet(cSet);
+
+    // Sync any locally checked items to cloud in background
+    if (navigator.onLine && typeof supabase !== 'undefined' && session && session.businessId) {
+      (async function() {
+        const itemsToSync = cache.dailyAccounts.filter(a => Boolean(a.is_checked));
+        for (const item of itemsToSync) {
+          try {
+            const p = {
+              business_id: session.businessId,
+              date: item.date,
+              is_checked: true,
+              notes: item.notes || '[CHECKED]'
+            };
+            if (item.id && !String(item.id).startsWith('loc_') && !String(item.id).startsWith('preset_')) p.id = item.id;
+            await supabase.from('daily_accounts').upsert(p, { onConflict: 'business_id,date' });
+          } catch(err){}
+        }
+      })();
+    }
     await ensurePresetAccountsSeeded(bizId);
     localStorage.setItem('br_daily_accounts_' + bizId, JSON.stringify(cache.dailyAccounts));
 
@@ -6363,18 +6385,31 @@ window.__toggleAccChecked = async function(recDate, isChecked) {
           business_id: session.businessId,
           date: recDate,
           is_checked: isChecked,
-          notes: rec.notes
+          notes: rec.notes,
+          total_sales: Number(rec.total_sales || 0),
+          total: Number(rec.total || 0),
+          excess: Number(rec.excess || 0),
+          less: Number(rec.less || 0)
         };
-        if (rec.id && !String(rec.id).startsWith('loc_')) payload.id = rec.id;
+        // ONLY include ID if it is a real DB integer or valid UUID (do NOT send 'preset_...' or 'loc_...' which cause HTTP 400 syntax errors)
+        const isRealDbId = rec.id && !String(rec.id).startsWith('loc_') && !String(rec.id).startsWith('preset_') && !String(rec.id).startsWith('off_');
+        if (isRealDbId) payload.id = rec.id;
 
-        // Multi-tier cloud write (handles missing columns gracefully)
-        let { error: upErr } = await supabase.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' });
+        // Multi-tier cloud write with fallback
+        let { data: saved, error: upErr } = await supabase.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' }).select().single();
         if (upErr) {
-          // Fallback if is_checked column doesn't exist in Supabase schema
-          const safePayload = { business_id: session.businessId, date: recDate, notes: rec.notes };
-          if (rec.id && !String(rec.id).startsWith('loc_')) safePayload.id = rec.id;
-          await supabase.from('daily_accounts').upsert(safePayload, { onConflict: 'business_id,date' });
+          // If upsert failed due to invalid id or column error, strip id and retry with onConflict on (business_id, date)
+          delete payload.id;
+          const retryRes = await supabase.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' }).select().single();
+          if (!retryRes.error && retryRes.data) saved = retryRes.data;
+          else {
+            // Fallback if is_checked column is missing in schema: save notes marker
+            const safePayload = { business_id: session.businessId, date: recDate, notes: rec.notes };
+            const safeRes = await supabase.from('daily_accounts').upsert(safePayload, { onConflict: 'business_id,date' }).select().single();
+            if (safeRes.data) saved = safeRes.data;
+          }
         }
+        if (saved && saved.id) rec.id = saved.id;
       } catch(e) { console.error('Cloud checked sync error:', e); }
     })();
   }
