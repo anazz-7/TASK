@@ -1822,7 +1822,9 @@ async function loadData(){
     }
     const cSet = getAccCheckedSet();
     cache.dailyAccounts.forEach(a => {
-      if (Boolean(a.is_checked)) {
+      const hasMarker = Boolean(a.notes && String(a.notes).includes('[CHECKED]'));
+      if (Boolean(a.is_checked) || hasMarker) {
+        a.is_checked = true;
         cSet.add(a.date);
         if (a.id) cSet.add(a.id);
       } else if (cSet.has(a.date) || (a.id && cSet.has(a.id))) {
@@ -5443,7 +5445,8 @@ function calcAccTotals(data) {
 function isAccRecordChecked(rec) {
   if (!rec) return false;
   const checkedSet = getAccCheckedSet();
-  return Boolean(rec.is_checked || checkedSet.has(rec.date) || (rec.id && checkedSet.has(rec.id)));
+  const hasMarker = Boolean(rec.notes && String(rec.notes).includes('[CHECKED]'));
+  return Boolean(rec.is_checked || hasMarker || checkedSet.has(rec.date) || (rec.id && checkedSet.has(rec.id)));
 }
 
 function getAccCheckedSet(){
@@ -6324,8 +6327,22 @@ function renderAccHistoryRows(records){
 
 window.__toggleAccChecked = async function(recDate, isChecked) {
   const checkedSet = getAccCheckedSet();
-  const rec = cache.dailyAccounts.find(a => a.date === recDate || a.id === recDate);
+  let rec = cache.dailyAccounts.find(a => a.date === recDate || a.id === recDate);
   
+  if (!rec) {
+    rec = { date: recDate, total_sales: 0, total: 0, excess: 0, less: 0, is_checked: isChecked, notes: '' };
+    cache.dailyAccounts.push(rec);
+  }
+
+  rec.is_checked = isChecked;
+  let notesStr = String(rec.notes || '');
+  if (isChecked) {
+    if (!notesStr.includes('[CHECKED]')) notesStr = (notesStr + ' [CHECKED]').trim();
+  } else {
+    notesStr = notesStr.replace(/\[CHECKED\]/g, '').trim();
+  }
+  rec.notes = notesStr;
+
   if (isChecked) {
     checkedSet.add(recDate);
     if (rec && rec.id) checkedSet.add(rec.id);
@@ -6335,19 +6352,28 @@ window.__toggleAccChecked = async function(recDate, isChecked) {
   }
   saveAccCheckedSet(checkedSet);
 
-  if (rec) rec.is_checked = isChecked;
-
-  // Persist into daily accounts cache
+  // Persist into local storage cache immediately
   try { localStorage.setItem('br_daily_accounts_' + session.businessId, JSON.stringify(cache.dailyAccounts)); } catch(e){}
 
-  // Non-blocking Cloud Sync to Supabase so checked state appears across all devices
+  // Direct Supabase Cloud UPSERT so checkmark syncs across all devices instantly
   if (navigator.onLine && typeof supabase !== 'undefined' && session && session.businessId) {
     (async function() {
       try {
-        if (rec && rec.id && !rec.id.startsWith('loc_')) {
-          await supabase.from('daily_accounts').update({ is_checked: isChecked }).eq('id', rec.id);
-        } else {
-          await supabase.from('daily_accounts').update({ is_checked: isChecked }).eq('business_id', session.businessId).eq('date', recDate);
+        const payload = {
+          business_id: session.businessId,
+          date: recDate,
+          is_checked: isChecked,
+          notes: rec.notes
+        };
+        if (rec.id && !String(rec.id).startsWith('loc_')) payload.id = rec.id;
+
+        // Multi-tier cloud write (handles missing columns gracefully)
+        let { error: upErr } = await supabase.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' });
+        if (upErr) {
+          // Fallback if is_checked column doesn't exist in Supabase schema
+          const safePayload = { business_id: session.businessId, date: recDate, notes: rec.notes };
+          if (rec.id && !String(rec.id).startsWith('loc_')) safePayload.id = rec.id;
+          await supabase.from('daily_accounts').upsert(safePayload, { onConflict: 'business_id,date' });
         }
       } catch(e) { console.error('Cloud checked sync error:', e); }
     })();
