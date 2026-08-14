@@ -10245,11 +10245,6 @@ function maybeShowWeekendBackupPrompt(){
   };
 }
 
-boot();
-</script>
-</body>
-</html>
-
 /* ================================================================
    >>> CUSTOMER REPORT TAB & CHATGPT JSON IMPORT MODULE <<<
 ================================================================ */
@@ -10491,9 +10486,7 @@ window.__submitImportCustomerJson = function() {
     window.showToast(`✅ Successfully imported ${count} customer reports!`, 'success');
     renderTabBody();
   } catch(e) {
-    alert('Invalid JSON format: ' + e.message + '
-
-Please copy the prompt guide and ask ChatGPT to generate valid JSON format.');
+    alert('Invalid JSON format: ' + e.message + '\n\nPlease copy the prompt guide and ask ChatGPT to generate valid JSON format.');
   }
 };
 
@@ -10502,9 +10495,7 @@ window.__copyChatGPTCustomerPrompt = function() {
   navigator.clipboard.writeText(promptText).then(() => {
     window.showToast('📋 Copied ChatGPT prompt to clipboard!', 'success');
   }).catch(() => {
-    alert('ChatGPT Prompt:
-
-' + promptText);
+    alert('ChatGPT Prompt:\n\n' + promptText);
   });
 };
 
@@ -10643,3 +10634,8 @@ window.__deleteCustomerReport = function(id) {
   window.showToast('🗑 Customer report deleted.', 'info');
   renderTabBody();
 };
+
+boot();
+</script>
+</body>
+</html>
