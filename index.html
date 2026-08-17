@@ -1024,6 +1024,197 @@
     }
   }
 
+  /* ── Sales Trend Chart ───────────────────────────────────── */
+  .trend-chart-wrap {
+    background: var(--card);
+    border: 1.5px solid var(--paper-line);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-sizing: border-box;
+  }
+  .trend-chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .trend-chart-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .trend-chart-tabs {
+    display: flex;
+    gap: 4px;
+  }
+  .trend-chart-tabs button {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1.5px solid var(--paper-line);
+    background: transparent;
+    color: var(--ink-soft);
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+  .trend-chart-tabs button.active {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+  }
+  .trend-chart-svg {
+    width: 100%;
+    overflow: visible;
+    display: block;
+  }
+  .trend-tooltip {
+    position: absolute;
+    background: var(--ink);
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 6px;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 200;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    font-family: 'Roboto Mono', monospace;
+    text-transform: uppercase;
+  }
+  .trend-tooltip.show { opacity: 1; }
+
+  /* ── Offline Queue Badge ─────────────────────────────────── */
+  .offline-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1.5px solid;
+    cursor: pointer;
+    white-space: nowrap;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    font-family: 'Roboto Mono', monospace;
+  }
+  .offline-badge.synced {
+    background: var(--leaf-soft);
+    border-color: var(--leaf);
+    color: var(--leaf);
+  }
+  .offline-badge.pending {
+    background: var(--brick-soft);
+    border-color: var(--brick);
+    color: var(--brick);
+    animation: badgePulse 2s ease infinite;
+  }
+  @keyframes badgePulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
+  /* ── Salary Slip ─────────────────────────────────────────── */
+  .salary-slip {
+    background: #fff;
+    border: 2px solid var(--paper-line);
+    border-radius: 12px;
+    padding: 24px;
+    font-family: 'Roboto Mono', monospace;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .salary-slip-header {
+    text-align: center;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+  }
+  .salary-slip-header h2 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0 0 4px;
+    color: var(--ink);
+  }
+  .salary-slip-header p {
+    font-size: 0.68rem;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+  .salary-slip-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px dashed var(--paper-line);
+    font-size: 0.78rem;
+  }
+  .salary-slip-row:last-child { border-bottom: none; }
+  .salary-slip-row.total {
+    font-weight: 700;
+    font-size: 0.9rem;
+    border-top: 2px solid var(--ink);
+    border-bottom: none;
+    margin-top: 8px;
+    padding-top: 10px;
+  }
+  .salary-slip-row .label { color: var(--ink-soft); }
+  .salary-slip-row .value { font-weight: 700; color: var(--ink); }
+  @media print {
+    body > *:not(#salarySlipPrintArea) { display: none !important; }
+    #salarySlipPrintArea {
+      display: block !important;
+      position: fixed;
+      inset: 0;
+      padding: 32px;
+      background: #fff;
+      z-index: 99999;
+    }
+    .salary-slip { border: none; box-shadow: none; max-width: 100%; }
+  }
+
+  /* ── Email Report Button ─────────────────────────────────── */
+  .email-report-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    color: var(--ink);
+    border: 1.5px solid var(--paper-line);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    font-family: 'Roboto Mono', monospace;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  .email-report-btn:hover {
+    background: var(--blue-soft);
+    border-color: var(--ink);
+  }
+  .email-report-btn.sent {
+    background: var(--leaf-soft);
+    border-color: var(--leaf);
+    color: var(--leaf);
+  }
+
 </style>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
@@ -2345,7 +2536,14 @@ function renderShell(){
           </div>
         </div>
         <div class="header-actions">
-
+          ${(() => {
+            const qLen = (() => { try { return JSON.parse(localStorage.getItem('br_offline_mutation_queue')||'[]').length; } catch(e){ return 0; } })();
+            return qLen > 0
+              ? `<button class="offline-badge pending" title="${qLen} record(s) pending cloud sync. Tap to sync." onclick="window.__reloadAppData(document.querySelector('.reload-btn'))">
+                  ● ${qLen} PENDING
+                </button>`
+              : `<span class="offline-badge synced" title="All data synced to cloud">✓ SYNCED</span>`;
+          })()}
           <button class="reload-btn" title="Refresh App Data" onclick="window.__reloadAppData(this)">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3L21.5 8M22 12.5a10 10 0 0 1-18.8 4.3L2.5 16"/></svg>
           </button>
@@ -2734,6 +2932,8 @@ function renderDashboardTab(body){
       <div class="stat-card"><div class="num">₹${monthSalaryTotal.toFixed(0)}</div><div class="label">Salary paid this month</div></div>
     </div>` : ''}
     ${buildAccountsSalesReportHtml()}
+    ${isOwner() ? buildSalesTrendChartHtml() : ''}
+    ${isOwner() ? buildWeeklyEmailReportHtml() : ''}
   `;
 }
 
@@ -9836,17 +10036,22 @@ function renderSalaryTab(body){
     ${salarySubTab === 'payouts' ? `
       ${buildQtyGraphHtml(cache.salaries, salaryReportMode, '__setSalaryReportMode', '', 'amount', '₹', 'paid_date')}
       <div class="section-label">Salary Payment History</div>
-      ${cache.salaries.length ? cache.salaries.map(sa=>`
+      ${cache.salaries.length ? cache.salaries.map(sa=>{
+        const staff = cache.staff.find(s=>s.id===sa.staff_id)||{};
+        return `
         <div class="row-card" style="align-items:center;">
-          <div class="row-main"><h3>${esc(staffName(sa.staff_id))}</h3><div class="meta"><span>${sa.paid_date}</span></div>${sa.notes?`<div class="notes">${esc(sa.notes)}</div>`:''}</div>
+          <div class="row-main"><h3>${esc(staffName(sa.staff_id))}</h3><div class="meta"><span>${sa.paid_date}</span>${sa.notes?`<span>${esc(sa.notes)}</span>`:''}</div></div>
           <b style="font-family:'Roboto Mono',monospace;">₹${Number(sa.amount).toFixed(0)}</b>
+          <button class="stamp-btn small ghost" style="font-size:0.65rem;padding:4px 8px;" onclick="window.__generateSalarySlip('${sa.id}')">📄 Slip</button>
           <div class="action-dropdown-holder">
             <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${sa.id}')">More ▾</button>
             <div class="action-dropdown-menu" id="actionMenu_${sa.id}">
+              <button onclick="window.__generateSalarySlip('${sa.id}')">📄 Generate Slip</button>
               <button class="danger" onclick="window.__deleteSalary('${sa.id}')">🗑 Delete</button>
             </div>
           </div>
-        </div>`).join('') : `<div class="empty">No salary payments logged yet. Tap + to add one.</div>`}
+        </div>`;
+      }).join('') : `<div class="empty">No salary payments logged yet. Tap + to add one.</div>`}
     ` : ''}
 
     ${salarySubTab === 'advances' ? `
@@ -10712,7 +10917,297 @@ window.__deleteCustomerReport = function(id) {
   renderTabBody();
 };
 
+
+/* ================================================================
+   FEATURE: SALES TREND CHART
+   Pure SVG polyline — shows last 30 days / 12 weeks / 12 months
+   ================================================================ */
+let trendChartMode = 'daily';
+
+window.__setTrendChartMode = function(mode) {
+  trendChartMode = mode;
+  renderTabBody();
+};
+
+function buildSalesTrendChartHtml() {
+  const today = new Date();
+  const buckets = [];
+
+  if (trendChartMode === 'daily') {
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(today); d.setDate(d.getDate() - i);
+      const key = localDateStr(d);
+      const val = cache.sales.filter(s => s.date === key).reduce((sum,s) => sum + Number(s.order_value||0), 0)
+                + (cache.dailyAccounts||[]).filter(a => a.date === key).reduce((sum,a) => sum + Number(a.total_sales||0), 0);
+      buckets.push({ label: d.toLocaleDateString('en-IN',{day:'numeric',month:'short'}), val });
+    }
+  } else if (trendChartMode === 'weekly') {
+    for (let i = 11; i >= 0; i--) {
+      const anchor = new Date(today); anchor.setDate(anchor.getDate() - i*7);
+      const wStart = getWeekStartDate(anchor);
+      const wEnd = new Date(wStart); wEnd.setDate(wEnd.getDate()+6);
+      const sK = localDateStr(wStart), eK = localDateStr(wEnd);
+      const val = cache.sales.filter(s => s.date >= sK && s.date <= eK).reduce((sum,s) => sum + Number(s.order_value||0), 0)
+                + (cache.dailyAccounts||[]).filter(a => a.date >= sK && a.date <= eK).reduce((sum,a) => sum + Number(a.total_sales||0), 0);
+      buckets.push({ label: wStart.toLocaleDateString('en-IN',{day:'numeric',month:'short'}), val });
+    }
+  } else {
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(today.getFullYear(), today.getMonth()-i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      const val = cache.sales.filter(s => s.date.startsWith(key)).reduce((sum,s) => sum + Number(s.order_value||0), 0)
+                + (cache.dailyAccounts||[]).filter(a => a.date.startsWith(key)).reduce((sum,a) => sum + Number(a.total_sales||0), 0);
+      buckets.push({ label: d.toLocaleDateString('en-IN',{month:'short',year:'2-digit'}), val });
+    }
+  }
+
+  const maxVal     = Math.max(1, ...buckets.map(b => b.val));
+  const totalPeriod = buckets.reduce((s,b) => s+b.val, 0);
+  const avgPeriod   = buckets.length ? totalPeriod/buckets.length : 0;
+  const n = buckets.length;
+  const W = 600, H = 130, pL=10, pR=10, pT=16, pB=32;
+  const cW = W-pL-pR, cH = H-pT-pB;
+
+  const pts = buckets.map((b,i) => ({
+    x: pL + (n<2 ? cW/2 : (i/(n-1))*cW),
+    y: pT + cH - (b.val/maxVal)*cH,
+    ...b
+  }));
+
+  const polyline = pts.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const area = `${pts[0].x.toFixed(1)},${(pT+cH).toFixed(1)} ${pts.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')} ${pts[n-1].x.toFixed(1)},${(pT+cH).toFixed(1)}`;
+  const avgY = pT+cH-(avgPeriod/maxVal)*cH;
+  const showIdx = new Set([0, Math.floor(n/3), Math.floor(2*n/3), n-1]);
+
+  const fmtVal = v => v>=100000 ? `\u20b9${(v/100000).toFixed(1)}L` : v>=1000 ? `\u20b9${(v/1000).toFixed(1)}K` : `\u20b9${v.toFixed(0)}`;
+
+  const dots = pts.map((p,i) => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="var(--ink)" stroke="#fff" stroke-width="2"
+    data-tip="${esc(p.label)}: ${fmtVal(p.val)}"
+    onmouseenter="window.__showTrendTip(event,this)" onmouseleave="window.__hideTrendTip()"
+    ontouchstart="window.__showTrendTip(event,this)" style="cursor:pointer"/>`).join('');
+
+  const xlabels = pts.map((p,i) => showIdx.has(i)
+    ? `<text x="${p.x.toFixed(1)}" y="${(pT+cH+18).toFixed(1)}" text-anchor="middle" font-size="8" fill="var(--ink-soft)" font-family="'Roboto Mono',monospace">${esc(p.label)}</text>`
+    : '').join('');
+
+  return `
+  <div class="trend-chart-wrap">
+    <div class="trend-chart-header">
+      <div>
+        <div class="trend-chart-title">\ud83d\udcc8 Sales Trend</div>
+        <div style="font-size:0.9rem;font-weight:800;color:var(--ink);font-family:'Roboto Mono',monospace;">
+          ${fmtVal(totalPeriod)} <span style="font-size:0.65rem;font-weight:600;color:var(--ink-soft);">${fmtVal(avgPeriod)} avg</span>
+        </div>
+      </div>
+      <div class="trend-chart-tabs">
+        <button class="${trendChartMode==='daily'?'active':''}" onclick="window.__setTrendChartMode('daily')">30D</button>
+        <button class="${trendChartMode==='weekly'?'active':''}" onclick="window.__setTrendChartMode('weekly')">12W</button>
+        <button class="${trendChartMode==='monthly'?'active':''}" onclick="window.__setTrendChartMode('monthly')">12M</button>
+      </div>
+    </div>
+    <div style="position:relative;">
+      <svg class="trend-chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--ink)" stop-opacity="0.13"/>
+            <stop offset="100%" stop-color="var(--ink)" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <polygon points="${area}" fill="url(#trendGrad)"/>
+        <line x1="${pL}" y1="${avgY.toFixed(1)}" x2="${W-pR}" y2="${avgY.toFixed(1)}" stroke="var(--ink-soft)" stroke-width="1" stroke-dasharray="4 3" opacity="0.45"/>
+        <polyline points="${polyline}" fill="none" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+        ${dots}${xlabels}
+      </svg>
+      <div class="trend-tooltip" id="trendTooltip"></div>
+    </div>
+  </div>`;
+}
+
+window.__showTrendTip = function(e, el) {
+  const tip = document.getElementById('trendTooltip');
+  if (!tip) return;
+  tip.textContent = el.getAttribute('data-tip');
+  tip.classList.add('show');
+  const wrap = el.closest('.trend-chart-wrap');
+  const svg  = el.closest('svg');
+  if (!wrap || !svg) return;
+  const wRect = wrap.getBoundingClientRect();
+  const sRect = svg.getBoundingClientRect();
+  const vb    = svg.viewBox.baseVal;
+  const scX   = sRect.width / vb.width;
+  const scY   = sRect.height / vb.height;
+  const cx    = parseFloat(el.getAttribute('cx'));
+  const cy    = parseFloat(el.getAttribute('cy'));
+  tip.style.left = `${Math.max(4, Math.min(sRect.left - wRect.left + cx*scX - 40, wRect.width - 90))}px`;
+  tip.style.top  = `${sRect.top - wRect.top + cy*scY - 36}px`;
+};
+window.__hideTrendTip = function() {
+  const t = document.getElementById('trendTooltip');
+  if (t) t.classList.remove('show');
+};
+
+
+/* ================================================================
+   FEATURE: SALARY SLIP GENERATOR (Print-to-PDF)
+   ================================================================ */
+window.__generateSalarySlip = function(salaryId) {
+  const sa = cache.salaries.find(s => s.id === salaryId);
+  if (!sa) { window.showToast('Salary record not found.', 'error'); return; }
+
+  const staff = cache.staff.find(s => s.id === sa.staff_id) || {};
+  const advances = (typeof getSalaryAdvances === 'function' ? getSalaryAdvances() : [])
+    .filter(a => a.staff_id === sa.staff_id && sa.paid_date && (a.date||'').slice(0,7) === sa.paid_date.slice(0,7));
+  const totalAdv  = advances.reduce((s,a) => s + Number(a.amount||0), 0);
+  const gross     = Number(sa.amount||0) + totalAdv;
+  const net       = Number(sa.amount||0);
+
+  let area = document.getElementById('salarySlipPrintArea');
+  if (!area) {
+    area = document.createElement('div');
+    area.id = 'salarySlipPrintArea';
+    area.style.cssText = 'display:none;position:fixed;inset:0;background:#fff;z-index:99999;padding:32px;overflow:auto;';
+    document.body.appendChild(area);
+  }
+
+  area.innerHTML = `
+    <div style="max-width:520px;margin:0 auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <button onclick="document.getElementById('salarySlipPrintArea').style.display='none';"
+          style="background:var(--ink);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.78rem;cursor:pointer;">&#x2715; CLOSE</button>
+        <button onclick="window.print()"
+          style="background:var(--leaf);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.78rem;cursor:pointer;">\ud83d\uddb8 PRINT / SAVE PDF</button>
+      </div>
+      <div class="salary-slip">
+        <div class="salary-slip-header">
+          <h2>${esc(session.businessName||'Business Register')}</h2>
+          <p>SALARY SLIP &mdash; ${(sa.paid_date||'').slice(0,7)}</p>
+        </div>
+        <div class="salary-slip-row"><span class="label">EMPLOYEE</span><span class="value">${esc(staff.name||staffName(sa.staff_id))}</span></div>
+        <div class="salary-slip-row"><span class="label">ROLE</span><span class="value">${esc(staff.role||'&mdash;')}</span></div>
+        <div class="salary-slip-row"><span class="label">PAYMENT DATE</span><span class="value">${sa.paid_date||'&mdash;'}</span></div>
+        <div class="salary-slip-row"><span class="label">SLIP ID</span><span class="value">${(sa.id||'').slice(0,12).toUpperCase()}</span></div>
+        <div style="height:10px;"></div>
+        <div class="salary-slip-row"><span class="label">GROSS SALARY</span><span class="value">\u20b9${gross.toFixed(2)}</span></div>
+        ${totalAdv > 0 ? `<div class="salary-slip-row"><span class="label">ADVANCE DEDUCTION</span><span class="value" style="color:var(--brick);">- \u20b9${totalAdv.toFixed(2)}</span></div>` : ''}
+        ${sa.notes ? `<div class="salary-slip-row"><span class="label">NOTES</span><span class="value">${esc(sa.notes)}</span></div>` : ''}
+        <div class="salary-slip-row total"><span class="label">NET SALARY PAID</span><span class="value" style="color:var(--leaf);">\u20b9${net.toFixed(2)}</span></div>
+        <div style="margin-top:24px;padding-top:14px;border-top:1px dashed var(--paper-line);font-size:0.65rem;color:var(--ink-soft);text-align:center;">
+          Generated by Business Register &bull; ${new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})}
+        </div>
+      </div>
+    </div>`;
+
+  area.style.display = 'block';
+  window.showToast('\ud83d\udcc4 Salary slip ready \u2014 tap Print / Save PDF', 'success');
+};
+
+
+/* ================================================================
+   FEATURE: WEEKLY AUTO-REPORT EMAIL
+   ================================================================ */
+function buildWeeklyEmailReportHtml() {
+  const sentKey = `br_weekly_email_${session.businessId}`;
+  const lastSent = localStorage.getItem(sentKey) || '';
+  const todayD = new Date();
+  const weekMonday = new Date(todayD); weekMonday.setDate(todayD.getDate() - ((todayD.getDay()||7)-1));
+  const thisWeek = localDateStr(weekMonday);
+  const alreadySent = lastSent === thisWeek;
+
+  return `
+  <div class="row-card" style="flex-direction:column;align-items:stretch;margin-top:8px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <span style="font-size:1.3rem;">\ud83d\udce7</span>
+      <div>
+        <div style="font-weight:700;font-size:0.82rem;color:var(--ink);">Weekly Summary Email</div>
+        <div style="font-size:0.68rem;color:var(--ink-soft);">One-tap report: sales, attendance, tasks &amp; top performers</div>
+      </div>
+    </div>
+    <button class="email-report-btn ${alreadySent?'sent':''}" onclick="window.__sendWeeklyEmailReport()">
+      ${alreadySent ? '\u2705 Report Sent This Week \u2014 Send Again?' : '\ud83d\udce7 Send Weekly Report to Email'}
+    </button>
+  </div>`;
+}
+
+window.__sendWeeklyEmailReport = function() {
+  const today = new Date();
+  const weekStart = new Date(today); weekStart.setDate(today.getDate() - 6);
+  const sKey = localDateStr(weekStart), eKey = localDateStr(today);
+
+  const salesW   = cache.sales.filter(s => s.date >= sKey && s.date <= eKey);
+  const salesTot = salesW.reduce((s,e) => s + Number(e.order_value||0), 0);
+  const attW     = cache.attendance.filter(a => a.date >= sKey && a.date <= eKey && a.status==='present');
+  const attDays  = new Set(attW.map(a=>a.date)).size;
+  const staffPres = new Set(attW.map(a=>a.staff_id)).size;
+  const tasksW   = cache.tasks.filter(t => (t.created_at||'').slice(0,10) >= sKey);
+  const tasksDone = tasksW.filter(t => t.status==='done').length;
+  const ptsW     = cache.points.filter(p => p.date >= sKey && p.date <= eKey);
+  const ptsTot   = ptsW.reduce((s,p) => s + Number(p.points||0), 0);
+
+  const byStaff = {};
+  salesW.forEach(s => { byStaff[s.staff_id] = (byStaff[s.staff_id]||0)+Number(s.order_value||0); });
+  const top = Object.entries(byStaff).sort((a,b)=>b[1]-a[1])[0];
+  const topText = top ? `${staffName(top[0])} (Rs.${Number(top[1]).toFixed(0)})` : 'N/A';
+
+  const accW   = (cache.dailyAccounts||[]).filter(a => a.date >= sKey && a.date <= eKey);
+  const accSal = accW.reduce((s,a)=>s+Number(a.total_sales||0),0);
+  const accExp = accW.reduce((s,a)=>s+Number(a.expenses||0),0);
+  const accVen = accW.reduce((s,a)=>s+Number(a.vendors||0),0);
+
+  const range = `${weekStart.toLocaleDateString('en-IN',{day:'numeric',month:'short'})} - ${today.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}`;
+
+  const subj = encodeURIComponent(`Weekly Report: ${session.businessName} (${range})`);
+  const bodyText =
+`WEEKLY BUSINESS REPORT
+${session.businessName}
+Period: ${range}
+==================================================
+
+SALES
+  Total Sales        : Rs.${salesTot.toFixed(0)}
+  No. of Entries     : ${salesW.length}
+  Top Seller         : ${topText}
+
+DAILY ACCOUNTS
+  Revenue            : Rs.${accSal.toFixed(0)}
+  Expenses           : Rs.${accExp.toFixed(0)}
+  Vendor Payments    : Rs.${accVen.toFixed(0)}
+  Net                : Rs.${(accSal-accExp-accVen).toFixed(0)}
+
+ATTENDANCE
+  Days With Activity : ${attDays}
+  Staff Present      : ${staffPres} / ${cache.staff.length}
+
+TASKS
+  Created This Week  : ${tasksW.length}
+  Completed          : ${tasksDone}
+
+INCENTIVE POINTS    : ${ptsTot} pts awarded this week
+
+==================================================
+Generated by Business Register
+${new Date().toLocaleString('en-IN')}`;
+
+  const mailto = `mailto:?subject=${subj}&body=${encodeURIComponent(bodyText)}`;
+
+  if (mailto.length < 8000) {
+    window.open(mailto);
+  } else {
+    navigator.clipboard.writeText(bodyText)
+      .then(() => window.showToast('\ud83d\udccb Report copied to clipboard! Paste it in your email app.', 'success'))
+      .catch(() => window.showToast('Report generated. Please copy the text manually.', 'info'));
+  }
+
+  // Track sent date
+  const todayD2 = new Date();
+  const wMon = new Date(todayD2); wMon.setDate(todayD2.getDate() - ((todayD2.getDay()||7)-1));
+  localStorage.setItem(`br_weekly_email_${session.businessId}`, localDateStr(wMon));
+  setTimeout(() => renderTabBody(), 800);
+  window.showToast('\ud83d\udce7 Opening email with weekly report\u2026', 'success');
+};
+
+
 boot();
+
 </script>
 </body>
 </html>
