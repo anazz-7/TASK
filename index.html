@@ -2208,7 +2208,7 @@ function getPrimaryActionBtn(t){
   if(t==='points' && isManagerPlus()) return `<button class="stamp-btn desktop-only" onclick="window.__openPoints()">+ Award Points</button>`;
   if(t==='vendors') return `<button class="stamp-btn desktop-only" onclick="window.__openScanVendorBillModal()">➕ Add Bill</button>`;
   if(t==='low_stock') return `<button class="stamp-btn desktop-only" onclick="window.__openLowStockModal()">+ Report Low Stock</button>`;
-  if(t==='customer_report') return `<button class="stamp-btn desktop-only" onclick="window.__openImportFollowupJsonModal()">📥 Import JSON</button><button class="stamp-btn desktop-only" style="margin-left:6px;" onclick="window.__openAddFollowupModal()">+ Add Customer Due</button>`;
+  if(t==='customer_report') return `<button class="stamp-btn desktop-only" onclick="window.__openImportCustomerJsonModal()">📥 Import JSON</button><button class="stamp-btn desktop-only" style="margin-left:6px;" onclick="window.__openAddCustomerReportModal()">+ Add Customer</button>`;
   return '';
 }
 
@@ -2299,7 +2299,7 @@ function renderShell(){
           { section: 'Overview', keys: ['dashboard','reports'] },
           { section: 'Work', keys: ['tasks','daily','weekly','attendance','low_stock'] },
           { section: 'Sales', keys: ['sales','salesman','label','package'] },
-          { section: 'Money', keys: ['accounts','vendors','salary','points'] },
+          { section: 'Money', keys: ['accounts','customer_report','vendors','salary','points'] },
           { section: 'Admin', keys: ['staff','stockkeeper','audit','settings'] }
         ].map(grp => {
           const validKeys = grp.keys.filter(k => tabs.includes(k));
@@ -2381,7 +2381,7 @@ function renderTabBody(){
   if(activeTab==='package') return renderPackageTab(body);
   if(activeTab==='stockkeeper') return renderStockkeeperTab(body);
   if(activeTab==='accounts') return renderAccountsTab(body);
-  if(activeTab==='customer_report') return renderFollowupsTab(body);
+  if(activeTab==='customer_report') return renderCustomerReportTab(body);
   if(activeTab==='vendors') return renderVendorBillsTab(body);
   if(activeTab==='low_stock') return renderLowStockTab(body);
   if(activeTab==='audit' && isManagerPlus()) return renderAuditTab(body);
