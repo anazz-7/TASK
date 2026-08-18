@@ -10733,9 +10733,96 @@ window.__deleteExpiryItem = function(id) {
 
 
 /* ================================================================
+   >>> UNIFIED CUSTOMER DATA & ANALYTICS REPORT ENGINE <<<
+================================================================ */
+let customerSegmentFilter = 'all';
+let customerSearchQuery = '';
+
+function getCustomerReportsData() {
+  if (!cache.customerReports) {
+    try {
+      cache.customerReports = JSON.parse(localStorage.getItem('br_customer_reports_' + session.businessId) || '[]');
+    } catch(e) {
+      cache.customerReports = [];
+    }
+  }
+
+  // Auto-sync directory entries into reports cache so no data is missing
+  const dir = getCustomerDirectory();
+  dir.forEach(c => {
+    const existing = cache.customerReports.find(r => r.id === c.id || (r.phone && c.mobile && r.phone === c.mobile));
+    if (!existing) {
+      cache.customerReports.push({
+        id: c.id || ('cust_rep_' + Date.now() + '_' + Math.random().toString(36).substring(2,6)),
+        customer_name: c.name,
+        phone: c.mobile || '',
+        city: c.city || '',
+        total_spent: 0,
+        total_orders: 1,
+        last_order_date: (c.created_at || '').slice(0, 10) || todayStr(),
+        favorite_item: '',
+        segment: 'NEW',
+        remarks: c.notes || ''
+      });
+    }
+  });
+
+  return cache.customerReports;
+}
+
+function saveCustomerReportsData() {
+  try {
+    localStorage.setItem('br_customer_reports_' + session.businessId, JSON.stringify(cache.customerReports || []));
+  } catch(e){}
+
+  // Sync to Customer Directory
+  try {
+    const dir = getCustomerDirectory();
+    (cache.customerReports || []).forEach(r => {
+      const existing = dir.find(c => c.id === r.id || (c.mobile && r.phone && c.mobile === r.phone));
+      if (!existing) {
+        dir.push({
+          id: r.id,
+          name: r.customer_name,
+          mobile: r.phone || '',
+          city: r.city || '',
+          address: '',
+          notes: r.remarks || '',
+          created_at: new Date().toISOString()
+        });
+      } else {
+        if (r.customer_name) existing.name = r.customer_name;
+        if (r.phone) existing.mobile = r.phone;
+        if (r.city) existing.city = r.city;
+        if (r.remarks) existing.notes = r.remarks;
+      }
+    });
+    localStorage.setItem('br_cust_dir_' + session.businessId, JSON.stringify(dir));
+  } catch(e){}
+
+  // Sync to Supabase in background
+  if (navigator.onLine && typeof supabase !== 'undefined' && session && session.businessId) {
+    (async function() {
+      try {
+        const payload = {
+          business_id: session.businessId,
+          title: '[CUSTOMER_REPORTS_DATA]',
+          notes: JSON.stringify(cache.customerReports || []),
+          status: 'done',
+          priority: 'high'
+        };
+        await supabase.from('tasks').upsert(payload, { onConflict: 'business_id,title' });
+      } catch(err){}
+    })();
+  }
+}
+
+
+/* ================================================================
    FEATURE CUSTOMIZATION & ROLE PERMISSION CONFIG
    ================================================================ */
 function getFeatureConfig() {
+
   const defaults = {
     maskCustomerDir: true,
     allowManagerAccounts: false,
