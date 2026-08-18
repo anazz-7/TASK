@@ -7764,10 +7764,16 @@ window.__viewVendorBillPhoto = function(id) {
 
 
 /* ---------------- LOW STOCK MANAGEMENT TAB ---------------- */
-let lowStockFilter = 'pending';
+let lowStockFilter  = 'pending';
+let lowStockSubTab  = 'alerts'; // 'alerts' | 'expiry'
+let customerDirectorySubTab = 'directory'; // 'directory' | 'reports'
 
 window.__setLowStockFilter = function(f) {
   lowStockFilter = f;
+  renderTabBody();
+};
+window.__setLowStockSubTab = function(t) {
+  lowStockSubTab = t;
   renderTabBody();
 };
 
@@ -7783,12 +7789,19 @@ function renderLowStockTab(body) {
   else if (lowStockFilter === 'restocked') filtered = list.filter(i => i.status === 'restocked');
 
   body.innerHTML = `
+    <!-- Sub-menu Navigation -->
+    <div style="display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;">
+      <button class="stamp-btn small ${lowStockSubTab==='alerts'?'':'ghost'}" onclick="window.__setLowStockSubTab('alerts')">📦 Low Stock (${list.length})</button>
+      <button class="stamp-btn small ${lowStockSubTab==='expiry'?'':'ghost'}" onclick="window.__setLowStockSubTab('expiry')">⏰ Expiry Tracker</button>
+    </div>
+
+    ${lowStockSubTab === 'alerts' ? `
     <!-- Low Stock Summary KPI Banner -->
     <div class="row-card" style="flex-direction:column;align-items:stretch;background:var(--card);border:1.5px solid var(--paper-line);padding:14px;margin-bottom:16px;border-radius:12px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <div>
           <h2 style="margin:0;font-size:1.05rem;color:var(--ink);font-family:'Roboto Mono',monospace;font-weight:700;">📦 Low Stock Alerts</h2>
-          <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">Track items running out & enter low stock reports</div>
+          <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">Track items running out &amp; enter low stock reports</div>
         </div>
         <button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border:none;" onclick="window.__openLowStockModal()">+ Report Low Stock</button>
       </div>
@@ -7878,6 +7891,7 @@ function renderLowStockTab(body) {
     }).join('') : `<div class="empty">No low stock items found in this view. Staff can tap "+ Report Low Stock" to report items running low!</div>`}
 
     <div id="lowStockModalHolder"></div>
+    ` : ''}
   `;
 }
 
@@ -10513,7 +10527,7 @@ function maybeShowWeekendBackupPrompt(){
   const holder = document.createElement('div');
   holder.className = 'overlay show';
   holder.innerHTML = `<div class="modal">
-    <h2>${icon('save',22)} Weekend backup reminder</h2>
+    <h2>Weekend Backup Reminder</h2>
     <p style="font-size:0.88rem;color:var(--ink-soft);margin:0;">It's the weekend — a good time to download a backup of everything for safekeeping.</p>
     <div class="modal-actions">
       <button class="stamp-btn ghost" onclick="this.closest('.overlay').remove()">Not now</button>
@@ -10528,42 +10542,296 @@ function maybeShowWeekendBackupPrompt(){
 }
 
 /* ================================================================
-   >>> CUSTOMER REPORT TAB & CHATGPT JSON IMPORT MODULE <<<
-================================================================ */
-let customerSegmentFilter = 'all';
-let customerSearchQuery = '';
-
-function getCustomerReportsData() {
-  if (!cache.customerReports) {
-    try {
-      cache.customerReports = JSON.parse(localStorage.getItem('br_customer_reports_' + session.businessId) || '[]');
-    } catch(e) {
-      cache.customerReports = [];
-    }
-  }
-  return cache.customerReports;
+   FEATURE: EXPIRY TRACKER (Low Stock sub-tab)
+   Stores items with name, batch, qty, expiry date, category
+   ================================================================ */
+function getExpiryItems() {
+  try { return JSON.parse(localStorage.getItem('br_expiry_' + session.businessId) || '[]'); } catch(e) { return []; }
+}
+function saveExpiryItems(items) {
+  localStorage.setItem('br_expiry_' + session.businessId, JSON.stringify(items));
 }
 
-function saveCustomerReportsData() {
-  try {
-    localStorage.setItem('br_customer_reports_' + session.businessId, JSON.stringify(cache.customerReports || []));
-  } catch(e){}
-  // Sync to Supabase in background
-  if (navigator.onLine && typeof supabase !== 'undefined' && session && session.businessId) {
-    (async function() {
-      try {
-        const payload = {
-          business_id: session.businessId,
-          title: '[CUSTOMER_REPORTS_DATA]',
-          notes: JSON.stringify(cache.customerReports || []),
-          status: 'done',
-          priority: 'high'
-        };
-        await supabase.from('tasks').upsert(payload, { onConflict: 'business_id,title' });
-      } catch(err){}
-    })();
-  }
+function renderExpiryTrackerHtml() {
+  const items = getExpiryItems();
+  const today = todayStr();
+  const todayDate = new Date(today);
+
+  const expired    = items.filter(i => i.expiry_date && i.expiry_date < today);
+  const expiringSoon = items.filter(i => {
+    if (!i.expiry_date || i.expiry_date < today) return false;
+    const diff = (new Date(i.expiry_date) - todayDate) / (1000*60*60*24);
+    return diff <= 7;
+  });
+  const good = items.filter(i => !i.expiry_date || i.expiry_date >= today && ((new Date(i.expiry_date) - todayDate)/(1000*60*60*24)) > 7);
+
+  const sorted = [...expired, ...expiringSoon, ...good];
+
+  return `
+  <div>
+    <!-- KPI Row -->
+    <div class="stat-grid" style="margin-bottom:16px;">
+      <div class="stat-card"><div class="num" style="color:var(--brick);">${expired.length}</div><div class="label">Expired</div></div>
+      <div class="stat-card"><div class="num" style="color:var(--turmeric);">${expiringSoon.length}</div><div class="label">Expiring in 7 Days</div></div>
+      <div class="stat-card"><div class="num" style="color:var(--leaf);">${good.length}</div><div class="label">Good Stock</div></div>
+      <div class="stat-card"><div class="num">${items.length}</div><div class="label">Total Tracked</div></div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div class="section-label" style="margin:0;">Expiry Tracker (${items.length})</div>
+      <button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border:none;" onclick="window.__openExpiryModal()">+ Add Item</button>
+    </div>
+
+    ${sorted.length ? sorted.map(item => {
+      const isExpired = item.expiry_date && item.expiry_date < today;
+      const diff = item.expiry_date ? Math.ceil((new Date(item.expiry_date) - todayDate)/(1000*60*60*24)) : null;
+      const isSoon = !isExpired && diff !== null && diff <= 7;
+      const badgeColor = isExpired ? 'var(--brick)' : isSoon ? 'var(--turmeric)' : 'var(--leaf)';
+      const badge = isExpired ? `<span class="stamp high">Expired</span>`
+                  : isSoon   ? `<span class="stamp medium">Expires in ${diff}d</span>`
+                  : item.expiry_date ? `<span class="stamp done">OK</span>` : '';
+      return `
+      <div class="row-card ${isExpired ? 'overdue' : ''}" style="align-items:center;">
+        <div class="row-main">
+          <div class="meta">
+            <span>${esc(item.category || 'General')}</span>
+            ${item.batch ? `<span>Batch: ${esc(item.batch)}</span>` : ''}
+          </div>
+          <h3><span class="status-dot ${isExpired ? 'red' : 'green'}"></span>${esc(item.item_name)}</h3>
+          <div style="font-size:0.78rem;color:var(--ink-soft);margin-top:4px;display:flex;gap:12px;flex-wrap:wrap;">
+            ${item.qty ? `<span>Qty: <b>${esc(String(item.qty))} ${esc(item.unit||'Pcs')}</b></span>` : ''}
+            ${item.expiry_date ? `<span>Expires: <b style="color:${badgeColor};">${item.expiry_date}</b></span>` : '<span>No expiry date</span>'}
+          </div>
+          <div style="margin-top:6px;">${badge}</div>
+          ${item.notes ? `<div class="notes">${esc(item.notes)}</div>` : ''}
+        </div>
+        <div class="action-dropdown-holder">
+          <button class="action-more-btn" onclick="window.__toggleActionMenu(event,'exp_${item.id}')">More ▾</button>
+          <div class="action-dropdown-menu" id="actionMenu_exp_${item.id}">
+            <button onclick="window.__openExpiryModal('${item.id}')">✎ Edit</button>
+            <button class="danger" onclick="window.__deleteExpiryItem('${item.id}')">🗑 Delete</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('') : `<div class="empty">No items tracked yet. Tap "+ Add Item" to start tracking expiry dates.</div>`}
+
+    <div id="expiryModalHolder"></div>
+  </div>`;
 }
+
+window.__openExpiryModal = function(id) {
+  const items = getExpiryItems();
+  const item = id ? items.find(x => x.id === id) : null;
+  let holder = document.getElementById('expiryModalHolder');
+  if (!holder) { holder = document.createElement('div'); holder.id='expiryModalHolder'; document.body.appendChild(holder); }
+  holder.innerHTML = `
+  <div class="overlay show"><div class="modal">
+    <h2>${item ? '✎ Edit Expiry Item' : '⏰ Add Expiry Item'}</h2>
+    <label>Item / Product Name *</label>
+    <input id="mExpName" value="${item ? esc(item.item_name) : ''}" placeholder="e.g. Amul Butter, Bread Loaf">
+    <div class="two-col">
+      <div><label>Category</label><input id="mExpCategory" value="${item ? esc(item.category||'') : ''}" placeholder="e.g. Dairy, Bakery"></div>
+      <div><label>Batch No.</label><input id="mExpBatch" value="${item ? esc(item.batch||'') : ''}" placeholder="e.g. B2024-01"></div>
+    </div>
+    <div class="two-col">
+      <div><label>Qty</label><input type="number" step="any" id="mExpQty" value="${item ? item.qty||'' : ''}" placeholder="e.g. 24"></div>
+      <div><label>Unit</label><input id="mExpUnit" value="${item ? esc(item.unit||'Pcs') : 'Pcs'}" placeholder="Pcs, Kg, Ltr"></div>
+    </div>
+    <label>Expiry Date *</label>
+    <input type="date" id="mExpDate" value="${item ? item.expiry_date||'' : ''}">
+    <label>Notes</label>
+    <textarea id="mExpNotes" placeholder="Optional notes...">${item ? esc(item.notes||'') : ''}</textarea>
+    <div class="modal-actions">
+      <button class="stamp-btn ghost" onclick="document.getElementById('expiryModalHolder').innerHTML=''">Cancel</button>
+      <button class="stamp-btn" style="background:var(--turmeric);color:#fff;" onclick="window.__saveExpiryItem('${id||''}')">Save Item</button>
+    </div>
+  </div></div>`;
+};
+
+window.__saveExpiryItem = function(id) {
+  const name = (document.getElementById('mExpName').value||'').trim();
+  if (!name) { alert('Enter item name.'); return; }
+  const items = getExpiryItems();
+  const payload = {
+    id: id || ('exp_' + Date.now()),
+    item_name: name,
+    category: (document.getElementById('mExpCategory').value||'').trim() || 'General',
+    batch: (document.getElementById('mExpBatch').value||'').trim(),
+    qty: document.getElementById('mExpQty').value || '',
+    unit: (document.getElementById('mExpUnit').value||'').trim() || 'Pcs',
+    expiry_date: document.getElementById('mExpDate').value || '',
+    notes: (document.getElementById('mExpNotes').value||'').trim(),
+    added_by: session.staffId,
+    added_at: new Date().toISOString()
+  };
+  if (id) {
+    const idx = items.findIndex(x => x.id === id);
+    if (idx >= 0) items[idx] = payload; else items.push(payload);
+  } else {
+    items.push(payload);
+  }
+  saveExpiryItems(items);
+  const h = document.getElementById('expiryModalHolder');
+  if (h) h.innerHTML = '';
+  window.showToast('⏰ Expiry item saved!', 'success');
+  renderTabBody();
+};
+
+window.__deleteExpiryItem = function(id) {
+  if (!confirm('Delete this expiry item?')) return;
+  const items = getExpiryItems().filter(x => x.id !== id);
+  saveExpiryItems(items);
+  window.showToast('🗑 Deleted.', 'info');
+  renderTabBody();
+};
+
+
+/* ================================================================
+   FEATURE: CUSTOMER DIRECTORY (Customer Report sub-tab)
+   Stores: name, mobile, address, notes — pure localStorage
+   ================================================================ */
+let customerReportSubTab = 'directory'; // 'directory' | 'report'
+
+window.__setCustomerReportSubTab = function(t) {
+  customerReportSubTab = t;
+  renderTabBody();
+};
+
+function getCustomerDirectory() {
+  try { return JSON.parse(localStorage.getItem('br_cust_dir_' + session.businessId) || '[]'); } catch(e) { return []; }
+}
+function saveCustomerDirectory(list) {
+  localStorage.setItem('br_cust_dir_' + session.businessId, JSON.stringify(list));
+}
+
+function renderCustomerDirectoryHtml() {
+  const list = getCustomerDirectory();
+  let dirSearch = window._dirSearch || '';
+
+  let filtered = list.slice();
+  if (dirSearch.trim()) {
+    const q = dirSearch.trim().toLowerCase();
+    filtered = filtered.filter(c =>
+      (c.name && c.name.toLowerCase().includes(q)) ||
+      (c.mobile && c.mobile.includes(q)) ||
+      (c.address && c.address.toLowerCase().includes(q))
+    );
+  }
+
+  return `
+  <div>
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+      <div>
+        <div style="font-weight:700;font-size:0.95rem;color:var(--ink);">📒 Customer Directory</div>
+        <div style="font-size:0.68rem;color:var(--ink-soft);">${list.length} customer${list.length!==1?'s':''} saved</div>
+      </div>
+      <button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border:none;" onclick="window.__openCustDirModal()">+ Add Customer</button>
+    </div>
+
+    <!-- Search -->
+    <input placeholder="🔍 Search by name, mobile or address..." value="${esc(dirSearch)}"
+      style="margin-bottom:12px;"
+      oninput="window._dirSearch=this.value; renderTabBody();">
+
+    <!-- Stats row -->
+    <div class="dash-kpi-grid" style="margin-bottom:16px;">
+      <div class="dash-kpi-card"><div class="dash-kpi-title">Total</div><div class="dash-kpi-val">${list.length}</div><div class="dash-kpi-sub">Customers</div></div>
+      <div class="dash-kpi-card"><div class="dash-kpi-title">With Mobile</div><div class="dash-kpi-val">${list.filter(c=>c.mobile).length}</div><div class="dash-kpi-sub">Contactable</div></div>
+      <div class="dash-kpi-card"><div class="dash-kpi-title">With Address</div><div class="dash-kpi-val">${list.filter(c=>c.address).length}</div><div class="dash-kpi-sub">Mapped</div></div>
+      <div class="dash-kpi-card"><div class="dash-kpi-title">Results</div><div class="dash-kpi-val">${filtered.length}</div><div class="dash-kpi-sub">Showing</div></div>
+    </div>
+
+    <div class="section-label">Customers (${filtered.length})</div>
+
+    ${filtered.length ? filtered.map(c => `
+    <div class="row-card" style="align-items:flex-start;">
+      <div class="avatar-circle" style="width:40px;height:40px;font-size:0.9rem;flex-shrink:0;">${(c.name||'?')[0].toUpperCase()}</div>
+      <div class="row-main" style="flex:1;min-width:0;">
+        <h3 style="font-size:0.92rem;">${esc(c.name)}</h3>
+        <div class="meta">
+          ${c.mobile ? `<span>📞 ${esc(c.mobile)}</span>` : ''}
+          ${c.city ? `<span>📍 ${esc(c.city)}</span>` : ''}
+        </div>
+        ${c.address ? `<div class="notes" style="margin-top:4px;">🏠 ${esc(c.address)}</div>` : ''}
+        ${c.notes ? `<div class="notes">${esc(c.notes)}</div>` : ''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0;">
+        ${c.mobile ? `<a href="tel:${esc(c.mobile)}" class="stamp-btn small ghost" style="text-decoration:none;padding:5px 10px;">📞 Call</a>` : ''}
+        ${c.mobile ? `<a href="https://wa.me/91${c.mobile.replace(/\D/g,'')}" target="_blank" rel="noopener" class="stamp-btn small" style="background:var(--leaf);color:#fff;border-color:var(--leaf);text-decoration:none;padding:5px 10px;">💬 WhatsApp</a>` : ''}
+        <div class="action-dropdown-holder">
+          <button class="action-more-btn" onclick="window.__toggleActionMenu(event,'cd_${c.id}')">More ▾</button>
+          <div class="action-dropdown-menu" id="actionMenu_cd_${c.id}">
+            <button onclick="window.__openCustDirModal('${c.id}')">✎ Edit</button>
+            <button class="danger" onclick="window.__deleteCustDir('${c.id}')">🗑 Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>`).join('') : `<div class="empty">${dirSearch ? 'No customers match your search.' : 'No customers yet. Tap "+ Add Customer" to build your directory.'}</div>`}
+
+    <div id="custDirModalHolder"></div>
+  </div>`;
+}
+
+window.__openCustDirModal = function(id) {
+  const list = getCustomerDirectory();
+  const c = id ? list.find(x => x.id === id) : null;
+  let holder = document.getElementById('custDirModalHolder');
+  if (!holder) { holder = document.createElement('div'); holder.id='custDirModalHolder'; document.body.appendChild(holder); }
+  holder.innerHTML = `
+  <div class="overlay show"><div class="modal">
+    <h2>${c ? '✎ Edit Customer' : '👤 Add Customer'}</h2>
+    <label>Customer / Party Name *</label>
+    <input id="mCdName" value="${c ? esc(c.name) : ''}" placeholder="e.g. Ravi Traders, Meena Store">
+    <label>Mobile Number</label>
+    <input id="mCdMobile" type="tel" value="${c ? esc(c.mobile||'') : ''}" placeholder="e.g. 9876543210">
+    <label>City</label>
+    <input id="mCdCity" value="${c ? esc(c.city||'') : ''}" placeholder="e.g. Mumbai">
+    <label>Full Address</label>
+    <textarea id="mCdAddress" placeholder="Street, Area, Pincode...">${c ? esc(c.address||'') : ''}</textarea>
+    <label>Notes</label>
+    <textarea id="mCdNotes" placeholder="Order preference, payment terms, etc.">${c ? esc(c.notes||'') : ''}</textarea>
+    <div class="modal-actions">
+      <button class="stamp-btn ghost" onclick="document.getElementById('custDirModalHolder').innerHTML=''">Cancel</button>
+      <button class="stamp-btn" style="background:var(--turmeric);color:#fff;" onclick="window.__saveCustDir('${id||''}')">Save Customer</button>
+    </div>
+  </div></div>`;
+};
+
+window.__saveCustDir = function(id) {
+  const name = (document.getElementById('mCdName').value||'').trim();
+  if (!name) { alert('Enter customer name.'); return; }
+  const list = getCustomerDirectory();
+  const payload = {
+    id: id || ('cd_' + Date.now()),
+    name,
+    mobile: (document.getElementById('mCdMobile').value||'').trim(),
+    city: (document.getElementById('mCdCity').value||'').trim(),
+    address: (document.getElementById('mCdAddress').value||'').trim(),
+    notes: (document.getElementById('mCdNotes').value||'').trim(),
+    created_at: id ? (list.find(x=>x.id===id)||{}).created_at || new Date().toISOString() : new Date().toISOString()
+  };
+  if (id) {
+    const idx = list.findIndex(x => x.id === id);
+    if (idx >= 0) list[idx] = payload; else list.push(payload);
+  } else {
+    list.unshift(payload);
+  }
+  saveCustomerDirectory(list);
+  const h = document.getElementById('custDirModalHolder');
+  if (h) h.innerHTML = '';
+  window.showToast('👤 Customer saved!', 'success');
+  renderTabBody();
+};
+
+window.__deleteCustDir = function(id) {
+  if (!confirm('Delete this customer?')) return;
+  const list = getCustomerDirectory().filter(x => x.id !== id);
+  saveCustomerDirectory(list);
+  window.showToast('🗑 Customer deleted.', 'info');
+  renderTabBody();
+};
+
 
 function renderCustomerReportTab(body) {
   const reports = getCustomerReportsData();
@@ -10589,9 +10857,18 @@ function renderCustomerReportTab(body) {
   }
 
   body.innerHTML = `
+    <!-- Sub-menu Navigation -->
+    <div style="display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;">
+      <button class="stamp-btn small ${customerReportSubTab==='directory'?'':'ghost'}" onclick="window.__setCustomerReportSubTab('directory')">📒 Customer Directory (${getCustomerDirectory().length})</button>
+      <button class="stamp-btn small ${customerReportSubTab==='report'?'':'ghost'}" onclick="window.__setCustomerReportSubTab('report')">📊 Analytics Report (${reports.length})</button>
+    </div>
+
+    ${customerReportSubTab === 'directory' ? renderCustomerDirectoryHtml() : ''}
+
+    ${customerReportSubTab === 'report' ? `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
       <div>
-        <h2 style="margin:0 0 4px;font-size:1.25rem;">CUSTOMER INTELLIGENCE & ANALYTICS REPORT</h2>
+        <h2 style="margin:0 0 4px;font-size:1.25rem;">CUSTOMER INTELLIGENCE &amp; ANALYTICS REPORT</h2>
         <p style="margin:0;color:var(--ink-soft);font-size:0.78rem;">Import ChatGPT ledger JSON, analyze party purchase behavior, track order volume, and engage customers.</p>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -10685,6 +10962,7 @@ function renderCustomerReportTab(body) {
         }).join('')}
       </div>
     `}
+    ` : ''}
   `;
 }
 
