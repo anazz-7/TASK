@@ -2655,17 +2655,19 @@ function renderTabBody(){
   if(activeTab==='label') return renderLabelTab(body);
   if(activeTab==='package') return renderPackageTab(body);
   if(activeTab==='stockkeeper') return renderStockkeeperTab(body);
-  if(activeTab==='accounts') return renderAccountsTab(body);
+  const cfg = getFeatureConfig();
+  if(activeTab==='accounts' && (isOwner() || (isManager() && cfg.allowManagerAccounts))) return renderAccountsTab(body);
   if(activeTab==='customer_report') return renderCustomerReportTab(body);
   if(activeTab==='vendors') return renderVendorBillsTab(body);
   if(activeTab==='low_stock') return renderLowStockTab(body);
   if(activeTab==='audit' && isManagerPlus()) return renderAuditTab(body);
-  if(activeTab==='salary' && isOwner()) return renderSalaryTab(body);
+  if(activeTab==='salary' && (isOwner() || (isManager() && cfg.allowManagerSalary))) return renderSalaryTab(body);
   if(activeTab==='salesman') return renderSalesmanTab(body);
   if(activeTab==='points') return renderPointsTab(body);
   if(activeTab==='staff') return renderStaffTab(body);
-  if(activeTab==='reports' && isOwner()) return renderReportsTab(body);
+  if(activeTab==='reports' && (isOwner() || (isManager() && cfg.allowManagerReports))) return renderReportsTab(body);
   if(activeTab==='settings') return renderSettingsTab(body);
+
   if(activeTab==='account') return renderAccountTab(body);
 }
 
@@ -10315,6 +10317,7 @@ function renderAccountTab(body){
 
 /* ---------------- SETTINGS (owner only) ---------------- */
 function renderSettingsTab(body){
+  const cfg = getFeatureConfig();
   body.innerHTML = `
     
     <div class="section-label">Business name</div>
@@ -10324,9 +10327,38 @@ function renderSettingsTab(body){
       <div class="modal-actions"><button class="stamp-btn" onclick="window.__renameBusiness()">Save name</button></div>
     </div>
 
+    <div class="section-label">⚙️ Customise Features &amp; Permissions</div>
+    <div class="row-card" style="flex-direction:column;align-items:stretch;gap:12px;">
+      <p style="font-size:0.8rem;color:var(--ink-soft);margin:0 0 4px;">Customize feature access, data privacy, and role permissions according to your business needs.</p>
+      
+      <label style="display:flex;align-items:center;gap:10px;font-size:0.85rem;cursor:pointer;">
+        <input type="checkbox" id="cfgMaskCust" ${cfg.maskCustomerDir ? 'checked' : ''} style="width:18px;height:18px;">
+        <span>🔒 <b>Mask Customer Directory for Staff &amp; Managers</b> (Only Owner sees unmasked mobile &amp; address, but entry access allowed for all)</span>
+      </label>
+
+      <label style="display:flex;align-items:center;gap:10px;font-size:0.85rem;cursor:pointer;">
+        <input type="checkbox" id="cfgManagerAcc" ${cfg.allowManagerAccounts ? 'checked' : ''} style="width:18px;height:18px;">
+        <span>📊 <b>Allow Managers Access to Accounts Tab</b></span>
+      </label>
+
+      <label style="display:flex;align-items:center;gap:10px;font-size:0.85rem;cursor:pointer;">
+        <input type="checkbox" id="cfgManagerSalary" ${cfg.allowManagerSalary ? 'checked' : ''} style="width:18px;height:18px;">
+        <span>💸 <b>Allow Managers Access to Salary Tab</b></span>
+      </label>
+
+      <label style="display:flex;align-items:center;gap:10px;font-size:0.85rem;cursor:pointer;">
+        <input type="checkbox" id="cfgManagerReports" ${cfg.allowManagerReports ? 'checked' : ''} style="width:18px;height:18px;">
+        <span>📈 <b>Allow Managers Access to Reports Tab</b></span>
+      </label>
+
+      <div class="modal-actions" style="margin-top:6px;">
+        <button class="stamp-btn" style="background:var(--turmeric);color:#fff;" onclick="window.__saveCustomFeatures()">Save Feature Settings</button>
+      </div>
+    </div>
+
     <div class="section-label">Owner alert SMS number</div>
     <div class="row-card" style="flex-direction:column;align-items:stretch;">
-      <label style="margin-top:0;">Phone number for attendance & stock alerts</label>
+      <label style="margin-top:0;">Phone number for attendance &amp; stock alerts</label>
       <input id="mOwnerPhone" value="${esc(getOwnerNotifyNumber())}" placeholder="+916379849947">
       <div class="modal-actions"><button class="stamp-btn" onclick="window.__saveOwnerPhone()">Save alert number</button></div>
     </div>
@@ -10348,6 +10380,20 @@ function renderSettingsTab(body){
       <p style="font-size:0.85rem;color:var(--ink-soft);margin:0;">In-app browser alerts fire only while this app is open in a tab — they can't wake your phone the way a WhatsApp message can. There's no separate push-notification service behind this (that would need a paid backend), so WhatsApp remains the reliable way to reach staff when the app is closed.</p>
     </div>
   `;
+  window.__saveCustomFeatures = () => {
+    const newCfg = {
+      maskCustomerDir: document.getElementById('cfgMaskCust').checked,
+      allowManagerAccounts: document.getElementById('cfgManagerAcc').checked,
+      allowManagerSalary: document.getElementById('cfgManagerSalary').checked,
+      allowManagerReports: document.getElementById('cfgManagerReports').checked,
+      allowStaffLowStockDelete: true,
+      allowStaffExpiryTracker: true
+    };
+    saveFeatureConfig(newCfg);
+    window.showToast('⚙️ Custom feature settings saved!', 'success');
+    renderShell();
+  };
+
   window.__renameBusiness = async () => {
     const name = document.getElementById('mBizName').value.trim();
     if(!name){ alert('Enter a name.'); return; }
@@ -10687,6 +10733,51 @@ window.__deleteExpiryItem = function(id) {
 
 
 /* ================================================================
+   FEATURE CUSTOMIZATION & ROLE PERMISSION CONFIG
+   ================================================================ */
+function getFeatureConfig() {
+  const defaults = {
+    maskCustomerDir: true,
+    allowManagerAccounts: false,
+    allowManagerSalary: false,
+    allowManagerReports: false,
+    allowStaffLowStockDelete: true,
+    allowStaffExpiryTracker: true
+  };
+  try {
+    const saved = JSON.parse(localStorage.getItem('br_features_' + session.businessId) || '{}');
+    return { ...defaults, ...saved };
+  } catch(e) {
+    return defaults;
+  }
+}
+
+function saveFeatureConfig(cfg) {
+  localStorage.setItem('br_features_' + session.businessId, JSON.stringify(cfg));
+}
+
+function maskCustData(text, type) {
+  if (!text) return '';
+  const cfg = getFeatureConfig();
+  if (isOwner() || !cfg.maskCustomerDir) return String(text);
+
+  if (type === 'mobile') {
+    const clean = String(text).trim();
+    if (clean.length <= 4) return '****';
+    return clean.slice(0, 4) + '*****';
+  }
+  if (type === 'address' || type === 'notes') {
+    return '•••••••••••• (Protected)';
+  }
+  if (type === 'name') {
+    const parts = String(text).trim().split(/\s+/);
+    return parts.map(p => p.length <= 1 ? p : (p[0] + '*'.repeat(p.length - 1))).join(' ');
+  }
+  return '••••••';
+}
+
+
+/* ================================================================
    FEATURE: CUSTOMER DIRECTORY (Customer Report sub-tab)
    Stores: name, mobile, address, notes — pure localStorage
    ================================================================ */
@@ -10707,6 +10798,8 @@ function saveCustomerDirectory(list) {
 function renderCustomerDirectoryHtml() {
   const list = getCustomerDirectory();
   let dirSearch = window._dirSearch || '';
+  const cfg = getFeatureConfig();
+  const isMasked = !isOwner() && cfg.maskCustomerDir;
 
   let filtered = list.slice();
   if (dirSearch.trim()) {
@@ -10723,10 +10816,10 @@ function renderCustomerDirectoryHtml() {
     <!-- Header -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
       <div>
-        <div style="font-weight:700;font-size:0.95rem;color:var(--ink);">📒 Customer Directory</div>
-        <div style="font-size:0.68rem;color:var(--ink-soft);">${list.length} customer${list.length!==1?'s':''} saved</div>
+        <div style="font-weight:700;font-size:0.95rem;color:var(--ink);">📒 Customer Directory ${isMasked ? '<span style="font-size:0.7rem;color:var(--turmeric-dark);font-weight:600;margin-left:6px;">🔒 [DATA MASKED FOR NON-OWNER]</span>' : ''}</div>
+        <div style="font-size:0.68rem;color:var(--ink-soft);">${list.length} customer${list.length!==1?'s':''} saved &bull; Entry allowed for all staff</div>
       </div>
-      <button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border:none;" onclick="window.__openCustDirModal()">+ Add Customer</button>
+      <button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border:none;" onclick="window.__openCustDirModal()">+ Add Customer Entry</button>
     </div>
 
     <!-- Search -->
@@ -10744,34 +10837,43 @@ function renderCustomerDirectoryHtml() {
 
     <div class="section-label">Customers (${filtered.length})</div>
 
-    ${filtered.length ? filtered.map(c => `
-    <div class="row-card" style="align-items:flex-start;">
-      <div class="avatar-circle" style="width:40px;height:40px;font-size:0.9rem;flex-shrink:0;">${(c.name||'?')[0].toUpperCase()}</div>
-      <div class="row-main" style="flex:1;min-width:0;">
-        <h3 style="font-size:0.92rem;">${esc(c.name)}</h3>
-        <div class="meta">
-          ${c.mobile ? `<span>📞 ${esc(c.mobile)}</span>` : ''}
-          ${c.city ? `<span>📍 ${esc(c.city)}</span>` : ''}
+    ${filtered.length ? filtered.map(c => {
+      const displayName = maskCustData(c.name, 'name');
+      const displayMobile = maskCustData(c.mobile, 'mobile');
+      const displayAddress = maskCustData(c.address, 'address');
+      const displayNotes = maskCustData(c.notes, 'notes');
+
+      return `
+      <div class="row-card" style="align-items:flex-start;">
+        <div class="avatar-circle" style="width:40px;height:40px;font-size:0.9rem;flex-shrink:0;">${(c.name||'?')[0].toUpperCase()}</div>
+        <div class="row-main" style="flex:1;min-width:0;">
+          <h3 style="font-size:0.92rem;">${esc(displayName)}</h3>
+          <div class="meta">
+            ${c.mobile ? `<span>📞 ${esc(displayMobile)}</span>` : ''}
+            ${c.city ? `<span>📍 ${esc(c.city)}</span>` : ''}
+          </div>
+          ${c.address ? `<div class="notes" style="margin-top:4px;">🏠 ${esc(displayAddress)}</div>` : ''}
+          ${c.notes ? `<div class="notes">${esc(displayNotes)}</div>` : ''}
         </div>
-        ${c.address ? `<div class="notes" style="margin-top:4px;">🏠 ${esc(c.address)}</div>` : ''}
-        ${c.notes ? `<div class="notes">${esc(c.notes)}</div>` : ''}
-      </div>
-      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0;">
-        ${c.mobile ? `<a href="tel:${esc(c.mobile)}" class="stamp-btn small ghost" style="text-decoration:none;padding:5px 10px;">📞 Call</a>` : ''}
-        ${c.mobile ? `<a href="https://wa.me/91${c.mobile.replace(/\D/g,'')}" target="_blank" rel="noopener" class="stamp-btn small" style="background:var(--leaf);color:#fff;border-color:var(--leaf);text-decoration:none;padding:5px 10px;">💬 WhatsApp</a>` : ''}
-        <div class="action-dropdown-holder">
-          <button class="action-more-btn" onclick="window.__toggleActionMenu(event,'cd_${c.id}')">More ▾</button>
-          <div class="action-dropdown-menu" id="actionMenu_cd_${c.id}">
-            <button onclick="window.__openCustDirModal('${c.id}')">✎ Edit</button>
-            <button class="danger" onclick="window.__deleteCustDir('${c.id}')">🗑 Delete</button>
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0;">
+          ${(!isMasked && c.mobile) ? `<a href="tel:${esc(c.mobile)}" class="stamp-btn small ghost" style="text-decoration:none;padding:5px 10px;">📞 Call</a>` : ''}
+          ${(!isMasked && c.mobile) ? `<a href="https://wa.me/91${c.mobile.replace(/\D/g,'')}" target="_blank" rel="noopener" class="stamp-btn small" style="background:var(--leaf);color:#fff;border-color:var(--leaf);text-decoration:none;padding:5px 10px;">💬 WhatsApp</a>` : ''}
+          ${isMasked ? `<span style="font-size:0.65rem;color:var(--ink-soft);background:var(--paper-line);padding:2px 6px;border-radius:4px;">🔒 Masked</span>` : ''}
+          <div class="action-dropdown-holder">
+            <button class="action-more-btn" onclick="window.__toggleActionMenu(event,'cd_${c.id}')">More ▾</button>
+            <div class="action-dropdown-menu" id="actionMenu_cd_${c.id}">
+              <button onclick="window.__openCustDirModal('${c.id}')">✎ Edit</button>
+              ${isOwner() ? `<button class="danger" onclick="window.__deleteCustDir('${c.id}')">🗑 Delete</button>` : ''}
+            </div>
           </div>
         </div>
-      </div>
-    </div>`).join('') : `<div class="empty">${dirSearch ? 'No customers match your search.' : 'No customers yet. Tap "+ Add Customer" to build your directory.'}</div>`}
+      </div>`;
+    }).join('') : `<div class="empty">${dirSearch ? 'No customers match your search.' : 'No customers yet. Tap "+ Add Customer Entry" to build your directory.'}</div>`}
 
     <div id="custDirModalHolder"></div>
   </div>`;
 }
+
 
 window.__openCustDirModal = function(id) {
   const list = getCustomerDirectory();
