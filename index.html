@@ -8688,13 +8688,15 @@ window.__printPaymentVoucher = function() {
     </head>
     <body>
       ${printArea.innerHTML}
-      <script>
+      ${'<'}script${'>'}
         window.onload = function() {
           window.print();
           setTimeout(() => { window.close(); }, 500);
         };
-      <\/script>
+      ${'<'}/script${'>'}
     </body>
+
+
     </html>
   `);
   printWindow.document.close();
@@ -9009,10 +9011,12 @@ window.__printVendorStatement = function(vendorName) {
     </head>
     <body>
       ${printArea.innerHTML}
-      <script>
+      ${'<'}script${'>'}
         window.onload = function() { window.print(); setTimeout(() => { window.close(); }, 500); };
-      <\/script>
+      ${'<'}/script${'>'}
     </body>
+
+
     </html>
   `);
   printWindow.document.close();
