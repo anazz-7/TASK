@@ -1,5 +1,5 @@
 // Service Worker for BABM TASK / B-INDUSTRIES (PWA Cache & Web Push Notifications)
-const CACHE_VERSION = 'v3.2.1';
+const CACHE_VERSION = 'v3.3.0';
 const CACHE_NAME = `babm-task-app-${CACHE_VERSION}`;
 const ASSETS_TO_CACHE = [
   './',
@@ -28,27 +28,19 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// Fetch: Cache-First / Network Fallback for smooth offline app usage
+// Fetch: Network-First / Cache Fallback for always-fresh app updates
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET' || !e.request.url.startsWith('http')) return;
   e.respondWith(
-    caches.match(e.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        // Return cached version immediately and update cache in background
-        fetch(e.request).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            caches.open(CACHE_NAME).then((cache) => cache.put(e.request, networkResponse.clone()));
-          }
-        }).catch(() => {});
-        return cachedResponse;
+    fetch(e.request).then((networkResponse) => {
+      if (networkResponse && networkResponse.status === 200) {
+        const resClone = networkResponse.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(e.request, resClone));
       }
-      return fetch(e.request).then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200) {
-          const resClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(e.request, resClone));
-        }
-        return networkResponse;
-      }).catch(() => {
+      return networkResponse;
+    }).catch(() => {
+      return caches.match(e.request).then((cachedResponse) => {
+        if (cachedResponse) return cachedResponse;
         if (e.request.headers && e.request.headers.get('accept') && e.request.headers.get('accept').includes('text/html')) {
           return caches.match('index.html');
         }
@@ -56,6 +48,7 @@ self.addEventListener('fetch', (e) => {
     })
   );
 });
+
 
 // Handle Web Push Notifications when app is closed
 self.addEventListener('push', (e) => {
