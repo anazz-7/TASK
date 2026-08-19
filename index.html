@@ -7013,7 +7013,8 @@ window.__printVendorBillReceipt = function(id) {
     <html>
     <head>
         <title>Payment Voucher - ${esc(vNo)}</title>
-      <style>
+      \x3Cstyle\x3E
+
 
   /* Global Roboto Mono Font & Uppercase Capitalization Styling */
   body, button, input, select, textarea, h1, h2, h3, h4, .stamp-btn, .section-label, label, .stamp, .stat-card, .row-card, .leaderboard-card, .drawer-item, .bottom-nav button, .sidebar-item, .sidebar-section-title {
@@ -7257,8 +7258,9 @@ window.__printVendorBillReceipt = function(id) {
 
 
 
-</style>
+\x3C/style\x3E
     </head>
+
     <body>
       <div class="no-print" style="margin-bottom:16px;text-align:right;">
         <button onclick="window.print()" style="padding:8px 16px;font-size:1rem;font-weight:bold;cursor:pointer;">Print Receipt / Voucher</button>
@@ -8455,7 +8457,8 @@ window.__printPaymentVoucher = function() {
     <head>
       <title>Payment Voucher</title>
       <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Inter:wght@400;600;700&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
-      <style>
+      \x3Cstyle\x3E
+
 
   /* Global Roboto Mono Font & Uppercase Capitalization Styling */
   body, button, input, select, textarea, h1, h2, h3, h4, .stamp-btn, .section-label, label, .stamp, .stat-card, .row-card, .leaderboard-card, .drawer-item, .bottom-nav button, .sidebar-item, .sidebar-section-title {
@@ -8684,17 +8687,19 @@ window.__printPaymentVoucher = function() {
 
 
 
-</style>
+\x3C/style\x3E
     </head>
+
     <body>
       ${printArea.innerHTML}
-      ${'<'}script${'>'}
+      \x3Cscript\x3E
         window.onload = function() {
           window.print();
           setTimeout(() => { window.close(); }, 500);
         };
-      ${'<'}/script${'>'}
+      \x3C/script\x3E
     </body>
+
 
 
     </html>
@@ -8937,7 +8942,8 @@ window.__printVendorStatement = function(vendorName) {
     <head>
       <title>Statement - ${vendorName}</title>
       <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Inter:wght@400;600;700&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
-      <style>
+      \x3Cstyle\x3E
+
 
   /* Global Roboto Mono Font & Uppercase Capitalization Styling */
   body, button, input, select, textarea, h1, h2, h3, h4, .stamp-btn, .section-label, label, .stamp, .stat-card, .row-card, .leaderboard-card, .drawer-item, .bottom-nav button, .sidebar-item, .sidebar-section-title {
@@ -9007,14 +9013,16 @@ window.__printVendorStatement = function(vendorName) {
 
 
 
-</style>
+\x3C/style\x3E
     </head>
+
     <body>
       ${printArea.innerHTML}
-      ${'<'}script${'>'}
+      \x3Cscript\x3E
         window.onload = function() { window.print(); setTimeout(() => { window.close(); }, 500); };
-      ${'<'}/script${'>'}
+      \x3C/script\x3E
     </body>
+
 
 
     </html>
