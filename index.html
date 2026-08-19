@@ -2600,68 +2600,8 @@ window.showToast = function(message, type = 'info', duration = 3200) {
   }, duration);
 };
 
-/* ---------------- FEATURE 3: MOBILE TOUCH SWIPE GESTURES ENGINE ---------------- */
-function setupCardSwipeGestures() {
-  setTimeout(() => {
-    document.querySelectorAll('.row-card:not([data-swipe-init])').forEach(card => {
-      card.setAttribute('data-swipe-init', 'true');
-      let startX = 0;
-      let currentX = 0;
-      let isSwiping = false;
-
-      card.addEventListener('touchstart', (e) => {
-        startX = e.touches[0].clientX;
-        isSwiping = true;
-        card.style.transition = 'none';
-      }, { passive: true });
-
-      card.addEventListener('touchmove', (e) => {
-        if (!isSwiping) return;
-        currentX = e.touches[0].clientX - startX;
-        if (Math.abs(currentX) > 12) {
-          card.style.transform = `translateX(${currentX * 0.65}px)`;
-          if (currentX > 50) {
-            card.style.borderLeft = '5px solid var(--leaf)';
-          } else if (currentX < -50) {
-            card.style.borderRight = '5px solid var(--brick)';
-          } else {
-            card.style.borderLeft = '';
-            card.style.borderRight = '';
-          }
-        }
-      }, { passive: true });
-
-      card.addEventListener('touchend', () => {
-        if (!isSwiping) return;
-        isSwiping = false;
-        card.style.transition = 'transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), border 0.25s ease';
-
-        if (currentX > 75) {
-          card.style.transform = 'translateX(0)';
-          const actBtn = card.querySelector('.stamp-btn:not(.danger), button:not(.danger)');
-          if (actBtn) {
-            if (navigator.vibrate) try{ navigator.vibrate(20); }catch(e){}
-            actBtn.click();
-          }
-        } else if (currentX < -75) {
-          card.style.transform = 'translateX(0)';
-          const delBtn = card.querySelector('button.danger, .action-dropdown-holder button');
-          if (delBtn) {
-            if (navigator.vibrate) try{ navigator.vibrate([15, 30, 15]); }catch(e){}
-            delBtn.click();
-          }
-        } else {
-          card.style.transform = 'translateX(0)';
-        }
-        card.style.borderLeft = '';
-        card.style.borderRight = '';
-        currentX = 0;
-      });
-    });
-  }, 100);
-}
-
 /* ---------------- shell ---------------- */
+
 const ICONS = {
 
   dashboard: '<path d="M3 13h7V3H3v10Zm0 8h7v-6H3v6Zm11 0h7V11h-7v10Zm0-18v6h7V3h-7Z"/>',
@@ -2935,9 +2875,8 @@ function renderTabBody(){
   else if(activeTab==='reports' && (isOwner() || (isManager() && getFeatureConfig().allowManagerReports))) renderReportsTab(body);
   else if(activeTab==='settings') renderSettingsTab(body);
   else if(activeTab==='account') renderAccountTab(body);
-
-  setupCardSwipeGestures();
 }
+
 
 
 /* ---------------- DASHBOARD ---------------- */
