@@ -11580,22 +11580,31 @@ function maskCustData(text, type) {
 function maskSalesAmount(val) {
   const num = Math.round(Number(val || 0));
   const cfg = getFeatureConfig();
-  if (isOwner() || !cfg.maskSalesDigits) {
+
+  // ONLY OWNER ROLE CAN VIEW UNMASKED 6-DIGIT OR HIGHER LEDGER AMOUNTS
+  if (isOwner()) {
     return '₹' + num.toLocaleString('en-IN');
   }
+
   const numStr = Math.abs(num).toString();
 
-  // BELOW 6 DIGITS (1 to 5 digits, e.g., up to ₹99,999): NO MASKING (Show Full Amount)
-  if (numStr.length < 6) {
-    return '₹' + num.toLocaleString('en-IN');
+  // FOR MANAGERS & OTHER NON-OWNER ROLES:
+  // ANY 6-DIGIT OR HIGHER LEDGER VALUE (≥ ₹1,00,000) MUST ALWAYS BE MASKED
+  if (numStr.length >= 6) {
+    return '₹*,**,*** (🔒 6-Digit Restricted)';
   }
 
-  // 6 DIGITS OR HIGHER (≥ 100,000 e.g. Lakhs/Crores): MASK HIGHER DIGITS
-  const showLen = 2;
-  const maskedStr = numStr.slice(0, showLen) + '*'.repeat(numStr.length - showLen);
-  const formatted = maskedStr.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  return '₹' + formatted;
+  // BELOW 6 DIGITS (up to ₹99,999): Apply feature toggle mask if enabled, otherwise show full 5-digit amount
+  if (cfg && cfg.maskSalesDigits) {
+    const showLen = Math.min(2, numStr.length);
+    const maskedStr = numStr.slice(0, showLen) + '*'.repeat(numStr.length - showLen);
+    const formatted = maskedStr.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return '₹' + formatted;
+  }
+
+  return '₹' + num.toLocaleString('en-IN');
 }
+
 
 
 
