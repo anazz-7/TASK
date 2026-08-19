@@ -11811,41 +11811,40 @@ function renderCustomerDirectoryHtml() {
 
     <div class="section-label">Customers (${filtered.length})</div>
 
-    ${filtered.length ? filtered.map(c => {
-      const displayName = maskCustData(c.name, 'name');
-      const displayMobile = maskCustData(c.mobile, 'mobile');
-      const displayAddress = maskCustData(c.address, 'address');
-      const displayNotes = maskCustData(c.notes, 'notes');
+    ${filtered.length ? `
+    <div class="cards-grid-multi">
+      ${filtered.map(c => {
+        const displayName = maskCustData(c.name, 'name');
+        const displayMobile = maskCustData(c.mobile, 'mobile');
+        const displayAddress = maskCustData(c.address, 'address');
+        const displayNotes = maskCustData(c.notes, 'notes');
+        const cleanPhone = (c.mobile || '').replace(/[^0-9]/g, '');
 
-      return `
-      <div class="row-card" style="align-items:flex-start;">
-        <div class="avatar-circle" style="width:40px;height:40px;font-size:0.9rem;flex-shrink:0;">${(c.name||'?')[0].toUpperCase()}</div>
-        <div class="row-main" style="flex:1;min-width:0;">
-          <h3 style="font-size:0.92rem;">${esc(displayName)}</h3>
-          <div class="meta">
-            ${c.mobile ? `<span>📞 ${esc(displayMobile)}</span>` : ''}
-            ${c.city ? `<span>📍 ${esc(c.city)}</span>` : ''}
-          </div>
-          ${c.address ? `<div class="notes" style="margin-top:4px;">🏠 ${esc(displayAddress)}</div>` : ''}
-          ${c.notes ? `<div class="notes">${esc(displayNotes)}</div>` : ''}
-        </div>
-        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0;">
-          ${(!isMasked && c.mobile) ? `<a href="tel:${esc(c.mobile)}" class="stamp-btn small ghost" style="text-decoration:none;padding:5px 10px;">📞 Call</a>` : ''}
-          ${(!isMasked && c.mobile) ? `<a href="https://wa.me/91${c.mobile.replace(/\D/g,'')}" target="_blank" rel="noopener" class="stamp-btn small" style="background:var(--leaf);color:#fff;border-color:var(--leaf);text-decoration:none;padding:5px 10px;">💬 WhatsApp</a>` : ''}
-          ${isMasked ? `<span style="font-size:0.65rem;color:var(--ink-soft);background:var(--paper-line);padding:2px 6px;border-radius:4px;">🔒 Masked</span>` : ''}
-          <div class="action-dropdown-holder">
-            <button class="action-more-btn" onclick="window.__toggleActionMenu(event,'cd_${c.id}')">More ▾</button>
-            <div class="action-dropdown-menu" id="actionMenu_cd_${c.id}">
-              <button onclick="window.__openCustDirModal('${c.id}')">✎ Edit</button>
-              ${isOwner() ? `<button class="danger" onclick="window.__deleteCustDir('${c.id}')">🗑 Delete</button>` : ''}
+        return `
+        <div class="row-card grid-cust-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;width:100%;flex-wrap:nowrap;">
+            <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1 1 auto;max-width:calc(100% - 80px);overflow:hidden;">
+              <div class="avatar-circle" style="width:28px;height:28px;font-size:0.75rem;flex-shrink:0;background:var(--paper-line);color:var(--ink);">${(c.name||'?')[0].toUpperCase()}</div>
+              <div style="min-width:0;flex:1;overflow:hidden;">
+                <b style="font-size:0.8rem;color:var(--ink);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;">${esc(displayName)}</b>
+                <div style="font-size:0.66rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;margin-top:1px;">📍 ${esc(c.city || 'N/A')}${c.mobile ? ' &bull; 📞 ' + esc(displayMobile) : ''}</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;flex-shrink:0;margin-left:auto;white-space:nowrap;">
+              ${(!isMasked && cleanPhone) ? `<a href="tel:${cleanPhone}" class="stamp-btn small ghost" style="padding:2px 5px;font-size:0.68rem;text-decoration:none;" title="Call">📞</a>` : ''}
+              ${(!isMasked && cleanPhone) ? `<a href="https://wa.me/91${cleanPhone}" target="_blank" rel="noopener" class="stamp-btn small" style="background:#25D366;color:#fff;border-color:#25D366;padding:2px 5px;font-size:0.68rem;text-decoration:none;" title="WhatsApp">💬</a>` : ''}
+              <button class="stamp-btn small ghost" style="padding:2px 5px;font-size:0.68rem;" onclick="window.__openCustDirModal('${c.id}')" title="Edit">✎</button>
+              ${isOwner() ? `<button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:2px 5px;font-size:0.68rem;" onclick="window.__deleteCustDir('${c.id}')" title="Delete">🗑</button>` : ''}
             </div>
           </div>
-        </div>
-      </div>`;
-    }).join('') : `<div class="empty">${dirSearch ? 'No customers match your search.' : 'No customers yet. Tap "+ Add Customer Entry" to build your directory.'}</div>`}
+        </div>`;
+      }).join('')}
+    </div>
+    ` : `<div class="empty">${dirSearch ? 'No customers match your search.' : 'No customers yet. Tap "+ Add Customer Entry" to build your directory.'}</div>`}
 
     <div id="custDirModalHolder"></div>
   </div>`;
+
 }
 
 
