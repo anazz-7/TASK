@@ -5038,12 +5038,13 @@ function renderLabelTab(body){
       const entries = byDate[d];
       const dayQty = entries.reduce((s,e)=>s+Number(e.qty||0),0);
       const isOpen = expandedLabelDates.has(d);
-      return `<div class="row-card collapse-row" style="padding:10px 14px;margin-top:14px;" onclick="window.__toggleLabelDate('${d}')">
-        <div class="row-main" style="display:flex;align-items:center;justify-content:space-between;">
-          <span><span class="collapse-arrow ${isOpen?'open':''}">▸</span>${d}</span>
-          <span style="font-family:'Roboto Mono',monospace;font-size:0.8rem;">${dayQty} qty total, ${entries.length} item(s)</span>
+      return `<div class="row-card collapse-row compact-done-card" style="margin-top:4px !important;" onclick="window.__toggleLabelDate('${d}')">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+          <span style="font-size:0.8rem;font-weight:700;color:var(--ink);"><span class="collapse-arrow ${isOpen?'open':''}" style="font-size:0.75rem;margin-right:6px;">▸</span>${d}</span>
+          <span style="font-family:'Roboto Mono',monospace;font-size:0.72rem;color:var(--ink-soft);">${dayQty} QTY TOTAL, ${entries.length} ITEM(S)</span>
         </div>
       </div>
+
       ${isOpen ? entries.map(e=>`
         <div class="row-card" style="align-items:center;">
           <div class="row-main">
@@ -5305,12 +5306,13 @@ function renderPackageTab(body){
       const entries = byDate[d];
       const dayQty = entries.reduce((s,e)=>s+Number(e.qty||0),0);
       const isOpen = expandedPackageDates.has(d);
-      return `<div class="row-card collapse-row" style="padding:10px 14px;margin-top:14px;" onclick="window.__togglePackageDate('${d}')">
-        <div class="row-main" style="display:flex;align-items:center;justify-content:space-between;">
-          <span><span class="collapse-arrow ${isOpen?'open':''}">▸</span>${d}</span>
-          <span style="font-family:'Roboto Mono',monospace;font-size:0.8rem;">${dayQty} qty total, ${entries.length} item(s)</span>
+      return `<div class="row-card collapse-row compact-done-card" style="margin-top:4px !important;" onclick="window.__togglePackageDate('${d}')">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+          <span style="font-size:0.8rem;font-weight:700;color:var(--ink);"><span class="collapse-arrow ${isOpen?'open':''}" style="font-size:0.75rem;margin-right:6px;">▸</span>${d}</span>
+          <span style="font-family:'Roboto Mono',monospace;font-size:0.72rem;color:var(--ink-soft);">${dayQty} QTY TOTAL, ${entries.length} ITEM(S)</span>
         </div>
       </div>
+
       ${isOpen ? entries.map(e=>`
         <div class="row-card" style="align-items:center;">
           <div class="row-main">
