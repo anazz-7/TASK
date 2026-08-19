@@ -10422,8 +10422,9 @@ function renderSettingsTab(body){
 
       <label style="display:flex;align-items:center;gap:10px;font-size:0.85rem;cursor:pointer;">
         <input type="checkbox" id="cfgMaskSales" ${cfg.maskSalesDigits ? 'checked' : ''} style="width:18px;height:18px;">
-        <span>📉 <b>Mask Total Sales &amp; Higher Digits for Staff &amp; Managers</b> (Shows order of magnitude e.g. ₹48,*** while protecting exact revenue figures)</span>
+        <span>📉 <b>Mask Sales Figures Above 6 Digits (₹1 Lakh+) for Staff</b> (Amounts below 6 digits like ₹48,500 show in full; 6+ digit totals like ₹1,00,000+ mask higher digits)</span>
       </label>
+
 
       <label style="display:flex;align-items:center;gap:10px;font-size:0.85rem;cursor:pointer;">
         <input type="checkbox" id="cfgManagerAcc" ${cfg.allowManagerAccounts ? 'checked' : ''} style="width:18px;height:18px;">
@@ -11080,18 +11081,25 @@ function maskCustData(text, type) {
 }
 
 function maskSalesAmount(val) {
-  const num = Number(val || 0);
+  const num = Math.round(Number(val || 0));
   const cfg = getFeatureConfig();
   if (isOwner() || !cfg.maskSalesDigits) {
-    return '₹' + Math.round(num).toLocaleString('en-IN');
+    return '₹' + num.toLocaleString('en-IN');
   }
-  const numStr = Math.round(num).toString();
-  if (numStr.length <= 1) return '₹*';
-  const showLen = Math.min(2, Math.floor(numStr.length / 2));
+  const numStr = Math.abs(num).toString();
+
+  // BELOW 6 DIGITS (1 to 5 digits, e.g., up to ₹99,999): NO MASKING (Show Full Amount)
+  if (numStr.length < 6) {
+    return '₹' + num.toLocaleString('en-IN');
+  }
+
+  // 6 DIGITS OR HIGHER (≥ 100,000 e.g. Lakhs/Crores): MASK HIGHER DIGITS
+  const showLen = 2;
   const maskedStr = numStr.slice(0, showLen) + '*'.repeat(numStr.length - showLen);
   const formatted = maskedStr.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   return '₹' + formatted;
 }
+
 
 
 
