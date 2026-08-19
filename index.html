@@ -267,11 +267,32 @@
     text-align: left;
   }
 
+  /* Ultra-sleek Compact Log Cards for Past Records & History Logs */
+  .compact-log-card, .row-card.compact-log-card {
+    padding: 8px 12px !important;
+    margin-bottom: 6px !important;
+    border-radius: 8px !important;
+    gap: 10px !important;
+  }
+  .compact-log-card h3 {
+    font-size: 0.84rem !important;
+    margin-bottom: 2px !important;
+  }
+  .compact-log-card .meta {
+    font-size: 0.7rem !important;
+    margin-bottom: 2px !important;
+  }
+  .compact-log-card .notes {
+    font-size: 0.75rem !important;
+    margin-top: 2px !important;
+  }
+
   /* Major Overview Cards Padding: 24px */
   .row-card.hero-overview {
     padding: 24px !important;
     margin-bottom: 24px;
   }
+
   
   .row-main {
     flex: 1;
@@ -11520,11 +11541,32 @@ function maskSalesAmount(val) {
    Stores: name, mobile, address, notes — pure localStorage + Cloud Sync
    ================================================================ */
 let customerReportSubTab = 'directory'; // 'directory' | 'report'
+let expandedCustReportIds = new Set();
+let isCustKpiCollapsed = false;
+
+window.__toggleExpandCustReport = function(id, e) {
+  if (e) e.stopPropagation();
+  if (expandedCustReportIds.has(id)) expandedCustReportIds.delete(id);
+  else expandedCustReportIds.add(id);
+  renderTabBody();
+};
+
+window.__toggleExpandAllCustReport = function(filteredIds) {
+  if (!Array.isArray(filteredIds) || !filteredIds.length) return;
+  const allExpanded = filteredIds.every(id => expandedCustReportIds.has(id));
+  if (allExpanded) {
+    filteredIds.forEach(id => expandedCustReportIds.delete(id));
+  } else {
+    filteredIds.forEach(id => expandedCustReportIds.add(id));
+  }
+  renderTabBody();
+};
 
 window.__setCustomerReportSubTab = function(t) {
   customerReportSubTab = t;
   renderTabBody();
 };
+
 
 window.__toggleCustMoreMenu = function(e) {
   if (e) e.stopPropagation();
@@ -11997,6 +12039,9 @@ function renderCustomerReportTab(body) {
         <p style="margin:0;color:var(--ink-soft);font-size:0.78rem;">Import ChatGPT ledger JSON, analyze party purchase behavior, track order volume, and engage customers.</p>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button class="stamp-btn small ghost" onclick="isCustKpiCollapsed=!isCustKpiCollapsed;renderTabBody();">
+          ${isCustKpiCollapsed ? '📊 Show KPI Overview' : '📊 Collapse KPI Overview'}
+        </button>
         <button class="stamp-btn" onclick="window.__openImportCustomerJsonModal()">📥 Import JSON</button>
         <div style="position:relative;display:inline-block;">
           <button class="stamp-btn ghost" onclick="window.__toggleCustActionsMoreMenu(event)">••• Actions ▾</button>
@@ -12009,6 +12054,7 @@ function renderCustomerReportTab(body) {
     </div>
 
 
+    ${!isCustKpiCollapsed ? `
     <!-- Overview Stat KPI Cards -->
     <div class="dash-kpi-grid" style="margin-bottom:20px;">
       <div class="dash-kpi-card">
@@ -12032,6 +12078,7 @@ function renderCustomerReportTab(body) {
         <div class="dash-kpi-sub">Average Party Lifetime Value</div>
       </div>
     </div>
+    ` : ''}
 
     <!-- Search & Filter Bar -->
     <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
@@ -12046,54 +12093,65 @@ function renderCustomerReportTab(body) {
       </div>
     </div>
 
-    <!-- Customer Cards Grid -->
+    <!-- Expand / Collapse All Header Bar -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+      <div style="font-weight:700;font-size:0.9rem;color:var(--ink);">Customer Accounts (${filtered.length})</div>
+      ${filtered.length ? `
+        <button class="stamp-btn small ghost" onclick="window.__toggleExpandAllCustReport([${filtered.map(r=>`'${r.id}'`).join(',')}])">
+          ${filtered.every(r => expandedCustReportIds.has(r.id)) ? '📂 Collapse All Details' : '📖 Expand All Details'}
+        </button>
+      ` : ''}
+    </div>
+
+    <!-- Compact Customer Cards Grid with Expand / Collapse -->
     ${!filtered.length ? '<div class="empty">No customer report records found. Click "Import ChatGPT JSON" or "Add Customer Entry" to add customer profiles!</div>' : `
       <div class="cards-grid-multi">
         ${filtered.map(r => {
           const isVip = r.segment === 'VIP';
           const statusClass = isVip ? 'high' : r.segment === 'NEW' ? 'present' : r.segment === 'INACTIVE' ? 'low' : 'done';
+          const isExpanded = expandedCustReportIds.has(r.id);
           const cleanPhone = (r.phone || '').replace(/[^0-9]/g, '');
           const waMessage = encodeURIComponent(`Hi ${r.customer_name || 'Valued Customer'}, thank you for doing business with ${session.businessName || 'B-INDUSTRIES'}. We appreciate your continued partnership!`);
           
           return `
-            <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px;margin-bottom:0;${isVip ? 'border-left:4px solid var(--turmeric);background:var(--blue-soft);' : ''}">
-              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;">
-                <div>
-                  <b style="font-size:0.95rem;color:var(--ink);display:block;margin-bottom:2px;">${esc(r.customer_name || 'UNNAMED PARTY')}</b>
-                  <div style="font-size:0.75rem;color:var(--ink-soft);">📍 ${esc(r.city || 'LOCATION N/A')} &bull; 📞 ${esc(r.phone || 'No Phone')}</div>
+            <div class="row-card compact-log-card" style="flex-direction:column;align-items:stretch;padding:10px 12px;margin-bottom:8px;${isVip ? 'border-left:4px solid var(--turmeric);background:var(--blue-soft);' : ''}">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;" onclick="window.__toggleExpandCustReport('${r.id}', event)">
+                <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1;">
+                  <span class="collapse-arrow ${isExpanded?'open':''}" style="font-size:0.85rem;color:var(--ink-soft);flex-shrink:0;">▸</span>
+                  <div style="min-width:0;">
+                    <b style="font-size:0.9rem;color:var(--ink);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(r.customer_name || 'UNNAMED PARTY')}</b>
+                    <div style="font-size:0.72rem;color:var(--ink-soft);">📍 ${esc(r.city || 'N/A')} ${r.phone ? ' &bull; 📞 ' + esc(r.phone) : ''}</div>
+                  </div>
                 </div>
-                <span class="stamp ${statusClass}" style="flex-shrink:0;">${isVip ? '⭐ VIP' : r.segment || 'REGULAR'}</span>
-              </div>
-
-              <div style="display:flex;justify-content:space-between;align-items:center;background:var(--paper);padding:8px 10px;border-radius:6px;margin:6px 0 10px;">
-                <div>
-                  <div style="font-size:0.68rem;color:var(--ink-soft);font-weight:700;">TOTAL SPENT:</div>
-                  <b style="font-size:1.1rem;color:var(--turmeric-dark);">${maskSalesAmount(r.total_spent)}</b>
-                </div>
-                <div style="text-align:right;">
-                  <div style="font-size:0.68rem;color:var(--ink-soft);font-weight:700;">ORDERS:</div>
-                  <b style="font-size:1.05rem;color:var(--ink);">${r.total_orders || 0} Orders</b>
+                <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                  <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.95rem;color:var(--turmeric-dark);">${maskSalesAmount(r.total_spent)}</span>
+                  <span class="stamp ${statusClass}" style="padding:2px 6px;font-size:0.68rem;">${isVip ? '⭐ VIP' : r.segment || 'REGULAR'}</span>
                 </div>
               </div>
 
+              ${isExpanded ? `
+                <div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--paper-line);font-size:0.75rem;color:var(--ink-soft);">
+                  <div style="display:flex;justify-content:space-between;background:var(--paper);padding:6px 10px;border-radius:6px;margin-bottom:8px;font-size:0.75rem;">
+                    <div>Total Orders: <b style="color:var(--ink);">${r.total_orders || 0} Orders</b></div>
+                    ${r.last_order_date ? `<div>Last Order: <b>${r.last_order_date}</b></div>` : ''}
+                  </div>
+                  ${r.favorite_item ? `<div style="margin-bottom:4px;"><b>Preferred Item:</b> ${esc(r.favorite_item)}</div>` : ''}
+                  ${r.remarks ? `<div style="margin-bottom:8px;color:var(--ink);"><b>Notes:</b> ${esc(r.remarks)}</div>` : ''}
 
-              <div style="font-size:0.72rem;color:var(--ink-soft);margin-bottom:8px;">
-                ${r.favorite_item ? `<div><b>PREFERRED ITEM:</b> ${esc(r.favorite_item)}</div>` : ''}
-                ${r.last_order_date ? `<div><b>LAST ORDER:</b> ${r.last_order_date}</div>` : ''}
-                ${r.remarks ? `<div style="margin-top:4px;color:var(--ink);"><b>NOTES:</b> ${esc(r.remarks)}</div>` : ''}
-              </div>
-
-              <div style="display:flex;gap:6px;border-top:1px dashed var(--paper-line);padding-top:10px;margin-top:auto;flex-wrap:wrap;">
-                ${cleanPhone ? `<a href="tel:${cleanPhone}" class="stamp-btn small ghost" style="flex:1;text-decoration:none;">📞 Call</a>` : ''}
-                ${cleanPhone ? `<a href="https://wa.me/${cleanPhone.length===10?'91'+cleanPhone:cleanPhone}?text=${waMessage}" target="_blank" class="stamp-btn small" style="background:#25D366;color:#fff;border-color:#25D366;flex:1;text-decoration:none;">💬 WhatsApp</a>` : ''}
-                <button class="stamp-btn small ghost" onclick="window.__editCustomerReportModal('${r.id}')">✎ Edit</button>
-                <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);" onclick="window.__deleteCustomerReport('${r.id}')">🗑</button>
-              </div>
+                  <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+                    ${cleanPhone ? `<a href="tel:${cleanPhone}" class="stamp-btn small ghost" style="flex:1;text-decoration:none;">📞 Call</a>` : ''}
+                    ${cleanPhone ? `<a href="https://wa.me/${cleanPhone.length===10?'91'+cleanPhone:cleanPhone}?text=${waMessage}" target="_blank" class="stamp-btn small" style="background:#25D366;color:#fff;border-color:#25D366;flex:1;text-decoration:none;">💬 WhatsApp</a>` : ''}
+                    <button class="stamp-btn small ghost" onclick="window.__editCustomerReportModal('${r.id}')">✎ Edit</button>
+                    <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);" onclick="window.__deleteCustomerReport('${r.id}')">🗑</button>
+                  </div>
+                </div>
+              ` : ''}
             </div>
           `;
         }).join('')}
       </div>
     `}
+
     ` : ''}
   `;
 }
