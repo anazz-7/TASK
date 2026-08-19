@@ -276,15 +276,16 @@
   }
   .grid-cust-card {
     height: 100% !important;
-    min-height: 72px !important;
+    min-height: 64px !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: center !important;
     align-items: stretch !important;
-    padding: 12px 14px !important;
+    padding: 9px 12px !important;
     margin-bottom: 0 !important;
     box-sizing: border-box !important;
   }
+
 
   .compact-log-card h3 {
     font-size: 0.84rem !important;
@@ -12300,19 +12301,20 @@ function renderCustomerReportTab(body) {
           
           return `
             <div class="row-card grid-cust-card" style="${isVip ? 'border-left:4px solid var(--turmeric);background:var(--blue-soft);' : ''}">
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;width:100%;flex-wrap:nowrap;" onclick="window.__toggleExpandCustReport('${r.id}', event)">
-                <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1 1 auto;max-width:calc(100% - 130px);overflow:hidden;">
-                  <span class="collapse-arrow ${isExpanded?'open':''}" style="font-size:0.85rem;color:var(--ink-soft);flex-shrink:0;">▸</span>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;cursor:pointer;width:100%;flex-wrap:nowrap;" onclick="window.__toggleExpandCustReport('${r.id}', event)">
+                <div style="display:flex;align-items:center;gap:5px;min-width:0;flex:1 1 auto;max-width:calc(100% - 110px);overflow:hidden;">
+                  <span class="collapse-arrow ${isExpanded?'open':''}" style="font-size:0.78rem;color:var(--ink-soft);flex-shrink:0;">▸</span>
                   <div style="min-width:0;flex:1;overflow:hidden;">
-                    <b style="font-size:0.92rem;color:var(--ink);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;width:100%;">${esc(r.customer_name || 'UNNAMED PARTY')}</b>
-                    <div style="font-size:0.72rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;margin-top:2px;width:100%;">📍 ${esc(r.city || 'N/A')}${cleanPhone ? ' &bull; 📞 ' + esc(r.phone) : ''}</div>
+                    <b style="font-size:0.82rem;color:var(--ink);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;width:100%;">${esc(r.customer_name || 'UNNAMED PARTY')}</b>
+                    <div style="font-size:0.68rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;margin-top:1px;width:100%;">📍 ${esc(r.city || 'N/A')}${cleanPhone ? ' &bull; 📞 ' + esc(r.phone) : ''}</div>
                   </div>
                 </div>
-                <div style="display:flex;align-items:center;justify-content:flex-end;gap:5px;flex-shrink:0;margin-left:auto;white-space:nowrap;">
-                  <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.9rem;color:var(--turmeric-dark);">${maskSalesAmount(r.total_spent)}</span>
-                  <span class="stamp ${statusClass}" style="padding:2px 6px;font-size:0.68rem;border-radius:999px;white-space:nowrap;">${isVip ? '⭐ VIP' : r.segment || 'REGULAR'}</span>
+                <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;flex-shrink:0;margin-left:auto;white-space:nowrap;">
+                  <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.82rem;color:var(--turmeric-dark);">${maskSalesAmount(r.total_spent)}</span>
+                  <span class="stamp ${statusClass}" style="padding:2px 5px;font-size:0.62rem;border-radius:999px;white-space:nowrap;">${isVip ? '⭐ VIP' : r.segment || 'REGULAR'}</span>
                 </div>
               </div>
+
 
 
               ${isExpanded ? `
