@@ -10417,7 +10417,12 @@ function renderSettingsTab(body){
       
       <label style="display:flex;align-items:center;gap:10px;font-size:0.85rem;cursor:pointer;">
         <input type="checkbox" id="cfgMaskCust" ${cfg.maskCustomerDir ? 'checked' : ''} style="width:18px;height:18px;">
-        <span>🔒 <b>Mask Customer Directory for Staff &amp; Managers</b> (Only Owner sees unmasked mobile &amp; address, but entry access allowed for all)</span>
+        <span>🔒 <b>Mask Phone Numbers &amp; Address for Staff &amp; Managers</b> (All Customer Names are ALWAYS UNMASKED; phone &amp; address protected)</span>
+      </label>
+
+      <label style="display:flex;align-items:center;gap:10px;font-size:0.85rem;cursor:pointer;">
+        <input type="checkbox" id="cfgMaskSales" ${cfg.maskSalesDigits ? 'checked' : ''} style="width:18px;height:18px;">
+        <span>📉 <b>Mask Total Sales &amp; Higher Digits for Staff &amp; Managers</b> (Shows order of magnitude e.g. ₹48,*** while protecting exact revenue figures)</span>
       </label>
 
       <label style="display:flex;align-items:center;gap:10px;font-size:0.85rem;cursor:pointer;">
@@ -10466,10 +10471,11 @@ function renderSettingsTab(body){
   `;
   window.__saveCustomFeatures = () => {
     const newCfg = {
-      maskCustomerDir: document.getElementById('cfgMaskCust').checked,
-      allowManagerAccounts: document.getElementById('cfgManagerAcc').checked,
-      allowManagerSalary: document.getElementById('cfgManagerSalary').checked,
-      allowManagerReports: document.getElementById('cfgManagerReports').checked,
+      maskCustomerDir: document.getElementById('cfgMaskCust') ? document.getElementById('cfgMaskCust').checked : true,
+      maskSalesDigits: document.getElementById('cfgMaskSales') ? document.getElementById('cfgMaskSales').checked : true,
+      allowManagerAccounts: document.getElementById('cfgManagerAcc') ? document.getElementById('cfgManagerAcc').checked : false,
+      allowManagerSalary: document.getElementById('cfgManagerSalary') ? document.getElementById('cfgManagerSalary').checked : false,
+      allowManagerReports: document.getElementById('cfgManagerReports') ? document.getElementById('cfgManagerReports').checked : false,
       allowStaffLowStockDelete: true,
       allowStaffExpiryTracker: true
     };
@@ -10477,6 +10483,7 @@ function renderSettingsTab(body){
     window.showToast('⚙️ Custom feature settings saved!', 'success');
     renderShell();
   };
+
 
   window.__renameBusiness = async () => {
     const name = document.getElementById('mBizName').value.trim();
@@ -11033,6 +11040,7 @@ function getFeatureConfig() {
 
   const defaults = {
     maskCustomerDir: true,
+    maskSalesDigits: true,
     allowManagerAccounts: false,
     allowManagerSalary: false,
     allowManagerReports: false,
@@ -11054,6 +11062,9 @@ function saveFeatureConfig(cfg) {
 
 function maskCustData(text, type) {
   if (!text) return '';
+  // UNMASK ALL NAMES FOR ALL USERS AND ROLES
+  if (type === 'name') return String(text);
+
   const cfg = getFeatureConfig();
   if (isOwner() || !cfg.maskCustomerDir) return String(text);
 
@@ -11065,12 +11076,23 @@ function maskCustData(text, type) {
   if (type === 'address' || type === 'notes') {
     return '•••••••••••• (Protected)';
   }
-  if (type === 'name') {
-    const parts = String(text).trim().split(/\s+/);
-    return parts.map(p => p.length <= 1 ? p : (p[0] + '*'.repeat(p.length - 1))).join(' ');
-  }
   return '••••••';
 }
+
+function maskSalesAmount(val) {
+  const num = Number(val || 0);
+  const cfg = getFeatureConfig();
+  if (isOwner() || !cfg.maskSalesDigits) {
+    return '₹' + Math.round(num).toLocaleString('en-IN');
+  }
+  const numStr = Math.round(num).toString();
+  if (numStr.length <= 1) return '₹*';
+  const showLen = Math.min(2, Math.floor(numStr.length / 2));
+  const maskedStr = numStr.slice(0, showLen) + '*'.repeat(numStr.length - showLen);
+  const formatted = maskedStr.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return '₹' + formatted;
+}
+
 
 
 /* ================================================================
@@ -11295,7 +11317,7 @@ function renderCustomerReportTab(body) {
       </div>
       <div class="dash-kpi-card">
         <div class="dash-kpi-title">Total Ledger Sales</div>
-        <div class="dash-kpi-val" style="color:var(--turmeric-dark);">₹${totalSpent.toLocaleString('en-IN')}</div>
+        <div class="dash-kpi-val" style="color:var(--turmeric-dark);">${maskSalesAmount(totalSpent)}</div>
         <div class="dash-kpi-sub">Cumulative Business Volume</div>
       </div>
       <div class="dash-kpi-card">
@@ -11305,7 +11327,7 @@ function renderCustomerReportTab(body) {
       </div>
       <div class="dash-kpi-card">
         <div class="dash-kpi-title">Avg Spend / Customer</div>
-        <div class="dash-kpi-val" style="color:var(--ink);">₹${avgSpend.toLocaleString('en-IN')}</div>
+        <div class="dash-kpi-val" style="color:var(--ink);">${maskSalesAmount(avgSpend)}</div>
         <div class="dash-kpi-sub">Average Party Lifetime Value</div>
       </div>
     </div>
@@ -11345,13 +11367,14 @@ function renderCustomerReportTab(body) {
               <div style="display:flex;justify-content:space-between;align-items:center;background:var(--paper);padding:8px 10px;border-radius:6px;margin:6px 0 10px;">
                 <div>
                   <div style="font-size:0.68rem;color:var(--ink-soft);font-weight:700;">TOTAL SPENT:</div>
-                  <b style="font-size:1.1rem;color:var(--turmeric-dark);">₹${Number(r.total_spent || 0).toLocaleString('en-IN')}</b>
+                  <b style="font-size:1.1rem;color:var(--turmeric-dark);">${maskSalesAmount(r.total_spent)}</b>
                 </div>
                 <div style="text-align:right;">
                   <div style="font-size:0.68rem;color:var(--ink-soft);font-weight:700;">ORDERS:</div>
                   <b style="font-size:1.05rem;color:var(--ink);">${r.total_orders || 0} Orders</b>
                 </div>
               </div>
+
 
               <div style="font-size:0.72rem;color:var(--ink-soft);margin-bottom:8px;">
                 ${r.favorite_item ? `<div><b>PREFERRED ITEM:</b> ${esc(r.favorite_item)}</div>` : ''}
