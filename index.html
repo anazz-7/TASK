@@ -12266,11 +12266,67 @@ ${new Date().toLocaleString('en-IN')}`;
   const wMon = new Date(todayD2); wMon.setDate(todayD2.getDate() - ((todayD2.getDay()||7)-1));
   localStorage.setItem(`br_weekly_email_${session.businessId}`, localDateStr(wMon));
   setTimeout(() => renderTabBody(), 800);
-  window.showToast('\ud83d\udce7 Opening email with weekly report\u2026', 'success');
+  window.showToast('📧 Opening email with weekly report…', 'success');
 };
+
+/* ---------------- REPORTS TAB ---------------- */
+function renderReportsTab(body) {
+  const sales = cache.sales || [];
+  const acc = cache.dailyAccounts || [];
+  const bills = cache.vendorBills || [];
+
+  const totalSales = sales.reduce((sum, s) => sum + Number(s.order_value || 0), 0)
+    + acc.reduce((sum, a) => sum + Number(a.total_sales || 0), 0);
+
+  const totalExpenses = acc.reduce((sum, a) => sum + Number(a.expenses || 0), 0);
+  const totalVendorPaid = bills.filter(b => getBillStatus(b) === 'paid').reduce((sum, b) => sum + getBillAmount(b), 0);
+  const totalVendorUnpaid = bills.filter(b => getBillStatus(b) !== 'paid').reduce((sum, b) => sum + getBillBalanceAmount(b), 0);
+  const netProfit = totalSales - totalExpenses - totalVendorPaid;
+
+  body.innerHTML = `
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+      <div>
+        <h2 style="margin:0 0 4px;font-size:1.25rem;">📊 BUSINESS EXECUTIVE REPORTS</h2>
+        <p style="margin:0;color:var(--ink-soft);font-size:0.78rem;">Comprehensive financial analytics, sales trends, and business performance intelligence.</p>
+      </div>
+    </div>
+
+    <!-- Executive Stat KPI Cards -->
+    <div class="dash-kpi-grid" style="margin-bottom:20px;">
+      <div class="dash-kpi-card">
+        <div class="dash-kpi-title">Total Revenue</div>
+        <div class="dash-kpi-val" style="color:var(--leaf);">${maskSalesAmount(totalSales)}</div>
+        <div class="dash-kpi-sub">Cumulative Sales &amp; Accounts</div>
+      </div>
+      <div class="dash-kpi-card">
+        <div class="dash-kpi-title">Total Expenses</div>
+        <div class="dash-kpi-val" style="color:var(--brick);">${maskSalesAmount(totalExpenses)}</div>
+        <div class="dash-kpi-sub">Operating Costs &amp; Outflow</div>
+      </div>
+      <div class="dash-kpi-card">
+        <div class="dash-kpi-title">Estimated Net Profit</div>
+        <div class="dash-kpi-val" style="color:${netProfit>=0?'var(--leaf)':'var(--brick)'};">${maskSalesAmount(netProfit)}</div>
+        <div class="dash-kpi-sub">Sales minus Expenses &amp; Bills</div>
+      </div>
+      <div class="dash-kpi-card">
+        <div class="dash-kpi-title">Vendor Payables</div>
+        <div class="dash-kpi-val" style="color:var(--turmeric);">${maskSalesAmount(totalVendorUnpaid)}</div>
+        <div class="dash-kpi-sub">Unpaid Supplier Bills</div>
+      </div>
+    </div>
+
+    <!-- 1. Sales Trend Graph -->
+    ${buildSalesTrendChartHtml()}
+
+    <!-- 2. Weekly Summary Email Report Generator -->
+    ${buildWeeklyEmailReportHtml()}
+  `;
+}
 
 
 boot();
+
 
 </script>
 </body>
