@@ -1024,10 +1024,84 @@
     }
   }
 
+  /* ---------------- UI/UX FEATURE 8: GLASSMORTIC TRANSLUCENT TOASTS ---------------- */
+  .glass-toast {
+    width: 100%;
+    background: rgba(11, 19, 43, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+    border-radius: 12px;
+    color: #FFFFFF;
+    overflow: hidden;
+    position: relative;
+    animation: toastSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  .glass-toast.hide {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.95);
+  }
+  .glass-toast-success { border-left: 4px solid var(--leaf); }
+  .glass-toast-warning { border-left: 4px solid var(--amber-soft); }
+  .glass-toast-error { border-left: 4px solid var(--brick); }
+  .glass-toast-info { border-left: 4px solid #3B82F6; }
+
+  .glass-toast-timer {
+    height: 3px;
+    background: linear-gradient(90deg, #10B981, #3B82F6, #F59E0B);
+    width: 100%;
+    animation: toastTimer linear forwards;
+  }
+
+  @keyframes toastSlideIn {
+    from { opacity: 0; transform: translateY(-24px) scale(0.92); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes toastTimer {
+    from { width: 100%; }
+    to { width: 0%; }
+  }
+
+  /* ---------------- UI/UX FEATURE 4: ANIMATED PULSE GAUGES & CHART GLOW ---------------- */
+  .live-pulse-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--leaf);
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7);
+    animation: livePulse 1.8s infinite;
+    vertical-align: middle;
+    margin-right: 4px;
+  }
+  @keyframes livePulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(22, 163, 74, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+  }
+
+  .glow-chart-path {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    animation: chartPathDraw 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  }
+  @keyframes chartPathDraw {
+    to { stroke-dashoffset: 0; }
+  }
+
+  /* ---------------- UI/UX FEATURE 3: MOBILE TOUCH SWIPE GESTURES ---------------- */
+  .row-card {
+    touch-action: pan-y;
+    will-change: transform;
+  }
+
   /* ── Sales Trend Chart ───────────────────────────────────── */
   .trend-chart-wrap {
     background: var(--card);
     border: 1.5px solid var(--paper-line);
+
     border-radius: 12px;
     padding: 16px;
     margin-bottom: 16px;
@@ -2426,8 +2500,170 @@ function requestNotifications(){
   });
 }
 
+/* ---------------- FEATURE 5: CONFETTI PARTICLE FX ENGINE ---------------- */
+function triggerConfetti(options = {}) {
+  const count = options.count || 85;
+  let canvas = document.getElementById('confettiCanvas');
+  if (!canvas) {
+    canvas = document.createElement('canvas');
+    canvas.id = 'confettiCanvas';
+    canvas.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:99999;';
+    document.body.appendChild(canvas);
+  }
+
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const colors = ['#1E3A6E', '#10B981', '#F59E0B', '#3B82F6', '#EF4444', '#8B5CF6'];
+  const particles = [];
+
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x: canvas.width / 2 + (Math.random() - 0.5) * (canvas.width * 0.5),
+      y: canvas.height * 0.35 + (Math.random() - 0.5) * 80,
+      vx: (Math.random() - 0.5) * 14,
+      vy: (Math.random() - 0.7) * 18 - 4,
+      size: Math.random() * 8 + 5,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      rotation: Math.random() * 360,
+      rSpeed: (Math.random() - 0.5) * 12,
+      opacity: 1,
+      decay: Math.random() * 0.016 + 0.012
+    });
+  }
+
+  function update() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let active = false;
+
+    particles.forEach(p => {
+      if (p.opacity <= 0) return;
+      active = true;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.38; // gravity
+      p.vx *= 0.98;
+      p.rotation += p.rSpeed;
+      p.opacity -= p.decay;
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate((p.rotation * Math.PI) / 180);
+      ctx.globalAlpha = Math.max(0, p.opacity);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+      ctx.restore();
+    });
+
+    if (active) {
+      requestAnimationFrame(update);
+    } else {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+
+  update();
+}
+
+/* ---------------- FEATURE 8: GLASSMORTIC TRANSLUCENT TOAST ALERTS ---------------- */
+window.showToast = function(message, type = 'info', duration = 3200) {
+  let container = document.getElementById('glassToastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'glassToastContainer';
+    container.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:99999;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:92%;max-width:420px;';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  toast.className = `glass-toast glass-toast-${type}`;
+  const iconSymbol = type === 'success' ? '✅' : type === 'warning' ? '⚠️' : type === 'error' ? '❌' : 'ℹ️';
+
+  toast.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;">
+      <span style="font-size:1.1rem;flex-shrink:0;">${iconSymbol}</span>
+      <div style="flex:1;font-size:0.82rem;font-weight:700;line-height:1.3;color:#fff;">${message}</div>
+    </div>
+    <div class="glass-toast-timer" style="animation-duration:${duration}ms;"></div>
+  `;
+
+  container.appendChild(toast);
+
+  if (type === 'success') {
+    try { triggerConfetti({ count: 45 }); } catch(e){}
+  }
+
+  setTimeout(() => {
+    toast.classList.add('hide');
+    setTimeout(() => toast.remove(), 250);
+  }, duration);
+};
+
+/* ---------------- FEATURE 3: MOBILE TOUCH SWIPE GESTURES ENGINE ---------------- */
+function setupCardSwipeGestures() {
+  setTimeout(() => {
+    document.querySelectorAll('.row-card:not([data-swipe-init])').forEach(card => {
+      card.setAttribute('data-swipe-init', 'true');
+      let startX = 0;
+      let currentX = 0;
+      let isSwiping = false;
+
+      card.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        isSwiping = true;
+        card.style.transition = 'none';
+      }, { passive: true });
+
+      card.addEventListener('touchmove', (e) => {
+        if (!isSwiping) return;
+        currentX = e.touches[0].clientX - startX;
+        if (Math.abs(currentX) > 12) {
+          card.style.transform = `translateX(${currentX * 0.65}px)`;
+          if (currentX > 50) {
+            card.style.borderLeft = '5px solid var(--leaf)';
+          } else if (currentX < -50) {
+            card.style.borderRight = '5px solid var(--brick)';
+          } else {
+            card.style.borderLeft = '';
+            card.style.borderRight = '';
+          }
+        }
+      }, { passive: true });
+
+      card.addEventListener('touchend', () => {
+        if (!isSwiping) return;
+        isSwiping = false;
+        card.style.transition = 'transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), border 0.25s ease';
+
+        if (currentX > 75) {
+          card.style.transform = 'translateX(0)';
+          const actBtn = card.querySelector('.stamp-btn:not(.danger), button:not(.danger)');
+          if (actBtn) {
+            if (navigator.vibrate) try{ navigator.vibrate(20); }catch(e){}
+            actBtn.click();
+          }
+        } else if (currentX < -75) {
+          card.style.transform = 'translateX(0)';
+          const delBtn = card.querySelector('button.danger, .action-dropdown-holder button');
+          if (delBtn) {
+            if (navigator.vibrate) try{ navigator.vibrate([15, 30, 15]); }catch(e){}
+            delBtn.click();
+          }
+        } else {
+          card.style.transform = 'translateX(0)';
+        }
+        card.style.borderLeft = '';
+        card.style.borderRight = '';
+        currentX = 0;
+      });
+    });
+  }, 100);
+}
+
 /* ---------------- shell ---------------- */
 const ICONS = {
+
   dashboard: '<path d="M3 13h7V3H3v10Zm0 8h7v-6H3v6Zm11 0h7V11h-7v10Zm0-18v6h7V3h-7Z"/>',
   tasks: '<path d="M9 11l2 2 4-4" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="3" y="3" width="18" height="18" rx="3" fill="none" stroke-width="2"/>',
   daily: '<path d="M17 2v4M7 2v4M3 9h18" stroke-width="2" stroke-linecap="round" fill="none"/><rect x="3" y="5" width="18" height="16" rx="2" fill="none" stroke-width="2"/><path d="M8 14l2 2 4-4" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
@@ -2677,30 +2913,32 @@ function renderShell(){
 
 function renderTabBody(){
   const body = document.getElementById('tabBody');
-  if(activeTab==='dashboard') return renderDashboardTab(body);
-  if(activeTab==='tasks') return renderTasksTab(body);
-  if(activeTab==='daily') return renderDailyTab(body);
-  if(activeTab==='weekly') return renderWeeklyTab(body);
-  if(activeTab==='attendance') return renderAttendanceTab(body);
-  if(activeTab==='sales') return renderSalesTab(body);
-  if(activeTab==='label') return renderLabelTab(body);
-  if(activeTab==='package') return renderPackageTab(body);
-  if(activeTab==='stockkeeper') return renderStockkeeperTab(body);
-  const cfg = getFeatureConfig();
-  if(activeTab==='accounts' && (isOwner() || (isManager() && cfg.allowManagerAccounts))) return renderAccountsTab(body);
-  if(activeTab==='customer_report') return renderCustomerReportTab(body);
-  if(activeTab==='vendors') return renderVendorBillsTab(body);
-  if(activeTab==='low_stock') return renderLowStockTab(body);
-  if(activeTab==='audit' && isManagerPlus()) return renderAuditTab(body);
-  if(activeTab==='salary' && (isOwner() || (isManager() && cfg.allowManagerSalary))) return renderSalaryTab(body);
-  if(activeTab==='salesman') return renderSalesmanTab(body);
-  if(activeTab==='points') return renderPointsTab(body);
-  if(activeTab==='staff') return renderStaffTab(body);
-  if(activeTab==='reports' && (isOwner() || (isManager() && cfg.allowManagerReports))) return renderReportsTab(body);
-  if(activeTab==='settings') return renderSettingsTab(body);
+  if(!body) return;
+  if(activeTab==='dashboard') renderDashboardTab(body);
+  else if(activeTab==='tasks') renderTasksTab(body);
+  else if(activeTab==='daily') renderDailyTab(body);
+  else if(activeTab==='weekly') renderWeeklyTab(body);
+  else if(activeTab==='attendance') renderAttendanceTab(body);
+  else if(activeTab==='sales') renderSalesTab(body);
+  else if(activeTab==='label') renderLabelTab(body);
+  else if(activeTab==='package') renderPackageTab(body);
+  else if(activeTab==='stockkeeper') renderStockkeeperTab(body);
+  else if(activeTab==='accounts' && (isOwner() || (isManager() && getFeatureConfig().allowManagerAccounts))) renderAccountsTab(body);
+  else if(activeTab==='customer_report') renderCustomerReportTab(body);
+  else if(activeTab==='vendors') renderVendorBillsTab(body);
+  else if(activeTab==='low_stock') renderLowStockTab(body);
+  else if(activeTab==='audit' && isManagerPlus()) renderAuditTab(body);
+  else if(activeTab==='salary' && (isOwner() || (isManager() && getFeatureConfig().allowManagerSalary))) renderSalaryTab(body);
+  else if(activeTab==='salesman') renderSalesmanTab(body);
+  else if(activeTab==='points') renderPointsTab(body);
+  else if(activeTab==='staff') renderStaffTab(body);
+  else if(activeTab==='reports' && (isOwner() || (isManager() && getFeatureConfig().allowManagerReports))) renderReportsTab(body);
+  else if(activeTab==='settings') renderSettingsTab(body);
+  else if(activeTab==='account') renderAccountTab(body);
 
-  if(activeTab==='account') return renderAccountTab(body);
+  setupCardSwipeGestures();
 }
+
 
 /* ---------------- DASHBOARD ---------------- */
 let dashSalesMode = 'weekly';
