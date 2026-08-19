@@ -1047,7 +1047,7 @@
   }
 
 
-  /* Mobile Responsive Optimization: Sleek 2-Column Compact Grid (2 cards per row) */
+  /* Mobile Responsive Optimization: Full-Width Clean Cards (1 card per row) */
   @media (max-width: 640px) {
     body, html {
       max-width: 100vw !important;
@@ -1063,17 +1063,16 @@
       padding: 12px 10px 10px !important;
     }
     .cards-grid-multi {
-      grid-template-columns: repeat(2, 1fr) !important;
+      grid-template-columns: 1fr !important;
       gap: 8px !important;
       width: 100% !important;
     }
-    /* Detailed Account History ledger cards use full width on mobile for clean unclipped buttons & numbers */
     #accHistoryList, .acc-history-grid {
       grid-template-columns: 1fr !important;
     }
     .grid-cust-card, .cards-grid-multi > .grid-cust-card {
       width: 100% !important;
-      padding: 8px 8px !important;
+      padding: 10px 12px !important;
       min-height: 56px !important;
       box-sizing: border-box !important;
       border-radius: 8px !important;
@@ -1084,6 +1083,7 @@
       gap: 8px !important;
     }
   }
+
 
 
 
@@ -12301,18 +12301,19 @@ function renderCustomerReportTab(body) {
           return `
             <div class="row-card grid-cust-card" style="${isVip ? 'border-left:4px solid var(--turmeric);background:var(--blue-soft);' : ''}">
               <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;cursor:pointer;width:100%;flex-wrap:nowrap;" onclick="window.__toggleExpandCustReport('${r.id}', event)">
-                <div style="display:flex;align-items:center;gap:4px;min-width:0;flex:1 1 auto;max-width:calc(100% - 68px);overflow:hidden;">
+                <div style="display:flex;align-items:center;gap:4px;min-width:0;flex:1 1 auto;max-width:calc(100% - 90px);overflow:hidden;">
                   <span class="collapse-arrow ${isExpanded?'open':''}" style="font-size:0.75rem;color:var(--ink-soft);flex-shrink:0;">▸</span>
                   <div style="min-width:0;flex:1;overflow:hidden;">
-                    <b style="font-size:0.8rem;color:var(--ink);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;width:100%;">${esc(r.customer_name || 'UNNAMED PARTY')}</b>
-                    <div style="font-size:0.66rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;margin-top:1px;width:100%;">📍 ${esc(r.city || 'N/A')}${cleanPhone ? ' &bull; 📞 ' + esc(r.phone) : ''}</div>
+                    <b style="font-size:0.82rem;color:var(--ink);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;width:100%;">${esc(r.customer_name || 'UNNAMED PARTY')}</b>
+                    <div style="font-size:0.68rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;margin-top:1px;width:100%;">📍 ${esc(r.city || 'N/A')}${cleanPhone ? ' &bull; 📞 ' + esc(r.phone) : ''}</div>
                   </div>
                 </div>
                 <div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:2px;flex-shrink:0;margin-left:auto;white-space:nowrap;">
-                  <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.8rem;color:var(--turmeric-dark);line-height:1.1;">${maskSalesAmount(r.total_spent)}</span>
+                  <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.82rem;color:var(--turmeric-dark);line-height:1.1;">${maskSalesAmount(r.total_spent)}</span>
                   <span class="stamp ${statusClass}" style="padding:1px 5px;font-size:0.58rem;border-radius:999px;white-space:nowrap;line-height:1.1;">${isVip ? '⭐ VIP' : r.segment || 'REGULAR'}</span>
                 </div>
               </div>
+
 
 
 
