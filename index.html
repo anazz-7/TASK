@@ -8634,9 +8634,10 @@ function renderLowStockTab(body) {
     }).join('') : `<div class="empty">No low stock items found in this view. Staff can tap "+ Report Low Stock" to report items running low!</div>`}
 
     <div id="lowStockModalHolder"></div>
-    ` : ''}
+    ` : renderExpiryTrackerHtml()}
   `;
 }
+
 
 window.__openLowStockModal = function(id) {
   const item = id ? (cache.lowStocks || []).find(x => x.id === id) : null;
@@ -11429,8 +11430,7 @@ function renderExpiryTrackerHtml() {
 window.__openExpiryModal = function(id) {
   const items = getExpiryItems();
   const item = id ? items.find(x => x.id === id) : null;
-  let holder = document.getElementById('expiryModalHolder');
-  if (!holder) { holder = document.createElement('div'); holder.id='expiryModalHolder'; document.body.appendChild(holder); }
+  const holder = getModalHolder('taskModalHolder');
   holder.innerHTML = `
   <div class="overlay show"><div class="modal">
     <h2>${item ? '✎ Edit Expiry Item' : '⏰ Add Expiry Item'}</h2>
@@ -11449,7 +11449,7 @@ window.__openExpiryModal = function(id) {
     <label>Notes</label>
     <textarea id="mExpNotes" placeholder="Optional notes...">${item ? esc(item.notes||'') : ''}</textarea>
     <div class="modal-actions">
-      <button class="stamp-btn ghost" onclick="document.getElementById('expiryModalHolder').innerHTML=''">Cancel</button>
+      <button class="stamp-btn ghost" onclick="getModalHolder('taskModalHolder').innerHTML=''">Cancel</button>
       <button class="stamp-btn" style="background:var(--turmeric);color:#fff;" onclick="window.__saveExpiryItem('${id||''}')">Save Item</button>
     </div>
   </div></div>`;
@@ -11478,11 +11478,11 @@ window.__saveExpiryItem = function(id) {
     items.push(payload);
   }
   saveExpiryItems(items);
-  const h = document.getElementById('expiryModalHolder');
-  if (h) h.innerHTML = '';
+  getModalHolder('taskModalHolder').innerHTML = '';
   window.showToast('⏰ Expiry item saved!', 'success');
   renderTabBody();
 };
+
 
 window.__deleteExpiryItem = function(id) {
   if (!confirm('Delete this expiry item?')) return;
