@@ -12278,23 +12278,23 @@ function renderCustomerReportTab(body) {
           
           return `
             <div class="row-card compact-log-card" style="flex-direction:column;align-items:stretch;padding:10px 12px;margin-bottom:8px;${isVip ? 'border-left:4px solid var(--turmeric);background:var(--blue-soft);' : ''}">
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;" onclick="window.__toggleExpandCustReport('${r.id}', event)">
-                <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1;">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;flex-wrap:wrap;" onclick="window.__toggleExpandCustReport('${r.id}', event)">
+                <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 180px;">
                   <span class="collapse-arrow ${isExpanded?'open':''}" style="font-size:0.85rem;color:var(--ink-soft);flex-shrink:0;">▸</span>
-                  <div style="min-width:0;">
+                  <div style="min-width:0;flex:1;">
                     <b style="font-size:0.9rem;color:var(--ink);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(r.customer_name || 'UNNAMED PARTY')}</b>
-                    <div style="font-size:0.72rem;color:var(--ink-soft);">📍 ${esc(r.city || 'N/A')} ${r.phone ? ' &bull; 📞 ' + esc(r.phone) : ''}</div>
+                    <div style="font-size:0.72rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📍 ${esc(r.city || 'N/A')} ${r.phone ? ' &bull; 📞 ' + esc(r.phone) : ''}</div>
                   </div>
                 </div>
-                <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-                  <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.95rem;color:var(--turmeric-dark);">${maskSalesAmount(r.total_spent)}</span>
-                  <span class="stamp ${statusClass}" style="padding:2px 6px;font-size:0.68rem;">${isVip ? '⭐ VIP' : r.segment || 'REGULAR'}</span>
+                <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:auto;">
+                  <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.92rem;color:var(--turmeric-dark);">${maskSalesAmount(r.total_spent)}</span>
+                  <span class="stamp ${statusClass}" style="padding:2px 6px;font-size:0.68rem;white-space:nowrap;">${isVip ? '⭐ VIP' : r.segment || 'REGULAR'}</span>
                 </div>
               </div>
 
               ${isExpanded ? `
                 <div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--paper-line);font-size:0.75rem;color:var(--ink-soft);">
-                  <div style="display:flex;justify-content:space-between;background:var(--paper);padding:6px 10px;border-radius:6px;margin-bottom:8px;font-size:0.75rem;">
+                  <div style="display:flex;justify-content:space-between;background:var(--paper);padding:6px 10px;border-radius:6px;margin-bottom:8px;font-size:0.75rem;flex-wrap:wrap;gap:4px;">
                     <div>Total Orders: <b style="color:var(--ink);">${r.total_orders || 0} Orders</b></div>
                     ${r.last_order_date ? `<div>Last Order: <b>${r.last_order_date}</b></div>` : ''}
                   </div>
@@ -12302,14 +12302,15 @@ function renderCustomerReportTab(body) {
                   ${r.remarks ? `<div style="margin-bottom:8px;color:var(--ink);"><b>Notes:</b> ${esc(r.remarks)}</div>` : ''}
 
                   <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
-                    ${cleanPhone ? `<a href="tel:${cleanPhone}" class="stamp-btn small ghost" style="flex:1;text-decoration:none;">📞 Call</a>` : ''}
-                    ${cleanPhone ? `<a href="https://wa.me/${cleanPhone.length===10?'91'+cleanPhone:cleanPhone}?text=${waMessage}" target="_blank" class="stamp-btn small" style="background:#25D366;color:#fff;border-color:#25D366;flex:1;text-decoration:none;">💬 WhatsApp</a>` : ''}
-                    <button class="stamp-btn small ghost" onclick="window.__editCustomerReportModal('${r.id}')">✎ Edit</button>
-                    <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);" onclick="window.__deleteCustomerReport('${r.id}')">🗑</button>
+                    ${cleanPhone ? `<a href="tel:${cleanPhone}" class="stamp-btn small ghost" style="flex:1 1 70px;text-decoration:none;text-align:center;">📞 Call</a>` : ''}
+                    ${cleanPhone ? `<a href="https://wa.me/${cleanPhone.length===10?'91'+cleanPhone:cleanPhone}?text=${waMessage}" target="_blank" class="stamp-btn small" style="background:#25D366;color:#fff;border-color:#25D366;flex:1 1 100px;text-decoration:none;text-align:center;">💬 WhatsApp</a>` : ''}
+                    <button class="stamp-btn small ghost" style="flex:1 1 60px;" onclick="window.__editCustomerReportModal('${r.id}')">✎ Edit</button>
+                    <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);flex:1 1 50px;" onclick="window.__deleteCustomerReport('${r.id}')">🗑</button>
                   </div>
                 </div>
               ` : ''}
             </div>
+
           `;
         }).join('')}
       </div>
