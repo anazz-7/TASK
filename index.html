@@ -5021,6 +5021,7 @@ window.__openLabel = () => {
   const holder = getModalHolder('labelModalHolder');
   const staffOptions = isManagerPlus() ? cache.staff : cache.staff.filter(s=>s.id===session.staffId);
   labelItemRows = [{item:'', qty:''}];
+
   const renderModal = () => {
     holder.innerHTML = `
     <div class="overlay show"><div class="modal">
@@ -5029,24 +5030,43 @@ window.__openLabel = () => {
       <select id="mLabelStaff">${staffOptions.map(s=>`<option value="${s.id}" ${s.id===session.staffId?'selected':''}>${esc(s.name)}</option>`).join('')}</select>
       <label>Date</label>
       <input type="date" id="mLabelDate" value="${todayStr()}">
+      
       <div id="labelItemRowsWrap" style="margin-top:10px;">${renderLabelItemRows()}</div>
-      <div class="modal-actions"><button class="stamp-btn ghost small" style="flex:none;" onclick="window.__addLabelRow()">+ Add another item</button></div>
+      <div class="modal-actions" style="margin-top:6px;">
+        <button class="stamp-btn ghost small" style="flex:none;" onclick="window.__addLabelRow()">+ Add another item row</button>
+      </div>
+
       <label>Batch Code / Batch Number (Optional)</label>
       <input id="mLabelBatchCode" placeholder="e.g. BATCH-2026-08A, B-1092" style="font-family:'Roboto Mono',monospace;font-weight:700;">
       <label>Notes (optional)</label>
       <textarea id="mLabelNotes" placeholder="e.g. jar size, expiry details"></textarea>
-      <div class="modal-actions">
-        <button class="stamp-btn ghost" onclick="window.__closeLabelModal()">Cancel</button>
-        <button class="stamp-btn" onclick="window.__saveLabel()">Save all</button>
+
+      <div class="modal-actions" style="margin-top:20px;flex-wrap:wrap;gap:8px;">
+        <button class="stamp-btn ghost" style="flex:1;" onclick="window.__closeLabelModal()">Cancel</button>
+        <button class="stamp-btn ghost" style="flex:1.2;background:var(--blue-soft);color:var(--blue);border-color:var(--blue);" onclick="window.__saveLabel(true)">➕ Save &amp; Add More</button>
+        <button class="stamp-btn" style="flex:1.2;" onclick="window.__saveLabel(false)">✓ Save &amp; Done</button>
       </div>
     </div></div>`;
   };
   renderModal();
+
   window.__updateLabelRow = (i, field, val) => { labelItemRows[i][field] = val; };
-  window.__addLabelRow = () => { labelItemRows.push({item:'', qty:''}); renderModal(); };
-  window.__removeLabelRow = (i) => { labelItemRows.splice(i,1); renderModal(); };
+
+  window.__addLabelRow = () => {
+    labelItemRows.push({item:'', qty:''});
+    const wrap = document.getElementById('labelItemRowsWrap');
+    if (wrap) wrap.innerHTML = renderLabelItemRows();
+  };
+
+  window.__removeLabelRow = (i) => {
+    labelItemRows.splice(i,1);
+    const wrap = document.getElementById('labelItemRowsWrap');
+    if (wrap) wrap.innerHTML = renderLabelItemRows();
+  };
+
   window.__closeLabelModal = () => { holder.innerHTML=''; };
-  window.__saveLabel = async () => {
+
+  window.__saveLabel = async (keepOpen = false) => {
     const staffId = document.getElementById('mLabelStaff').value;
     const date = document.getElementById('mLabelDate').value || todayStr();
     const batch_code = document.getElementById('mLabelBatchCode') ? document.getElementById('mLabelBatchCode').value.trim() : '';
@@ -5077,10 +5097,21 @@ window.__openLabel = () => {
     cache.labels = [...records, ...(cache.labels || [])];
     try { localStorage.setItem('br_labels_' + session.businessId, JSON.stringify(cache.labels)); } catch(e){}
 
-    // 2. Immediately close modal & show success toast (NO crash/exit!)
-    holder.innerHTML = '';
-    window.showToast('✅ Labeling logged successfully!', 'success');
-    renderTabBody();
+    if (keepOpen) {
+      // Keep creation modal open for continuous logging
+      labelItemRows = [{item:'', qty:''}];
+      const wrap = document.getElementById('labelItemRowsWrap');
+      if (wrap) wrap.innerHTML = renderLabelItemRows();
+      if (document.getElementById('mLabelBatchCode')) document.getElementById('mLabelBatchCode').value = '';
+      if (document.getElementById('mLabelNotes')) document.getElementById('mLabelNotes').value = '';
+      window.showToast('✅ Saved! Log another item.', 'success');
+      renderTabBody();
+    } else {
+      // Close modal and return to log history page
+      holder.innerHTML = '';
+      window.showToast('✅ Labeling logged successfully!', 'success');
+      renderTabBody();
+    }
 
     // 3. Safe background cloud sync
     if (navigator.onLine && typeof supabase !== 'undefined' && session.businessId) {
@@ -5100,6 +5131,7 @@ window.__openLabel = () => {
     }
   };
 };
+
 
 
 /* ---------------- PACKAGE (same pattern as Label) ---------------- */
@@ -5256,6 +5288,7 @@ window.__openPackage = () => {
   const holder = getModalHolder('packageModalHolder');
   const staffOptions = isManagerPlus() ? cache.staff : cache.staff.filter(s=>s.id===session.staffId);
   packageItemRows = [{item:'', qty:''}];
+
   const renderModal = () => {
     holder.innerHTML = `
     <div class="overlay show"><div class="modal">
@@ -5264,24 +5297,43 @@ window.__openPackage = () => {
       <select id="mPackageStaff">${staffOptions.map(s=>`<option value="${s.id}" ${s.id===session.staffId?'selected':''}>${esc(s.name)}</option>`).join('')}</select>
       <label>Date</label>
       <input type="date" id="mPackageDate" value="${todayStr()}">
+      
       <div id="packageItemRowsWrap" style="margin-top:10px;">${renderPackageItemRows()}</div>
-      <div class="modal-actions"><button class="stamp-btn ghost small" style="flex:none;" onclick="window.__addPackageRow()">+ Add another item</button></div>
+      <div class="modal-actions" style="margin-top:6px;">
+        <button class="stamp-btn ghost small" style="flex:none;" onclick="window.__addPackageRow()">+ Add another item row</button>
+      </div>
+
       <label>Batch Code / Batch Number (Optional)</label>
       <input id="mPackageBatchCode" placeholder="e.g. BATCH-2026-08A, B-1092" style="font-family:'Roboto Mono',monospace;font-weight:700;">
       <label>Notes (optional)</label>
       <textarea id="mPackageNotes" placeholder="e.g. carton size, expiry details"></textarea>
-      <div class="modal-actions">
-        <button class="stamp-btn ghost" onclick="window.__closePackageModal()">Cancel</button>
-        <button class="stamp-btn" onclick="window.__savePackage()">Save all</button>
+
+      <div class="modal-actions" style="margin-top:20px;flex-wrap:wrap;gap:8px;">
+        <button class="stamp-btn ghost" style="flex:1;" onclick="window.__closePackageModal()">Cancel</button>
+        <button class="stamp-btn ghost" style="flex:1.2;background:var(--blue-soft);color:var(--blue);border-color:var(--blue);" onclick="window.__savePackage(true)">➕ Save &amp; Add More</button>
+        <button class="stamp-btn" style="flex:1.2;" onclick="window.__savePackage(false)">✓ Save &amp; Done</button>
       </div>
     </div></div>`;
   };
   renderModal();
+
   window.__updatePackageRow = (i, field, val) => { packageItemRows[i][field] = val; };
-  window.__addPackageRow = () => { packageItemRows.push({item:'', qty:''}); renderModal(); };
-  window.__removePackageRow = (i) => { packageItemRows.splice(i,1); renderModal(); };
+
+  window.__addPackageRow = () => {
+    packageItemRows.push({item:'', qty:''});
+    const wrap = document.getElementById('packageItemRowsWrap');
+    if (wrap) wrap.innerHTML = renderPackageItemRows();
+  };
+
+  window.__removePackageRow = (i) => {
+    packageItemRows.splice(i,1);
+    const wrap = document.getElementById('packageItemRowsWrap');
+    if (wrap) wrap.innerHTML = renderPackageItemRows();
+  };
+
   window.__closePackageModal = () => { holder.innerHTML=''; };
-  window.__savePackage = async () => {
+
+  window.__savePackage = async (keepOpen = false) => {
     const staffId = document.getElementById('mPackageStaff').value;
     const date = document.getElementById('mPackageDate').value || todayStr();
     const batch_code = document.getElementById('mPackageBatchCode') ? document.getElementById('mPackageBatchCode').value.trim() : '';
@@ -5312,10 +5364,21 @@ window.__openPackage = () => {
     cache.packages = [...records, ...(cache.packages || [])];
     try { localStorage.setItem('br_packages_' + session.businessId, JSON.stringify(cache.packages)); } catch(e){}
 
-    // 2. Immediately close modal & show success toast (NO crash/exit!)
-    holder.innerHTML = '';
-    window.showToast('✅ Packaging logged successfully!', 'success');
-    renderTabBody();
+    if (keepOpen) {
+      // Keep creation modal open for continuous logging
+      packageItemRows = [{item:'', qty:''}];
+      const wrap = document.getElementById('packageItemRowsWrap');
+      if (wrap) wrap.innerHTML = renderPackageItemRows();
+      if (document.getElementById('mPackageBatchCode')) document.getElementById('mPackageBatchCode').value = '';
+      if (document.getElementById('mPackageNotes')) document.getElementById('mPackageNotes').value = '';
+      window.showToast('✅ Saved! Log another item.', 'success');
+      renderTabBody();
+    } else {
+      // Close modal and return to log history page
+      holder.innerHTML = '';
+      window.showToast('✅ Packaging logged successfully!', 'success');
+      renderTabBody();
+    }
 
     // 3. Safe background cloud sync
     if (navigator.onLine && typeof supabase !== 'undefined' && session.businessId) {
@@ -5335,6 +5398,7 @@ window.__openPackage = () => {
     }
   };
 };
+
 
 
 /* ---------------- POINTS (incentive tracking) ---------------- */
