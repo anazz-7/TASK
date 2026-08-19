@@ -1022,7 +1022,17 @@
     grid-template-columns: 1fr;
     gap: 12px;
     width: 100%;
+    align-items: stretch;
   }
+
+  .cards-grid-multi > .row-card {
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
 
   /* Mobile Responsive Optimization: Full-Width Wider Ledger & Party Cards */
   @media (max-width: 640px) {
@@ -12277,23 +12287,23 @@ function renderCustomerReportTab(body) {
           const waMessage = encodeURIComponent(`Hi ${r.customer_name || 'Valued Customer'}, thank you for doing business with ${session.businessName || 'B-INDUSTRIES'}. We appreciate your continued partnership!`);
           
           return `
-            <div class="row-card compact-log-card" style="flex-direction:column;align-items:stretch;padding:10px 12px;margin-bottom:8px;${isVip ? 'border-left:4px solid var(--turmeric);background:var(--blue-soft);' : ''}">
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;flex-wrap:wrap;" onclick="window.__toggleExpandCustReport('${r.id}', event)">
-                <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 180px;">
+            <div class="row-card compact-log-card" style="flex-direction:column;align-items:stretch;justify-content:center;padding:12px 14px;margin-bottom:0;min-height:76px;height:100%;box-sizing:border-box;${isVip ? 'border-left:4px solid var(--turmeric);background:var(--blue-soft);' : ''}">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;width:100%;" onclick="window.__toggleExpandCustReport('${r.id}', event)">
+                <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1;">
                   <span class="collapse-arrow ${isExpanded?'open':''}" style="font-size:0.85rem;color:var(--ink-soft);flex-shrink:0;">▸</span>
                   <div style="min-width:0;flex:1;">
-                    <b style="font-size:0.9rem;color:var(--ink);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(r.customer_name || 'UNNAMED PARTY')}</b>
-                    <div style="font-size:0.72rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📍 ${esc(r.city || 'N/A')} ${r.phone ? ' &bull; 📞 ' + esc(r.phone) : ''}</div>
+                    <b style="font-size:0.92rem;color:var(--ink);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;">${esc(r.customer_name || 'UNNAMED PARTY')}</b>
+                    <div style="font-size:0.72rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;margin-top:2px;">📍 ${esc(r.city || 'N/A')}${cleanPhone ? ' &bull; 📞 ' + esc(r.phone) : ''}</div>
                   </div>
                 </div>
-                <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:auto;">
-                  <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.92rem;color:var(--turmeric-dark);">${maskSalesAmount(r.total_spent)}</span>
-                  <span class="stamp ${statusClass}" style="padding:2px 6px;font-size:0.68rem;white-space:nowrap;">${isVip ? '⭐ VIP' : r.segment || 'REGULAR'}</span>
+                <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:auto;white-space:nowrap;">
+                  <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.95rem;color:var(--turmeric-dark);">${maskSalesAmount(r.total_spent)}</span>
+                  <span class="stamp ${statusClass}" style="padding:3px 8px;font-size:0.68rem;border-radius:999px;white-space:nowrap;">${isVip ? '⭐ VIP' : r.segment || 'REGULAR'}</span>
                 </div>
               </div>
 
               ${isExpanded ? `
-                <div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--paper-line);font-size:0.75rem;color:var(--ink-soft);">
+                <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--paper-line);font-size:0.75rem;color:var(--ink-soft);">
                   <div style="display:flex;justify-content:space-between;background:var(--paper);padding:6px 10px;border-radius:6px;margin-bottom:8px;font-size:0.75rem;flex-wrap:wrap;gap:4px;">
                     <div>Total Orders: <b style="color:var(--ink);">${r.total_orders || 0} Orders</b></div>
                     ${r.last_order_date ? `<div>Last Order: <b>${r.last_order_date}</b></div>` : ''}
@@ -12310,6 +12320,7 @@ function renderCustomerReportTab(body) {
                 </div>
               ` : ''}
             </div>
+
 
           `;
         }).join('')}
