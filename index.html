@@ -1024,12 +1024,39 @@
     width: 100%;
   }
 
+  /* Mobile Responsive Optimization: Full-Width Wider Ledger & Party Cards */
+  @media (max-width: 640px) {
+    .wrap {
+      padding: 0 8px 100px !important;
+    }
+    header.top {
+      padding: 12px 10px 10px !important;
+    }
+    .cards-grid-multi {
+      grid-template-columns: 1fr !important;
+      gap: 8px !important;
+      width: 100% !important;
+    }
+    .row-card, .compact-log-card, .cards-grid-multi > .row-card {
+      width: 100% !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      padding: 12px 14px !important;
+      box-sizing: border-box !important;
+    }
+    .dash-kpi-grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 8px !important;
+    }
+  }
+
   @media (min-width: 640px) {
     .cards-grid-multi {
       grid-template-columns: repeat(2, 1fr);
       gap: 12px;
     }
   }
+
 
   @media (min-width: 900px) {
     .cards-grid-multi {
@@ -12021,7 +12048,8 @@ function renderPaymentReportHtml(reports) {
       <button class="stamp-btn small" onclick="window.__openAddCustomerReportModal()">+ Record Payment Entry</button>
     </div>
 
-    <!-- Payment Overview KPI Grid -->
+    ${isOwner() ? `
+    <!-- Payment Overview KPI Grid (Owner Only) -->
     <div class="dash-kpi-grid" style="margin-bottom:20px;">
       <div class="dash-kpi-card">
         <div class="dash-kpi-title">Total Business Volume</div>
@@ -12044,6 +12072,8 @@ function renderPaymentReportHtml(reports) {
         <div class="dash-kpi-sub">Settlement Ratio</div>
       </div>
     </div>
+    ` : ''}
+
 
     <div class="section-label">Party Payment Records (${allReports.length})</div>
 
@@ -12142,9 +12172,11 @@ function renderCustomerReportTab(body) {
         <p style="margin:0;color:var(--ink-soft);font-size:0.78rem;">Import ChatGPT ledger JSON, analyze party purchase behavior, track order volume, and engage customers.</p>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <button class="stamp-btn small ghost" onclick="window.__toggleCustKpiOverview()">
-          ${window.isCustKpiCollapsed ? '📊 Show KPI Overview' : '📊 Collapse KPI Overview'}
-        </button>
+        ${isOwner() ? `
+          <button class="stamp-btn small ghost" onclick="window.__toggleCustKpiOverview()">
+            ${window.isCustKpiCollapsed ? '📊 Show KPI Overview' : '📊 Collapse KPI Overview'}
+          </button>
+        ` : ''}
         <button class="stamp-btn" onclick="window.__openImportCustomerJsonModal()">📥 Import JSON</button>
         <div style="position:relative;display:inline-block;">
           <button class="stamp-btn ghost" onclick="window.__toggleCustActionsMoreMenu(event)">••• Actions ▾</button>
@@ -12157,8 +12189,8 @@ function renderCustomerReportTab(body) {
     </div>
 
 
-    ${!window.isCustKpiCollapsed ? `
-    <!-- Overview Stat KPI Cards -->
+    ${isOwner() && !window.isCustKpiCollapsed ? `
+    <!-- Overview Stat KPI Cards (Owner Only) -->
     <div class="dash-kpi-grid" style="margin-bottom:20px;">
       <div class="dash-kpi-card">
         <div class="dash-kpi-title">Total Customers</div>
@@ -12182,6 +12214,7 @@ function renderCustomerReportTab(body) {
       </div>
     </div>
     ` : ''}
+
 
     <!-- Search & Filter Bar -->
     <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
