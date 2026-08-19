@@ -11541,23 +11541,52 @@ function maskSalesAmount(val) {
    Stores: name, mobile, address, notes — pure localStorage + Cloud Sync
    ================================================================ */
 let customerReportSubTab = 'directory'; // 'directory' | 'report'
-let expandedCustReportIds = new Set();
-let isCustKpiCollapsed = false;
+window.expandedCustReportIds = new Set();
+window.isCustKpiCollapsed = false;
 
-window.__toggleExpandCustReport = function(id, e) {
-  if (e) e.stopPropagation();
-  if (expandedCustReportIds.has(id)) expandedCustReportIds.delete(id);
-  else expandedCustReportIds.add(id);
+window.__toggleCustKpiOverview = function() {
+  window.isCustKpiCollapsed = !window.isCustKpiCollapsed;
   renderTabBody();
 };
 
-window.__toggleExpandAllCustReport = function(filteredIds) {
-  if (!Array.isArray(filteredIds) || !filteredIds.length) return;
-  const allExpanded = filteredIds.every(id => expandedCustReportIds.has(id));
-  if (allExpanded) {
-    filteredIds.forEach(id => expandedCustReportIds.delete(id));
+window.__toggleExpandCustReport = function(id, e) {
+  if (e && e.target && (e.target.tagName === 'A' || e.target.tagName === 'BUTTON' || e.target.closest('a') || e.target.closest('button'))) {
+    return; // Don't toggle expansion when clicking action buttons or links
+  }
+  if (e) e.stopPropagation();
+  if (window.expandedCustReportIds.has(id)) {
+    window.expandedCustReportIds.delete(id);
   } else {
-    filteredIds.forEach(id => expandedCustReportIds.add(id));
+    window.expandedCustReportIds.add(id);
+  }
+  renderTabBody();
+};
+
+window.__toggleExpandAllCustReport = function() {
+  const reports = typeof getCustomerReportsData === 'function' ? getCustomerReportsData() : [];
+  let filtered = reports.slice();
+  if (typeof customerSegmentFilter !== 'undefined' && customerSegmentFilter !== 'all') {
+    filtered = filtered.filter(r => r.segment === customerSegmentFilter);
+  }
+  if (typeof customerSearchQuery !== 'undefined' && customerSearchQuery.trim()) {
+    const q = customerSearchQuery.trim().toLowerCase();
+    filtered = filtered.filter(r =>
+      (r.customer_name && r.customer_name.toLowerCase().includes(q)) ||
+      (r.phone && r.phone.includes(q)) ||
+      (r.city && r.city.toLowerCase().includes(q)) ||
+      (r.favorite_item && r.favorite_item.toLowerCase().includes(q)) ||
+      (r.remarks && r.remarks.toLowerCase().includes(q))
+    );
+  }
+  
+  const filteredIds = filtered.map(r => r.id);
+  if (!filteredIds.length) return;
+
+  const allExpanded = filteredIds.every(id => window.expandedCustReportIds.has(id));
+  if (allExpanded) {
+    filteredIds.forEach(id => window.expandedCustReportIds.delete(id));
+  } else {
+    filteredIds.forEach(id => window.expandedCustReportIds.add(id));
   }
   renderTabBody();
 };
@@ -11566,6 +11595,7 @@ window.__setCustomerReportSubTab = function(t) {
   customerReportSubTab = t;
   renderTabBody();
 };
+
 
 
 window.__toggleCustMoreMenu = function(e) {
@@ -12039,8 +12069,8 @@ function renderCustomerReportTab(body) {
         <p style="margin:0;color:var(--ink-soft);font-size:0.78rem;">Import ChatGPT ledger JSON, analyze party purchase behavior, track order volume, and engage customers.</p>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <button class="stamp-btn small ghost" onclick="isCustKpiCollapsed=!isCustKpiCollapsed;renderTabBody();">
-          ${isCustKpiCollapsed ? '📊 Show KPI Overview' : '📊 Collapse KPI Overview'}
+        <button class="stamp-btn small ghost" onclick="window.__toggleCustKpiOverview()">
+          ${window.isCustKpiCollapsed ? '📊 Show KPI Overview' : '📊 Collapse KPI Overview'}
         </button>
         <button class="stamp-btn" onclick="window.__openImportCustomerJsonModal()">📥 Import JSON</button>
         <div style="position:relative;display:inline-block;">
@@ -12054,7 +12084,7 @@ function renderCustomerReportTab(body) {
     </div>
 
 
-    ${!isCustKpiCollapsed ? `
+    ${!window.isCustKpiCollapsed ? `
     <!-- Overview Stat KPI Cards -->
     <div class="dash-kpi-grid" style="margin-bottom:20px;">
       <div class="dash-kpi-card">
@@ -12097,8 +12127,8 @@ function renderCustomerReportTab(body) {
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
       <div style="font-weight:700;font-size:0.9rem;color:var(--ink);">Customer Accounts (${filtered.length})</div>
       ${filtered.length ? `
-        <button class="stamp-btn small ghost" onclick="window.__toggleExpandAllCustReport([${filtered.map(r=>`'${r.id}'`).join(',')}])">
-          ${filtered.every(r => expandedCustReportIds.has(r.id)) ? '📂 Collapse All Details' : '📖 Expand All Details'}
+        <button class="stamp-btn small ghost" onclick="window.__toggleExpandAllCustReport()">
+          ${filtered.every(r => window.expandedCustReportIds.has(r.id)) ? '📂 Collapse All Details' : '📖 Expand All Details'}
         </button>
       ` : ''}
     </div>
@@ -12109,7 +12139,8 @@ function renderCustomerReportTab(body) {
         ${filtered.map(r => {
           const isVip = r.segment === 'VIP';
           const statusClass = isVip ? 'high' : r.segment === 'NEW' ? 'present' : r.segment === 'INACTIVE' ? 'low' : 'done';
-          const isExpanded = expandedCustReportIds.has(r.id);
+          const isExpanded = window.expandedCustReportIds.has(r.id);
+
           const cleanPhone = (r.phone || '').replace(/[^0-9]/g, '');
           const waMessage = encodeURIComponent(`Hi ${r.customer_name || 'Valued Customer'}, thank you for doing business with ${session.businessName || 'B-INDUSTRIES'}. We appreciate your continued partnership!`);
           
