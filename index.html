@@ -10825,16 +10825,31 @@ async function syncCustomCloudPayload(keyTitle, data) {
   const jsonStr = typeof data === 'string' ? data : JSON.stringify(data);
   if (navigator.onLine && typeof supabase !== 'undefined' && session && session.businessId) {
     try {
+      const { data: existing } = await supabase
+        .from('tasks')
+        .select('id')
+        .eq('business_id', session.businessId)
+        .eq('title', keyTitle)
+        .maybeSingle();
+
       const payload = {
         business_id: session.businessId,
         title: keyTitle,
         notes: jsonStr,
         status: 'done',
-        priority: 'high'
+        priority: 'high',
+        due_date: todayStr()
       };
-      await supabase.from('tasks').upsert(payload, { onConflict: 'business_id,title' });
+
+      if (existing && existing.id) {
+        const { error: upErr } = await supabase.from('tasks').update(payload).eq('id', existing.id);
+        if (upErr) await supabase.from('tasks').upsert(payload, { onConflict: 'business_id,title' });
+      } else {
+        const { error: insErr } = await supabase.from('tasks').insert(payload);
+        if (insErr) await supabase.from('tasks').upsert(payload, { onConflict: 'business_id,title' });
+      }
     } catch(err){
-      console.warn('Cloud payload sync warning (' + keyTitle + '):', err);
+      console.warn('Cloud payload sync notice (' + keyTitle + '):', err);
     }
   }
 }
@@ -10847,6 +10862,16 @@ window.__reloadAppData = async function(btn) {
   showLoading();
   try {
     if (typeof flushOfflineMutations === 'function') await flushOfflineMutations();
+
+    // Push local payloads first so device A's latest updates reach cloud
+    try {
+      if (typeof getCustomerDirectory === 'function') syncCustomCloudPayload('[CUSTOMER_DIRECTORY_DATA]', getCustomerDirectory());
+      if (typeof getCustomerReportsData === 'function') syncCustomCloudPayload('[CUSTOMER_REPORTS_DATA]', getCustomerReportsData());
+      if (typeof getExpiryItems === 'function') syncCustomCloudPayload('[EXPIRY_ITEMS_DATA]', getExpiryItems());
+      if (typeof getFeatureConfig === 'function') syncCustomCloudPayload('[FEATURE_SETTINGS_DATA]', getFeatureConfig());
+      if (cache.vendorBills && cache.vendorBills.length) syncCustomCloudPayload('[VENDOR_BILLS_DATA]', cache.vendorBills);
+    } catch(e){}
+
     await loadData();
     renderShell();
     renderTabBody();
@@ -10857,6 +10882,7 @@ window.__reloadAppData = async function(btn) {
     hideLoading();
   }
 };
+
 
 // 30-Second Background Cross-Device Realtime Sync Poll
 setInterval(async () => {
@@ -10927,13 +10953,14 @@ function deduplicateReports(list) {
 }
 
 function getCustomerReportsData() {
-  if (!cache.customerReports) {
-    try {
-      cache.customerReports = JSON.parse(localStorage.getItem('br_customer_reports_' + session.businessId) || '[]');
-    } catch(e) {
-      cache.customerReports = [];
+  try {
+    const raw = JSON.parse(localStorage.getItem('br_customer_reports_' + session.businessId) || '[]');
+    if (Array.isArray(raw) && raw.length) {
+      cache.customerReports = raw;
     }
-  }
+  } catch(e){}
+  if (!cache.customerReports) cache.customerReports = [];
+
 
   // Deduplicate before sync
   cache.customerReports = deduplicateReports(cache.customerReports);
