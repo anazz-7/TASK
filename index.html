@@ -269,11 +269,23 @@
 
   /* Ultra-sleek Compact Log Cards for Past Records & History Logs */
   .compact-log-card, .row-card.compact-log-card {
-    padding: 8px 12px !important;
-    margin-bottom: 6px !important;
-    border-radius: 8px !important;
-    gap: 10px !important;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    border-radius: 8px;
+    gap: 10px;
   }
+  .grid-cust-card {
+    height: 100% !important;
+    min-height: 72px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: stretch !important;
+    padding: 12px 14px !important;
+    margin-bottom: 0 !important;
+    box-sizing: border-box !important;
+  }
+
   .compact-log-card h3 {
     font-size: 0.84rem !important;
     margin-bottom: 2px !important;
@@ -12287,17 +12299,17 @@ function renderCustomerReportTab(body) {
           const waMessage = encodeURIComponent(`Hi ${r.customer_name || 'Valued Customer'}, thank you for doing business with ${session.businessName || 'B-INDUSTRIES'}. We appreciate your continued partnership!`);
           
           return `
-            <div class="row-card compact-log-card" style="flex-direction:column;align-items:stretch;justify-content:center;padding:12px 14px;margin-bottom:0;min-height:76px;height:100%;box-sizing:border-box;${isVip ? 'border-left:4px solid var(--turmeric);background:var(--blue-soft);' : ''}">
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;width:100%;" onclick="window.__toggleExpandCustReport('${r.id}', event)">
-                <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1;">
+            <div class="row-card grid-cust-card" style="${isVip ? 'border-left:4px solid var(--turmeric);background:var(--blue-soft);' : ''}">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;width:100%;flex-wrap:nowrap;overflow:hidden;" onclick="window.__toggleExpandCustReport('${r.id}', event)">
+                <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1;overflow:hidden;">
                   <span class="collapse-arrow ${isExpanded?'open':''}" style="font-size:0.85rem;color:var(--ink-soft);flex-shrink:0;">▸</span>
-                  <div style="min-width:0;flex:1;">
-                    <b style="font-size:0.92rem;color:var(--ink);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;">${esc(r.customer_name || 'UNNAMED PARTY')}</b>
-                    <div style="font-size:0.72rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;margin-top:2px;">📍 ${esc(r.city || 'N/A')}${cleanPhone ? ' &bull; 📞 ' + esc(r.phone) : ''}</div>
+                  <div style="min-width:0;flex:1;overflow:hidden;">
+                    <b style="font-size:0.92rem;color:var(--ink);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;width:100%;">${esc(r.customer_name || 'UNNAMED PARTY')}</b>
+                    <div style="font-size:0.72rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;margin-top:2px;width:100%;">📍 ${esc(r.city || 'N/A')}${cleanPhone ? ' &bull; 📞 ' + esc(r.phone) : ''}</div>
                   </div>
                 </div>
-                <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:auto;white-space:nowrap;">
-                  <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.95rem;color:var(--turmeric-dark);">${maskSalesAmount(r.total_spent)}</span>
+                <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:auto;white-space:nowrap;">
+                  <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.92rem;color:var(--turmeric-dark);">${maskSalesAmount(r.total_spent)}</span>
                   <span class="stamp ${statusClass}" style="padding:3px 8px;font-size:0.68rem;border-radius:999px;white-space:nowrap;">${isVip ? '⭐ VIP' : r.segment || 'REGULAR'}</span>
                 </div>
               </div>
@@ -12320,6 +12332,7 @@ function renderCustomerReportTab(body) {
                 </div>
               ` : ''}
             </div>
+
 
 
           `;
