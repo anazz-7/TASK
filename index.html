@@ -2199,9 +2199,31 @@ async function loadData(){
     cache.sales = salesR.data || [];
     cache.routines = routinesR.data || [];
     cache.points = pointsR.data || [];
-    cache.labels = labelsR.data || [];
+    
+    try {
+      const localLbl = JSON.parse(localStorage.getItem('br_labels_' + bizId) || '[]');
+      const cloudLbl = labelsR.data || [];
+      const unsyncedLbl = localLbl.filter(l => l.id && String(l.id).startsWith('loc_lbl_'));
+      cache.labels = [...unsyncedLbl, ...cloudLbl.filter(c => !unsyncedLbl.some(u => u.id === c.id))];
+      localStorage.setItem('br_labels_' + bizId, JSON.stringify(cache.labels));
+    } catch(e) {
+      const localLbl = localStorage.getItem('br_labels_' + bizId);
+      cache.labels = localLbl ? JSON.parse(localLbl) : (labelsR.data || []);
+    }
+
     cache.weeklyTasks = weeklyR.data || [];
-    cache.packages = packagesR.data || [];
+    
+    try {
+      const localPkg = JSON.parse(localStorage.getItem('br_packages_' + bizId) || '[]');
+      const cloudPkg = packagesR.data || [];
+      const unsyncedPkg = localPkg.filter(p => p.id && String(p.id).startsWith('loc_pkg_'));
+      cache.packages = [...unsyncedPkg, ...cloudPkg.filter(c => !unsyncedPkg.some(u => u.id === c.id))];
+      localStorage.setItem('br_packages_' + bizId, JSON.stringify(cache.packages));
+    } catch(e) {
+      const localPkg = localStorage.getItem('br_packages_' + bizId);
+      cache.packages = localPkg ? JSON.parse(localPkg) : (packagesR.data || []);
+    }
+
     cache.salesmanLocations = locR.data || [];
     cache.salaries = salariesR.data || [];
     cache.salesTargets = targetsR.data || [];
@@ -4926,21 +4948,36 @@ function openEditLabelModal(labelId){
     const item = document.getElementById('mEditLabelItem').value.trim();
     const qty = Number(document.getElementById('mEditLabelQty').value || 0);
     if(!item || qty <= 0){ alert('Enter item name and quantity.'); return; }
-    await guardedSave('editLabel-' + id, async () => {
-      const bCode = document.getElementById('mEditLabelBatchCode') ? document.getElementById('mEditLabelBatchCode').value.trim() : '';
-      await sbCheck(supabase.from('labels').update({
-        staff_id: document.getElementById('mEditLabelStaff').value,
-        date: document.getElementById('mEditLabelDate').value || todayStr(),
-        item,
-        qty,
-        batch_code: bCode || null,
-        batch_no: bCode || null,
-        notes: document.getElementById('mEditLabelNotes').value.trim(),
-      }).eq('id', id));
-      holder.innerHTML = '';
-      await loadData();
-      renderTabBody();
-    });
+    
+    const bCode = document.getElementById('mEditLabelBatchCode') ? document.getElementById('mEditLabelBatchCode').value.trim() : '';
+    const staffId = document.getElementById('mEditLabelStaff').value;
+    const date = document.getElementById('mEditLabelDate').value || todayStr();
+    const notes = document.getElementById('mEditLabelNotes').value.trim();
+
+    // Instant local update
+    const target = cache.labels.find(l => l.id === id);
+    if (target) {
+      target.item = item;
+      target.qty = qty;
+      target.staff_id = staffId;
+      target.date = date;
+      target.notes = notes;
+      if (bCode) { target.batch_code = bCode; target.batch_no = bCode; }
+      try { localStorage.setItem('br_labels_' + session.businessId, JSON.stringify(cache.labels)); } catch(e){}
+    }
+
+    holder.innerHTML = '';
+    window.showToast('✅ Label entry updated!', 'success');
+    renderTabBody();
+
+    if (navigator.onLine && typeof supabase !== 'undefined' && !String(id).startsWith('loc_lbl_')) {
+      try {
+        await supabase.from('labels').update({
+          staff_id: staffId, date, item, qty,
+          batch_code: bCode || null, batch_no: bCode || null, notes
+        }).eq('id', id);
+      } catch(e){}
+    }
   };
 }
 let labelItemRows = [{item:'', qty:''}];
@@ -4995,17 +5032,54 @@ window.__openLabel = () => {
     const notes = document.getElementById('mLabelNotes').value.trim();
     const validRows = labelItemRows.filter(r => r.item.trim() && Number(r.qty) > 0);
     if(!validRows.length){ alert('Add at least one item with a name and quantity.'); return; }
-    const records = validRows.map(r => ({
-      business_id: session.businessId, staff_id: staffId, date,
-      item: r.item.trim(), qty: Number(r.qty), batch_code: batch_code || null, batch_no: batch_code || null, notes,
-    }));
-    await guardedSave('label', async () => {
-      await sbCheck(supabase.from('labels').insert(records));
-      holder.innerHTML='';
-      await loadData(); renderTabBody();
+
+    const now = Date.now();
+    const records = validRows.map((r, i) => {
+      const rec = {
+        id: 'loc_lbl_' + now + '_' + i + '_' + Math.random().toString(36).substring(2,5),
+        business_id: session.businessId,
+        staff_id: staffId,
+        date,
+        item: r.item.trim(),
+        qty: Number(r.qty),
+        notes: notes || '',
+        created_at: new Date().toISOString()
+      };
+      if (batch_code) {
+        rec.batch_code = batch_code;
+        rec.batch_no = batch_code;
+      }
+      return rec;
     });
+
+    // 1. Instant local state & storage update
+    cache.labels = [...records, ...(cache.labels || [])];
+    try { localStorage.setItem('br_labels_' + session.businessId, JSON.stringify(cache.labels)); } catch(e){}
+
+    // 2. Immediately close modal & show success toast (NO crash/exit!)
+    holder.innerHTML = '';
+    window.showToast('✅ Labeling logged successfully!', 'success');
+    renderTabBody();
+
+    // 3. Safe background cloud sync
+    if (navigator.onLine && typeof supabase !== 'undefined' && session.businessId) {
+      try {
+        const dbRecords = records.map(r => { const c = {...r}; delete c.id; return c; });
+        const { error } = await supabase.from('labels').insert(dbRecords);
+        if (error) {
+          const simpleRecords = dbRecords.map(r => { const c = {...r}; delete c.batch_code; delete c.batch_no; return c; });
+          const { error: err2 } = await supabase.from('labels').insert(simpleRecords);
+          if (err2) queueOfflineMutation('insert', 'labels', dbRecords);
+        }
+      } catch(e) {
+        queueOfflineMutation('insert', 'labels', records);
+      }
+    } else {
+      queueOfflineMutation('insert', 'labels', records);
+    }
   };
 };
+
 
 /* ---------------- PACKAGE (same pattern as Label) ---------------- */
 let expandedPackageDates = new Set([todayStr()]);
@@ -5109,21 +5183,36 @@ function openEditPackageModal(packageId){
     const item = document.getElementById('mEditPackageItem').value.trim();
     const qty = Number(document.getElementById('mEditPackageQty').value || 0);
     if(!item || qty <= 0){ alert('Enter item name and quantity.'); return; }
-    await guardedSave('editPackage-' + id, async () => {
-      const bCode = document.getElementById('mEditPackageBatchCode') ? document.getElementById('mEditPackageBatchCode').value.trim() : '';
-      await sbCheck(supabase.from('packages').update({
-        staff_id: document.getElementById('mEditPackageStaff').value,
-        date: document.getElementById('mEditPackageDate').value || todayStr(),
-        item,
-        qty,
-        batch_code: bCode || null,
-        batch_no: bCode || null,
-        notes: document.getElementById('mEditPackageNotes').value.trim(),
-      }).eq('id', id));
-      holder.innerHTML = '';
-      await loadData();
-      renderTabBody();
-    });
+    
+    const bCode = document.getElementById('mEditPackageBatchCode') ? document.getElementById('mEditPackageBatchCode').value.trim() : '';
+    const staffId = document.getElementById('mEditPackageStaff').value;
+    const date = document.getElementById('mEditPackageDate').value || todayStr();
+    const notes = document.getElementById('mEditPackageNotes').value.trim();
+
+    // Instant local update
+    const target = cache.packages.find(p => p.id === id);
+    if (target) {
+      target.item = item;
+      target.qty = qty;
+      target.staff_id = staffId;
+      target.date = date;
+      target.notes = notes;
+      if (bCode) { target.batch_code = bCode; target.batch_no = bCode; }
+      try { localStorage.setItem('br_packages_' + session.businessId, JSON.stringify(cache.packages)); } catch(e){}
+    }
+
+    holder.innerHTML = '';
+    window.showToast('✅ Package entry updated!', 'success');
+    renderTabBody();
+
+    if (navigator.onLine && typeof supabase !== 'undefined' && !String(id).startsWith('loc_pkg_')) {
+      try {
+        await supabase.from('packages').update({
+          staff_id: staffId, date, item, qty,
+          batch_code: bCode || null, batch_no: bCode || null, notes
+        }).eq('id', id);
+      } catch(e){}
+    }
   };
 }
 let packageItemRows = [{item:'', qty:''}];
@@ -5178,17 +5267,54 @@ window.__openPackage = () => {
     const notes = document.getElementById('mPackageNotes').value.trim();
     const validRows = packageItemRows.filter(r => r.item.trim() && Number(r.qty) > 0);
     if(!validRows.length){ alert('Add at least one item with a name and quantity.'); return; }
-    const records = validRows.map(r => ({
-      business_id: session.businessId, staff_id: staffId, date,
-      item: r.item.trim(), qty: Number(r.qty), batch_code: batch_code || null, batch_no: batch_code || null, notes,
-    }));
-    await guardedSave('package', async () => {
-      await sbCheck(supabase.from('packages').insert(records));
-      holder.innerHTML='';
-      await loadData(); renderTabBody();
+
+    const now = Date.now();
+    const records = validRows.map((r, i) => {
+      const rec = {
+        id: 'loc_pkg_' + now + '_' + i + '_' + Math.random().toString(36).substring(2,5),
+        business_id: session.businessId,
+        staff_id: staffId,
+        date,
+        item: r.item.trim(),
+        qty: Number(r.qty),
+        notes: notes || '',
+        created_at: new Date().toISOString()
+      };
+      if (batch_code) {
+        rec.batch_code = batch_code;
+        rec.batch_no = batch_code;
+      }
+      return rec;
     });
+
+    // 1. Instant local state & storage update
+    cache.packages = [...records, ...(cache.packages || [])];
+    try { localStorage.setItem('br_packages_' + session.businessId, JSON.stringify(cache.packages)); } catch(e){}
+
+    // 2. Immediately close modal & show success toast (NO crash/exit!)
+    holder.innerHTML = '';
+    window.showToast('✅ Packaging logged successfully!', 'success');
+    renderTabBody();
+
+    // 3. Safe background cloud sync
+    if (navigator.onLine && typeof supabase !== 'undefined' && session.businessId) {
+      try {
+        const dbRecords = records.map(r => { const c = {...r}; delete c.id; return c; });
+        const { error } = await supabase.from('packages').insert(dbRecords);
+        if (error) {
+          const simpleRecords = dbRecords.map(r => { const c = {...r}; delete c.batch_code; delete c.batch_no; return c; });
+          const { error: err2 } = await supabase.from('packages').insert(simpleRecords);
+          if (err2) queueOfflineMutation('insert', 'packages', dbRecords);
+        }
+      } catch(e) {
+        queueOfflineMutation('insert', 'packages', records);
+      }
+    } else {
+      queueOfflineMutation('insert', 'packages', records);
+    }
   };
 };
+
 
 /* ---------------- POINTS (incentive tracking) ---------------- */
 function initials(name){ return (name||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
