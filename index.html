@@ -2018,8 +2018,9 @@ async function loadData(){
     const localUnsynced = localSavedTasks.filter(t => t.id && t.id.startsWith('loc_task_'));
     const deletedIds = new Set(localSavedTasks.filter(t => t.is_deleted).map(t => t.id));
 
-    // Combine cloud tasks + local unsynced tasks, filtering out deleted ones
-    const combinedTasks = [...localUnsynced, ...cloudTasks.filter(ct => !deletedIds.has(ct.id))];
+    // Filter out internal system payload tasks from user task list
+    const userCloudTasks = cloudTasks.filter(ct => !ct.title || !ct.title.startsWith('['));
+    const combinedTasks = [...localUnsynced, ...userCloudTasks.filter(ct => !deletedIds.has(ct.id))];
     
     // Preserve local status updates if local is newer
     combinedTasks.forEach(ct => {
@@ -2031,6 +2032,26 @@ async function loadData(){
     try {
       localStorage.setItem('br_tasks_' + bizId, JSON.stringify(cache.tasks));
     } catch(e){}
+
+    // Restore Cross-Device Cloud Payloads for Customer Directory, Reports, Expiry & Feature Settings
+    cloudTasks.forEach(ct => {
+      if (ct.title === '[CUSTOMER_DIRECTORY_DATA]' && ct.notes) {
+        try { localStorage.setItem('br_cust_dir_' + bizId, ct.notes); } catch(e){}
+      }
+      if (ct.title === '[CUSTOMER_REPORTS_DATA]' && ct.notes) {
+        try {
+          cache.customerReports = JSON.parse(ct.notes);
+          localStorage.setItem('br_customer_reports_' + bizId, ct.notes);
+        } catch(e){}
+      }
+      if (ct.title === '[EXPIRY_ITEMS_DATA]' && ct.notes) {
+        try { localStorage.setItem('br_expiry_' + bizId, ct.notes); } catch(e){}
+      }
+      if (ct.title === '[FEATURE_SETTINGS_DATA]' && ct.notes) {
+        try { localStorage.setItem('br_features_' + bizId, ct.notes); } catch(e){}
+      }
+    });
+
     cache.attendance = attR.data || [];
     cache.sales = salesR.data || [];
     cache.routines = routinesR.data || [];
@@ -10595,8 +10616,10 @@ function getExpiryItems() {
   try { return JSON.parse(localStorage.getItem('br_expiry_' + session.businessId) || '[]'); } catch(e) { return []; }
 }
 function saveExpiryItems(items) {
-  localStorage.setItem('br_expiry_' + session.businessId, JSON.stringify(items));
+  try { localStorage.setItem('br_expiry_' + session.businessId, JSON.stringify(items)); } catch(e){}
+  if (typeof syncCustomCloudPayload === 'function') syncCustomCloudPayload('[EXPIRY_ITEMS_DATA]', items);
 }
+
 
 function renderExpiryTrackerHtml() {
   const items = getExpiryItems();
@@ -10733,8 +10756,55 @@ window.__deleteExpiryItem = function(id) {
 
 
 /* ================================================================
-   >>> UNIFIED CUSTOMER DATA & ANALYTICS REPORT ENGINE <<<
+   >>> CROSS-DEVICE CLOUD SYNC ENGINE <<<
 ================================================================ */
+async function syncCustomCloudPayload(keyTitle, data) {
+  const jsonStr = typeof data === 'string' ? data : JSON.stringify(data);
+  if (navigator.onLine && typeof supabase !== 'undefined' && session && session.businessId) {
+    try {
+      const payload = {
+        business_id: session.businessId,
+        title: keyTitle,
+        notes: jsonStr,
+        status: 'done',
+        priority: 'high'
+      };
+      await supabase.from('tasks').upsert(payload, { onConflict: 'business_id,title' });
+    } catch(err){
+      console.warn('Cloud payload sync warning (' + keyTitle + '):', err);
+    }
+  }
+}
+
+window.__reloadAppData = async function(btn) {
+  if (btn && btn.querySelector('svg')) {
+    btn.querySelector('svg').style.transition = 'transform 0.5s ease';
+    btn.querySelector('svg').style.transform = 'rotate(360deg)';
+  }
+  showLoading();
+  try {
+    if (typeof flushOfflineMutations === 'function') await flushOfflineMutations();
+    await loadData();
+    renderShell();
+    renderTabBody();
+    if (typeof window.showToast === 'function') window.showToast('☁️ Cloud Data Synced across all devices!', 'success');
+  } catch(e) {
+    console.warn('Reload app data error:', e);
+  } finally {
+    hideLoading();
+  }
+};
+
+// 30-Second Background Cross-Device Realtime Sync Poll
+setInterval(async () => {
+  if (navigator.onLine && typeof session !== 'undefined' && session && session.businessId) {
+    try {
+      await loadData();
+      if (typeof renderTabBody === 'function') renderTabBody();
+    } catch(e){}
+  }
+}, 30000);
+
 let customerSegmentFilter = 'all';
 let customerSearchQuery = '';
 
@@ -10798,23 +10868,10 @@ function saveCustomerReportsData() {
       }
     });
     localStorage.setItem('br_cust_dir_' + session.businessId, JSON.stringify(dir));
+    syncCustomCloudPayload('[CUSTOMER_DIRECTORY_DATA]', dir);
   } catch(e){}
 
-  // Sync to Supabase in background
-  if (navigator.onLine && typeof supabase !== 'undefined' && session && session.businessId) {
-    (async function() {
-      try {
-        const payload = {
-          business_id: session.businessId,
-          title: '[CUSTOMER_REPORTS_DATA]',
-          notes: JSON.stringify(cache.customerReports || []),
-          status: 'done',
-          priority: 'high'
-        };
-        await supabase.from('tasks').upsert(payload, { onConflict: 'business_id,title' });
-      } catch(err){}
-    })();
-  }
+  syncCustomCloudPayload('[CUSTOMER_REPORTS_DATA]', cache.customerReports);
 }
 
 
@@ -10840,7 +10897,8 @@ function getFeatureConfig() {
 }
 
 function saveFeatureConfig(cfg) {
-  localStorage.setItem('br_features_' + session.businessId, JSON.stringify(cfg));
+  try { localStorage.setItem('br_features_' + session.businessId, JSON.stringify(cfg)); } catch(e){}
+  syncCustomCloudPayload('[FEATURE_SETTINGS_DATA]', cfg);
 }
 
 function maskCustData(text, type) {
@@ -10866,7 +10924,7 @@ function maskCustData(text, type) {
 
 /* ================================================================
    FEATURE: CUSTOMER DIRECTORY (Customer Report sub-tab)
-   Stores: name, mobile, address, notes — pure localStorage
+   Stores: name, mobile, address, notes — pure localStorage + Cloud Sync
    ================================================================ */
 let customerReportSubTab = 'directory'; // 'directory' | 'report'
 
@@ -10879,8 +10937,10 @@ function getCustomerDirectory() {
   try { return JSON.parse(localStorage.getItem('br_cust_dir_' + session.businessId) || '[]'); } catch(e) { return []; }
 }
 function saveCustomerDirectory(list) {
-  localStorage.setItem('br_cust_dir_' + session.businessId, JSON.stringify(list));
+  try { localStorage.setItem('br_cust_dir_' + session.businessId, JSON.stringify(list)); } catch(e){}
+  syncCustomCloudPayload('[CUSTOMER_DIRECTORY_DATA]', list);
 }
+
 
 function renderCustomerDirectoryHtml() {
   const list = getCustomerDirectory();
