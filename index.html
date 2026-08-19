@@ -11400,6 +11400,27 @@ window.__setCustomerReportSubTab = function(t) {
   renderTabBody();
 };
 
+window.__toggleCustMoreMenu = function(e) {
+  if (e) e.stopPropagation();
+  const menus = document.querySelectorAll('.action-dropdown-menu');
+  menus.forEach(m => {
+    if (m.id !== 'custSubTabMoreMenu') m.classList.remove('show');
+  });
+  const menu = document.getElementById('custSubTabMoreMenu');
+  if (menu) menu.classList.toggle('show');
+};
+
+window.__toggleCustActionsMoreMenu = function(e) {
+  if (e) e.stopPropagation();
+  const menus = document.querySelectorAll('.action-dropdown-menu');
+  menus.forEach(m => {
+    if (m.id !== 'custActionsMoreMenu') m.classList.remove('show');
+  });
+  const menu = document.getElementById('custActionsMoreMenu');
+  if (menu) menu.classList.toggle('show');
+};
+
+
 function getCustomerDirectory() {
   try {
     const raw = JSON.parse(localStorage.getItem('br_cust_dir_' + session.businessId) || '[]');
@@ -11736,13 +11757,21 @@ function renderCustomerReportTab(body) {
   }
 
   body.innerHTML = `
-    <!-- Sub-menu Navigation -->
-    <div style="display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;">
+    <!-- Sub-menu Navigation with More Dropdown (No Long Swiping Needed) -->
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:16px;flex-wrap:wrap;">
       <button class="stamp-btn small ${customerReportSubTab==='directory'?'':'ghost'}" onclick="window.__setCustomerReportSubTab('directory')">📒 Directory (${getCustomerDirectory().length})</button>
       <button class="stamp-btn small ${customerReportSubTab==='report'?'':'ghost'}" onclick="window.__setCustomerReportSubTab('report')">📊 Analytics (${reports.length})</button>
-      <button class="stamp-btn small ${customerReportSubTab==='city_report'?'':'ghost'}" onclick="window.__setCustomerReportSubTab('city_report')">🏙️ City Breakdown</button>
-      <button class="stamp-btn small ${customerReportSubTab==='top_clients'?'':'ghost'}" onclick="window.__setCustomerReportSubTab('top_clients')">🏆 Top Clients</button>
-      <button class="stamp-btn small ${customerReportSubTab==='inactive_list'?'':'ghost'}" onclick="window.__setCustomerReportSubTab('inactive_list')">💤 Inactive (${inactiveCount})</button>
+
+      <div style="position:relative;display:inline-block;">
+        <button class="stamp-btn small ${['city_report','top_clients','inactive_list'].includes(customerReportSubTab)?'':'ghost'}" onclick="window.__toggleCustMoreMenu(event)" style="display:flex;align-items:center;gap:4px;">
+          ${customerReportSubTab === 'city_report' ? '🏙️ City' : customerReportSubTab === 'top_clients' ? '🏆 Top Clients' : customerReportSubTab === 'inactive_list' ? '💤 Inactive' : '••• More'} ▾
+        </button>
+        <div class="action-dropdown-menu" id="custSubTabMoreMenu" style="left:0;right:auto;top:100%;margin-top:4px;min-width:185px;">
+          <button onclick="window.__setCustomerReportSubTab('city_report')">🏙️ City Breakdown</button>
+          <button onclick="window.__setCustomerReportSubTab('top_clients')">🏆 Top Clients</button>
+          <button onclick="window.__setCustomerReportSubTab('inactive_list')">💤 Inactive (${inactiveCount})</button>
+        </div>
+      </div>
     </div>
 
     ${customerReportSubTab === 'directory' ? renderCustomerDirectoryHtml() : ''}
@@ -11757,12 +11786,18 @@ function renderCustomerReportTab(body) {
         <h2 style="margin:0 0 4px;font-size:1.25rem;">CUSTOMER INTELLIGENCE &amp; ANALYTICS REPORT</h2>
         <p style="margin:0;color:var(--ink-soft);font-size:0.78rem;">Import ChatGPT ledger JSON, analyze party purchase behavior, track order volume, and engage customers.</p>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="stamp-btn" onclick="window.__openImportCustomerJsonModal()">📥 Import ChatGPT JSON</button>
-        <button class="stamp-btn ghost" onclick="window.__openAddCustomerReportModal()">➕ Add Customer Entry</button>
-        <button class="stamp-btn ghost" onclick="window.__copyChatGPTCustomerPrompt()">📋 Copy ChatGPT Prompt</button>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button class="stamp-btn" onclick="window.__openImportCustomerJsonModal()">📥 Import JSON</button>
+        <div style="position:relative;display:inline-block;">
+          <button class="stamp-btn ghost" onclick="window.__toggleCustActionsMoreMenu(event)">••• Actions ▾</button>
+          <div class="action-dropdown-menu" id="custActionsMoreMenu" style="right:0;left:auto;top:100%;margin-top:4px;min-width:190px;">
+            <button onclick="window.__openAddCustomerReportModal()">➕ Add Customer Entry</button>
+            <button onclick="window.__copyChatGPTCustomerPrompt()">📋 Copy ChatGPT Prompt</button>
+          </div>
+        </div>
       </div>
     </div>
+
 
     <!-- Overview Stat KPI Cards -->
     <div class="dash-kpi-grid" style="margin-bottom:20px;">
