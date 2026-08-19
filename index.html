@@ -285,6 +285,20 @@
     margin-bottom: 0 !important;
     box-sizing: border-box !important;
   }
+  .compact-done-card, .row-card.compact-done-card {
+    padding: 6px 12px !important;
+    margin-bottom: 4px !important;
+    min-height: 36px !important;
+    height: 36px !important;
+    border-radius: 6px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    background: var(--card) !important;
+    border: 1px solid var(--paper-line) !important;
+    box-sizing: border-box !important;
+  }
+
 
 
   .compact-log-card h3 {
@@ -3867,13 +3881,15 @@ function renderTasksTab(body){
       </div>
     </div>`;
   const doneRowCollapsed = (t) => `
-    <div class="row-card collapse-row" style="padding:10px 14px;" onclick="window.__toggleDone('${t.id}')">
-      <div class="row-main" style="display:flex;align-items:center;gap:0;">
-        <span class="collapse-arrow">▸</span>
-        <span class="status-dot green"></span>
-        <h3 style="font-size:0.88rem;font-weight:500;color:var(--ink-soft);margin:0;">${esc(t.title)}</h3>
+    <div class="row-card collapse-row compact-done-card" onclick="window.__toggleDone('${t.id}')">
+      <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1;overflow:hidden;">
+        <span class="collapse-arrow" style="font-size:0.75rem;color:var(--ink-soft);flex-shrink:0;">▸</span>
+        <span class="status-dot green" style="flex-shrink:0;"></span>
+        <span style="font-size:0.78rem;font-weight:600;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;">${esc(t.title)}</span>
       </div>
+      <span class="stamp done" style="font-size:0.58rem;padding:1px 6px;border-radius:999px;flex-shrink:0;margin-left:8px;">✓ Done</span>
     </div>`;
+
   const doneRow = (t) => expandedDoneIds.has(t.id)
     ? `<div class="row-card collapse-row" style="padding:8px 14px;" onclick="window.__toggleDone('${t.id}')">
          <span class="collapse-arrow open">▸</span><span style="font-size:0.75rem;color:var(--ink-soft);">Tap to collapse</span>
@@ -4110,13 +4126,15 @@ function renderDailyTab(body){
     </div>`;
   };
   const collapsedRow = (r) => `
-    <div class="row-card collapse-row" style="padding:10px 14px;" onclick="window.__toggleRoutineExpand('${r.id}')">
-      <div class="row-main" style="display:flex;align-items:center;">
-        <span class="collapse-arrow">▸</span>
-        <span class="status-dot green"></span>
-        <h3 style="font-size:0.88rem;font-weight:500;color:var(--ink-soft);margin:0;">${esc(r.title)}</h3>
+    <div class="row-card collapse-row compact-done-card" onclick="window.__toggleRoutineExpand('${r.id}')">
+      <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1;overflow:hidden;">
+        <span class="collapse-arrow" style="font-size:0.75rem;color:var(--ink-soft);flex-shrink:0;">▸</span>
+        <span class="status-dot green" style="flex-shrink:0;"></span>
+        <span style="font-size:0.78rem;font-weight:600;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;">${esc(r.title)}</span>
       </div>
+      <span class="stamp done" style="font-size:0.58rem;padding:1px 6px;border-radius:999px;flex-shrink:0;margin-left:8px;">✓ Done</span>
     </div>`;
+
   const doneWrap = (r) => expandedRoutineIds.has(r.id)
     ? `<div class="row-card collapse-row" style="padding:8px 14px;" onclick="window.__toggleRoutineExpand('${r.id}')">
          <span class="collapse-arrow open">▸</span><span style="font-size:0.75rem;color:var(--ink-soft);">Tap to collapse</span>
