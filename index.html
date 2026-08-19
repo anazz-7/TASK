@@ -11271,11 +11271,166 @@ window.__deleteCustDir = function(id) {
 };
 
 
+/* ---------------- NEW REPORTS ON CUSTOMER TAB ---------------- */
+
+function renderCityReportHtml(reports) {
+  const cityMap = {};
+  let grandTotal = 0;
+
+  (reports || []).forEach(r => {
+    const city = (r.city || '').trim().toUpperCase() || 'OTHER / UNASSIGNED';
+    const spent = Number(r.total_spent || 0);
+    grandTotal += spent;
+
+    if (!cityMap[city]) {
+      cityMap[city] = { city, count: 0, spent: 0, vip: 0 };
+    }
+    cityMap[city].count += 1;
+    cityMap[city].spent += spent;
+    if (r.segment === 'VIP') cityMap[city].vip += 1;
+  });
+
+  const cityList = Object.values(cityMap).sort((a, b) => b.spent - a.spent);
+
+  if (!cityList.length) {
+    return `<div class="empty">No city data available yet. Add city information to customer profiles to see city sales breakdowns.</div>`;
+  }
+
+  return `
+    <div style="margin-bottom:16px;">
+      <div style="font-weight:700;font-size:1.1rem;color:var(--ink);margin-bottom:4px;">🏙️ City &amp; Territory Sales Breakdown</div>
+      <div style="font-size:0.78rem;color:var(--ink-soft);">Sales volume and customer distribution by location (${cityList.length} Cities)</div>
+    </div>
+
+    <div class="cards-grid-multi" style="margin-bottom:20px;">
+      ${cityList.map(c => {
+        const pct = grandTotal > 0 ? Math.round((c.spent / grandTotal) * 100) : 0;
+        return `
+          <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px;margin-bottom:0;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+              <div>
+                <b style="font-size:1rem;color:var(--ink);">📍 ${esc(c.city)}</b>
+                <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">
+                  ${c.count} Client${c.count!==1?'s':''} ${c.vip > 0 ? `&bull; <span style="color:var(--turmeric);font-weight:600;">${c.vip} VIP</span>` : ''}
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <b style="font-family:'Roboto Mono',monospace;font-size:1.1rem;color:var(--turmeric-dark);">${maskSalesAmount(c.spent)}</b>
+                <div style="font-size:0.72rem;color:var(--ink-soft);font-weight:700;">${pct}% of total</div>
+              </div>
+            </div>
+            <div class="progress-track" style="margin-top:6px;">
+              <div class="progress-fill" style="width:${pct}%;background:var(--turmeric);"></div>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+
+function renderTopClientsLeaderboardHtml(reports) {
+  const ranked = (reports || []).slice().sort((a, b) => Number(b.total_spent || 0) - Number(a.total_spent || 0));
+  const topSpent = ranked.length ? Number(ranked[0].total_spent || 0) : 1;
+
+  if (!ranked.length) {
+    return `<div class="empty">No customer records available. Import or add customer profiles to build the leaderboard!</div>`;
+  }
+
+  return `
+    <div style="margin-bottom:16px;">
+      <div style="font-weight:700;font-size:1.1rem;color:var(--ink);margin-bottom:4px;">🏆 Top Clients Leaderboard</div>
+      <div style="font-size:0.78rem;color:var(--ink-soft);">Highest spending accounts ranked by cumulative sales volume</div>
+    </div>
+
+    <div class="cards-grid-multi">
+      ${ranked.map((r, idx) => {
+        const spent = Number(r.total_spent || 0);
+        const pct = topSpent > 0 ? Math.round((spent / topSpent) * 100) : 0;
+        const rankMedal = idx === 0 ? '🥇 #1' : idx === 1 ? '🥈 #2' : idx === 2 ? '🥉 #3' : `#${idx+1}`;
+
+        return `
+          <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px;margin-bottom:0;${idx < 3 ? 'border-left:4px solid var(--turmeric);background:var(--blue-soft);' : ''}">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;">
+              <div style="display:flex;gap:10px;align-items:center;">
+                <span class="stamp ${idx<3?'present':'done'}" style="font-weight:800;font-size:0.85rem;padding:4px 8px;">${rankMedal}</span>
+                <div>
+                  <b style="font-size:0.98rem;color:var(--ink);">${esc(r.customer_name || 'UNNAMED PARTY')}</b>
+                  <div style="font-size:0.75rem;color:var(--ink-soft);">📍 ${esc(r.city || 'N/A')} &bull; 📞 ${esc(r.phone || 'No Phone')}</div>
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <b style="font-family:'Roboto Mono',monospace;font-size:1.15rem;color:var(--turmeric-dark);">${maskSalesAmount(spent)}</b>
+                <div style="font-size:0.72rem;color:var(--ink-soft);">${r.total_orders || 1} Orders</div>
+              </div>
+            </div>
+
+            <div class="progress-track" style="margin:4px 0 8px;">
+              <div class="progress-fill" style="width:${pct}%;background:${idx===0?'var(--turmeric)':(idx<3?'var(--turmeric-dark)':'var(--blue)')};"></div>
+            </div>
+
+            ${r.favorite_item ? `<div style="font-size:0.72rem;color:var(--ink-soft);"><b>Preferred Item:</b> ${esc(r.favorite_item)}</div>` : ''}
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+
+function renderInactiveClientsReportHtml(reports) {
+  const inactive = (reports || []).filter(r => r.segment === 'INACTIVE' || !r.last_order_date || r.last_order_date < '2026-07-01');
+
+  if (!inactive.length) {
+    return `<div class="empty">🎉 Great news! No inactive accounts found. All clients are currently active!</div>`;
+  }
+
+  return `
+    <div style="margin-bottom:16px;">
+      <div style="font-weight:700;font-size:1.1rem;color:var(--ink);margin-bottom:4px;">💤 Inactive Account Follow-Up List (${inactive.length})</div>
+      <div style="font-size:0.78rem;color:var(--ink-soft);">Clients needing follow-up to re-engage orders and boost sales volume</div>
+    </div>
+
+    <div class="cards-grid-multi">
+      ${inactive.map(r => {
+        const cleanPhone = (r.phone || '').replace(/[^0-9]/g, '');
+        const waMsg = encodeURIComponent(`Hi ${r.customer_name || 'Valued Client'}, we noticed it's been a while since your last order with ${session.businessName || 'our team'}. We'd love to share our updated catalog and offer special terms for your next order!`);
+
+        return `
+          <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px;margin-bottom:0;border-left:4px solid var(--turmeric-dark);">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;">
+              <div>
+                <b style="font-size:0.95rem;color:var(--ink);">${esc(r.customer_name || 'UNNAMED PARTY')}</b>
+                <div style="font-size:0.75rem;color:var(--ink-soft);">📍 ${esc(r.city || 'N/A')} &bull; 📞 ${esc(r.phone || 'No Phone')}</div>
+              </div>
+              <span class="stamp absent">💤 INACTIVE</span>
+            </div>
+
+            <div style="font-size:0.75rem;color:var(--ink-soft);margin-bottom:10px;">
+              <div><b>Past Sales:</b> ${maskSalesAmount(r.total_spent)} (${r.total_orders || 0} orders)</div>
+              ${r.last_order_date ? `<div><b>Last Order Date:</b> ${r.last_order_date}</div>` : ''}
+              ${r.remarks ? `<div style="margin-top:2px;color:var(--ink);"><b>Notes:</b> ${esc(r.remarks)}</div>` : ''}
+            </div>
+
+            <div style="display:flex;gap:6px;margin-top:auto;">
+              ${cleanPhone ? `<a href="tel:${cleanPhone}" class="stamp-btn small ghost" style="flex:1;text-decoration:none;">📞 Call Party</a>` : ''}
+              ${cleanPhone ? `<a href="https://wa.me/${cleanPhone.length===10?'91'+cleanPhone:cleanPhone}?text=${waMsg}" target="_blank" class="stamp-btn small" style="background:#25D366;color:#fff;border-color:#25D366;flex:1;text-decoration:none;">💬 Re-engage WhatsApp</a>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+
 function renderCustomerReportTab(body) {
   const reports = getCustomerReportsData();
   const totalSpent = reports.reduce((sum, r) => sum + Number(r.total_spent || 0), 0);
   const totalCount = reports.length;
   const vipCount = reports.filter(r => r.segment === 'VIP').length;
+  const inactiveCount = reports.filter(r => r.segment === 'INACTIVE' || !r.last_order_date || r.last_order_date < '2026-07-01').length;
   const avgSpend = totalCount > 0 ? Math.round(totalSpent / totalCount) : 0;
 
   let filtered = reports.slice();
@@ -11297,13 +11452,20 @@ function renderCustomerReportTab(body) {
   body.innerHTML = `
     <!-- Sub-menu Navigation -->
     <div style="display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;">
-      <button class="stamp-btn small ${customerReportSubTab==='directory'?'':'ghost'}" onclick="window.__setCustomerReportSubTab('directory')">📒 Customer Directory (${getCustomerDirectory().length})</button>
-      <button class="stamp-btn small ${customerReportSubTab==='report'?'':'ghost'}" onclick="window.__setCustomerReportSubTab('report')">📊 Analytics Report (${reports.length})</button>
+      <button class="stamp-btn small ${customerReportSubTab==='directory'?'':'ghost'}" onclick="window.__setCustomerReportSubTab('directory')">📒 Directory (${getCustomerDirectory().length})</button>
+      <button class="stamp-btn small ${customerReportSubTab==='report'?'':'ghost'}" onclick="window.__setCustomerReportSubTab('report')">📊 Analytics (${reports.length})</button>
+      <button class="stamp-btn small ${customerReportSubTab==='city_report'?'':'ghost'}" onclick="window.__setCustomerReportSubTab('city_report')">🏙️ City Breakdown</button>
+      <button class="stamp-btn small ${customerReportSubTab==='top_clients'?'':'ghost'}" onclick="window.__setCustomerReportSubTab('top_clients')">🏆 Top Clients</button>
+      <button class="stamp-btn small ${customerReportSubTab==='inactive_list'?'':'ghost'}" onclick="window.__setCustomerReportSubTab('inactive_list')">💤 Inactive (${inactiveCount})</button>
     </div>
 
     ${customerReportSubTab === 'directory' ? renderCustomerDirectoryHtml() : ''}
+    ${customerReportSubTab === 'city_report' ? renderCityReportHtml(reports) : ''}
+    ${customerReportSubTab === 'top_clients' ? renderTopClientsLeaderboardHtml(reports) : ''}
+    ${customerReportSubTab === 'inactive_list' ? renderInactiveClientsReportHtml(reports) : ''}
 
     ${customerReportSubTab === 'report' ? `
+
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
       <div>
         <h2 style="margin:0 0 4px;font-size:1.25rem;">CUSTOMER INTELLIGENCE &amp; ANALYTICS REPORT</h2>
