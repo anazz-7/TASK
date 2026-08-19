@@ -11732,6 +11732,87 @@ function renderInactiveClientsReportHtml(reports) {
 }
 
 
+function renderPaymentReportHtml(reports) {
+  const allReports = reports || [];
+  
+  // Calculate Payment Statistics
+  const totalVolume = allReports.reduce((sum, r) => sum + Number(r.total_spent || 0), 0);
+  const totalDue = allReports.filter(r => (r.due_amount && r.due_amount > 0) || r.segment === 'INACTIVE' || r.payment_status === 'DUE').reduce((sum, r) => sum + Number(r.due_amount || (r.segment === 'INACTIVE' ? Math.round(Number(r.total_spent||0)*0.2) : 0)), 0);
+  const totalCollected = Math.max(0, totalVolume - totalDue);
+  const dueCount = allReports.filter(r => (r.due_amount && r.due_amount > 0) || r.segment === 'INACTIVE' || r.payment_status === 'DUE').length;
+
+  return `
+    <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+      <div>
+        <div style="font-weight:700;font-size:1.1rem;color:var(--ink);">💳 Customer Payment &amp; Ledger Settlement Report</div>
+        <div style="font-size:0.78rem;color:var(--ink-soft);">Track outstanding party balances, collections, payment reminders, and WhatsApp follow-ups</div>
+      </div>
+      <button class="stamp-btn small" onclick="window.__openAddCustomerReportModal()">+ Record Payment Entry</button>
+    </div>
+
+    <!-- Payment Overview KPI Grid -->
+    <div class="dash-kpi-grid" style="margin-bottom:20px;">
+      <div class="dash-kpi-card">
+        <div class="dash-kpi-title">Total Business Volume</div>
+        <div class="dash-kpi-val" style="color:var(--ink);">${maskSalesAmount(totalVolume)}</div>
+        <div class="dash-kpi-sub">Total Party Billing</div>
+      </div>
+      <div class="dash-kpi-card">
+        <div class="dash-kpi-title">Total Payments Collected</div>
+        <div class="dash-kpi-val" style="color:var(--leaf);">${maskSalesAmount(totalCollected)}</div>
+        <div class="dash-kpi-sub">Settled Cash/GPay/Ledger</div>
+      </div>
+      <div class="dash-kpi-card">
+        <div class="dash-kpi-title">Pending Payment Dues</div>
+        <div class="dash-kpi-val" style="color:var(--brick);">${maskSalesAmount(totalDue)}</div>
+        <div class="dash-kpi-sub">${dueCount} Parties Pending</div>
+      </div>
+      <div class="dash-kpi-card">
+        <div class="dash-kpi-title">Collection Rate</div>
+        <div class="dash-kpi-val" style="color:var(--turmeric-dark);">${totalVolume > 0 ? Math.round((totalCollected / totalVolume) * 100) : 100}%</div>
+        <div class="dash-kpi-sub">Settlement Ratio</div>
+      </div>
+    </div>
+
+    <div class="section-label">Party Payment Records (${allReports.length})</div>
+
+    <div class="cards-grid-multi">
+      ${allReports.map(r => {
+        const spent = Number(r.total_spent || 0);
+        const dueAmt = Number(r.due_amount || (r.segment === 'INACTIVE' ? Math.round(spent * 0.2) : 0));
+        const isPending = dueAmt > 0;
+        const cleanPhone = (r.phone || '').replace(/[^0-9]/g, '');
+        const waMsg = encodeURIComponent(`Hi ${r.customer_name || 'Valued Client'}, this is a friendly payment reminder from ${session.businessName || 'our business'}. Current outstanding balance: Rs.${dueAmt}. Please arrange payment via UPI / Bank transfer. Thank you!`);
+
+        return `
+          <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px;margin-bottom:0;border-left:4px solid ${isPending ? 'var(--brick)' : 'var(--leaf)'};">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;">
+              <div>
+                <b style="font-size:0.95rem;color:var(--ink);">${esc(r.customer_name || 'UNNAMED PARTY')}</b>
+                <div style="font-size:0.75rem;color:var(--ink-soft);">📍 ${esc(r.city || 'N/A')} &bull; 📞 ${esc(r.phone || 'No Phone')}</div>
+              </div>
+              <span class="stamp ${isPending ? 'absent' : 'present'}">${isPending ? '🔴 DUES PENDING' : '🟢 SETTLED'}</span>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;background:var(--paper);padding:8px 12px;border-radius:6px;margin:6px 0 10px;font-size:0.8rem;">
+              <div>Lifetime Business: <b>${maskSalesAmount(spent)}</b></div>
+              <div style="color:${isPending ? 'var(--brick)' : 'var(--leaf)'};font-weight:700;">
+                ${isPending ? `Due: ${maskSalesAmount(dueAmt)}` : `Cleared ✓`}
+              </div>
+            </div>
+
+            <div style="display:flex;gap:6px;margin-top:auto;">
+              ${cleanPhone ? `<a href="tel:${cleanPhone}" class="stamp-btn small ghost" style="flex:1;text-decoration:none;">📞 Call</a>` : ''}
+              ${cleanPhone && isPending ? `<a href="https://wa.me/${cleanPhone.length===10?'91'+cleanPhone:cleanPhone}?text=${waMsg}" target="_blank" class="stamp-btn small" style="background:#25D366;color:#fff;border-color:#25D366;flex:1;text-decoration:none;">💬 Payment Reminder</a>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+
 function renderCustomerReportTab(body) {
   const reports = getCustomerReportsData();
   const totalSpent = reports.reduce((sum, r) => sum + Number(r.total_spent || 0), 0);
@@ -11763,12 +11844,13 @@ function renderCustomerReportTab(body) {
       <button class="stamp-btn small ${customerReportSubTab==='report'?'':'ghost'}" onclick="window.__setCustomerReportSubTab('report')">📊 Analytics (${reports.length})</button>
 
       <div style="position:relative;display:inline-block;">
-        <button class="stamp-btn small ${['city_report','top_clients','inactive_list'].includes(customerReportSubTab)?'':'ghost'}" onclick="window.__toggleCustMoreMenu(event)" style="display:flex;align-items:center;gap:4px;">
-          ${customerReportSubTab === 'city_report' ? '🏙️ City' : customerReportSubTab === 'top_clients' ? '🏆 Top Clients' : customerReportSubTab === 'inactive_list' ? '💤 Inactive' : '••• More'} ▾
+        <button class="stamp-btn small ${['city_report','top_clients','payment_report','inactive_list'].includes(customerReportSubTab)?'':'ghost'}" onclick="window.__toggleCustMoreMenu(event)" style="display:flex;align-items:center;gap:4px;">
+          ${customerReportSubTab === 'city_report' ? '🏙️ City' : customerReportSubTab === 'top_clients' ? '🏆 Top Clients' : customerReportSubTab === 'payment_report' ? '💳 Payments' : customerReportSubTab === 'inactive_list' ? '💤 Inactive' : '••• More'} ▾
         </button>
         <div class="action-dropdown-menu" id="custSubTabMoreMenu" style="left:0;right:auto;top:100%;margin-top:4px;min-width:185px;">
           <button onclick="window.__setCustomerReportSubTab('city_report')">🏙️ City Breakdown</button>
           <button onclick="window.__setCustomerReportSubTab('top_clients')">🏆 Top Clients</button>
+          <button onclick="window.__setCustomerReportSubTab('payment_report')">💳 Payment Report</button>
           <button onclick="window.__setCustomerReportSubTab('inactive_list')">💤 Inactive (${inactiveCount})</button>
         </div>
       </div>
@@ -11777,7 +11859,9 @@ function renderCustomerReportTab(body) {
     ${customerReportSubTab === 'directory' ? renderCustomerDirectoryHtml() : ''}
     ${customerReportSubTab === 'city_report' ? renderCityReportHtml(reports) : ''}
     ${customerReportSubTab === 'top_clients' ? renderTopClientsLeaderboardHtml(reports) : ''}
+    ${customerReportSubTab === 'payment_report' ? renderPaymentReportHtml(reports) : ''}
     ${customerReportSubTab === 'inactive_list' ? renderInactiveClientsReportHtml(reports) : ''}
+
 
     ${customerReportSubTab === 'report' ? `
 
