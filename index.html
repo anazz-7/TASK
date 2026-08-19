@@ -2302,6 +2302,19 @@ async function loadData(){
     }
 
     try {
+      const { data: dAccData, error: dErr } = await supabase.from('daily_accounts').select('*').eq('business_id', bizId).order('date', {ascending:false});
+      if(dErr) throw dErr;
+      const localAcc = JSON.parse(localStorage.getItem('br_daily_accounts_' + bizId) || '[]');
+      const cloudAcc = dAccData || [];
+      const unsyncedAcc = localAcc.filter(a => a.id && String(a.id).startsWith('loc_acc_'));
+      cache.dailyAccounts = [...unsyncedAcc, ...cloudAcc.filter(c => !unsyncedAcc.some(u => u.date === c.date))];
+      localStorage.setItem('br_daily_accounts_' + bizId, JSON.stringify(cache.dailyAccounts));
+    } catch(e) {
+      const localDA = localStorage.getItem('br_daily_accounts_' + bizId);
+      cache.dailyAccounts = localDA ? JSON.parse(localDA) : (cache.dailyAccounts || []);
+    }
+
+    try {
       const localParties = localStorage.getItem('br_vendor_parties_' + bizId);
       cache.vendorParties = localParties ? JSON.parse(localParties) : [];
     } catch(e) { cache.vendorParties = []; }
@@ -2314,14 +2327,7 @@ async function loadData(){
       cache.vendorPayments = localVP ? JSON.parse(localVP) : [];
     }
 
-    try {
-      const { data: dAccData, error: dErr } = await supabase.from('daily_accounts').select('*').eq('business_id', bizId).order('date', {ascending:false});
-      if(dErr) throw dErr;
-      cache.dailyAccounts = dAccData || [];
-    } catch(e) {
-      const localSaved = localStorage.getItem('br_daily_accounts_' + bizId);
-      cache.dailyAccounts = localSaved ? JSON.parse(localSaved) : (cache.dailyAccounts || []);
-    }
+
     const cSet = getAccCheckedSet();
     cache.dailyAccounts.forEach(a => {
       const hasMarker = Boolean(a.notes && String(a.notes).includes('[CHECKED]'));
@@ -6802,7 +6808,8 @@ function setupAccEntryEvents(){
         if(!existing || existing.status !== 'done'){
           if(existing) existing.status = 'done';
           else cache.tasks.push(approved);
-          renderTabBody();
+          if (typeof safeBackgroundRenderTabBody === 'function') safeBackgroundRenderTabBody();
+
         }
       }
     }).catch(()=>{});
@@ -11416,15 +11423,34 @@ window.__reloadAppData = async function(btn) {
 };
 
 
-// 30-Second Background Cross-Device Realtime Sync Poll
+window.safeBackgroundRenderTabBody = function() {
+  const activeEl = document.activeElement;
+  const isTyping = activeEl && (
+    activeEl.tagName === 'INPUT' ||
+    activeEl.tagName === 'TEXTAREA' ||
+    activeEl.tagName === 'SELECT'
+  );
+  const isModalOpen = document.querySelector('.overlay.show') || document.querySelector('.modal');
+  
+  if (isTyping || isModalOpen) {
+    console.log('Skipped background DOM refresh: user is actively typing or editing a form modal.');
+    return;
+  }
+  if (typeof renderTabBody === 'function') {
+    renderTabBody();
+  }
+};
+
+// 30-Second Background Cross-Device Realtime Sync Poll (Safe — never interrupts active typing)
 setInterval(async () => {
   if (navigator.onLine && typeof session !== 'undefined' && session && session.businessId) {
     try {
       await loadData();
-      if (typeof renderTabBody === 'function') renderTabBody();
+      safeBackgroundRenderTabBody();
     } catch(e){}
   }
 }, 30000);
+
 
 let customerSegmentFilter = 'all';
 let customerSearchQuery = '';
