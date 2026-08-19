@@ -10871,6 +10871,61 @@ setInterval(async () => {
 let customerSegmentFilter = 'all';
 let customerSearchQuery = '';
 
+/* Dynamic Customer Deduplication Engine */
+function areCustomersEqual(a, b) {
+  if (!a || !b) return false;
+  if (a.id && b.id && a.id === b.id) return true;
+
+  const phoneA = String(a.mobile || a.phone || '').replace(/\D/g, '');
+  const phoneB = String(b.mobile || b.phone || '').replace(/\D/g, '');
+  if (phoneA.length >= 7 && phoneB.length >= 7 && phoneA === phoneB) return true;
+
+  const nameA = String(a.name || a.customer_name || '').trim().toLowerCase();
+  const nameB = String(b.name || b.customer_name || '').trim().toLowerCase();
+  if (nameA && nameB && nameA === nameB) return true;
+
+  return false;
+}
+
+function deduplicateDirectory(list) {
+  const unique = [];
+  (list || []).forEach(item => {
+    if (!item || (!item.name && !item.customer_name)) return;
+    const existing = unique.find(u => areCustomersEqual(u, item));
+    if (!existing) {
+      unique.push(item);
+    } else {
+      if (!existing.mobile && item.mobile) existing.mobile = item.mobile;
+      if (!existing.city && item.city) existing.city = item.city;
+      if (!existing.address && item.address) existing.address = item.address;
+      if (!existing.notes && item.notes) existing.notes = item.notes;
+    }
+  });
+  return unique;
+}
+
+function deduplicateReports(list) {
+  const unique = [];
+  (list || []).forEach(item => {
+    if (!item || (!item.customer_name && !item.name)) return;
+    const existing = unique.find(u => areCustomersEqual(u, item));
+    if (!existing) {
+      unique.push(item);
+    } else {
+      if (Number(item.total_spent || 0) > Number(existing.total_spent || 0)) {
+        existing.total_spent = item.total_spent;
+      }
+      if (Number(item.total_orders || 0) > Number(existing.total_orders || 0)) {
+        existing.total_orders = item.total_orders;
+      }
+      if (!existing.phone && item.phone) existing.phone = item.phone;
+      if (!existing.city && item.city) existing.city = item.city;
+      if (!existing.remarks && item.remarks) existing.remarks = item.remarks;
+    }
+  });
+  return unique;
+}
+
 function getCustomerReportsData() {
   if (!cache.customerReports) {
     try {
@@ -10880,10 +10935,13 @@ function getCustomerReportsData() {
     }
   }
 
-  // Auto-sync directory entries into reports cache so no data is missing
+  // Deduplicate before sync
+  cache.customerReports = deduplicateReports(cache.customerReports);
+
+  // Sync directory entries into reports cache with duplicate protection
   const dir = getCustomerDirectory();
   dir.forEach(c => {
-    const existing = cache.customerReports.find(r => r.id === c.id || (r.phone && c.mobile && r.phone === c.mobile));
+    const existing = cache.customerReports.find(r => areCustomersEqual(r, c));
     if (!existing) {
       cache.customerReports.push({
         id: c.id || ('cust_rep_' + Date.now() + '_' + Math.random().toString(36).substring(2,6)),
@@ -10900,19 +10958,21 @@ function getCustomerReportsData() {
     }
   });
 
+  cache.customerReports = deduplicateReports(cache.customerReports);
   return cache.customerReports;
 }
 
 function saveCustomerReportsData() {
+  cache.customerReports = deduplicateReports(cache.customerReports || []);
   try {
-    localStorage.setItem('br_customer_reports_' + session.businessId, JSON.stringify(cache.customerReports || []));
+    localStorage.setItem('br_customer_reports_' + session.businessId, JSON.stringify(cache.customerReports));
   } catch(e){}
 
-  // Sync to Customer Directory
+  // Sync to Customer Directory with duplicate protection
   try {
-    const dir = getCustomerDirectory();
+    let dir = getCustomerDirectory();
     (cache.customerReports || []).forEach(r => {
-      const existing = dir.find(c => c.id === r.id || (c.mobile && r.phone && c.mobile === r.phone));
+      const existing = dir.find(c => areCustomersEqual(c, r));
       if (!existing) {
         dir.push({
           id: r.id,
@@ -10925,11 +10985,12 @@ function saveCustomerReportsData() {
         });
       } else {
         if (r.customer_name) existing.name = r.customer_name;
-        if (r.phone) existing.mobile = r.phone;
-        if (r.city) existing.city = r.city;
-        if (r.remarks) existing.notes = r.remarks;
+        if (r.phone && !existing.mobile) existing.mobile = r.phone;
+        if (r.city && !existing.city) existing.city = r.city;
+        if (r.remarks && !existing.notes) existing.notes = r.remarks;
       }
     });
+    dir = deduplicateDirectory(dir);
     localStorage.setItem('br_cust_dir_' + session.businessId, JSON.stringify(dir));
     syncCustomCloudPayload('[CUSTOMER_DIRECTORY_DATA]', dir);
   } catch(e){}
@@ -10997,12 +11058,17 @@ window.__setCustomerReportSubTab = function(t) {
 };
 
 function getCustomerDirectory() {
-  try { return JSON.parse(localStorage.getItem('br_cust_dir_' + session.businessId) || '[]'); } catch(e) { return []; }
+  try {
+    const raw = JSON.parse(localStorage.getItem('br_cust_dir_' + session.businessId) || '[]');
+    return deduplicateDirectory(raw);
+  } catch(e) { return []; }
 }
 function saveCustomerDirectory(list) {
-  try { localStorage.setItem('br_cust_dir_' + session.businessId, JSON.stringify(list)); } catch(e){}
-  syncCustomCloudPayload('[CUSTOMER_DIRECTORY_DATA]', list);
+  const cleanList = deduplicateDirectory(list);
+  try { localStorage.setItem('br_cust_dir_' + session.businessId, JSON.stringify(cleanList)); } catch(e){}
+  syncCustomCloudPayload('[CUSTOMER_DIRECTORY_DATA]', cleanList);
 }
+
 
 
 function renderCustomerDirectoryHtml() {
@@ -11123,18 +11189,21 @@ window.__saveCustDir = function(id) {
     notes: (document.getElementById('mCdNotes').value||'').trim(),
     created_at: id ? (list.find(x=>x.id===id)||{}).created_at || new Date().toISOString() : new Date().toISOString()
   };
-  if (id) {
-    const idx = list.findIndex(x => x.id === id);
-    if (idx >= 0) list[idx] = payload; else list.push(payload);
+
+  const existingIdx = list.findIndex(x => (id && x.id === id) || (!id && areCustomersEqual(x, payload)));
+  if (existingIdx >= 0) {
+    list[existingIdx] = Object.assign({}, list[existingIdx], payload, { id: list[existingIdx].id });
   } else {
     list.unshift(payload);
   }
+
   saveCustomerDirectory(list);
   const h = document.getElementById('custDirModalHolder');
   if (h) h.innerHTML = '';
   window.showToast('👤 Customer saved!', 'success');
   renderTabBody();
 };
+
 
 window.__deleteCustDir = function(id) {
   if (!confirm('Delete this customer?')) return;
@@ -11338,7 +11407,7 @@ window.__submitImportCustomerJson = function() {
       if (!['VIP', 'REGULAR', 'NEW', 'INACTIVE'].includes(segment)) segment = 'REGULAR';
       const remarks = item.remarks || item.notes || item.comments || '';
 
-      current.push({
+      const newItem = {
         id: 'cust_rep_' + Date.now() + '_' + Math.random().toString(36).substring(2,6),
         customer_name: name,
         phone: phone,
@@ -11349,9 +11418,17 @@ window.__submitImportCustomerJson = function() {
         favorite_item: favItem,
         segment: segment,
         remarks: remarks
-      });
-      count++;
+      };
+
+      const existingIdx = current.findIndex(r => areCustomersEqual(r, newItem));
+      if (existingIdx >= 0) {
+        Object.assign(current[existingIdx], newItem, { id: current[existingIdx].id });
+      } else {
+        current.push(newItem);
+        count++;
+      }
     });
+
 
     saveCustomerReportsData();
     document.getElementById('importCustomerJsonModal').classList.remove('show');
