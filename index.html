@@ -1289,8 +1289,8 @@
     color: var(--leaf);
   }
 
-</style>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
 <body>
 <div id="globalLoader"><div class="bar"></div></div>
@@ -1298,7 +1298,26 @@
 <div id="app"></div>
 
 <script type="module">
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+let createClient;
+if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+  createClient = window.supabase.createClient;
+} else {
+  try {
+    const mod = await import('https://esm.sh/@supabase/supabase-js@2');
+    createClient = mod.createClient;
+  } catch(e) {
+    createClient = function() {
+      return {
+        from: () => ({
+          select: () => ({ eq: () => ({ order: () => Promise.resolve({ data: [] }), single: () => Promise.resolve({ data: null }) }), order: () => Promise.resolve({ data: [] }) }),
+          insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: null }) }) }),
+          update: () => ({ eq: () => Promise.resolve({ data: null }) }),
+          delete: () => ({ eq: () => Promise.resolve({ data: null }) })
+        })
+      };
+    };
+  }
+}
 
 /* ================================================================
    >>> EDIT THIS SECTION BEFORE DEPLOYING <<<
@@ -1308,6 +1327,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const DEFAULT_SUPABASE_URL = 'https://uxkimcabvvgbrdpkvond.supabase.co';
 const DEFAULT_SUPABASE_KEY = 'sb_publishable_g3dzrIJkPdEPu4Aw7LxsnA_hpQIo5Qw';   // <-- paste your full key here, inside the quotes
 /* ================================================================ */
+
 
 
 
@@ -1440,21 +1460,60 @@ function getConfig(){
 }
 function saveConfig(url, key){ localStorage.setItem('br_config', JSON.stringify({url,key})); }
 
-async function boot(){
-  const cfg = getConfig();
-  if(!cfg){ renderSetup(); return; }
-  supabase = createClient(cfg.url, cfg.key);
-  if(!session){ renderLogin(); return; }
-  await loadData();
-  activeTab = isManagerPlus() ? 'dashboard' : 'tasks';
-  renderShell();
-  startReminderLoop();
-  startPopupReminders();
-  playOpenChime();
-  showChangelogPopup();
-  maybeShowAttendancePrompt();
-  maybeShowWeekendBackupPrompt();
+function renderBootErrorUI(err) {
+  const appEl = document.getElementById('app') || document.body;
+  const msg = (err && err.message) ? err.message : String(err);
+  appEl.innerHTML = `
+    <div class="center-screen" style="padding:20px;">
+      <div class="auth-card" style="text-align:center;max-width:420px;margin:auto;">
+        <h2 style="color:var(--turmeric);margin:0 0 10px;font-size:1.2rem;">⚠️ App Launch Notice</h2>
+        <p style="color:var(--ink-soft);font-size:0.85rem;line-height:1.4;margin:0 0 18px;">${esc(msg)}</p>
+        <div class="modal-actions" style="display:flex;gap:10px;flex-direction:column;">
+          <button class="stamp-btn" style="width:100%;" onclick="localStorage.removeItem('br_session'); location.reload();">🔄 Re-login &amp; Reload</button>
+          <button class="stamp-btn ghost" style="width:100%;" onclick="localStorage.clear(); location.reload();">🗑 Reset App Data &amp; Reload</button>
+        </div>
+      </div>
+    </div>
+  `;
 }
+
+window.addEventListener('error', function(e) {
+  console.error('Global Error Captured:', e.error || e.message);
+  if (!document.getElementById('app') || !document.getElementById('app').children.length) {
+    renderBootErrorUI(e.error || e.message || 'System initialization error.');
+  }
+});
+
+window.addEventListener('unhandledrejection', function(e) {
+  console.error('Unhandled Promise Rejection Captured:', e.reason);
+  if (!document.getElementById('app') || !document.getElementById('app').children.length) {
+    renderBootErrorUI(e.reason || 'Network or Async Promise Rejection');
+  }
+});
+
+async function boot(){
+  try {
+    const cfg = getConfig();
+    if(!cfg){ renderSetup(); return; }
+    if(typeof createClient === 'function') {
+      supabase = createClient(cfg.url, cfg.key);
+    }
+    if(!session){ renderLogin(); return; }
+    await loadData();
+    activeTab = isManagerPlus() ? 'dashboard' : 'tasks';
+    renderShell();
+    startReminderLoop();
+    startPopupReminders();
+    playOpenChime();
+    showChangelogPopup();
+    maybeShowAttendancePrompt();
+    maybeShowWeekendBackupPrompt();
+  } catch(err) {
+    console.error('Fatal boot error:', err);
+    renderBootErrorUI(err);
+  }
+}
+
 
 /* ---------------- setup screen ---------------- */
 function renderSetup(){
