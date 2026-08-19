@@ -1047,7 +1047,7 @@
   }
 
 
-  /* Mobile Responsive Optimization: Full-Width Wider Ledger & Party Cards */
+  /* Mobile Responsive Optimization: Sleek 2-Column Compact Grid (2 cards per row) */
   @media (max-width: 640px) {
     .wrap {
       padding: 0 8px 100px !important;
@@ -1056,22 +1056,23 @@
       padding: 12px 10px 10px !important;
     }
     .cards-grid-multi {
-      grid-template-columns: 1fr !important;
+      grid-template-columns: repeat(2, 1fr) !important;
       gap: 8px !important;
       width: 100% !important;
     }
-    .row-card, .compact-log-card, .cards-grid-multi > .row-card {
+    .grid-cust-card, .cards-grid-multi > .grid-cust-card {
       width: 100% !important;
-      margin-left: 0 !important;
-      margin-right: 0 !important;
-      padding: 12px 14px !important;
+      padding: 8px 8px !important;
+      min-height: 56px !important;
       box-sizing: border-box !important;
+      border-radius: 8px !important;
     }
     .dash-kpi-grid {
       grid-template-columns: repeat(2, 1fr) !important;
       gap: 8px !important;
     }
   }
+
 
   @media (min-width: 640px) {
     .cards-grid-multi {
@@ -12287,19 +12288,20 @@ function renderCustomerReportTab(body) {
           
           return `
             <div class="row-card grid-cust-card" style="${isVip ? 'border-left:4px solid var(--turmeric);background:var(--blue-soft);' : ''}">
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;cursor:pointer;width:100%;flex-wrap:nowrap;" onclick="window.__toggleExpandCustReport('${r.id}', event)">
-                <div style="display:flex;align-items:center;gap:5px;min-width:0;flex:1 1 auto;max-width:calc(100% - 110px);overflow:hidden;">
-                  <span class="collapse-arrow ${isExpanded?'open':''}" style="font-size:0.78rem;color:var(--ink-soft);flex-shrink:0;">▸</span>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;cursor:pointer;width:100%;flex-wrap:nowrap;" onclick="window.__toggleExpandCustReport('${r.id}', event)">
+                <div style="display:flex;align-items:center;gap:4px;min-width:0;flex:1 1 auto;max-width:calc(100% - 70px);overflow:hidden;">
+                  <span class="collapse-arrow ${isExpanded?'open':''}" style="font-size:0.75rem;color:var(--ink-soft);flex-shrink:0;">▸</span>
                   <div style="min-width:0;flex:1;overflow:hidden;">
-                    <b style="font-size:0.82rem;color:var(--ink);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;width:100%;">${esc(r.customer_name || 'UNNAMED PARTY')}</b>
-                    <div style="font-size:0.68rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;margin-top:1px;width:100%;">📍 ${esc(r.city || 'N/A')}${cleanPhone ? ' &bull; 📞 ' + esc(r.phone) : ''}</div>
+                    <b style="font-size:0.8rem;color:var(--ink);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;width:100%;">${esc(r.customer_name || 'UNNAMED PARTY')}</b>
+                    <div style="font-size:0.66rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;margin-top:1px;width:100%;">📍 ${esc(r.city || 'N/A')}${cleanPhone ? ' &bull; 📞 ' + esc(r.phone) : ''}</div>
                   </div>
                 </div>
-                <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;flex-shrink:0;margin-left:auto;white-space:nowrap;">
-                  <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.82rem;color:var(--turmeric-dark);">${maskSalesAmount(r.total_spent)}</span>
-                  <span class="stamp ${statusClass}" style="padding:2px 5px;font-size:0.62rem;border-radius:999px;white-space:nowrap;">${isVip ? '⭐ VIP' : r.segment || 'REGULAR'}</span>
+                <div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;flex-shrink:0;margin-left:auto;white-space:nowrap;">
+                  <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.8rem;color:var(--turmeric-dark);">${maskSalesAmount(r.total_spent)}</span>
+                  <span class="stamp ${statusClass}" style="padding:1px 4px;font-size:0.6rem;border-radius:999px;white-space:nowrap;">${isVip ? '⭐ VIP' : r.segment || 'REGULAR'}</span>
                 </div>
               </div>
+
 
 
 
