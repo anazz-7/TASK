@@ -3138,27 +3138,51 @@ let dashPointsMode = 'weekly';
 window.__setDashPointsMode = (m) => { dashPointsMode = m; renderTabBody(); };
 
 function buildStaffTargetsHtml(curMonth, monthSales){
+  const targets = cache.salesTargets || [];
+  const staffList = cache.staff || [];
+  if (!staffList.length) return '';
+
+  // Total Business Sales for current month
+  const totalMonthSales = monthSales.reduce((sum, x) => sum + Number(x.order_value || 0), 0);
+  const businessTargetVal = 200000; // Default Monthly Business Target Goal
+  const bizPct = Math.min(100, Math.round((totalMonthSales / businessTargetVal) * 100));
+
   return `
-    <div class="section-label">Staff Sales Targets & Progress — ${curMonth}</div>
+    <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
+      <span>🎯 Target Progress & Sales Performance — ${curMonth}</span>
+      ${isManagerPlus() ? `<button class="stamp-btn small ghost" style="padding:2px 8px;font-size:0.7rem;" onclick="window.__openSetTargetsModal()">⚙️ Set Targets</button>` : ''}
+    </div>
+
+    <!-- Overall Business Sales Goal Progress Card -->
+    <div class="row-card" style="flex-direction:column;align-items:stretch;padding:12px 14px;margin-bottom:12px;background:var(--blue-soft);border:1px solid var(--turmeric);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <b style="font-size:0.9rem;color:var(--turmeric-dark);">📊 Business Monthly Sales Target Goal</b>
+        <b style="font-family:'Roboto Mono',monospace;font-size:0.85rem;color:var(--turmeric-dark);">
+          ₹${totalMonthSales.toLocaleString('en-IN')} / ₹${businessTargetVal.toLocaleString('en-IN')} (${bizPct}%)
+        </b>
+      </div>
+      <div class="progress-track" style="height:10px;background:var(--paper-line);border-radius:999px;overflow:hidden;">
+        <div class="progress-fill ${bizPct>=100?'complete':''}" style="width:${bizPct}%;height:100%;background:linear-gradient(90deg, var(--turmeric), var(--turmeric-dark));border-radius:999px;"></div>
+      </div>
+    </div>
+
+    <!-- Staff Individual Sales Targets Progress Grid -->
     <div class="cards-grid">
-      ${cache.staff.filter(s => {
-        const targetObj = cache.salesTargets.find(t=>t.staff_id===s.id && t.month===curMonth);
-        return targetObj && Number(targetObj.target_amount||0) > 0;
-      }).map(s => {
+      ${staffList.map(s => {
         const sSales = monthSales.filter(x=>x.staff_id===s.id).reduce((sum,x)=>sum+Number(x.order_value||0),0);
-        const targetObj = cache.salesTargets.find(t=>t.staff_id===s.id && t.month===curMonth);
-        const targetVal = targetObj ? Number(targetObj.target_amount||0) : 10000;
+        const targetObj = targets.find(t=>t.staff_id===s.id && t.month===curMonth);
+        const targetVal = targetObj ? Number(targetObj.target_amount||0) : 25000;
         const pct = Math.min(100, Math.round((sSales / Math.max(1, targetVal)) * 100));
         return `
-          <div class="row-card" style="flex-direction:column;align-items:stretch;">
+          <div class="row-card" style="flex-direction:column;align-items:stretch;padding:12px;margin-bottom:8px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-              <h3 style="margin:0;font-size:0.92rem;">${esc(s.name)}</h3>
-              <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.82rem;color:var(--turmeric-dark);">
-                ₹${sSales.toFixed(0)} / ₹${targetVal.toFixed(0)} (${pct}%)
+              <b style="margin:0;font-size:0.88rem;color:var(--ink);">${esc(s.name)}</b>
+              <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.8rem;color:var(--turmeric-dark);">
+                ₹${sSales.toLocaleString('en-IN')} / ₹${targetVal.toLocaleString('en-IN')} (${pct}%)
               </span>
             </div>
-            <div class="progress-track">
-              <div class="progress-fill ${pct>=100?'complete':''}" style="width:${pct}%;"></div>
+            <div class="progress-track" style="height:8px;background:var(--paper-line);border-radius:999px;overflow:hidden;">
+              <div class="progress-fill ${pct>=100?'complete':''}" style="width:${pct}%;height:100%;background:var(--turmeric);border-radius:999px;"></div>
             </div>
           </div>
         `;
@@ -3166,6 +3190,76 @@ function buildStaffTargetsHtml(curMonth, monthSales){
     </div>
   `;
 }
+
+window.__openSetTargetsModal = function() {
+  const holder = getModalHolder('taskModalHolder');
+  const curMonth = monthKey(todayStr());
+  const targets = cache.salesTargets || [];
+
+  holder.innerHTML = `
+  <div class="overlay show"><div class="modal" style="max-width:500px;">
+    <h2>⚙️ Set Monthly Staff Sales Targets (${curMonth})</h2>
+    <p style="font-size:0.8rem;color:var(--ink-soft);margin-bottom:12px;">Set monthly target sales amounts for each staff member to track their progress bars on the Dashboard.</p>
+
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+      ${cache.staff.map(s => {
+        const targetObj = targets.find(t => t.staff_id === s.id && t.month === curMonth);
+        const val = targetObj ? targetObj.target_amount : 25000;
+        return `
+          <div style="display:flex;justify-content:space-between;align-items:center;background:var(--paper);padding:8px 12px;border-radius:6px;border:1px solid var(--paper-line);">
+            <b>${esc(s.name)}</b>
+            <div style="display:flex;align-items:center;gap:4px;">
+              <span>₹</span>
+              <input type="number" class="mTargetInput" data-staff="${s.id}" value="${val}" style="width:110px;font-family:'Roboto Mono',monospace;font-weight:700;">
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+
+    <div class="modal-actions">
+      <button class="stamp-btn ghost" onclick="getModalHolder('taskModalHolder').innerHTML=''">Cancel</button>
+      <button class="stamp-btn" style="background:var(--turmeric);color:white;" onclick="window.__saveStaffTargets('${curMonth}')">💾 Save Targets</button>
+    </div>
+  </div></div>`;
+};
+
+window.__saveStaffTargets = async function(curMonth) {
+  const inputs = document.querySelectorAll('.mTargetInput');
+  const targets = cache.salesTargets || [];
+
+  for (const input of inputs) {
+    const staffId = input.getAttribute('data-staff');
+    const targetAmt = Number(input.value || 0);
+
+    let targetObj = targets.find(t => t.staff_id === staffId && t.month === curMonth);
+    if (targetObj) {
+      targetObj.target_amount = targetAmt;
+    } else {
+      targetObj = {
+        id: 'targ_' + Date.now() + '_' + Math.random().toString(36).substring(2,6),
+        business_id: session.businessId,
+        staff_id: staffId,
+        month: curMonth,
+        target_amount: targetAmt
+      };
+      targets.push(targetObj);
+    }
+
+    if (navigator.onLine && typeof supabase !== 'undefined') {
+      try {
+        const payload = Object.assign({}, targetObj);
+        delete payload.id;
+        await supabase.from('sales_targets').upsert(payload, { onConflict: 'business_id,staff_id,month' });
+      } catch(e){}
+    }
+  }
+
+  cache.salesTargets = targets;
+  getModalHolder('taskModalHolder').innerHTML = '';
+  window.showToast('🎯 Monthly Sales Targets updated!', 'success');
+  renderTabBody();
+};
 
 function sendSmsDailySummary(){
   const today = todayStr();
@@ -10788,8 +10882,176 @@ window.__setSalarySubTab = function(t) {
 };
 
 
+function getExpensesList() {
+  try {
+    return JSON.parse(localStorage.getItem('br_expenses_' + session.businessId) || '[]');
+  } catch(e) { return []; }
+}
+
+function saveExpensesList(expenses) {
+  try { localStorage.setItem('br_expenses_' + session.businessId, JSON.stringify(expenses)); } catch(e){}
+  if (typeof syncCustomCloudPayload === 'function') syncCustomCloudPayload('[EXPENSES_TRACKER_DATA]', expenses);
+}
+
+function renderExpensesTrackerHtml() {
+  const expenses = getExpensesList();
+  const currentMonth = monthKey(todayStr());
+  const monthExpenses = expenses.filter(e => monthKey(e.date) === currentMonth);
+  const totalMonthExp = monthExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+  const cashExp = monthExpenses.filter(e => (e.payment_mode || 'Cash') === 'Cash').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+  const gpayExp = monthExpenses.filter(e => (e.payment_mode || '').includes('GPay') || (e.payment_mode || '').includes('Online')).reduce((sum, e) => sum + Number(e.amount || 0), 0);
+
+  return `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div class="section-label" style="margin:0;">Expenses Tracker Overview (${currentMonth})</div>
+      <button class="stamp-btn small" style="background:var(--turmeric);color:white;" onclick="window.__openExpenseModal()">💸 Record Expense</button>
+    </div>
+
+    <!-- Summary KPI Stat Cards -->
+    <div class="stat-grid" style="margin-bottom:16px;">
+      <div class="stat-card">
+        <div class="num" style="color:var(--turmeric-dark);">₹${totalMonthExp.toLocaleString('en-IN')}</div>
+        <div class="label">Total Spent This Month</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" style="color:var(--turmeric);">₹${cashExp.toLocaleString('en-IN')}</div>
+        <div class="label">Cash Expenses</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" style="color:var(--leaf);">₹${gpayExp.toLocaleString('en-IN')}</div>
+        <div class="label">GPay / Online Expenses</div>
+      </div>
+      <div class="stat-card">
+        <div class="num">${monthExpenses.length}</div>
+        <div class="label">Expense Entries</div>
+      </div>
+    </div>
+
+    <div class="section-label">Business Expense Ledger (${expenses.length})</div>
+    ${expenses.length ? expenses.map(e => `
+      <div class="row-card" style="align-items:center;">
+        <div class="row-main">
+          <div class="meta">
+            <span>${e.date}</span>
+            <span class="stamp low" style="padding:1px 6px;font-size:0.65rem;">${esc(e.category || 'General')}</span>
+            <span>Mode: <b>${esc(e.payment_mode || 'Cash')}</b></span>
+          </div>
+          <h3>Spent by: ${esc(staffName(e.spent_by || e.staff_id))}</h3>
+          ${e.notes ? `<div class="notes">${esc(e.notes)}</div>` : ''}
+        </div>
+        <b style="font-family:'Roboto Mono',monospace;color:var(--turmeric);font-size:1rem;">₹${Number(e.amount||0).toLocaleString('en-IN')}</b>
+        <div class="action-dropdown-holder">
+          <button class="action-more-btn" onclick="window.__toggleActionMenu(event, 'exp_tr_${e.id}')">More ▾</button>
+          <div class="action-dropdown-menu" id="actionMenu_exp_tr_${e.id}">
+            <button onclick="window.__openExpenseModal('${e.id}')">✎ Edit</button>
+            <button class="danger" onclick="window.__deleteExpenseItem('${e.id}')">🗑 Delete</button>
+          </div>
+        </div>
+      </div>
+    `).join('') : `<div class="empty">No expenses logged yet. Tap "💸 Record Expense" to log staff tea, fuel, travel, or maintenance expenses!</div>`}
+  `;
+}
+
+window.__openExpenseModal = function(id) {
+  const expenses = getExpensesList();
+  const exp = id ? expenses.find(x => x.id === id) : null;
+  const holder = getModalHolder('taskModalHolder');
+
+  holder.innerHTML = `
+  <div class="overlay show"><div class="modal" style="max-width:500px;">
+    <h2>${exp ? '✎ Edit Business Expense' : '💸 Record Business Expense'}</h2>
+    <p style="font-size:0.8rem;color:var(--ink-soft);margin-bottom:12px;">Log operational and staff expenses (Tea/Food, Travel, Fuel, Maintenance, Utilities).</p>
+
+    <label>Spent By / Staff *</label>
+    <select id="mExpStaff">
+      ${cache.staff.map(s => `<option value="${s.id}" ${exp && exp.spent_by === s.id ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}
+    </select>
+
+    <div class="two-col">
+      <div>
+        <label>Expense Category *</label>
+        <select id="mExpCat">
+          <option value="Staff Tea & Food" ${exp && exp.category==='Staff Tea & Food'?'selected':''}>Staff Tea & Food</option>
+          <option value="Travel & Fuel" ${exp && exp.category==='Travel & Fuel'?'selected':''}>Travel & Fuel</option>
+          <option value="Shop Maintenance" ${exp && exp.category==='Shop Maintenance'?'selected':''}>Shop Maintenance</option>
+          <option value="Office Supplies" ${exp && exp.category==='Office Supplies'?'selected':''}>Office Supplies</option>
+          <option value="Utility Bills" ${exp && exp.category==='Utility Bills'?'selected':''}>Utility Bills</option>
+          <option value="Miscellaneous" ${!exp || exp.category==='Miscellaneous'?'selected':''}>Miscellaneous</option>
+        </select>
+      </div>
+      <div>
+        <label>Amount (₹) *</label>
+        <input type="number" step="any" id="mExpAmount" value="${exp ? exp.amount || '' : ''}" placeholder="e.g. 150" style="font-family:'Roboto Mono',monospace;font-weight:700;">
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <label>Payment Mode</label>
+        <select id="mExpPayMode">
+          <option value="Cash" ${!exp || exp.payment_mode==='Cash'?'selected':''}>Cash</option>
+          <option value="GPay / Online" ${exp && exp.payment_mode==='GPay / Online'?'selected':''}>GPay / Online</option>
+        </select>
+      </div>
+      <div>
+        <label>Date</label>
+        <input type="date" id="mExpDate" value="${exp ? exp.date : todayStr()}">
+      </div>
+    </div>
+
+    <label>Remarks / Notes</label>
+    <textarea id="mExpNotes" placeholder="e.g. Tea & snacks for staff during inventory audit">${exp ? esc(exp.notes||'') : ''}</textarea>
+
+    <div class="modal-actions">
+      <button class="stamp-btn ghost" onclick="getModalHolder('taskModalHolder').innerHTML=''">Cancel</button>
+      <button class="stamp-btn" style="background:var(--turmeric);color:white;" onclick="window.__saveExpenseItem('${id||''}')">💾 Save Expense</button>
+    </div>
+  </div></div>`;
+};
+
+window.__saveExpenseItem = function(id) {
+  const amt = Number(document.getElementById('mExpAmount').value || 0);
+  if (amt <= 0) { alert('Please enter a valid expense amount (₹).'); return; }
+
+  const expenses = getExpensesList();
+  const payload = {
+    id: id || ('exp_rec_' + Date.now()),
+    business_id: session.businessId,
+    spent_by: document.getElementById('mExpStaff').value,
+    category: document.getElementById('mExpCat').value,
+    amount: amt,
+    payment_mode: document.getElementById('mExpPayMode').value,
+    date: document.getElementById('mExpDate').value || todayStr(),
+    notes: document.getElementById('mExpNotes').value.trim(),
+    created_at: new Date().toISOString()
+  };
+
+  if (id) {
+    const idx = expenses.findIndex(x => x.id === id);
+    if (idx >= 0) expenses[idx] = payload; else expenses.unshift(payload);
+  } else {
+    expenses.unshift(payload);
+  }
+
+  saveExpensesList(expenses);
+  getModalHolder('taskModalHolder').innerHTML = '';
+  logAuditEvent('Expense Recorded', `Recorded ₹${amt} expense (${payload.category}) spent by ${staffName(payload.spent_by)}`);
+  window.showToast(`💸 Expense of ₹${amt} saved!`, 'success');
+  renderTabBody();
+};
+
+window.__deleteExpenseItem = function(id) {
+  if (!confirm('Delete this expense entry?')) return;
+  const expenses = getExpensesList().filter(x => x.id !== id);
+  saveExpensesList(expenses);
+  window.showToast('🗑 Expense deleted.', 'info');
+  renderTabBody();
+};
+
+
 function renderSalaryTab(body){
   const advances = getSalaryAdvances();
+  const expenses = getExpensesList();
   const currentMonth = monthKey(todayStr());
   const advancesThisMonth = advances.filter(a => monthKey(a.date) === currentMonth);
 
@@ -10798,8 +11060,10 @@ function renderSalaryTab(body){
     <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;">
       <button class="stamp-btn small ${salarySubTab==='payouts'?'':'ghost'}" onclick="window.__setSalarySubTab('payouts')">💵 Payout History (${cache.salaries.length})</button>
       <button class="stamp-btn small ${salarySubTab==='advances'?'':'ghost'}" onclick="window.__setSalarySubTab('advances')">💸 Salary Advances (${advances.length})</button>
+      <button class="stamp-btn small ${salarySubTab==='expenses'?'':'ghost'}" onclick="window.__setSalarySubTab('expenses')">🧾 Expenses Tracker (${expenses.length})</button>
       <button class="stamp-btn small ${salarySubTab==='schedules'?'':'ghost'}" onclick="window.__setSalarySubTab('schedules')">📅 Schedules (${cache.staff.length})</button>
     </div>
+
 
     ${salarySubTab === 'payouts' ? `
       ${buildQtyGraphHtml(cache.salaries, salaryReportMode, '__setSalaryReportMode', '', 'amount', '₹', 'paid_date')}
@@ -10877,9 +11141,12 @@ function renderSalaryTab(body){
           </div>
         </div>
       `).join('') : `<div class="empty">No salary advances recorded.</div>`}
+    ${salarySubTab === 'expenses' ? `
+      ${renderExpensesTrackerHtml()}
     ` : ''}
 
     ${salarySubTab === 'schedules' ? `
+
       <div class="section-label">Payout Schedule Per Staff</div>
       ${cache.staff.map(s=>`
         <div class="row-card" style="align-items:center;">
