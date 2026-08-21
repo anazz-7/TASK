@@ -1598,9 +1598,19 @@ async function boot(){
       supabase = createClient(cfg.url, cfg.key);
     }
     if(!session){ renderLogin(); return; }
-    await loadData();
+
+    // Instant UI Render from local cache (0ms delay — eliminates white screen)
     activeTab = isManagerPlus() ? 'dashboard' : 'tasks';
     renderShell();
+
+    // Background Async Cloud Data Load
+    try {
+      await loadData();
+      renderTabBody();
+    } catch(dataErr) {
+      console.warn('Background loadData notice:', dataErr);
+    }
+
     startReminderLoop();
     startPopupReminders();
     playOpenChime();
@@ -1612,6 +1622,7 @@ async function boot(){
     renderBootErrorUI(err);
   }
 }
+
 
 
 /* ---------------- setup screen ---------------- */

@@ -1,5 +1,5 @@
 // Service Worker for BABM TASK / B-INDUSTRIES (PWA Cache & Web Push Notifications)
-const CACHE_VERSION = 'v3.6.0';
+const CACHE_VERSION = 'v3.6.1';
 const CACHE_NAME = `babm-task-app-${CACHE_VERSION}`;
 const ASSETS_TO_CACHE = [
   './',
@@ -28,7 +28,7 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// Fetch: Network-First / Cache Fallback for always-fresh app updates
+// Fetch: Network-First / Cache Fallback for always-fresh app updates with bulletproof fallback
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET' || !e.request.url.startsWith('http')) return;
   e.respondWith(
@@ -41,9 +41,10 @@ self.addEventListener('fetch', (e) => {
     }).catch(() => {
       return caches.match(e.request).then((cachedResponse) => {
         if (cachedResponse) return cachedResponse;
-        if (e.request.headers && e.request.headers.get('accept') && e.request.headers.get('accept').includes('text/html')) {
-          return caches.match('index.html');
-        }
+        return caches.match('index.html').then((htmlRes) => {
+          if (htmlRes) return htmlRes;
+          return caches.match('./');
+        });
       });
     })
   );
