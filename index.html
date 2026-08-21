@@ -1400,8 +1400,8 @@
 let createClient;
 if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
   createClient = window.supabase.createClient;
-} else if (window['supabase'] && window['supabase'].createClient) {
-  createClient = window['supabase'].createClient;
+} else if (window['sb'] && window['sb'].createClient) {
+  createClient = window['sb'].createClient;
 } else {
   createClient = function() {
     return {
@@ -1548,7 +1548,7 @@ function _tasksRender() {
 }
 
 const app = document.getElementById('app');
-let supabase = null;
+let sb = null;
 let session = JSON.parse(localStorage.getItem('br_session') || 'null'); // {staffId, name, role, businessId, businessName}
 let cache = { businesses: [], staff: [], tasks: [], attendance: [], sales: [], routines: [], routineLog: [], points: [], labels: [], weeklyTasks: [], weeklyTaskLog: [], packages: [], salesmanLocations: [], salaries: [], salesTargets: [], trophies: [], stockChecks: [], dailyAccounts: [], vendorBills: [], lowStocks: [], vendorParties: [], vendorPayments: [] };
 let activeTab = 'tasks';
@@ -1601,7 +1601,7 @@ async function boot(){
     const cfg = getConfig();
     if(!cfg){ renderSetup(); return; }
     if(typeof createClient === 'function') {
-      supabase = createClient(cfg.url, cfg.key);
+      sb = createClient(cfg.url, cfg.key);
     }
     if(!session){ renderLogin(); return; }
 
@@ -1636,7 +1636,7 @@ function renderSetup(){
   app.innerHTML = `
   <div class="center-screen"><div class="auth-card">
     <h1>Connect your database</h1>
-    <p>One-time setup. Create a free project at <a class="link" href="https://supabase.com" target="_blank">supabase.com</a>, run the schema in its SQL editor, then paste your Project URL and anon public key below (Settings &rarr; API).</p>
+    <p>One-time setup. Create a free project at <a class="link" href="https://sb.com" target="_blank">sb.com</a>, run the schema in its SQL editor, then paste your Project URL and anon public key below (Settings &rarr; API).</p>
     <label>Project URL</label>
     <input id="cfgUrl" placeholder="https://xxxx.supabase.co">
     <label>Anon public key</label>
@@ -1655,7 +1655,7 @@ function renderSetup(){
 
 /* ---------------- login / onboarding ---------------- */
 async function renderLogin(){
-  const { data: businesses } = await supabase.from('businesses').select('*').order('name');
+  const { data: businesses } = await sb.from('businesses').select('*').order('name');
   if(!businesses || businesses.length === 0){ renderOnboarding(); return; }
 
   app.innerHTML = `
@@ -1676,7 +1676,7 @@ async function renderLogin(){
   const bizSel = document.getElementById('loginBiz');
   bizSel.innerHTML = businesses.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
   async function loadStaffFor(bizId){
-    const { data: staffList } = await supabase.from('staff').select('*').eq('business_id', bizId).order('name');
+    const { data: staffList } = await sb.from('staff').select('*').eq('business_id', bizId).order('name');
     const sel = document.getElementById('loginStaff');
     sel.innerHTML = (staffList||[]).map(s=>`<option value="${s.id}">${s.name} (${s.role})</option>`).join('') || `<option value="">No staff yet</option>`;
   }
@@ -1688,7 +1688,7 @@ async function renderLogin(){
     const staffId = document.getElementById('loginStaff').value;
     const pin = document.getElementById('loginPin').value.trim();
     if(!staffId || !pin){ document.getElementById('loginErr').textContent='Choose your name and enter your PIN.'; return; }
-    const { data: staffRow } = await supabase.from('staff').select('*').eq('id', staffId).single();
+    const { data: staffRow } = await sb.from('staff').select('*').eq('id', staffId).single();
     if(!staffRow || staffRow.pin !== pin){ document.getElementById('loginErr').textContent='Wrong PIN.'; return; }
     const biz = businesses.find(b=>b.id===staffRow.business_id);
     session = { staffId: staffRow.id, name: staffRow.name, role: staffRow.role, businessId: biz.id, businessName: biz.name };
@@ -1724,9 +1724,9 @@ async function renderOnboarding(){
     const name = document.getElementById('obName').value.trim();
     const pin = document.getElementById('obPin').value.trim();
     if(!bizName || !name || !pin){ document.getElementById('obErr').textContent='Fill in all fields.'; return; }
-    const { data: biz, error: e1 } = await supabase.from('businesses').insert({name:bizName}).select().single();
+    const { data: biz, error: e1 } = await sb.from('businesses').insert({name:bizName}).select().single();
     if(e1){ document.getElementById('obErr').textContent = e1.message; return; }
-    const { data: owner, error: e2 } = await supabase.from('staff').insert({business_id:biz.id, name, role:'owner', pin}).select().single();
+    const { data: owner, error: e2 } = await sb.from('staff').insert({business_id:biz.id, name, role:'owner', pin}).select().single();
     if(e2){ document.getElementById('obErr').textContent = e2.message; return; }
     session = { staffId: owner.id, name: owner.name, role:'owner', businessId: biz.id, businessName: biz.name };
     localStorage.setItem('br_session', JSON.stringify(session));
@@ -1796,8 +1796,8 @@ window.__deleteTask = function(id) {
   renderTabBody();
 
   // 2. Background DB delete
-  if (navigator.onLine && typeof supabase !== 'undefined' && !String(id).startsWith('loc_task_')) {
-    Promise.resolve(supabase.from('tasks').delete().eq('id', id)).catch(() => {});
+  if (navigator.onLine && typeof sb !== 'undefined' && !String(id).startsWith('loc_task_')) {
+    Promise.resolve(sb.from('tasks').delete().eq('id', id)).catch(() => {});
   }
   logAuditEvent('Task Deleted', 'Deleted task ' + id);
 };
@@ -1814,9 +1814,9 @@ window.__deleteAcc = function(identifier) {
         
         // Try deleting by UUID or date
         if(target && target.id && !target.id.startsWith('loc_')) {
-          await supabase.from('daily_accounts').delete().eq('id', target.id);
+          await sb.from('daily_accounts').delete().eq('id', target.id);
         } else {
-          await supabase.from('daily_accounts').delete().eq('business_id', session.businessId).eq('date', dateVal);
+          await sb.from('daily_accounts').delete().eq('business_id', session.businessId).eq('date', dateVal);
         }
       } catch(e){}
       finally {
@@ -1838,7 +1838,7 @@ window.__deleteStaff = function(staffId) {
     onConfirm: async () => {
       showLoading();
       try {
-        await supabase.from('staff').delete().eq('id', staffId);
+        await sb.from('staff').delete().eq('id', staffId);
         cache.staff = cache.staff.filter(s => s.id !== staffId);
       } catch(e){}
       finally {
@@ -2042,11 +2042,11 @@ async function ensurePresetAccountsSeeded(bizId){
     payload.less = totals.less;
 
     try {
-      const { data: upserted } = await supabase.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' }).select().single();
+      const { data: upserted } = await sb.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' }).select().single();
       if(upserted && upserted.id) payload.id = upserted.id;
     } catch(e){
       try {
-        const { data: inserted } = await supabase.from('daily_accounts').insert(payload).select().single();
+        const { data: inserted } = await sb.from('daily_accounts').insert(payload).select().single();
         if(inserted && inserted.id) payload.id = inserted.id;
       } catch(err){}
     }
@@ -2103,16 +2103,16 @@ async function flushOfflineMutationQueue() {
 
       if (item.table === 'daily_accounts') {
         // Multi-tier robust sync for daily_accounts
-        let { data: saved, error } = await supabase.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' }).select().single();
+        let { data: saved, error } = await sb.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' }).select().single();
         if (error) resErr = error;
         
         if (error || !saved) {
-          const { data: checkData, error: checkErr } = await supabase.from('daily_accounts').select('id').eq('business_id', payload.business_id).eq('date', payload.date).maybeSingle();
+          const { data: checkData, error: checkErr } = await sb.from('daily_accounts').select('id').eq('business_id', payload.business_id).eq('date', payload.date).maybeSingle();
           if (checkData && checkData.id) {
-            const res = await supabase.from('daily_accounts').update(payload).eq('id', checkData.id).select().single();
+            const res = await sb.from('daily_accounts').update(payload).eq('id', checkData.id).select().single();
             saved = res.data; resErr = res.error || checkErr;
           } else {
-            const res = await supabase.from('daily_accounts').insert(payload).select().single();
+            const res = await sb.from('daily_accounts').insert(payload).select().single();
             saved = res.data; resErr = res.error || checkErr;
           }
         }
@@ -2121,13 +2121,13 @@ async function flushOfflineMutationQueue() {
           continue;
         }
       } else if (item.action_type === 'insert') {
-        const { error } = await supabase.from(item.table).insert(payload);
+        const { error } = await sb.from(item.table).insert(payload);
         if (error) resErr = error; else syncedCount++;
       } else if (item.action_type === 'update') {
-        const { error } = await supabase.from(item.table).update(payload).eq('id', item.payload.id);
+        const { error } = await sb.from(item.table).update(payload).eq('id', item.payload.id);
         if (error) resErr = error; else syncedCount++;
       } else if (item.action_type === 'delete') {
-        const { error } = await supabase.from(item.table).delete().eq('id', item.payload.id);
+        const { error } = await sb.from(item.table).delete().eq('id', item.payload.id);
         if (error) resErr = error; else syncedCount++;
       } else {
         syncedCount++;
@@ -2307,21 +2307,21 @@ async function loadData(){
   try {
     const bizId = session.businessId;
     const [staffR, tasksR, attR, salesR, routinesR, pointsR, labelsR, weeklyR, packagesR, locR, salariesR, targetsR, trophiesR, stockR, auditR] = await Promise.all([
-      supabase.from('staff').select('*').eq('business_id', bizId).order('name'),
-      supabase.from('tasks').select('*').eq('business_id', bizId).order('due_date', {ascending:true, nullsFirst:false}),
-      supabase.from('attendance').select('*').eq('business_id', bizId).order('date', {ascending:false}),
-      supabase.from('sales').select('*').eq('business_id', bizId).order('date', {ascending:false}),
-      supabase.from('routines').select('*').eq('business_id', bizId).order('title'),
-      supabase.from('points_log').select('*').eq('business_id', bizId).order('date', {ascending:false}),
-      supabase.from('labels').select('*').eq('business_id', bizId).order('date', {ascending:false}),
-      supabase.from('weekly_tasks').select('*').eq('business_id', bizId).order('title'),
-      supabase.from('packages').select('*').eq('business_id', bizId).order('date', {ascending:false}),
-      supabase.from('salesman_locations').select('*').eq('business_id', bizId),
-      supabase.from('salaries').select('*').eq('business_id', bizId).order('paid_date', {ascending:false}),
-      supabase.from('sales_targets').select('*').eq('business_id', bizId),
-      supabase.from('trophies').select('*').eq('business_id', bizId),
-      supabase.from('stock_checks').select('*').eq('business_id', bizId).order('date', {ascending:false}),
-      supabase.from('audit_logs').select('*').eq('business_id', bizId).order('timestamp', {ascending:false}).limit(300),
+      sb.from('staff').select('*').eq('business_id', bizId).order('name'),
+      sb.from('tasks').select('*').eq('business_id', bizId).order('due_date', {ascending:true, nullsFirst:false}),
+      sb.from('attendance').select('*').eq('business_id', bizId).order('date', {ascending:false}),
+      sb.from('sales').select('*').eq('business_id', bizId).order('date', {ascending:false}),
+      sb.from('routines').select('*').eq('business_id', bizId).order('title'),
+      sb.from('points_log').select('*').eq('business_id', bizId).order('date', {ascending:false}),
+      sb.from('labels').select('*').eq('business_id', bizId).order('date', {ascending:false}),
+      sb.from('weekly_tasks').select('*').eq('business_id', bizId).order('title'),
+      sb.from('packages').select('*').eq('business_id', bizId).order('date', {ascending:false}),
+      sb.from('salesman_locations').select('*').eq('business_id', bizId),
+      sb.from('salaries').select('*').eq('business_id', bizId).order('paid_date', {ascending:false}),
+      sb.from('sales_targets').select('*').eq('business_id', bizId),
+      sb.from('trophies').select('*').eq('business_id', bizId),
+      sb.from('stock_checks').select('*').eq('business_id', bizId).order('date', {ascending:false}),
+      sb.from('audit_logs').select('*').eq('business_id', bizId).order('timestamp', {ascending:false}).limit(300),
     ]);
     cache.staff = staffR.data || [];
     const cloudTasks = tasksR.data || [];
@@ -2413,7 +2413,7 @@ async function loadData(){
     cache.stockChecks = stockR.data || [];
     cache.auditLogs = auditR.data || [];
     try {
-      const { data: vBillsData, error: vBillsErr } = await supabase.from('vendor_bills').select('*').eq('business_id', bizId).order('bill_date', {ascending:false});
+      const { data: vBillsData, error: vBillsErr } = await sb.from('vendor_bills').select('*').eq('business_id', bizId).order('bill_date', {ascending:false});
       if (vBillsErr) throw vBillsErr;
       cache.vendorBills = vBillsData || [];
       localStorage.setItem('br_vendor_bills_' + bizId, JSON.stringify(cache.vendorBills));
@@ -2428,7 +2428,7 @@ async function loadData(){
       cache.vendorBills = localSaved ? JSON.parse(localSaved) : (cache.vendorBills || []);
     }
     try {
-      const { data: lsData } = await supabase.from('low_stocks').select('*').eq('business_id', bizId).order('created_at', {ascending:false});
+      const { data: lsData } = await sb.from('low_stocks').select('*').eq('business_id', bizId).order('created_at', {ascending:false});
       cache.lowStocks = lsData || [];
     } catch(e) {
       const localLS = localStorage.getItem('br_low_stocks_' + bizId);
@@ -2436,7 +2436,7 @@ async function loadData(){
     }
 
     try {
-      const { data: dAccData, error: dErr } = await supabase.from('daily_accounts').select('*').eq('business_id', bizId).order('date', {ascending:false});
+      const { data: dAccData, error: dErr } = await sb.from('daily_accounts').select('*').eq('business_id', bizId).order('date', {ascending:false});
       if(dErr) throw dErr;
       const localAcc = JSON.parse(localStorage.getItem('br_daily_accounts_' + bizId) || '[]');
       const cloudAcc = dAccData || [];
@@ -2454,7 +2454,7 @@ async function loadData(){
     } catch(e) { cache.vendorParties = []; }
 
     try {
-      const { data: vpData } = await supabase.from('vendor_payments').select('*').eq('business_id', bizId).order('date', {ascending:false});
+      const { data: vpData } = await sb.from('vendor_payments').select('*').eq('business_id', bizId).order('date', {ascending:false});
       cache.vendorPayments = vpData || [];
     } catch(e) {
       const localVP = localStorage.getItem('br_vendor_payments_' + bizId);
@@ -2479,7 +2479,7 @@ async function loadData(){
     saveAccCheckedSet(cSet);
 
     // Sync any locally checked items to cloud in background
-    if (navigator.onLine && typeof supabase !== 'undefined' && session && session.businessId) {
+    if (navigator.onLine && typeof sb !== 'undefined' && session && session.businessId) {
       (async function() {
         const itemsToSync = cache.dailyAccounts.filter(a => Boolean(a.is_checked));
         for (const item of itemsToSync) {
@@ -2491,7 +2491,7 @@ async function loadData(){
               notes: item.notes || '[CHECKED]'
             };
             if (item.id && !String(item.id).startsWith('loc_') && !String(item.id).startsWith('preset_')) p.id = item.id;
-            await supabase.from('daily_accounts').upsert(p, { onConflict: 'business_id,date' });
+            await sb.from('daily_accounts').upsert(p, { onConflict: 'business_id,date' });
           } catch(err){}
         }
       })();
@@ -2513,7 +2513,7 @@ async function loadData(){
 
     const routineIds = cache.routines.map(r=>r.id);
     if(routineIds.length){
-      const routineLogR = await supabase.from('routine_log').select('*').eq('date', todayStr()).in('routine_id', routineIds);
+      const routineLogR = await sb.from('routine_log').select('*').eq('date', todayStr()).in('routine_id', routineIds);
       cache.routineLog = routineLogR.data || [];
     } else {
       cache.routineLog = [];
@@ -2521,7 +2521,7 @@ async function loadData(){
 
     const weeklyIds = cache.weeklyTasks.map(r=>r.id);
     if(weeklyIds.length){
-      const weeklyLogR = await supabase.from('weekly_task_log').select('*').eq('week_start', currentWeekStartStr()).in('weekly_task_id', weeklyIds);
+      const weeklyLogR = await sb.from('weekly_task_log').select('*').eq('week_start', currentWeekStartStr()).in('weekly_task_id', weeklyIds);
       cache.weeklyTaskLog = weeklyLogR.data || [];
     } else {
       cache.weeklyTaskLog = [];
@@ -3263,11 +3263,11 @@ window.__saveStaffTargets = async function(curMonth) {
       targets.push(targetObj);
     }
 
-    if (navigator.onLine && typeof supabase !== 'undefined') {
+    if (navigator.onLine && typeof sb !== 'undefined') {
       try {
         const payload = Object.assign({}, targetObj);
         delete payload.id;
-        await supabase.from('sales_targets').upsert(payload, { onConflict: 'business_id,staff_id,month' });
+        await sb.from('sales_targets').upsert(payload, { onConflict: 'business_id,staff_id,month' });
       } catch(e){}
     }
   }
@@ -3882,8 +3882,8 @@ window.__submitQuickModal = async function() {
   // 2. Background DB sync
   const dbPayload = Object.assign({}, payload);
   delete dbPayload.id;
-  if (navigator.onLine && typeof supabase !== 'undefined') {
-    supabase.from('tasks').insert(dbPayload).select().single().then(r => {
+  if (navigator.onLine && typeof sb !== 'undefined') {
+    sb.from('tasks').insert(dbPayload).select().single().then(r => {
       if (r && r.data && r.data.id) {
         const loc = cache.tasks.find(t => t.id === payload.id);
         if (loc) Object.assign(loc, r.data);
@@ -3935,8 +3935,8 @@ window.__quickAddNaturalTask = async function() {
   // 2. Background DB sync
   const dbPayload = Object.assign({}, payload);
   delete dbPayload.id;
-  if (navigator.onLine && typeof supabase !== 'undefined') {
-    supabase.from('tasks').insert(dbPayload).select().single().then(r => {
+  if (navigator.onLine && typeof sb !== 'undefined') {
+    sb.from('tasks').insert(dbPayload).select().single().then(r => {
       if (r && r.data && r.data.id) {
         const loc = cache.tasks.find(t => t.id === payload.id);
         if (loc) Object.assign(loc, r.data);
@@ -4081,20 +4081,20 @@ function renderTasksTab(body){
     const sendable = cache.tasks.filter(t=>t.status!=='done' && staffPhone(t.assigned_to));
     if(!sendable.length){ alert('No pending tasks with a WhatsApp number to send.'); return; }
     if(!confirm(`Open WhatsApp for ${sendable.length} pending task(s)? Allow pop-ups if asked.`)) return;
-    sendable.forEach(async t => { window.open(waLink(t), '_blank'); await supabase.from('tasks').update({status:'sent'}).eq('id', t.id); });
+    sendable.forEach(async t => { window.open(waLink(t), '_blank'); await sb.from('tasks').update({status:'sent'}).eq('id', t.id); });
     setTimeout(async ()=>{ await loadData(); renderTabBody(); }, 800);
   };
   window.__sendWa = async (id) => {
     const t = cache.tasks.find(x=>x.id===id);
     if(!staffPhone(t.assigned_to)){ alert('No WhatsApp number on file for this person. Add one in Staff.'); return; }
     window.open(waLink(t), '_blank');
-    if(t.status!=='done'){ await supabase.from('tasks').update({status:'sent'}).eq('id', id); await loadData(); renderTabBody(); }
+    if(t.status!=='done'){ await sb.from('tasks').update({status:'sent'}).eq('id', id); await loadData(); renderTabBody(); }
   };
   window.__sendSms = async (id) => {
     const t = cache.tasks.find(x=>x.id===id);
     if(!staffPhone(t.assigned_to)){ alert('No phone number on file for this person. Add one in Staff.'); return; }
     window.location.href = smsLink(t);
-    if(t.status!=='done'){ await supabase.from('tasks').update({status:'sent'}).eq('id', id); await loadData(); renderTabBody(); }
+    if(t.status!=='done'){ await sb.from('tasks').update({status:'sent'}).eq('id', id); await loadData(); renderTabBody(); }
   };
   window.__editTask = (id) => openTaskModal(id);
 }
@@ -4118,8 +4118,8 @@ window.__markDone = function(id) {
   }
 
   // Background DB sync (non-blocking)
-  if (navigator.onLine && typeof supabase !== 'undefined' && !String(id).startsWith('loc_task_')) {
-    Promise.resolve(supabase.from('tasks').update({ status: 'done' }).eq('id', id)).catch(() => {});
+  if (navigator.onLine && typeof sb !== 'undefined' && !String(id).startsWith('loc_task_')) {
+    Promise.resolve(sb.from('tasks').update({ status: 'done' }).eq('id', id)).catch(() => {});
   }
   try { awardTaskPoint(id, 'task').catch(() => {}); } catch(e){}
   try { notifyCompletion(id, 'task'); } catch(e){}
@@ -4186,13 +4186,13 @@ function openTaskModal(taskId){
     _tasksRender();
 
     // Background DB sync
-    if (navigator.onLine && typeof supabase !== 'undefined') {
+    if (navigator.onLine && typeof sb !== 'undefined') {
       if (id && !String(id).startsWith('loc_task_')) {
-        Promise.resolve(supabase.from('tasks').update(data).eq('id', id)).catch(() => {});
+        Promise.resolve(sb.from('tasks').update(data).eq('id', id)).catch(() => {});
       } else {
         const db = Object.assign({}, data);
         delete db.id;
-        supabase.from('tasks').insert(db).select().single().then(r => {
+        sb.from('tasks').insert(db).select().single().then(r => {
           if (r && r.data && r.data.id) {
             const loc = cache.tasks.find(t => t.id === locId);
             if (loc) { Object.assign(loc, r.data); _tasksSave(); }
@@ -4284,8 +4284,8 @@ function renderDailyTab(body){
     try{
       const newStatus = currentlyDone ? 'pending' : 'done';
       const existing = cache.routineLog.find(l=>l.routine_id===routineId);
-      if(existing) await sbCheck(supabase.from('routine_log').update({status:newStatus}).eq('id', existing.id));
-      else await sbCheck(supabase.from('routine_log').insert({routine_id: routineId, date: today, status: newStatus}));
+      if(existing) await sbCheck(sb.from('routine_log').update({status:newStatus}).eq('id', existing.id));
+      else await sbCheck(sb.from('routine_log').insert({routine_id: routineId, date: today, status: newStatus}));
       if(newStatus==='done'){
         celebrateDone();
         await awardTaskPoint(routineId, 'routine');
@@ -4303,7 +4303,7 @@ function renderDailyTab(body){
     onConfirm: async () => {
       showLoading();
       try {
-        await supabase.from('routines').delete().eq('id', id);
+        await sb.from('routines').delete().eq('id', id);
         cache.routines = cache.routines.filter(r => r.id !== id);
       } catch(e){}
       finally {
@@ -4356,8 +4356,8 @@ function openRoutineModal(routineId){
       priority: document.getElementById('mRoutinePriority').value,
     };
     await guardedSave('routineForm-'+(id||'new'), async () => {
-      if(id) await sbCheck(supabase.from('routines').update(data).eq('id', id));
-      else await sbCheck(supabase.from('routines').insert(data));
+      if(id) await sbCheck(sb.from('routines').update(data).eq('id', id));
+      else await sbCheck(sb.from('routines').insert(data));
       holder.innerHTML='';
       await loadData(); renderTabBody();
     });
@@ -4436,8 +4436,8 @@ function renderWeeklyTab(body){
     try{
       const newStatus = currentlyDone ? 'pending' : 'done';
       const existing = cache.weeklyTaskLog.find(l=>l.weekly_task_id===weeklyId);
-      if(existing) await sbCheck(supabase.from('weekly_task_log').update({status:newStatus}).eq('id', existing.id));
-      else await sbCheck(supabase.from('weekly_task_log').insert({weekly_task_id: weeklyId, week_start: weekStart, status: newStatus}));
+      if(existing) await sbCheck(sb.from('weekly_task_log').update({status:newStatus}).eq('id', existing.id));
+      else await sbCheck(sb.from('weekly_task_log').insert({weekly_task_id: weeklyId, week_start: weekStart, status: newStatus}));
       if(newStatus==='done'){
         celebrateDone();
         await awardTaskPoint(weeklyId, 'weekly');
@@ -4455,7 +4455,7 @@ function renderWeeklyTab(body){
     onConfirm: async () => {
       showLoading();
       try {
-        await supabase.from('weekly_tasks').delete().eq('id', id);
+        await sb.from('weekly_tasks').delete().eq('id', id);
         cache.weeklyTasks = cache.weeklyTasks.filter(w => w.id !== id);
       } catch(e){}
       finally {
@@ -4504,8 +4504,8 @@ function openWeeklyModal(weeklyId){
       priority: document.getElementById('mWeeklyPriority').value,
     };
     await guardedSave('weeklyForm-'+(id||'new'), async () => {
-      if(id) await sbCheck(supabase.from('weekly_tasks').update(data).eq('id', id));
-      else await sbCheck(supabase.from('weekly_tasks').insert(data));
+      if(id) await sbCheck(sb.from('weekly_tasks').update(data).eq('id', id));
+      else await sbCheck(sb.from('weekly_tasks').insert(data));
       holder.innerHTML='';
       await loadData(); renderTabBody();
     });
@@ -4602,7 +4602,7 @@ async function awardTaskPoint(itemId, kind){
     assignedTo = w.assigned_to; title = w.title;
   }
   if(!assignedTo) return;
-  await supabase.from('points_log').insert({
+  await sb.from('points_log').insert({
     business_id: session.businessId,
     staff_id: assignedTo,
     points: 1,
@@ -4657,7 +4657,7 @@ function renderAttendanceTab(body){
     __busyKeys.add(key);
     try{
       const loc = await getLocation();
-      await sbCheck(supabase.from('break_returns').insert({
+      await sbCheck(sb.from('break_returns').insert({
         business_id: session.businessId, staff_id: session.staffId,
         marked_at: new Date().toISOString(),
         lat: loc?loc.lat:null, lng: loc?loc.lng:null,
@@ -4682,8 +4682,8 @@ function renderAttendanceTab(body){
       const existing = cache.attendance.find(a=>a.staff_id===session.staffId && a.date===today);
       const data = { status, marked_at: new Date().toISOString(), marked_by: session.staffId };
       if(loc){ data.marked_lat = loc.lat; data.marked_lng = loc.lng; }
-      if(existing) await sbCheck(supabase.from('attendance').update(data).eq('id', existing.id));
-      else await sbCheck(supabase.from('attendance').insert({business_id:session.businessId, staff_id:session.staffId, date:today, ...data}));
+      if(existing) await sbCheck(sb.from('attendance').update(data).eq('id', existing.id));
+      else await sbCheck(sb.from('attendance').insert({business_id:session.businessId, staff_id:session.staffId, date:today, ...data}));
       await loadData(); renderTabBody();
       if(status==='present') notifyOwnerOfAttendance('marked present', loc);
     } catch(e){
@@ -4697,8 +4697,8 @@ function renderAttendanceTab(body){
     try{
       const existing = cache.attendance.find(a=>a.staff_id===staffId && a.date===today);
       const data = { status, marked_at: new Date().toISOString(), marked_by: session.staffId };
-      if(existing) await sbCheck(supabase.from('attendance').update(data).eq('id', existing.id));
-      else await sbCheck(supabase.from('attendance').insert({business_id:session.businessId, staff_id:staffId, date:today, ...data}));
+      if(existing) await sbCheck(sb.from('attendance').update(data).eq('id', existing.id));
+      else await sbCheck(sb.from('attendance').insert({business_id:session.businessId, staff_id:staffId, date:today, ...data}));
       await loadData(); renderTabBody();
     } catch(e){
       alert('Could not save attendance — please check your connection and try again.\n\n('+(e.message||e)+')');
@@ -4800,7 +4800,7 @@ window.__openTargets = () => {
     await guardedSave('targets', async () => {
       for(const s of cache.staff){
         const val = Number(document.getElementById('mTarget_'+s.id).value || 0);
-        await sbCheck(supabase.from('sales_targets').upsert({
+        await sbCheck(sb.from('sales_targets').upsert({
           business_id: session.businessId, staff_id: s.id, month: curMonth, target_amount: val
         }, { onConflict: 'staff_id,month' }));
       }
@@ -4847,7 +4847,7 @@ function renderSalesTab(body){
     onConfirm: async () => {
       showLoading();
       try {
-        await supabase.from('sales').delete().eq('id', id);
+        await sb.from('sales').delete().eq('id', id);
         cache.sales = cache.sales.filter(s => s.id !== id);
       } catch(e){}
       finally {
@@ -4994,14 +4994,14 @@ window.__openSale = (saleId) => {
     if(value<=0){ alert('Enter an order value.'); return; }
     await guardedSave('sale', async () => {
       if(existingSale) {
-        await sbCheck(supabase.from('sales').update({
+        await sbCheck(sb.from('sales').update({
           staff_id: document.getElementById('mSaleStaff').value,
           date: document.getElementById('mSaleDate').value || todayStr(),
           order_value: value,
           notes: document.getElementById('mSaleNotes').value.trim(),
         }).eq('id', existingSale.id));
       } else {
-        await sbCheck(supabase.from('sales').insert({
+        await sbCheck(sb.from('sales').insert({
         business_id: session.businessId,
         staff_id: document.getElementById('mSaleStaff').value,
         date: document.getElementById('mSaleDate').value || todayStr(),
@@ -5186,7 +5186,7 @@ function renderLabelTab(body){
     onConfirm: async () => {
       showLoading();
       try {
-        await supabase.from('labels').delete().eq('id', id);
+        await sb.from('labels').delete().eq('id', id);
         cache.labels = cache.labels.filter(l => l.id !== id);
       } catch(e){}
       finally {
@@ -5257,9 +5257,9 @@ function openEditLabelModal(labelId){
     window.showToast('✅ Label entry updated!', 'success');
     renderTabBody();
 
-    if (navigator.onLine && typeof supabase !== 'undefined' && !String(id).startsWith('loc_lbl_')) {
+    if (navigator.onLine && typeof sb !== 'undefined' && !String(id).startsWith('loc_lbl_')) {
       try {
-        await supabase.from('labels').update({
+        await sb.from('labels').update({
           staff_id: staffId, date, item, qty,
           batch_code: bCode || null, batch_no: bCode || null, notes
         }).eq('id', id);
@@ -5380,13 +5380,13 @@ window.__openLabel = () => {
     }
 
     // 3. Safe background cloud sync
-    if (navigator.onLine && typeof supabase !== 'undefined' && session.businessId) {
+    if (navigator.onLine && typeof sb !== 'undefined' && session.businessId) {
       try {
         const dbRecords = records.map(r => { const c = {...r}; delete c.id; return c; });
-        const { error } = await supabase.from('labels').insert(dbRecords);
+        const { error } = await sb.from('labels').insert(dbRecords);
         if (error) {
           const simpleRecords = dbRecords.map(r => { const c = {...r}; delete c.batch_code; delete c.batch_no; return c; });
-          const { error: err2 } = await supabase.from('labels').insert(simpleRecords);
+          const { error: err2 } = await sb.from('labels').insert(simpleRecords);
           if (err2) queueOfflineMutation('insert', 'labels', dbRecords);
         }
       } catch(e) {
@@ -5454,7 +5454,7 @@ function renderPackageTab(body){
     onConfirm: async () => {
       showLoading();
       try {
-        await supabase.from('packages').delete().eq('id', id);
+        await sb.from('packages').delete().eq('id', id);
         cache.packages = cache.packages.filter(p => p.id !== id);
       } catch(e){}
       finally {
@@ -5525,9 +5525,9 @@ function openEditPackageModal(packageId){
     window.showToast('✅ Package entry updated!', 'success');
     renderTabBody();
 
-    if (navigator.onLine && typeof supabase !== 'undefined' && !String(id).startsWith('loc_pkg_')) {
+    if (navigator.onLine && typeof sb !== 'undefined' && !String(id).startsWith('loc_pkg_')) {
       try {
-        await supabase.from('packages').update({
+        await sb.from('packages').update({
           staff_id: staffId, date, item, qty,
           batch_code: bCode || null, batch_no: bCode || null, notes
         }).eq('id', id);
@@ -5648,13 +5648,13 @@ window.__openPackage = () => {
     }
 
     // 3. Safe background cloud sync
-    if (navigator.onLine && typeof supabase !== 'undefined' && session.businessId) {
+    if (navigator.onLine && typeof sb !== 'undefined' && session.businessId) {
       try {
         const dbRecords = records.map(r => { const c = {...r}; delete c.id; return c; });
-        const { error } = await supabase.from('packages').insert(dbRecords);
+        const { error } = await sb.from('packages').insert(dbRecords);
         if (error) {
           const simpleRecords = dbRecords.map(r => { const c = {...r}; delete c.batch_code; delete c.batch_no; return c; });
-          const { error: err2 } = await supabase.from('packages').insert(simpleRecords);
+          const { error: err2 } = await sb.from('packages').insert(simpleRecords);
           if (err2) queueOfflineMutation('insert', 'packages', dbRecords);
         }
       } catch(e) {
@@ -5728,8 +5728,8 @@ window.__assignTrophy = (trophyKey) => {
   window.__saveTrophy = async () => {
     const staffId = document.getElementById('mTrophyStaff').value;
     await guardedSave('trophy-'+trophyKey, async () => {
-      if(!staffId) await sbCheck(supabase.from('trophies').delete().eq('business_id', session.businessId).eq('trophy_key', trophyKey));
-      else await sbCheck(supabase.from('trophies').upsert({
+      if(!staffId) await sbCheck(sb.from('trophies').delete().eq('business_id', session.businessId).eq('trophy_key', trophyKey));
+      else await sbCheck(sb.from('trophies').upsert({
         business_id: session.businessId, trophy_key: trophyKey, staff_id: staffId, awarded_at: new Date().toISOString()
       }, { onConflict: 'business_id,trophy_key' }));
       holder.innerHTML='';
@@ -5850,7 +5850,7 @@ window.__deleteIncentiveTarget = (id) => {
 window.__awardTargetBonus = async (staffId, targetTitle, pts) => {
   if(!confirm(`Award +${pts} pts (₹${pts*10} Cash Bonus) to ${staffName(staffId)} for completing "${targetTitle}"?`)) return;
   await guardedSave('awardTarget-'+staffId, async () => {
-    await sbCheck(supabase.from('points_log').insert({
+    await sbCheck(sb.from('points_log').insert({
       business_id: session.businessId,
       staff_id: staffId,
       points: pts,
@@ -5915,7 +5915,7 @@ function renderPointsTab(body){
     onConfirm: async () => {
       showLoading();
       try {
-        await supabase.from('points_log').delete().eq('id', id);
+        await sb.from('points_log').delete().eq('id', id);
         cache.points = cache.points.filter(p => p.id !== id);
       } catch(e){}
       finally {
@@ -6085,7 +6085,7 @@ window.__openPoints = () => {
     const points = Number(document.getElementById('mPointsValue').value || 0);
     if(!points){ alert('Enter a points value.'); return; }
     await guardedSave('points', async () => {
-      await sbCheck(supabase.from('points_log').insert({
+      await sbCheck(sb.from('points_log').insert({
         business_id: session.businessId,
         staff_id: document.getElementById('mPointsStaff').value,
         points,
@@ -6355,7 +6355,7 @@ function renderSalesmanTab(body){
       };
       // This table's primary key is staff_id (there is no separate "id" column),
       // so upsert on staff_id instead of a broken update-by-id / insert branch.
-      const { data: savedRow } = await supabase.from('salesman_locations').upsert(payload, { onConflict: 'staff_id' }).select().single();
+      const { data: savedRow } = await sb.from('salesman_locations').upsert(payload, { onConflict: 'staff_id' }).select().single();
       if (existing) Object.assign(existing, savedRow || payload);
       else cache.salesmanLocations.push(savedRow || payload);
       await loadData();
@@ -6480,9 +6480,9 @@ function openStaffModal(staffId){
 
     await guardedSave('staff-' + (id||'new'), async () => {
       if(id) {
-        await sbCheck(supabase.from('staff').update(data).eq('id', id));
+        await sbCheck(sb.from('staff').update(data).eq('id', id));
       } else {
-        await sbCheck(supabase.from('staff').insert(data));
+        await sbCheck(sb.from('staff').insert(data));
       }
       holder.innerHTML = '';
       await loadData();
@@ -6591,10 +6591,10 @@ function logAuditEvent(actionType, details) {
 
   // Sync to central Supabase DB asynchronously so ALL STAFF logs are captured.
   // Don't send our local text id — audit_logs.id is a uuid generated by the DB.
-  if (typeof supabase !== 'undefined' && session.businessId) {
+  if (typeof sb !== 'undefined' && session.businessId) {
     const dbEntry = Object.assign({}, entry);
     delete dbEntry.id;
-    Promise.resolve(supabase.from('audit_logs').insert(dbEntry)).catch(()=>{});
+    Promise.resolve(sb.from('audit_logs').insert(dbEntry)).catch(()=>{});
   }
 }
 
@@ -6733,7 +6733,7 @@ window.__requestAccEditPermission = async function(date) {
 
   showLoading();
   try {
-    const { data: newRow, error } = await supabase.from('tasks').insert(payload).select().single();
+    const { data: newRow, error } = await sb.from('tasks').insert(payload).select().single();
     if (error) throw error;
     if (newRow) cache.tasks.push(newRow);
     else cache.tasks.push(payload);
@@ -6756,14 +6756,14 @@ window.__respondAccEditRequest = async function(taskId, status) {
   showLoading();
   try {
     if (status === 'approved') {
-      await sbCheck(supabase.from('tasks').update({ status: 'done' }).eq('id', taskId));
+      await sbCheck(sb.from('tasks').update({ status: 'done' }).eq('id', taskId));
       const t = cache.tasks.find(x => x.id === taskId);
       if (t) t.status = 'done';
       window.showToast(`✓ Approved edit request!`, 'success');
       logAuditEvent('Approval Response', `Approved edit request for ${t ? t.title.replace('[EDIT_REQ] ','') : ''}`);
       triggerAppNotification('Edit Approved', `Past date edit access granted`);
     } else {
-      await sbCheck(supabase.from('tasks').delete().eq('id', taskId));
+      await sbCheck(sb.from('tasks').delete().eq('id', taskId));
       cache.tasks = cache.tasks.filter(x => x.id !== taskId);
       window.showToast(`✕ Rejected edit request.`, 'info');
     }
@@ -6803,13 +6803,13 @@ window.__toggleOwnerManualUnlock = async function(date) {
         status: 'done',
         priority: 'high'
       };
-      const { data: newRow } = await supabase.from('tasks').insert(payload).select().single();
+      const { data: newRow } = await sb.from('tasks').insert(payload).select().single();
       if (newRow) cache.tasks.push(newRow);
       window.showToast(`🔓 Unlocked ${date} for Staff Edit`, 'success');
     } else {
       const tasksToDelete = cache.tasks.filter(t => t.title === '[EDIT_REQ] ' + date);
       for(const t of tasksToDelete){
-        await supabase.from('tasks').delete().eq('id', t.id);
+        await sb.from('tasks').delete().eq('id', t.id);
       }
       cache.tasks = cache.tasks.filter(t => t.title !== '[EDIT_REQ] ' + date);
       window.__sessionUnlockedDates.delete(date);
@@ -6857,8 +6857,8 @@ function renderAccountsTab(body){
 
   // Realtime background check for Owner to catch remote staff requests instantly
   // NOTE: We MERGE instead of overwrite to preserve locally updated task statuses
-  if(isOwner() && typeof supabase !== 'undefined' && session && session.businessId){
-    supabase.from('tasks').select('*').eq('business_id', session.businessId).then(r => {
+  if(isOwner() && typeof sb !== 'undefined' && session && session.businessId){
+    sb.from('tasks').select('*').eq('business_id', session.businessId).then(r => {
       if(r && r.data){
         const prevCount = getPendingEditRequests().length;
         // Merge: preserve local status overrides (done, deleted) on top of cloud data
@@ -7034,8 +7034,8 @@ function renderAccEntryHtml(existing){
 
 function setupAccEntryEvents(){
   // Realtime check for Staff to catch Owner approval instantly (guarded against re-render loop)
-  if(!isOwner() && accountsDate < todayStr() && typeof supabase !== 'undefined' && session && session.businessId){
-    supabase.from('tasks').select('*').eq('business_id', session.businessId).eq('title', '[EDIT_REQ] ' + accountsDate).then(r => {
+  if(!isOwner() && accountsDate < todayStr() && typeof sb !== 'undefined' && session && session.businessId){
+    sb.from('tasks').select('*').eq('business_id', session.businessId).eq('title', '[EDIT_REQ] ' + accountsDate).then(r => {
       if(r && r.data && r.data.some(t => t.status === 'done')){
         const approved = r.data.find(t => t.status === 'done');
         const existing = cache.tasks.find(t => t.title === '[EDIT_REQ] ' + accountsDate);
@@ -7271,24 +7271,24 @@ window.__saveAccEntry = function() {
     renderTabBody();
 
     // 3. Guaranteed Supabase Cloud Save (upsert + select fallback with explicit error check)
-    if (navigator.onLine && typeof supabase !== 'undefined') {
+    if (navigator.onLine && typeof sb !== 'undefined') {
       const payload = Object.assign({}, dbPayload);
       delete payload.id;
       
       (async function() {
         try {
           // Attempt 1: Fast Upsert by business_id + date
-          let { data: saved, error } = await supabase.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' }).select().single();
+          let { data: saved, error } = await sb.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' }).select().single();
           
           // Attempt 2: Fallback to manual select -> update or insert if upsert fails
           if (error || !saved) {
-            const { data: checkData } = await supabase.from('daily_accounts').select('id').eq('business_id', session.businessId).eq('date', accountsDate).maybeSingle();
+            const { data: checkData } = await sb.from('daily_accounts').select('id').eq('business_id', session.businessId).eq('date', accountsDate).maybeSingle();
             if (checkData && checkData.id) {
-              const res = await supabase.from('daily_accounts').update(payload).eq('id', checkData.id).select().single();
+              const res = await sb.from('daily_accounts').update(payload).eq('id', checkData.id).select().single();
               saved = res.data;
               error = res.error;
             } else {
-              const res = await supabase.from('daily_accounts').insert(payload).select().single();
+              const res = await sb.from('daily_accounts').insert(payload).select().single();
               saved = res.data;
               error = res.error;
             }
@@ -7312,7 +7312,7 @@ window.__saveAccEntry = function() {
               salary: payload.salary_paid || payload.salary || 0,
               adjustment: payload.adjustment || 0
             };
-            const res = await supabase.from('accounts').insert(legacyPayload).select().single();
+            const res = await sb.from('accounts').insert(legacyPayload).select().single();
             if (res && res.data) { saved = res.data; error = null; }
           }
 
@@ -7444,7 +7444,7 @@ window.__toggleAccChecked = async function(recDate, isChecked) {
   try { localStorage.setItem('br_daily_accounts_' + session.businessId, JSON.stringify(cache.dailyAccounts)); } catch(e){}
 
   // Direct Supabase Cloud UPSERT so checkmark syncs across all devices instantly
-  if (navigator.onLine && typeof supabase !== 'undefined' && session && session.businessId) {
+  if (navigator.onLine && typeof sb !== 'undefined' && session && session.businessId) {
     (async function() {
       try {
         const payload = {
@@ -7462,16 +7462,16 @@ window.__toggleAccChecked = async function(recDate, isChecked) {
         if (isRealDbId) payload.id = rec.id;
 
         // Multi-tier cloud write with fallback
-        let { data: saved, error: upErr } = await supabase.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' }).select().single();
+        let { data: saved, error: upErr } = await sb.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' }).select().single();
         if (upErr) {
           // If upsert failed due to invalid id or column error, strip id and retry with onConflict on (business_id, date)
           delete payload.id;
-          const retryRes = await supabase.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' }).select().single();
+          const retryRes = await sb.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' }).select().single();
           if (!retryRes.error && retryRes.data) saved = retryRes.data;
           else {
             // Fallback if is_checked column is missing in schema: save notes marker
             const safePayload = { business_id: session.businessId, date: recDate, notes: rec.notes };
-            const safeRes = await supabase.from('daily_accounts').upsert(safePayload, { onConflict: 'business_id,date' }).select().single();
+            const safeRes = await sb.from('daily_accounts').upsert(safePayload, { onConflict: 'business_id,date' }).select().single();
             if (safeRes.data) saved = safeRes.data;
           }
         }
@@ -7979,10 +7979,10 @@ window.__paySelectedVendorBillsBulk = async function() {
   renderTabBody(); // Instant UI re-render
 
   // 2. Perform Supabase DB write in background
-  if (typeof supabase !== 'undefined' && session.businessId) {
+  if (typeof sb !== 'undefined' && session.businessId) {
     for (const b of selectedBills) {
       if (b.id && !b.id.startsWith('loc_')) {
-        Promise.resolve(supabase.from('vendor_bills').update({ status: 'paid', paid_at: nowIso, paid_by: session.staffId }).eq('id', b.id)).catch(()=>{});
+        Promise.resolve(sb.from('vendor_bills').update({ status: 'paid', paid_at: nowIso, paid_by: session.staffId }).eq('id', b.id)).catch(()=>{});
       }
     }
   }
@@ -8175,8 +8175,8 @@ window.__revertVendorBillToUnpaid = async function(billId) {
     localStorage.setItem('br_vendor_bills_' + session.businessId, JSON.stringify(cache.vendorBills));
     localStorage.setItem('br_vendor_payments_' + session.businessId, JSON.stringify(cache.vendorPayments));
 
-    if (typeof supabase !== 'undefined' && !String(b.id).startsWith('loc_')) {
-      await supabase.from('vendor_bills').update({
+    if (typeof sb !== 'undefined' && !String(b.id).startsWith('loc_')) {
+      await sb.from('vendor_bills').update({
         paid_amount: 0,
         balance_amount: getBillAmount(b),
         status: 'pending',
@@ -8185,7 +8185,7 @@ window.__revertVendorBillToUnpaid = async function(billId) {
       }).eq('id', b.id);
 
       for (const p of relatedPayments) {
-        Promise.resolve(supabase.from('vendor_payments').delete().eq('id', p.id)).catch(()=>{});
+        Promise.resolve(sb.from('vendor_payments').delete().eq('id', p.id)).catch(()=>{});
       }
     }
   } catch(e) {
@@ -8525,10 +8525,10 @@ window.__saveVendorBill = async function() {
     status: 'pending'
   };
 
-  if (navigator.onLine && typeof supabase !== 'undefined') {
+  if (navigator.onLine && typeof sb !== 'undefined') {
     (async function() {
       try {
-        const { data, error } = await supabase.from('vendor_bills').insert(cleanDbPayload).select().single();
+        const { data, error } = await sb.from('vendor_bills').insert(cleanDbPayload).select().single();
         if (data && data.id) {
           billObj.id = data.id;
           try { localStorage.setItem('br_vendor_bills_' + session.businessId, JSON.stringify(cache.vendorBills)); } catch(e){}
@@ -8568,7 +8568,7 @@ window.__markVendorBillPaid = async function(id) {
 
   showLoading();
   try {
-    await supabase.from('vendor_bills').update({ status: 'paid', paid_at: bill.paid_at, paid_by: bill.paid_by }).eq('id', id);
+    await sb.from('vendor_bills').update({ status: 'paid', paid_at: bill.paid_at, paid_by: bill.paid_by }).eq('id', id);
   } catch(e) {
     localStorage.setItem('br_vendor_bills_' + session.businessId, JSON.stringify(cache.vendorBills));
   } finally {
@@ -8588,7 +8588,7 @@ window.__deleteVendorBill = async function(id) {
 
   showLoading();
   try {
-    await supabase.from('vendor_bills').delete().eq('id', id);
+    await sb.from('vendor_bills').delete().eq('id', id);
   } catch(e) {
     localStorage.setItem('br_vendor_bills_' + session.businessId, JSON.stringify(cache.vendorBills));
   } finally {
@@ -8824,13 +8824,13 @@ window.__saveLowStockItem = async function(id) {
   showLoading();
   try {
     if (id && !id.startsWith('loc_ls_')) {
-      const { data, error } = await supabase.from('low_stocks').update(payload).eq('id', id).select().single();
+      const { data, error } = await sb.from('low_stocks').update(payload).eq('id', id).select().single();
       if (error) throw error;
       const idx = cache.lowStocks.findIndex(x => x.id === id);
       if (idx !== -1) cache.lowStocks[idx] = data || payload;
     } else {
       payload.created_at = new Date().toISOString();
-      const { data, error } = await supabase.from('low_stocks').insert(payload).select().single();
+      const { data, error } = await sb.from('low_stocks').insert(payload).select().single();
       if (error) throw error;
       if (data) cache.lowStocks.unshift(data);
       else { payload.id = 'loc_ls_' + Date.now(); cache.lowStocks.unshift(payload); }
@@ -8866,7 +8866,7 @@ window.__markLowStockStatus = async function(id, newStatus) {
   showLoading();
   try {
     if (!id.startsWith('loc_ls_')) {
-      await supabase.from('low_stocks').update({ status: newStatus, updated_at: item.updated_at }).eq('id', id);
+      await sb.from('low_stocks').update({ status: newStatus, updated_at: item.updated_at }).eq('id', id);
     }
   } catch(e) {
     localStorage.setItem('br_low_stocks_' + session.businessId, JSON.stringify(cache.lowStocks));
@@ -8890,7 +8890,7 @@ window.__deleteLowStockItem = function(id) {
         cache.lowStocks = (cache.lowStocks || []).filter(x => x.id !== id);
         localStorage.setItem('br_low_stocks_' + session.businessId, JSON.stringify(cache.lowStocks));
         if (!id.startsWith('loc_ls_')) {
-          await supabase.from('low_stocks').delete().eq('id', id);
+          await sb.from('low_stocks').delete().eq('id', id);
         }
       } catch(e) {}
       finally {
@@ -9750,8 +9750,8 @@ window.__saveSingleBillPayment = async function(billId) {
     localStorage.setItem('br_vendor_bills_' + session.businessId, JSON.stringify(cache.vendorBills));
     localStorage.setItem('br_vendor_payments_' + session.businessId, JSON.stringify(cache.vendorPayments));
 
-    if (typeof supabase !== 'undefined' && !b.id.startsWith('loc_')) {
-      await supabase.from('vendor_bills').update({
+    if (typeof sb !== 'undefined' && !b.id.startsWith('loc_')) {
+      await sb.from('vendor_bills').update({
         paid_amount: newPaid,
         balance_amount: newBalance,
         status: newStatus,
@@ -9759,7 +9759,7 @@ window.__saveSingleBillPayment = async function(billId) {
         paid_by: session.staffId
       }).eq('id', b.id);
 
-      Promise.resolve(supabase.from('vendor_payments').insert(paymentEntry)).catch(()=>{});
+      Promise.resolve(sb.from('vendor_payments').insert(paymentEntry)).catch(()=>{});
     }
   } catch(e) {
     console.warn('Payment cloud save exception:', e);
@@ -10017,11 +10017,11 @@ window.__submitBulkVendorPayment = async function() {
     if (!cache.vendorPayments) cache.vendorPayments = [];
     cache.vendorPayments.unshift(paymentEntry);
 
-    if (typeof supabase !== 'undefined' && !b.id.startsWith('loc_')) {
-      Promise.resolve(supabase.from('vendor_bills').update({
+    if (typeof sb !== 'undefined' && !b.id.startsWith('loc_')) {
+      Promise.resolve(sb.from('vendor_bills').update({
         paid_amount: newPaid, balance_amount: newBalance, status: newStatus, paid_at: nowIso, paid_by: session.staffId
       }).eq('id', b.id)).catch(()=>{});
-      Promise.resolve(supabase.from('vendor_payments').insert(paymentEntry)).catch(()=>{});
+      Promise.resolve(sb.from('vendor_payments').insert(paymentEntry)).catch(()=>{});
     }
   }
 
@@ -10467,9 +10467,9 @@ window.__importAccExcel = async function(input) {
       payload.less = totals.less;
 
       // Verified Supabase Save
-      if (navigator.onLine && typeof supabase !== 'undefined' && session.businessId) {
+      if (navigator.onLine && typeof sb !== 'undefined' && session.businessId) {
         try {
-          const { error } = await supabase.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' });
+          const { error } = await sb.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' });
           if (error) {
             cloudErrorCount++;
             failedLogs.push(`${dateStr}: ${error.message}`);
@@ -10554,9 +10554,9 @@ window.__restoreAccJson = async function(input) {
       payload.excess = totals.excess;
       payload.less = totals.less;
 
-      if (navigator.onLine && typeof supabase !== 'undefined' && session.businessId) {
+      if (navigator.onLine && typeof sb !== 'undefined' && session.businessId) {
         try {
-          const { error } = await supabase.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' });
+          const { error } = await sb.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' });
           if (error) {
             cloudErrorCount++;
             failedLogs.push(`${payload.date}: ${error.message}`);
@@ -10722,8 +10722,8 @@ function renderStockkeeperTab(body){
     if(__busyKeys.has(key)) return;
     __busyKeys.add(key);
     try{
-      if(myCheck) await sbCheck(supabase.from('stock_checks').update({stock_checked: val}).eq('id', myCheck.id));
-      else await sbCheck(supabase.from('stock_checks').insert({business_id:session.businessId, staff_id:session.staffId, date:today, stock_checked: val, all_correct: true}));
+      if(myCheck) await sbCheck(sb.from('stock_checks').update({stock_checked: val}).eq('id', myCheck.id));
+      else await sbCheck(sb.from('stock_checks').insert({business_id:session.businessId, staff_id:session.staffId, date:today, stock_checked: val, all_correct: true}));
       await loadData(); renderTabBody();
     } catch(e){ alert('Error saving: ' + (e.message||e)); }
     finally { __busyKeys.delete(key); }
@@ -10741,10 +10741,10 @@ function renderStockkeeperTab(body){
     let newNotes = arr.length ? `[Godowns: ${godownStr}] ${currentNotes}`.trim() : currentNotes;
 
     try{
-      await sbCheck(supabase.from('stock_checks').update({ notes: newNotes, checked_godowns: godownStr }).eq('id', myCheck.id));
+      await sbCheck(sb.from('stock_checks').update({ notes: newNotes, checked_godowns: godownStr }).eq('id', myCheck.id));
       await loadData(); renderTabBody();
     } catch(e){
-      await sbCheck(supabase.from('stock_checks').update({ notes: newNotes }).eq('id', myCheck.id));
+      await sbCheck(sb.from('stock_checks').update({ notes: newNotes }).eq('id', myCheck.id));
       await loadData(); renderTabBody();
     }
   };
@@ -10752,7 +10752,7 @@ function renderStockkeeperTab(body){
   window.__setStockField = async (field, val) => {
     if(!myCheck) return;
     try{
-      await sbCheck(supabase.from('stock_checks').update({ [field]: val }).eq('id', myCheck.id));
+      await sbCheck(sb.from('stock_checks').update({ [field]: val }).eq('id', myCheck.id));
       await loadData(); renderTabBody();
     } catch(e){ alert('Error: ' + e.message); }
   };
@@ -10768,9 +10768,9 @@ function renderStockkeeperTab(body){
     
     await guardedSave('stocknotes', async () => {
       try {
-        await sbCheck(supabase.from('stock_checks').update({ notes: finalNotes, has_problems: myCheck.all_correct===false, checked_godowns: godownStr }).eq('id', myCheck.id));
+        await sbCheck(sb.from('stock_checks').update({ notes: finalNotes, has_problems: myCheck.all_correct===false, checked_godowns: godownStr }).eq('id', myCheck.id));
       } catch(e) {
-        await sbCheck(supabase.from('stock_checks').update({ notes: finalNotes, has_problems: myCheck.all_correct===false }).eq('id', myCheck.id));
+        await sbCheck(sb.from('stock_checks').update({ notes: finalNotes, has_problems: myCheck.all_correct===false }).eq('id', myCheck.id));
       }
       await loadData(); renderTabBody();
     });
@@ -10848,7 +10848,7 @@ window.__saveSalaryAdvance = async function() {
   showLoading();
   try {
     // Don't send our local temp id — salary_advances.id is a uuid generated by the DB.
-    const { data: newRow } = await supabase.from('salary_advances').insert(payload).select().single();
+    const { data: newRow } = await sb.from('salary_advances').insert(payload).select().single();
     if (newRow) saveSalaryAdvanceLocally(newRow);
     else saveSalaryAdvanceLocally(Object.assign({ id: localId }, payload));
   } catch(e) {
@@ -10870,7 +10870,7 @@ window.__deleteSalaryAdvance = function(id) {
     onConfirm: async () => {
       showLoading();
       try {
-        await supabase.from('salary_advances').delete().eq('id', id);
+        await sb.from('salary_advances').delete().eq('id', id);
       } catch(e){}
       finally {
         let advances = getSalaryAdvances().filter(a => a.id !== id);
@@ -11185,7 +11185,7 @@ function renderSalaryTab(body){
     onConfirm: async () => {
       showLoading();
       try {
-        await supabase.from('salaries').delete().eq('id', id);
+        await sb.from('salaries').delete().eq('id', id);
         cache.salaries = cache.salaries.filter(s => s.id !== id);
       } catch(e){}
       finally {
@@ -11234,7 +11234,7 @@ function renderSalaryTab(body){
         if(f==='monthly' && (!day || day<1 || day>31)){ alert('Enter a day between 1 and 31.'); return; }
       }
       await guardedSave('schedule-'+id, async () => {
-        await sbCheck(supabase.from('staff').update({salary_frequency:f, salary_day:day}).eq('id', id));
+        await sbCheck(sb.from('staff').update({salary_frequency:f, salary_day:day}).eq('id', id));
         holder.innerHTML='';
         await loadData(); renderTabBody();
       });
@@ -11264,7 +11264,7 @@ window.__openSalary = () => {
     const amount = Number(document.getElementById('mSalaryAmount').value || 0);
     if(amount<=0){ alert('Enter an amount.'); return; }
     await guardedSave('salary', async () => {
-      await sbCheck(supabase.from('salaries').insert({
+      await sbCheck(sb.from('salaries').insert({
         business_id: session.businessId,
         staff_id: document.getElementById('mSalaryStaff').value,
         amount,
@@ -11445,7 +11445,7 @@ function renderSettingsTab(body){
     const name = document.getElementById('mBizName').value.trim();
     if(!name){ alert('Enter a name.'); return; }
     await guardedSave('renamebiz', async () => {
-      await sbCheck(supabase.from('businesses').update({name}).eq('id', session.businessId));
+      await sbCheck(sb.from('businesses').update({name}).eq('id', session.businessId));
       session.businessName = name;
       localStorage.setItem('br_session', JSON.stringify(session));
       await loadData();
@@ -11466,19 +11466,19 @@ function renderSettingsTab(body){
     try{
       const text = await fileInput.files[0].text();
       const data = JSON.parse(text);
-      if(data.staff && data.staff.length) await supabase.from('staff').upsert(data.staff.map(s=>({...s, business_id: session.businessId})));
-      if(data.tasks && data.tasks.length) await supabase.from('tasks').upsert(data.tasks.map(t=>({...t, business_id: session.businessId})));
-      if(data.attendance && data.attendance.length) await supabase.from('attendance').upsert(data.attendance.map(a=>({...a, business_id: session.businessId})));
-      if(data.sales && data.sales.length) await supabase.from('sales').upsert(data.sales.map(s=>({...s, business_id: session.businessId})));
-      if(data.routines && data.routines.length) await supabase.from('routines').upsert(data.routines.map(r=>({...r, business_id: session.businessId})));
-      if(data.points && data.points.length) await supabase.from('points_log').upsert(data.points.map(p=>({...p, business_id: session.businessId})));
-      if(data.labels && data.labels.length) await supabase.from('labels').upsert(data.labels.map(l=>({...l, business_id: session.businessId})));
-      if(data.weeklyTasks && data.weeklyTasks.length) await supabase.from('weekly_tasks').upsert(data.weeklyTasks.map(w=>({...w, business_id: session.businessId})));
-      if(data.packages && data.packages.length) await supabase.from('packages').upsert(data.packages.map(p=>({...p, business_id: session.businessId})));
-      if(data.salaries && data.salaries.length) await supabase.from('salaries').upsert(data.salaries.map(s=>({...s, business_id: session.businessId})));
-      if(data.salesTargets && data.salesTargets.length) await supabase.from('sales_targets').upsert(data.salesTargets.map(t=>({...t, business_id: session.businessId})));
-      if(data.trophies && data.trophies.length) await supabase.from('trophies').upsert(data.trophies.map(t=>({...t, business_id: session.businessId})));
-      if(data.stockChecks && data.stockChecks.length) await supabase.from('stock_checks').upsert(data.stockChecks.map(c=>({...c, business_id: session.businessId})));
+      if(data.staff && data.staff.length) await sb.from('staff').upsert(data.staff.map(s=>({...s, business_id: session.businessId})));
+      if(data.tasks && data.tasks.length) await sb.from('tasks').upsert(data.tasks.map(t=>({...t, business_id: session.businessId})));
+      if(data.attendance && data.attendance.length) await sb.from('attendance').upsert(data.attendance.map(a=>({...a, business_id: session.businessId})));
+      if(data.sales && data.sales.length) await sb.from('sales').upsert(data.sales.map(s=>({...s, business_id: session.businessId})));
+      if(data.routines && data.routines.length) await sb.from('routines').upsert(data.routines.map(r=>({...r, business_id: session.businessId})));
+      if(data.points && data.points.length) await sb.from('points_log').upsert(data.points.map(p=>({...p, business_id: session.businessId})));
+      if(data.labels && data.labels.length) await sb.from('labels').upsert(data.labels.map(l=>({...l, business_id: session.businessId})));
+      if(data.weeklyTasks && data.weeklyTasks.length) await sb.from('weekly_tasks').upsert(data.weeklyTasks.map(w=>({...w, business_id: session.businessId})));
+      if(data.packages && data.packages.length) await sb.from('packages').upsert(data.packages.map(p=>({...p, business_id: session.businessId})));
+      if(data.salaries && data.salaries.length) await sb.from('salaries').upsert(data.salaries.map(s=>({...s, business_id: session.businessId})));
+      if(data.salesTargets && data.salesTargets.length) await sb.from('sales_targets').upsert(data.salesTargets.map(t=>({...t, business_id: session.businessId})));
+      if(data.trophies && data.trophies.length) await sb.from('trophies').upsert(data.trophies.map(t=>({...t, business_id: session.businessId})));
+      if(data.stockChecks && data.stockChecks.length) await sb.from('stock_checks').upsert(data.stockChecks.map(c=>({...c, business_id: session.businessId})));
       msg.textContent = 'Restored successfully.'; msg.style.color = 'var(--turmeric)';
       await loadData(); 
     } catch(e){
@@ -11785,9 +11785,9 @@ window.__deleteExpiryItem = function(id) {
 ================================================================ */
 async function syncCustomCloudPayload(keyTitle, data) {
   const jsonStr = typeof data === 'string' ? data : JSON.stringify(data);
-  if (navigator.onLine && typeof supabase !== 'undefined' && session && session.businessId) {
+  if (navigator.onLine && typeof sb !== 'undefined' && session && session.businessId) {
     try {
-      const { data: existing } = await supabase
+      const { data: existing } = await sb
         .from('tasks')
         .select('id')
         .eq('business_id', session.businessId)
@@ -11804,11 +11804,11 @@ async function syncCustomCloudPayload(keyTitle, data) {
       };
 
       if (existing && existing.id) {
-        const { error: upErr } = await supabase.from('tasks').update(payload).eq('id', existing.id);
-        if (upErr) await supabase.from('tasks').upsert(payload, { onConflict: 'business_id,title' });
+        const { error: upErr } = await sb.from('tasks').update(payload).eq('id', existing.id);
+        if (upErr) await sb.from('tasks').upsert(payload, { onConflict: 'business_id,title' });
       } else {
-        const { error: insErr } = await supabase.from('tasks').insert(payload);
-        if (insErr) await supabase.from('tasks').upsert(payload, { onConflict: 'business_id,title' });
+        const { error: insErr } = await sb.from('tasks').insert(payload);
+        if (insErr) await sb.from('tasks').upsert(payload, { onConflict: 'business_id,title' });
       }
     } catch(err){
       console.warn('Cloud payload sync notice (' + keyTitle + '):', err);
