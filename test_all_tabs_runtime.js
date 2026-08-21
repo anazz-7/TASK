@@ -3,8 +3,9 @@ const path = require('path');
 const indexPath = path.join(__dirname, 'index.html');
 const html = fs.readFileSync(indexPath, 'utf8');
 
-const match = html.match(/<script type="module">([\s\S]*?)<\/script>\s*<\/body>/i);
-let js = match[1];
+const scriptStart = html.lastIndexOf('<script>');
+const scriptEnd = html.lastIndexOf('</script>');
+let js = html.slice(scriptStart + 8, scriptEnd);
 js = js.replace(/import\s+[\s\S]*?;/g, 'const createClient = () => ({ from: () => ({ select: () => ({ eq: () => ({ order: () => ({ limit: () => Promise.resolve({ data: [] }), order: () => Promise.resolve({ data: [] }) }) }) }) }) });');
 
 // Add mock DOM and globals

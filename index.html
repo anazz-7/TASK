@@ -1396,27 +1396,33 @@
 
 <div id="app"></div>
 
-<script type="module">
+<script>
 let createClient;
 if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
   createClient = window.supabase.createClient;
+} else if (window['supabase'] && window['supabase'].createClient) {
+  createClient = window['supabase'].createClient;
 } else {
-  try {
-    const mod = await import('https://esm.sh/@supabase/supabase-js@2');
-    createClient = mod.createClient;
-  } catch(e) {
-    createClient = function() {
-      return {
-        from: () => ({
-          select: () => ({ eq: () => ({ order: () => Promise.resolve({ data: [] }), single: () => Promise.resolve({ data: null }) }), order: () => Promise.resolve({ data: [] }) }),
-          insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: null }) }) }),
-          update: () => ({ eq: () => Promise.resolve({ data: null }) }),
-          delete: () => ({ eq: () => Promise.resolve({ data: null }) })
-        })
-      };
+  createClient = function() {
+    return {
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            order: () => Promise.resolve({ data: [] }),
+            single: () => Promise.resolve({ data: null }),
+            maybeSingle: () => Promise.resolve({ data: null })
+          }),
+          order: () => Promise.resolve({ data: [] })
+        }),
+        insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: null }) }) }),
+        upsert: () => ({ select: () => ({ single: () => Promise.resolve({ data: null }) }) }),
+        update: () => ({ eq: () => Promise.resolve({ data: null }) }),
+        delete: () => ({ eq: () => Promise.resolve({ data: null }) })
+      })
     };
-  }
+  };
 }
+
 
 /* ================================================================
    >>> EDIT THIS SECTION BEFORE DEPLOYING <<<
@@ -11152,9 +11158,12 @@ function renderSalaryTab(body){
           </div>
         </div>
       `).join('') : `<div class="empty">No salary advances recorded.</div>`}
+    ` : ''}
+
     ${salarySubTab === 'expenses' ? `
       ${renderExpensesTrackerHtml()}
     ` : ''}
+
 
     ${salarySubTab === 'schedules' ? `
 
