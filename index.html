@@ -2260,6 +2260,75 @@ window.__animateCounter = function(element, targetVal, prefix = '', suffix = '')
   requestAnimationFrame(step);
 };
 
+// Automatic KPI Cards Count-Up Animation Engine
+window.__animateKpiCards = function(container = document) {
+  const elements = container.querySelectorAll('.dash-kpi-val, .stat-card .num, .num-animate');
+  elements.forEach(el => {
+    // Save original target text if not already stored
+    if (!el.dataset.targetText || el.dataset.animating !== 'true') {
+      el.dataset.targetText = el.textContent.trim();
+    }
+    const rawText = el.dataset.targetText;
+    if (!rawText || rawText === '—' || rawText === 'N/A') return;
+
+    // Check for ratio format (e.g., '3/5')
+    const ratioMatch = rawText.match(/^([₹$]?)\s*(\d+)\s*\/\s*(\d+)\s*(.*)$/);
+    if (ratioMatch) {
+      const prefix = ratioMatch[1];
+      const targetVal = parseInt(ratioMatch[2], 10);
+      const denom = '/' + ratioMatch[3];
+      const suffix = ratioMatch[4];
+      el.dataset.animating = 'true';
+      const startTime = performance.now();
+      const duration = 650;
+
+      function stepRatio(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const ease = 1 - Math.pow(1 - progress, 3);
+        const current = Math.round(targetVal * ease);
+        el.textContent = `${prefix}${current}${denom}${suffix ? ' ' + suffix : ''}`;
+        if (progress < 1) requestAnimationFrame(stepRatio);
+        else {
+          el.textContent = rawText;
+          el.dataset.animating = 'false';
+        }
+      }
+      requestAnimationFrame(stepRatio);
+      return;
+    }
+
+    // Check for number/currency format (e.g., '₹48,500' or '85%' or '12 pts')
+    const numMatch = rawText.match(/^([^\d-]*)\s*([\d,.]+)\s*(.*)$/);
+    if (numMatch && !isNaN(parseFloat(numMatch[2].replace(/,/g, '')))) {
+      const prefix = numMatch[1];
+      const targetVal = parseFloat(numMatch[2].replace(/,/g, ''));
+      const isFloat = numMatch[2].includes('.');
+      const decimals = isFloat ? (numMatch[2].split('.')[1] || '').length : 0;
+      const suffix = numMatch[3];
+
+      el.dataset.animating = 'true';
+      const startTime = performance.now();
+      const duration = 650;
+
+      function stepNum(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const ease = 1 - Math.pow(1 - progress, 3);
+        const current = targetVal * ease;
+        const formatted = decimals > 0 ? current.toFixed(decimals) : Math.round(current).toLocaleString('en-IN');
+        el.textContent = `${prefix}${formatted}${suffix ? ' ' + suffix : ''}`;
+        if (progress < 1) requestAnimationFrame(stepNum);
+        else {
+          el.textContent = rawText;
+          el.dataset.animating = 'false';
+        }
+      }
+      requestAnimationFrame(stepNum);
+    }
+  });
+};
+
 // 13. Save-state indicators & 14. Autosave
 let __appSaveState = 'saved';
 window.__setSaveState = function(state) {
@@ -3483,6 +3552,10 @@ function renderTabBody(){
   else if(activeTab==='reports' && (isOwner() || (isManager() && getFeatureConfig().allowManagerReports))) renderReportsTab(body);
   else if(activeTab==='settings') renderSettingsTab(body);
   else if(activeTab==='account') renderAccountTab(body);
+
+  setTimeout(() => {
+    if (typeof window.__animateKpiCards === 'function') window.__animateKpiCards(body);
+  }, 30);
 }
 
 
