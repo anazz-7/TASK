@@ -11732,6 +11732,30 @@ function renderAccountTab(body){
       <div class="kv"><span>Phone</span><b>${s.phone?esc(s.phone):'Not on file'}</b></div>
     </div></div>
 
+    <div class="section-label">🔔 Pop-Up &amp; Notification Settings</div>
+    <div class="row-card" style="flex-direction:column;align-items:stretch;gap:10px;">
+      <p style="font-size:0.78rem;color:var(--ink-soft);margin:0;">Control pop-up reminders and audio alert beeps on your device.</p>
+      
+      <label style="display:flex;align-items:center;gap:10px;font-size:0.84rem;cursor:pointer;margin-top:4px;">
+        <input type="checkbox" id="cfgDisableTaskPopups" ${getFeatureConfig().disablePendingTaskPopups ? 'checked' : ''} style="width:18px;height:18px;">
+        <span>🚫 <b>Disable Pending Task Pop-Up Reminders (Every 5 mins)</b></span>
+      </label>
+
+      <label style="display:flex;align-items:center;gap:10px;font-size:0.84rem;cursor:pointer;">
+        <input type="checkbox" id="cfgDisableBackupPopups" ${getFeatureConfig().disableBackupReminderPopups ? 'checked' : ''} style="width:18px;height:18px;">
+        <span>📦 <b>Disable Weekend Backup Reminder Pop-Ups</b></span>
+      </label>
+
+      <label style="display:flex;align-items:center;gap:10px;font-size:0.84rem;cursor:pointer;">
+        <input type="checkbox" id="cfgDisableAudioBeeps" ${getFeatureConfig().disableAudioNotificationBeeps ? 'checked' : ''} style="width:18px;height:18px;">
+        <span>🔇 <b>Mute Audio Sound Effects on Reminders &amp; Alerts</b></span>
+      </label>
+
+      <div class="modal-actions" style="margin-top:6px;">
+        <button class="stamp-btn" style="background:var(--turmeric);color:#fff;" onclick="window.__saveCustomFeatures()">Save Pop-Up Settings</button>
+      </div>
+    </div>
+
     <div class="modal-actions">
       <button class="stamp-btn ghost" onclick="window.__setTab('${quickTabs()[0]}')">Back</button>
     </div>
@@ -12419,7 +12443,6 @@ function saveCustomerReportsData() {
    FEATURE CUSTOMIZATION & ROLE PERMISSION CONFIG
    ================================================================ */
 function getFeatureConfig() {
-
   const defaults = {
     maskCustomerDir: true,
     maskSalesDigits: true,
@@ -12433,7 +12456,10 @@ function getFeatureConfig() {
     disableAudioNotificationBeeps: false
   };
   try {
-    const saved = JSON.parse(localStorage.getItem('br_features_' + session.businessId) || '{}');
+    const bizId = (typeof session !== 'undefined' && session && session.businessId) ? session.businessId : 'default';
+    const savedBiz = localStorage.getItem('br_features_' + bizId);
+    const savedGlobal = localStorage.getItem('br_features_global');
+    const saved = JSON.parse(savedBiz || savedGlobal || '{}');
     return { ...defaults, ...saved };
   } catch(e) {
     return defaults;
@@ -12441,9 +12467,45 @@ function getFeatureConfig() {
 }
 
 function saveFeatureConfig(cfg) {
-  try { localStorage.setItem('br_features_' + session.businessId, JSON.stringify(cfg)); } catch(e){}
-  syncCustomCloudPayload('[FEATURE_SETTINGS_DATA]', cfg);
+  try {
+    const bizId = (typeof session !== 'undefined' && session && session.businessId) ? session.businessId : 'default';
+    const jsonStr = JSON.stringify(cfg);
+    localStorage.setItem('br_features_' + bizId, jsonStr);
+    localStorage.setItem('br_features_global', jsonStr);
+  } catch(e){}
+
+  if (typeof syncCustomCloudPayload === 'function') {
+    syncCustomCloudPayload('[FEATURE_SETTINGS_DATA]', cfg);
+  }
 }
+
+window.__saveCustomFeatures = function() {
+  const curCfg = getFeatureConfig();
+  const newCfg = {
+    maskCustomerDir: document.getElementById('cfgMaskCust') ? document.getElementById('cfgMaskCust').checked : curCfg.maskCustomerDir,
+    maskSalesDigits: document.getElementById('cfgMaskSales') ? document.getElementById('cfgMaskSales').checked : curCfg.maskSalesDigits,
+    allowManagerAccounts: document.getElementById('cfgManagerAcc') ? document.getElementById('cfgManagerAcc').checked : curCfg.allowManagerAccounts,
+    allowManagerSalary: document.getElementById('cfgManagerSalary') ? document.getElementById('cfgManagerSalary').checked : curCfg.allowManagerSalary,
+    allowManagerReports: document.getElementById('cfgManagerReports') ? document.getElementById('cfgManagerReports').checked : curCfg.allowManagerReports,
+    disablePendingTaskPopups: document.getElementById('cfgDisableTaskPopups') ? document.getElementById('cfgDisableTaskPopups').checked : curCfg.disablePendingTaskPopups,
+    disableBackupReminderPopups: document.getElementById('cfgDisableBackupPopups') ? document.getElementById('cfgDisableBackupPopups').checked : curCfg.disableBackupReminderPopups,
+    disableAudioNotificationBeeps: document.getElementById('cfgDisableAudioBeeps') ? document.getElementById('cfgDisableAudioBeeps').checked : curCfg.disableAudioNotificationBeeps,
+    allowStaffLowStockDelete: true,
+    allowStaffExpiryTracker: true
+  };
+
+  saveFeatureConfig(newCfg);
+
+  if (newCfg.disablePendingTaskPopups) {
+    const reminder = document.getElementById('reminderOverlay');
+    if (reminder) reminder.remove();
+  }
+
+  if (typeof window.showToast === 'function') {
+    window.showToast('⚙️ Pop-up & feature settings saved successfully!', 'success');
+  }
+  renderShell();
+};
 
 function maskCustData(text, type) {
   if (!text) return '';
