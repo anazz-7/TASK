@@ -1694,8 +1694,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
 <body>
-<div id="globalLoader"><div class="bar"></div></div>
-
 <div id="app"></div>
 
 <script>
@@ -1827,10 +1825,8 @@ window.__toggleCompactView = function() {
 };
 
 function showLoading(msg) {
-  const el = document.getElementById('globalLoader');
-  if(el) el.classList.add('show');
   const tabBody = document.getElementById('tabBody');
-  if (tabBody && (!tabBody.innerHTML.trim() || msg === 'Reloading Data...')) {
+  if (tabBody && (msg === 'Reloading Data...' || !tabBody.children.length)) {
     if (typeof window.__renderSkeletonHtml === 'function') {
       tabBody.innerHTML = window.__renderSkeletonHtml(4);
     }
@@ -1838,8 +1834,6 @@ function showLoading(msg) {
   if (typeof window.__showSyncProgress === 'function') window.__showSyncProgress(msg || 'Syncing to Cloud...');
 }
 function hideLoading(successMsg) {
-  const el = document.getElementById('globalLoader');
-  if(el) el.classList.remove('show');
   if (typeof window.__hideSyncProgress === 'function') window.__hideSyncProgress(successMsg || '✓ Cloud Synced');
 }
 
