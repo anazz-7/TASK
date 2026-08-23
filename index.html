@@ -884,30 +884,51 @@
     to { opacity: 1; transform: translateY(0); }
   }
 
-  /* 2. Skeleton loading */
-  .skeleton-card {
-    background: var(--card) !important;
-    border: 1.5px solid var(--paper-line) !important;
-    border-radius: 12px !important;
-    padding: 16px !important;
+  /* 2. Uiverse.io Skeleton loader by Deri-Kurniawan */
+  .uiverse-skeleton-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    background: var(--card);
+    border: 1.5px solid var(--paper-line);
+    border-radius: 12px;
+    padding: 16px;
     margin-bottom: 12px;
+  }
+  .uiverse-skeleton-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #CBD5E1;
+    flex-shrink: 0;
+    animation: animatePulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  .uiverse-skeleton-col {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
+    flex: 1;
   }
-  .skeleton-line {
-    height: 14px;
-    border-radius: 6px;
-    background: linear-gradient(90deg, var(--paper-line) 25%, #E2E8F0 50%, var(--paper-line) 75%);
-    background-size: 200% 100%;
-    animation: skeletonPulse 1.4s infinite ease-in-out;
+  .uiverse-skeleton-bar-top {
+    width: 112px;
+    max-width: 60%;
+    height: 18px;
+    border-radius: 999px;
+    background: #CBD5E1;
+    animation: animatePulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
-  .skeleton-line.short { width: 40%; }
-  .skeleton-line.medium { width: 70%; }
-  .skeleton-line.full { width: 100%; }
-  @keyframes skeletonPulse {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+  .uiverse-skeleton-bar-bottom {
+    width: 144px;
+    max-width: 80%;
+    height: 18px;
+    border-radius: 999px;
+    background: #CBD5E1;
+    animation: animatePulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  @keyframes animatePulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
   }
 
   /* 3. Button states */
@@ -2212,15 +2233,18 @@ window.__triggerPageTransition = function() {
   }
 };
 
-// 2. Skeleton Loading Helper
-window.__renderSkeletonHtml = function(count = 3) {
+// 2. Skeleton Loading Helper (Uiverse.io by Deri-Kurniawan)
+window.__renderSkeletonHtml = function(count = 4) {
   let html = '';
   for (let i = 0; i < count; i++) {
     html += `
-      <div class="skeleton-card">
-        <div class="skeleton-line full" style="height:16px;"></div>
-        <div class="skeleton-line medium"></div>
-        <div class="skeleton-line short"></div>
+      <!-- From Uiverse.io by Deri-Kurniawan -->
+      <div class="uiverse-skeleton-row">
+        <div class="uiverse-skeleton-avatar"></div>
+        <div class="uiverse-skeleton-col">
+          <div class="uiverse-skeleton-bar-top"></div>
+          <div class="uiverse-skeleton-bar-bottom"></div>
+        </div>
       </div>`;
   }
   return html;
