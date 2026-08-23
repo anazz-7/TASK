@@ -3150,10 +3150,14 @@ function showPendingPopup(){
   window.__gotoTasksFromReminder = () => { holder.remove(); activeTab='tasks'; renderShell(); };
 }
 let __popupInterval = null;
+let __initialPopupTimer = null;
 function startPopupReminders(){
-  if(__popupInterval) return;
-  showPendingPopup(); // fires as soon as you're on the site, if anything's pending
-  __popupInterval = setInterval(showPendingPopup, 5*60*1000); // then every 5 minutes
+  if(__popupInterval || __initialPopupTimer) return;
+  // Wait 1 minute after entering the app before showing first popup
+  __initialPopupTimer = setTimeout(() => {
+    showPendingPopup();
+    __popupInterval = setInterval(showPendingPopup, 5 * 60 * 1000); // then every 5 minutes
+  }, 60 * 1000); // 60 seconds (1 minute) initial delay
 }
 function requestNotifications(){
   if(!('Notification' in window)){ alert('Notifications are not supported in this browser.'); return; }
