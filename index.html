@@ -2950,7 +2950,7 @@ function getPrimaryActionBtn(t){
   if(t==='salary' && isOwner()) return `<button class="stamp-btn desktop-only" onclick="window.__openSalary()">+ Record Salary</button>`;
   if(t==='points' && isManagerPlus()) return `<button class="stamp-btn desktop-only" onclick="window.__openPoints()">+ Award Points</button>`;
   if(t==='low_stock') return `<button class="stamp-btn desktop-only" onclick="window.__openLowStockModal()">+ Report Low Stock</button>`;
-  if(t==='customer_report') return `<button class="stamp-btn desktop-only" onclick="window.__openImportCustomerJsonModal()">📥 Import JSON</button><button class="stamp-btn desktop-only" style="margin-left:6px;" onclick="window.__openAddCustomerReportModal()">+ Add Customer</button>`;
+  if(t==='customer_report') return `<button class="stamp-btn desktop-only" onclick="window.__openImportCustomerJsonModal()">📥 Import Vyapar / File</button><button class="stamp-btn desktop-only" style="margin-left:6px;" onclick="window.__openAddCustomerReportModal()">+ Add Customer</button>`;
   return '';
 }
 
@@ -12581,7 +12581,7 @@ function renderCustomerReportTab(body) {
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
       <div>
         <h2 style="margin:0 0 4px;font-size:1.25rem;">CUSTOMER INTELLIGENCE &amp; ANALYTICS REPORT</h2>
-        <p style="margin:0;color:var(--ink-soft);font-size:0.78rem;">Import ChatGPT ledger JSON, analyze party purchase behavior, track order volume, and engage customers.</p>
+        <p style="margin:0;color:var(--ink-soft);font-size:0.78rem;">Import Vyapar backup files (.xlsx, .csv, .json), analyze party purchase behavior, track order volume, and engage customers.</p>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         ${isOwner() ? `
@@ -12589,7 +12589,7 @@ function renderCustomerReportTab(body) {
             ${window.isCustKpiCollapsed ? '📊 Show KPI Overview' : '📊 Collapse KPI Overview'}
           </button>
         ` : ''}
-        <button class="stamp-btn" onclick="window.__openImportCustomerJsonModal()">📥 Import JSON</button>
+        <button class="stamp-btn" style="background:var(--turmeric);color:#fff;border-color:var(--turmeric);" onclick="window.__openImportCustomerJsonModal()">📥 Import Vyapar / File</button>
         <div style="position:relative;display:inline-block;">
           <button class="stamp-btn ghost" onclick="window.__toggleCustActionsMoreMenu(event)">••• Actions ▾</button>
           <div class="action-dropdown-menu" id="custActionsMoreMenu" style="right:0;left:auto;top:100%;margin-top:4px;min-width:190px;">
@@ -12713,7 +12713,90 @@ function renderCustomerReportTab(body) {
   `;
 }
 
-/* Modal for importing ChatGPT JSON */
+let __loadedVyaparFileData = null;
+
+function parseVyaparRow(item) {
+  if (typeof item !== 'object' || item === null) return null;
+  const keys = Object.keys(item);
+  function getVal(patterns) {
+    for (const pat of patterns) {
+      const foundKey = keys.find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '').includes(pat));
+      if (foundKey && item[foundKey] !== undefined && item[foundKey] !== null && String(item[foundKey]).trim() !== '') {
+        return item[foundKey];
+      }
+    }
+    return '';
+  }
+
+  const name = getVal(['partyname', 'customername', 'party', 'name', 'customer', 'firmname', 'company']) || 'Unnamed Party';
+  const phone = String(getVal(['phonenumber', 'mobilenumber', 'phone', 'mobile', 'contact'])).replace(/\D/g, '');
+  const city = String(getVal(['city', 'address', 'billingaddress', 'state', 'location']));
+  const totalSpent = parseFloat(getVal(['totalsales', 'sales', 'totalspent', 'totalamount', 'spent', 'amount', 'total']) || 0);
+  const dueAmount = parseFloat(getVal(['openingbalance', 'receivableamount', 'receivable', 'dueamount', 'balance', 'pendingbalance', 'due', 'pending']) || 0);
+  const totalOrders = parseInt(getVal(['totalorders', 'orders', 'ordercount']) || 1, 10);
+  const lastOrderDate = String(getVal(['lastorderdate', 'lastdate', 'date']) || '');
+  const favoriteItem = String(getVal(['favoriteitem', 'item', 'product', 'category']) || '');
+  let segment = String(getVal(['segment', 'type', 'category']) || 'REGULAR').toUpperCase();
+  if (!['VIP', 'REGULAR', 'NEW', 'INACTIVE'].includes(segment)) segment = 'REGULAR';
+  const remarks = String(getVal(['gstin', 'gst', 'notes', 'remarks', 'comments', 'creditlimit']));
+
+  return { name, phone, city, totalSpent, dueAmount, totalOrders, lastOrderDate, favoriteItem, segment, remarks };
+}
+
+window.__handleVyaparFileSelected = function(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  const statusEl = document.getElementById('vyaparFileLoadedStatus');
+  if (statusEl) {
+    statusEl.style.display = 'block';
+    statusEl.innerHTML = `⏳ Reading file: ${esc(file.name)} (${(file.size/1024).toFixed(1)} KB)...`;
+  }
+
+  const fname = file.name.toLowerCase();
+  const reader = new FileReader();
+
+  if (fname.endsWith('.xlsx') || fname.endsWith('.xls') || fname.endsWith('.csv')) {
+    reader.onload = function(e) {
+      try {
+        if (typeof XLSX === 'undefined') {
+          alert('Excel parser library (XLSX) is not ready. Please refresh the page and try again.');
+          return;
+        }
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+        __loadedVyaparFileData = rows;
+        if (statusEl) {
+          statusEl.innerHTML = `✅ Ready to Import: <b>${esc(file.name)}</b> (${rows.length} party records found)`;
+        }
+        window.showToast(`✅ Loaded ${rows.length} Vyapar party records!`, 'success');
+      } catch(err) {
+        alert('Error reading Excel/CSV file: ' + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    reader.onload = function(e) {
+      try {
+        const text = e.target.result;
+        document.getElementById('customerJsonInput').value = text;
+        if (statusEl) {
+          statusEl.innerHTML = `✅ File Loaded: <b>${esc(file.name)}</b>`;
+        }
+        window.showToast('✅ Text file loaded into input box!', 'success');
+      } catch(err) {
+        alert('Error reading file: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  }
+};
+
+/* Modal for importing Vyapar Backup, Excel, CSV, or JSON */
 window.__openImportCustomerJsonModal = function() {
   let modal = document.getElementById('importCustomerJsonModal');
   if (!modal) {
@@ -12722,28 +12805,41 @@ window.__openImportCustomerJsonModal = function() {
     div.className = 'overlay';
     div.innerHTML = `
       <div class="modal" style="max-width:640px;">
-        <h2>📥 Import Customer Report &amp; Payment Ledger JSON</h2>
-        <p style="font-size:0.78rem;color:var(--ink-soft);margin-bottom:12px;">Paste the customer report JSON array generated by ChatGPT. We will automatically parse customer names, phone numbers, total billing, payment dues, and order notes!</p>
+        <h2>📥 Import Vyapar Backup File, Excel, CSV or JSON</h2>
+        <p style="font-size:0.78rem;color:var(--ink-soft);margin-bottom:12px;">
+          Directly select your <b>Vyapar App backup file (.xlsx, .xls, .csv, .json)</b> or paste raw party data. Party names, phone numbers, total sales, and pending balance dues will be automatically parsed!
+        </p>
+
+        <!-- Direct File Upload Box -->
+        <input type="file" id="mVyaparFileInput" accept=".xlsx,.xls,.csv,.json,.txt" style="display:none;" onchange="window.__handleVyaparFileSelected(event)">
+        <div id="vyaparFileDropZone" onclick="document.getElementById('mVyaparFileInput').click()" style="border:2px dashed var(--turmeric);background:var(--blue-soft);padding:18px 14px;border-radius:8px;text-align:center;cursor:pointer;margin-bottom:14px;transition:background 0.2s ease;">
+          <div style="font-size:1.6rem;margin-bottom:4px;">📁</div>
+          <b style="font-size:0.92rem;color:var(--turmeric-dark);">Tap to Select Vyapar Backup File (.xlsx, .xls, .csv, .json)</b>
+          <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">Supports Vyapar Party Exports, Excel Spreadsheets, CSV, and ChatGPT JSON</div>
+        </div>
         
+        <div id="vyaparFileLoadedStatus" style="display:none;margin-bottom:12px;padding:8px 12px;background:#e2e8f0;border-radius:6px;font-size:0.8rem;color:var(--ink);font-weight:700;"></div>
+
         <div style="margin-bottom:12px;">
-          <label style="font-size:0.78rem;font-weight:700;color:var(--ink);">💳 PAYMENT DUES PROMPT ON IMPORT:</label>
+          <label style="font-size:0.78rem;font-weight:700;color:var(--ink);">💳 PAYMENT DUES HANDLING ON IMPORT:</label>
           <select id="importPaymentDuesMode" style="width:100%;padding:9px;border-radius:6px;border:1.5px solid var(--paper-line);font-size:0.82rem;">
-            <option value="auto">⚡ Auto-Detect Payment Dues &amp; Status from JSON</option>
-            <option value="dues">🔴 Mark Dues Pending for All Imported Records (Default 20% Dues)</option>
+            <option value="auto">⚡ Auto-Detect Dues from Vyapar Balance / Receivable Columns</option>
+            <option value="dues">🔴 Mark Dues Pending for All Imported Records</option>
             <option value="settled">🟢 Mark All Imported Records as Fully Settled (Zero Dues)</option>
           </select>
         </div>
 
-        <label>CHATGPT CUSTOMER JSON DATA:</label>
-        <textarea id="customerJsonInput" style="height:170px;font-family:monospace;font-size:0.8rem;" placeholder='[&#10;  { "customer_name": "ROHIT TRADERS", "city": "MUMBAI", "phone": "9876543210", "total_spent": 48500, "due_amount": 9500, "payment_status": "DUE", "total_orders": 12, "favorite_item": "FLANGE 2 INCH", "segment": "VIP", "remarks": "High volume client" }&#10;]'></textarea>
+        <label style="font-size:0.78rem;font-weight:700;color:var(--ink);">OR PASTE RAW CSV / TEXT / JSON DATA:</label>
+        <textarea id="customerJsonInput" style="height:140px;font-family:monospace;font-size:0.8rem;" placeholder='Paste Vyapar Party List, CSV rows, or JSON here...'></textarea>
 
-        <div style="display:flex;gap:8px;margin-top:8px;">
-          <button class="stamp-btn small ghost" onclick="window.__copyChatGPTCustomerPrompt()">📋 Copy ChatGPT Payment Prompt Guide</button>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+          <button class="stamp-btn small ghost" onclick="document.getElementById('mVyaparFileInput').click()">📁 Choose File</button>
+          <button class="stamp-btn small ghost" onclick="window.__copyChatGPTCustomerPrompt()">📋 Copy Prompt Guide</button>
         </div>
 
-        <div class="modal-actions" style="margin-top:20px;">
+        <div class="modal-actions" style="margin-top:18px;">
           <button class="stamp-btn ghost" onclick="document.getElementById('importCustomerJsonModal').classList.remove('show')">Cancel</button>
-          <button class="stamp-btn" onclick="window.__submitImportCustomerJson()">📥 Import &amp; Save Customer Report</button>
+          <button class="stamp-btn" style="background:var(--turmeric);color:#fff;border-color:var(--turmeric);" onclick="window.__submitImportCustomerJson()">📥 Import &amp; Save Customer Ledger</button>
         </div>
       </div>
     `;
@@ -12754,91 +12850,95 @@ window.__openImportCustomerJsonModal = function() {
 };
 
 window.__submitImportCustomerJson = function() {
-  const input = document.getElementById('customerJsonInput').value.trim();
   const duesMode = document.getElementById('importPaymentDuesMode') ? document.getElementById('importPaymentDuesMode').value : 'auto';
+  const rawInput = document.getElementById('customerJsonInput') ? document.getElementById('customerJsonInput').value.trim() : '';
 
-  if (!input) {
-    alert('Please paste valid JSON data into the text box.');
+  let recordsToImport = [];
+
+  if (__loadedVyaparFileData && Array.isArray(__loadedVyaparFileData) && __loadedVyaparFileData.length > 0) {
+    recordsToImport = __loadedVyaparFileData;
+  } else if (rawInput) {
+    try {
+      let parsed = JSON.parse(rawInput);
+      if (!Array.isArray(parsed)) {
+        if (typeof parsed === 'object' && parsed !== null) parsed = [parsed];
+        else throw new Error('Invalid format');
+      }
+      recordsToImport = parsed;
+    } catch(e) {
+      // Try CSV parsing line-by-line if JSON parse failed
+      const lines = rawInput.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length > 1) {
+        const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+        recordsToImport = lines.slice(1).map(line => {
+          const vals = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+          const obj = {};
+          headers.forEach((h, idx) => { obj[h] = vals[idx] || ''; });
+          return obj;
+        });
+      } else {
+        alert('Could not parse data. Please select a valid Vyapar Excel file or paste JSON/CSV data.');
+        return;
+      }
+    }
+  } else {
+    alert('Please select a Vyapar file (.xlsx/.csv) or paste data into the text box.');
     return;
   }
 
-  try {
-    let parsed = JSON.parse(input);
-    if (!Array.isArray(parsed)) {
-      if (typeof parsed === 'object' && parsed !== null) parsed = [parsed];
-      else throw new Error('Input must be a JSON array or object.');
+  const current = getCustomerReportsData();
+  let count = 0;
+
+  recordsToImport.forEach(item => {
+    const row = parseVyaparRow(item);
+    if (!row || !row.name) return;
+
+    let dueAmount = 0;
+    let paymentStatus = 'SETTLED';
+
+    if (duesMode === 'settled') {
+      dueAmount = 0;
+      paymentStatus = 'SETTLED';
+    } else if (duesMode === 'dues') {
+      dueAmount = row.dueAmount > 0 ? row.dueAmount : Math.round((isNaN(row.totalSpent) ? 0 : row.totalSpent) * 0.2);
+      paymentStatus = 'DUE';
+    } else {
+      // Auto-detect
+      dueAmount = isNaN(row.dueAmount) ? 0 : row.dueAmount;
+      paymentStatus = dueAmount > 0 ? 'DUE' : 'SETTLED';
     }
 
-    const current = getCustomerReportsData();
-    let count = 0;
+    const newItem = {
+      id: 'cust_rep_' + Date.now() + '_' + Math.random().toString(36).substring(2,6),
+      customer_name: row.name,
+      phone: row.phone,
+      city: row.city,
+      total_spent: isNaN(row.totalSpent) ? 0 : row.totalSpent,
+      due_amount: dueAmount,
+      payment_status: paymentStatus,
+      total_orders: isNaN(row.totalOrders) ? 1 : row.totalOrders,
+      last_order_date: row.lastOrderDate,
+      favorite_item: row.favoriteItem,
+      segment: row.segment,
+      remarks: row.remarks
+    };
 
-    parsed.forEach(item => {
-      const name = item.customer_name || item.customerName || item.party_name || item.partyName || item.name || item.customer || 'Customer ' + (current.length + 1);
-      const phone = String(item.phone || item.phone_number || item.mobile || item.contact || '');
-      const city = String(item.city || item.location || item.address || '');
-      const totalSpent = parseFloat(item.total_spent || item.totalSpent || item.sales || item.amount || item.spent || item.total || 0);
-      const totalOrders = parseInt(item.total_orders || item.totalOrders || item.order_count || item.orders || 1, 10);
-      const lastOrder = item.last_order_date || item.lastOrderDate || item.last_date || item.date || '';
-      const favItem = item.favorite_item || item.favoriteItem || item.item || item.category || '';
-      let segment = String(item.segment || item.type || item.status || 'REGULAR').toUpperCase();
-      if (!['VIP', 'REGULAR', 'NEW', 'INACTIVE'].includes(segment)) segment = 'REGULAR';
-      const remarks = item.remarks || item.notes || item.comments || '';
+    const existingIdx = current.findIndex(r => areCustomersEqual(r, newItem));
+    if (existingIdx >= 0) {
+      Object.assign(current[existingIdx], newItem, { id: current[existingIdx].id });
+    } else {
+      current.push(newItem);
+      count++;
+    }
+  });
 
-      // Payment Dues Parsing according to prompt selection
-      let parsedDue = parseFloat(item.due_amount || item.dueAmount || item.pending_due || item.dues || item.balance_due || item.due || 0);
-      if (isNaN(parsedDue)) parsedDue = 0;
+  saveCustomerReportsData();
+  __loadedVyaparFileData = null;
+  const modal = document.getElementById('importCustomerJsonModal');
+  if (modal) modal.classList.remove('show');
 
-      let dueAmount = 0;
-      let paymentStatus = 'SETTLED';
-
-      if (duesMode === 'settled') {
-        dueAmount = 0;
-        paymentStatus = 'SETTLED';
-      } else if (duesMode === 'dues') {
-        dueAmount = parsedDue > 0 ? parsedDue : Math.round((isNaN(totalSpent) ? 0 : totalSpent) * 0.2);
-        paymentStatus = 'DUE';
-      } else {
-        // Auto-detect mode
-        dueAmount = parsedDue;
-        const statusStr = String(item.payment_status || item.paymentStatus || item.payment || '').toUpperCase();
-        if (statusStr.includes('DUE') || statusStr.includes('PENDING') || dueAmount > 0) {
-          paymentStatus = 'DUE';
-        } else {
-          paymentStatus = 'SETTLED';
-        }
-      }
-
-      const newItem = {
-        id: 'cust_rep_' + Date.now() + '_' + Math.random().toString(36).substring(2,6),
-        customer_name: name,
-        phone: phone,
-        city: city,
-        total_spent: isNaN(totalSpent) ? 0 : totalSpent,
-        due_amount: dueAmount,
-        payment_status: paymentStatus,
-        total_orders: isNaN(totalOrders) ? 1 : totalOrders,
-        last_order_date: lastOrder,
-        favorite_item: favItem,
-        segment: segment,
-        remarks: remarks
-      };
-
-      const existingIdx = current.findIndex(r => areCustomersEqual(r, newItem));
-      if (existingIdx >= 0) {
-        Object.assign(current[existingIdx], newItem, { id: current[existingIdx].id });
-      } else {
-        current.push(newItem);
-        count++;
-      }
-    });
-
-    saveCustomerReportsData();
-    document.getElementById('importCustomerJsonModal').classList.remove('show');
-    window.showToast(`✅ Successfully imported ${count} customer & payment records!`, 'success');
-    renderTabBody();
-  } catch(e) {
-    alert('Invalid JSON format: ' + e.message + '\n\nPlease copy the prompt guide and ask ChatGPT to generate valid JSON format.');
-  }
+  window.showToast(`✅ Successfully imported ${count} Vyapar customer records!`, 'success');
+  renderTabBody();
 };
 
 window.__copyChatGPTCustomerPrompt = function() {
