@@ -3102,6 +3102,8 @@ window.__triggerPwaInstall = async () => {
 /* ---------------- guaranteed on-site popup reminder (no permission needed, works every time) ---------------- */
 function playReminderSound(){
   try{
+    const cfg = typeof getFeatureConfig === 'function' ? getFeatureConfig() : {};
+    if (cfg.disableAudioNotificationBeeps) return;
     const ctx = new (window.AudioContext||window.webkitAudioContext)();
     [0, 180].forEach(delay => {
       setTimeout(()=>{
@@ -3115,9 +3117,11 @@ function playReminderSound(){
       }, delay);
     });
     setTimeout(()=>ctx.close(), 700);
-  } catch(e){ /* audio not available, popup still shows silently */ }
+  } catch(e){ /* audio not available */ }
 }
 function showPendingPopup(){
+  const cfg = typeof getFeatureConfig === 'function' ? getFeatureConfig() : {};
+  if (cfg.disablePendingTaskPopups) return;
   if(document.getElementById('reminderOverlay')) return; // one at a time
   if(!session) return;
   const mine = isManagerPlus() ? cache.tasks : cache.tasks.filter(t=>t.assigned_to===session.staffId);
@@ -11776,6 +11780,25 @@ function renderSettingsTab(body){
         <span>📈 <b>Allow Managers Access to Reports Tab</b></span>
       </label>
 
+      <div style="border-top:1px dashed var(--paper-line);margin:6px 0;padding-top:10px;">
+        <b style="font-size:0.82rem;color:var(--ink);display:block;margin-bottom:8px;">🔔 POP-UP &amp; AUTOMATIC REMINDER SETTINGS:</b>
+        
+        <label style="display:flex;align-items:center;gap:10px;font-size:0.85rem;cursor:pointer;margin-bottom:8px;">
+          <input type="checkbox" id="cfgDisableTaskPopups" ${cfg.disablePendingTaskPopups ? 'checked' : ''} style="width:18px;height:18px;">
+          <span>🚫 <b>Disable Pending Task Pop-Up Reminders (Every 5 mins)</b></span>
+        </label>
+
+        <label style="display:flex;align-items:center;gap:10px;font-size:0.85rem;cursor:pointer;margin-bottom:8px;">
+          <input type="checkbox" id="cfgDisableBackupPopups" ${cfg.disableBackupReminderPopups ? 'checked' : ''} style="width:18px;height:18px;">
+          <span>📦 <b>Disable Weekend Backup Reminder Pop-Ups</b></span>
+        </label>
+
+        <label style="display:flex;align-items:center;gap:10px;font-size:0.85rem;cursor:pointer;">
+          <input type="checkbox" id="cfgDisableAudioBeeps" ${cfg.disableAudioNotificationBeeps ? 'checked' : ''} style="width:18px;height:18px;">
+          <span>🔇 <b>Mute Audio Sound Effects on Reminders &amp; Alerts</b></span>
+        </label>
+      </div>
+
       <div class="modal-actions" style="margin-top:6px;">
         <button class="stamp-btn" style="background:var(--turmeric);color:#fff;" onclick="window.__saveCustomFeatures()">Save Feature Settings</button>
       </div>
@@ -11812,11 +11835,14 @@ function renderSettingsTab(body){
       allowManagerAccounts: document.getElementById('cfgManagerAcc') ? document.getElementById('cfgManagerAcc').checked : false,
       allowManagerSalary: document.getElementById('cfgManagerSalary') ? document.getElementById('cfgManagerSalary').checked : false,
       allowManagerReports: document.getElementById('cfgManagerReports') ? document.getElementById('cfgManagerReports').checked : false,
+      disablePendingTaskPopups: document.getElementById('cfgDisableTaskPopups') ? document.getElementById('cfgDisableTaskPopups').checked : false,
+      disableBackupReminderPopups: document.getElementById('cfgDisableBackupPopups') ? document.getElementById('cfgDisableBackupPopups').checked : false,
+      disableAudioNotificationBeeps: document.getElementById('cfgDisableAudioBeeps') ? document.getElementById('cfgDisableAudioBeeps').checked : false,
       allowStaffLowStockDelete: true,
       allowStaffExpiryTracker: true
     };
     saveFeatureConfig(newCfg);
-    window.showToast('⚙️ Custom feature settings saved!', 'success');
+    window.showToast('⚙️ Custom feature & pop-up settings saved!', 'success');
     renderShell();
   };
 
@@ -11991,6 +12017,8 @@ function performBackupDownload(){
 /* ---------------- weekend backup reminder (Owner only) ---------------- */
 function maybeShowWeekendBackupPrompt(){
   if(!isOwner()) return;
+  const cfg = typeof getFeatureConfig === 'function' ? getFeatureConfig() : {};
+  if (cfg.disableBackupReminderPopups) return;
   const dayOfWeek = new Date().getDay(); // 0=Sunday, 6=Saturday
   if(dayOfWeek !== 0 && dayOfWeek !== 6) return;
   const weekKey = localDateStr(getWeekStartDate(new Date()));
@@ -12399,7 +12427,10 @@ function getFeatureConfig() {
     allowManagerSalary: false,
     allowManagerReports: false,
     allowStaffLowStockDelete: true,
-    allowStaffExpiryTracker: true
+    allowStaffExpiryTracker: true,
+    disablePendingTaskPopups: false,
+    disableBackupReminderPopups: false,
+    disableAudioNotificationBeeps: false
   };
   try {
     const saved = JSON.parse(localStorage.getItem('br_features_' + session.businessId) || '{}');
