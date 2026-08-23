@@ -603,6 +603,41 @@
   }
 
   
+  /* --- High Contrast Monochromatic Black & White Theme Engine --- */
+  body.bw-theme, .bw-theme {
+    --paper: #FFFFFF !important;
+    --card: #FFFFFF !important;
+    --paper-line: #000000 !important;
+    --ink: #000000 !important;
+    --ink-soft: #334155 !important;
+    --turmeric: #000000 !important;
+    --turmeric-dark: #000000 !important;
+    --blue-soft: #F1F5F9 !important;
+    --brick: #000000 !important;
+    --leaf: #000000 !important;
+    --leaf-soft: #F8FAFC !important;
+  }
+  body.bw-theme .stamp-btn {
+    background: #000000 !important;
+    color: #FFFFFF !important;
+    border: 1.5px solid #000000 !important;
+    box-shadow: none !important;
+  }
+  body.bw-theme .stamp-btn.ghost {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    border: 1.5px solid #000000 !important;
+  }
+  body.bw-theme .stamp-btn:hover {
+    background: #1E293B !important;
+    color: #FFFFFF !important;
+    border-color: #000000 !important;
+  }
+  body.bw-theme .row-card, body.bw-theme .stat-card, body.bw-theme .dash-kpi-card, body.bw-theme .trend-chart-wrap, body.bw-theme .uiverse-skeleton-row {
+    border-color: #000000 !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06) !important;
+  }
+
   .header-icon-btn { background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--ink); padding: 8px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
   .badge-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--blue-soft); border: 1px solid var(--turmeric); color: var(--turmeric-dark); padding: 6px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; margin: 0 8px 8px 0; text-transform: uppercase !important; }
   .celebrate-banner { position: fixed; top: 22%; left: 50%; transform: translateX(-50%); background: var(--ink); color: #FFFFFF; padding: 16px 32px; border-radius: 16px !important; font-family: 'Roboto Mono', monospace !important; font-weight: 700; font-size: 1.1rem; z-index: 300; box-shadow: 0 10px 30px rgba(0,0,0,0.35); animation: celebratePop 0.35s ease, celebrateFade 0.4s ease 1.25s forwards; text-transform: uppercase !important; }
@@ -1757,48 +1792,27 @@ const DEFAULT_SUPABASE_KEY = 'sb_publishable_g3dzrIJkPdEPu4Aw7LxsnA_hpQIo5Qw';  
 
 
 
-/* ---------------- COMPACT CLOUD SYNC PROGRESS BAR ENGINE ---------------- */
-window.__showSyncProgress = function(msg = 'Syncing to Cloud...') {
-  let bar = document.getElementById('topSyncProgressBar');
-  let pill = document.getElementById('topSyncBadgePill');
-  if (!bar) {
-    bar = document.createElement('div');
-    bar.id = 'topSyncProgressBar';
-    bar.className = 'sync-progress-bar';
-    document.body.appendChild(bar);
-  }
-  if (!pill) {
-    pill = document.createElement('div');
-    pill.id = 'topSyncBadgePill';
-    pill.className = 'sync-badge-pill';
-    document.body.appendChild(pill);
-  }
+/* ---------------- BLACK & WHITE HIGH CONTRAST THEME ENGINE ---------------- */
+let isBwTheme = localStorage.getItem('br_bw_theme') === '1';
+if (isBwTheme) {
+  document.addEventListener('DOMContentLoaded', () => {
+    document.body.classList.add('bw-theme');
+  });
+}
 
-  bar.classList.remove('complete');
-  bar.classList.add('active');
-  pill.innerHTML = `<span>☁️</span> <span>${msg}</span>`;
-  pill.style.borderColor = 'rgba(245, 158, 11, 0.4)';
-  pill.style.color = '#F59E0B';
-  pill.classList.add('show');
+window.__toggleBwTheme = function() {
+  isBwTheme = !isBwTheme;
+  localStorage.setItem('br_bw_theme', isBwTheme ? '1' : '0');
+  if (isBwTheme) document.body.classList.add('bw-theme');
+  else document.body.classList.remove('bw-theme');
+  if (typeof window.showToast === 'function') {
+    window.showToast(isBwTheme ? '🔳 Black & White Theme Enabled' : '🎨 Default Color Theme Enabled', 'info');
+  }
 };
 
-window.__hideSyncProgress = function(successMsg = '✓ Cloud Synced') {
-  const bar = document.getElementById('topSyncProgressBar');
-  const pill = document.getElementById('topSyncBadgePill');
-  if (bar) {
-    bar.classList.remove('active');
-    bar.classList.add('complete');
-  }
-  if (pill) {
-    pill.innerHTML = `<span>✓</span> <span>${successMsg}</span>`;
-    pill.style.borderColor = 'rgba(16, 185, 129, 0.4)';
-    pill.style.color = '#10B981';
-  }
-  setTimeout(() => {
-    if (bar) { bar.classList.remove('complete'); bar.style.opacity = '0'; }
-    if (pill) pill.classList.remove('show');
-  }, 1800);
-};
+/* Completely Disabled Old Top Progress Bar Loader */
+window.__showSyncProgress = function() {};
+window.__hideSyncProgress = function() {};
 
 
 /* ---------------- SMALL RELOAD ICON BUTTON ENGINE ---------------- */
@@ -3540,6 +3554,7 @@ function renderShell(){
                 </button>`
               : `<span class="offline-badge synced" title="All data synced to cloud">✓ SYNCED</span>`;
           })()}
+          <button class="stamp-btn small ghost" style="padding:4px 8px;font-size:0.72rem;font-weight:700;" onclick="window.__toggleBwTheme()" title="Toggle Black & White High Contrast Theme">🔳 B&amp;W</button>
           <button class="reload-btn" title="Refresh App Data" onclick="window.__reloadAppData(this)">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3L21.5 8M22 12.5a10 10 0 0 1-18.8 4.3L2.5 16"/></svg>
           </button>
