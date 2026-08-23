@@ -2927,14 +2927,13 @@ const TAB_META = {
   accounts: {icon:'save', label:'Accounts'},
   customer_report: {icon:'user', label:'Customer Report'},
   audit: {icon:'clipboard', label:'Audit Log'},
-  vendors: {icon:'vendors', label:'Vendor Bills'},
   low_stock: {icon:'low_stock', label:'Low Stock'},
 };
 function currentTabs(){
   if(session.role === 'salesman') return ['tasks', 'sales', 'salesman', 'accounts', 'low_stock'];
   return isManagerPlus()
-    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','salary','accounts','customer_report','vendors','low_stock','reports','audit','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','customer_report','vendors','low_stock','audit','staff'])
-    : ['tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','vendors','low_stock'];
+    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','salary','accounts','customer_report','low_stock','reports','audit','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','customer_report','low_stock','audit','staff'])
+    : ['tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','low_stock'];
 }
 function quickTabs(){
   if(session.role === 'salesman') return ['tasks','attendance','sales','accounts'];
@@ -2950,7 +2949,6 @@ function getPrimaryActionBtn(t){
   if(t==='package') return `<button class="stamp-btn desktop-only" onclick="window.__openPackage()">+ Log Package</button>`;
   if(t==='salary' && isOwner()) return `<button class="stamp-btn desktop-only" onclick="window.__openSalary()">+ Record Salary</button>`;
   if(t==='points' && isManagerPlus()) return `<button class="stamp-btn desktop-only" onclick="window.__openPoints()">+ Award Points</button>`;
-  if(t==='vendors') return `<button class="stamp-btn desktop-only" onclick="window.__openScanVendorBillModal()">➕ Add Bill</button>`;
   if(t==='low_stock') return `<button class="stamp-btn desktop-only" onclick="window.__openLowStockModal()">+ Report Low Stock</button>`;
   if(t==='customer_report') return `<button class="stamp-btn desktop-only" onclick="window.__openImportCustomerJsonModal()">📥 Import JSON</button><button class="stamp-btn desktop-only" style="margin-left:6px;" onclick="window.__openAddCustomerReportModal()">+ Add Customer</button>`;
   return '';
@@ -3099,7 +3097,6 @@ function renderShell(){
     ${activeTab==='label' ? '<button class="fab mobile-only" onclick="window.__openLabel()">+</button>' : ''}
     ${activeTab==='package' ? '<button class="fab mobile-only" onclick="window.__openPackage()">+</button>' : ''}
     ${activeTab==='points' && isManagerPlus() ? '<button class="fab mobile-only" onclick="window.__openPoints()">+</button>' : ''}
-    ${activeTab==='vendors' ? '<button class="fab mobile-only" onclick="window.__openScanVendorBillModal()">+</button>' : ''}
     ${activeTab==='low_stock' ? '<button class="fab mobile-only" onclick="window.__openLowStockModal()">+</button>' : ''}
   `}
   `;
@@ -3134,7 +3131,6 @@ function renderTabBody(){
   else if(activeTab==='stockkeeper') renderStockkeeperTab(body);
   else if(activeTab==='accounts' && (isOwner() || (isManager() && getFeatureConfig().allowManagerAccounts))) renderAccountsTab(body);
   else if(activeTab==='customer_report') renderCustomerReportTab(body);
-  else if(activeTab==='vendors') renderVendorBillsTab(body);
   else if(activeTab==='low_stock') renderLowStockTab(body);
   else if(activeTab==='audit' && isManagerPlus()) renderAuditTab(body);
   else if(activeTab==='salary' && (isOwner() || (isManager() && getFeatureConfig().allowManagerSalary))) renderSalaryTab(body);
@@ -3301,39 +3297,7 @@ window.__sendSmsDailySummary = sendSmsDailySummary;
 
 /* ---------------- DASHBOARD WIDGETS (Features 1, 2, 6) ---------------- */
 function buildDashboardVendorBillsHtml() {
-  const bills = cache.vendorBills || [];
-  const unpaid = bills.filter(b => b.status !== 'paid');
-  if (!unpaid.length) return '';
-
-  const totalUnpaid = unpaid.reduce((sum, b) => sum + getBillAmount(b), 0);
-
-  return `
-    <div class="section-label">Unpaid Vendor Bills Due (${unpaid.length}) <a onclick="window.__setTab('vendors')">View All &rarr;</a></div>
-    <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px;margin-bottom:16px;border-left:4px solid var(--turmeric);">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <div>
-          <b style="font-size:0.95rem;color:var(--turmeric);">Total Payable to Suppliers</b>
-          <div style="font-size:0.75rem;color:var(--ink-soft);">${unpaid.length} Pending Bills Awaiting Payment</div>
-        </div>
-        <b style="font-family:'Roboto Mono',monospace;font-size:1.25rem;color:var(--turmeric);">₹${totalUnpaid.toFixed(0)}</b>
-      </div>
-
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        ${unpaid.slice(0, 3).map(b => `
-          <div style="display:flex;justify-content:space-between;align-items:center;background:var(--paper);padding:8px 12px;border-radius:6px;border:1px solid var(--paper-line);">
-            <div>
-              <b style="font-size:0.88rem;color:var(--ink);">${esc(getVendorName(b))}</b>
-              <div style="font-size:0.75rem;color:var(--ink-soft);font-family:'Roboto Mono',monospace;">Bill #${esc(getBillNo(b))} ${b.due_date ? '&bull; Due: ' + b.due_date : ''}</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <b style="font-family:'Roboto Mono',monospace;font-size:0.95rem;color:var(--turmeric);">₹${getBillAmount(b).toFixed(0)}</b>
-              ${isOwner() ? `<button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border-color:var(--turmeric);padding:4px 8px;font-size:0.72rem;" onclick="window.__markVendorBillPaid('${b.id}')">✓ Pay</button>` : ''}
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-  `;
+  return '';
 }
 
 function buildDashboardActivityFeedHtml() {

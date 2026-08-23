@@ -27,7 +27,7 @@ cache = {
 };
 
 const fakeBody = { innerHTML: '' };
-const tabsToTest = ['dashboard','ai','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','salary','accounts','vendors','reports','audit','staff','settings'];
+const tabsToTest = ['dashboard','ai','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','salary','accounts','reports','audit','staff','settings'];
 
 tabsToTest.forEach(t => {
   activeTab = t;
