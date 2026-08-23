@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Business Register</title>
@@ -12789,6 +12790,71 @@ window.__handleVyaparFileSelected = function(event) {
   const fname = file.name.toLowerCase();
   const reader = new FileReader();
 
+  if (fname.endsWith('.vyb')) {
+    reader.onload = async function(e) {
+      try {
+        const arrayBuf = e.target.result;
+        let rows = [];
+
+        // Check if ZIP archive (magic bytes PK..)
+        const isZip = new Uint8Array(arrayBuf, 0, 4);
+        if (isZip[0] === 0x50 && isZip[1] === 0x4B && typeof JSZip !== 'undefined') {
+          try {
+            const zip = await JSZip.loadAsync(arrayBuf);
+            for (const filename of Object.keys(zip.files)) {
+              if (filename.endsWith('.json') || filename.endsWith('.csv') || filename.endsWith('.txt')) {
+                const text = await zip.files[filename].async('string');
+                try {
+                  const parsed = JSON.parse(text);
+                  if (Array.isArray(parsed)) rows.push(...parsed);
+                  else if (parsed && Array.isArray(parsed.parties)) rows.push(...parsed.parties);
+                } catch(err) {
+                  const lines = text.split(/\r?\n/).filter(l => l.trim());
+                  if (lines.length > 1) {
+                    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+                    const parsedCsv = lines.slice(1).map(line => {
+                      const vals = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+                      const obj = {};
+                      headers.forEach((h, idx) => { obj[h] = vals[idx] || ''; });
+                      return obj;
+                    });
+                    rows.push(...parsedCsv);
+                  }
+                }
+              }
+            }
+          } catch(zipErr) {}
+        }
+
+        // If not zip or zip parsing yielded 0 rows, process as raw text / JSON / text stream
+        if (!rows.length) {
+          const text = new TextDecoder('utf-8', { fatal: false }).decode(arrayBuf);
+          try {
+            const jsonMatch = text.match(/\[\s*\{[\s\S]*\}\s*\]/);
+            if (jsonMatch) {
+              const parsed = JSON.parse(jsonMatch[0]);
+              if (Array.isArray(parsed)) rows = parsed;
+            }
+          } catch(e){}
+        }
+
+        if (rows.length > 0) {
+          __loadedVyaparFileData = rows;
+          if (statusEl) {
+            statusEl.innerHTML = `✅ Ready to Import Vyapar Backup (.VYB): <b>${esc(file.name)}</b> (${rows.length} party records extracted)`;
+          }
+          window.showToast(`✅ Loaded ${rows.length} Vyapar party records from .VYB backup!`, 'success');
+        } else {
+          alert('Could not auto-extract party records from this .vyb file. Please export Party List as Excel/CSV from Vyapar or paste raw data.');
+        }
+      } catch(err) {
+        alert('Error parsing .vyb file: ' + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    return;
+  }
+
   if (fname.endsWith('.xlsx') || fname.endsWith('.xls') || fname.endsWith('.csv')) {
     reader.onload = function(e) {
       try {
@@ -12829,7 +12895,7 @@ window.__handleVyaparFileSelected = function(event) {
   }
 };
 
-/* Modal for importing Vyapar Backup, Excel, CSV, or JSON */
+/* Modal for importing Vyapar Backup (.VYB), Excel, CSV, or JSON */
 window.__openImportCustomerJsonModal = function() {
   let modal = document.getElementById('importCustomerJsonModal');
   if (!modal) {
@@ -12838,17 +12904,17 @@ window.__openImportCustomerJsonModal = function() {
     div.className = 'overlay';
     div.innerHTML = `
       <div class="modal" style="max-width:640px;">
-        <h2>📥 Import Vyapar Backup File, Excel, CSV or JSON</h2>
+        <h2>📥 Import Vyapar Backup (.VYB), Excel, CSV or JSON</h2>
         <p style="font-size:0.78rem;color:var(--ink-soft);margin-bottom:12px;">
-          Directly select your <b>Vyapar App backup file (.xlsx, .xls, .csv, .json)</b> or paste raw party data. Party names, phone numbers, total sales, and pending balance dues will be automatically parsed!
+          Directly select your <b>Vyapar App backup file (.vyb, .xlsx, .xls, .csv, .json)</b> or paste raw party data. Party names, phone numbers, total sales, and pending balance dues will be automatically parsed!
         </p>
 
         <!-- Direct File Upload Box -->
-        <input type="file" id="mVyaparFileInput" accept=".xlsx,.xls,.csv,.json,.txt" style="display:none;" onchange="window.__handleVyaparFileSelected(event)">
+        <input type="file" id="mVyaparFileInput" accept=".vyb,.xlsx,.xls,.csv,.json,.txt" style="display:none;" onchange="window.__handleVyaparFileSelected(event)">
         <div id="vyaparFileDropZone" onclick="document.getElementById('mVyaparFileInput').click()" style="border:2px dashed var(--turmeric);background:var(--blue-soft);padding:18px 14px;border-radius:8px;text-align:center;cursor:pointer;margin-bottom:14px;transition:background 0.2s ease;">
           <div style="font-size:1.6rem;margin-bottom:4px;">📁</div>
-          <b style="font-size:0.92rem;color:var(--turmeric-dark);">Tap to Select Vyapar Backup File (.xlsx, .xls, .csv, .json)</b>
-          <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">Supports Vyapar Party Exports, Excel Spreadsheets, CSV, and ChatGPT JSON</div>
+          <b style="font-size:0.92rem;color:var(--turmeric-dark);">Tap to Select Vyapar Backup File (.vyb, .xlsx, .xls, .csv, .json)</b>
+          <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">Supports Vyapar Backup (.VYB), Party Exports, Excel Spreadsheets, CSV &amp; JSON</div>
         </div>
         
         <div id="vyaparFileLoadedStatus" style="display:none;margin-bottom:12px;padding:8px 12px;background:#e2e8f0;border-radius:6px;font-size:0.8rem;color:var(--ink);font-weight:700;"></div>
