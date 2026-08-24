@@ -832,16 +832,18 @@
   .action-dropdown-menu {
     position: absolute !important;
     right: 0 !important;
-    top: calc(100% + 4px) !important;
+    top: calc(100% + 4px);
     background: #FFFFFF !important;
     border: 1.5px solid var(--paper-line) !important;
     border-radius: 10px !important;
-    box-shadow: 0 10px 30px rgba(15,23,42,0.2) !important;
+    box-shadow: 0 10px 30px rgba(15,23,42,0.22) !important;
     z-index: 99999 !important;
     min-width: 155px !important;
+    max-width: 220px !important;
+    max-height: 220px !important;
     display: none;
     flex-direction: column !important;
-    overflow: hidden !important;
+    overflow-y: auto !important;
     padding: 4px 0 !important;
     animation: fadeInUp 0.15s ease !important;
   }
@@ -2163,19 +2165,50 @@ window.__togglePinReveal = function(staffId, realPin) {
 
 
 window.__toggleActionMenu = function(e, id) {
-  if (e) e.stopPropagation();
+  if (e) {
+    e.stopPropagation();
+    if (e.preventDefault) e.preventDefault();
+  }
   const menus = document.querySelectorAll('.action-dropdown-menu');
   menus.forEach(m => {
     if (m.id !== 'actionMenu_' + id) {
       m.classList.remove('show');
+      m.style.top = '';
+      m.style.bottom = '';
       if (m.parentElement) m.parentElement.style.zIndex = '';
+      const parentCard = m.closest('.row-card, .dash-kpi-card, .stat-card, .leaderboard-card');
+      if (parentCard) parentCard.style.overflow = '';
     }
   });
+
   const menu = document.getElementById('actionMenu_' + id);
   if (menu) {
     const isShowing = menu.classList.toggle('show');
-    if (menu.parentElement) {
-      menu.parentElement.style.zIndex = isShowing ? '9999' : '';
+    const btn = e ? e.currentTarget : null;
+    const parentCard = menu.closest('.row-card, .dash-kpi-card, .stat-card, .leaderboard-card');
+
+    if (isShowing) {
+      if (menu.parentElement) menu.parentElement.style.zIndex = '9999';
+      if (parentCard) parentCard.style.overflow = 'visible';
+
+      // Smart flip: check if menu extends beyond bottom of window
+      if (btn) {
+        const btnRect = btn.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const spaceBelow = viewportHeight - btnRect.bottom;
+
+        // If less than 170px space below, flip menu to open UPWARDS
+        if (spaceBelow < 170 && btnRect.top > 170) {
+          menu.style.top = 'auto';
+          menu.style.bottom = 'calc(100% + 4px)';
+        } else {
+          menu.style.top = 'calc(100% + 4px)';
+          menu.style.bottom = 'auto';
+        }
+      }
+    } else {
+      if (menu.parentElement) menu.parentElement.style.zIndex = '';
+      if (parentCard) parentCard.style.overflow = '';
     }
   }
 };
@@ -2184,7 +2217,11 @@ document.addEventListener('click', () => {
   const menus = document.querySelectorAll('.action-dropdown-menu');
   menus.forEach(m => {
     m.classList.remove('show');
+    m.style.top = '';
+    m.style.bottom = '';
     if (m.parentElement) m.parentElement.style.zIndex = '';
+    const parentCard = m.closest('.row-card, .dash-kpi-card, .stat-card, .leaderboard-card');
+    if (parentCard) parentCard.style.overflow = '';
   });
 });
 
