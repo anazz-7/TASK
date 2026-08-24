@@ -423,15 +423,18 @@
   .overlay {
     position: fixed;
     inset: 0;
-    background: rgba(15,23,42,0.55);
+    background: rgba(15,23,42,0.65);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     align-items: flex-end;   /* mobile: bottom */
     justify-content: center;
-    z-index: 50;
+    z-index: 1000 !important;
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.2s ease;
     padding: 0;
+    pointer-events: auto;
   }
   .overlay.show { opacity: 1; visibility: visible; }
 
@@ -447,6 +450,9 @@
     transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
     text-align: left;
     box-sizing: border-box;
+    z-index: 1001 !important;
+    position: relative;
+    box-shadow: 0 -8px 32px rgba(0,0,0,0.25);
   }
   .overlay.show .modal { transform: translateY(0); }
 
@@ -4086,8 +4092,7 @@ function getNextDayOfWeekStr(targetDay) {
 
 
 window.__openQuickTaskModal = function() {
-  document.getElementById('tabBody').insertAdjacentHTML('beforeend', '<div id="quickModalHolder"></div>');
-  const holder = document.getElementById('quickModalHolder');
+  const holder = getModalHolder('taskModalHolder');
   holder.innerHTML = `
   <div class="overlay show"><div class="modal">
     <h2>⚡ Quick Create Task (Natural Text)</h2>
@@ -4100,7 +4105,7 @@ window.__openQuickTaskModal = function() {
       • "Check stock balance today !urgent @Anas"
     </div>
     <div class="modal-actions">
-      <button class="stamp-btn ghost" onclick="document.getElementById('quickModalHolder').remove()">Cancel</button>
+      <button class="stamp-btn ghost" onclick="getModalHolder('taskModalHolder').innerHTML=''">Cancel</button>
       <button class="stamp-btn" onclick="window.__submitQuickModal()">⚡ Create Task</button>
     </div>
   </div></div>`;
@@ -4390,7 +4395,7 @@ window.__markDone = function(id) {
 
 function openTaskModal(taskId){
   const t = taskId ? cache.tasks.find(x=>x.id===taskId) : null;
-  const holder = document.getElementById('taskModalHolder');
+  const holder = getModalHolder('taskModalHolder');
   const assignField = isManagerPlus()
     ? `<label>Assign to</label><select id="mTaskStaff">${cache.staff.map(s=>`<option value="${s.id}" ${t&&t.assigned_to===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select>`
     : `<label>Assign to</label><input value="${esc(session.name)}" disabled><input type="hidden" id="mTaskStaff" value="${session.staffId}">`;
