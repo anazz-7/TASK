@@ -814,18 +814,19 @@
   .action-dropdown-menu {
     position: absolute !important;
     right: 0 !important;
-    top: -2px !important;
-    background: #FFFFFF !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    background: var(--paper) !important;
     border: 1.5px solid var(--paper-line) !important;
-    border-radius: 8px !important;
-    box-shadow: 0 4px 18px rgba(15,23,42,0.22) !important;
+    border-radius: 999px !important;
+    box-shadow: 0 4px 14px rgba(15,23,42,0.18) !important;
     z-index: 99 !important;
-    min-width: 140px !important;
-    max-width: 220px !important;
     display: none;
-    flex-direction: column !important;
-    overflow: hidden !important;
-    padding: 2px 0 !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 4px !important;
+    padding: 3px 6px !important;
+    white-space: nowrap !important;
     animation: fadeIn 0.12s ease !important;
   }
 
@@ -834,34 +835,37 @@
   }
 
   .action-dropdown-menu button {
-    padding: 9px 14px !important;
-    border: none !important;
-    background: none !important;
-    text-align: left !important;
+    padding: 4px 9px !important;
+    border: 1px solid var(--paper-line) !important;
+    border-radius: 999px !important;
+    background: #FFFFFF !important;
     font-family: 'Roboto Mono', monospace !important;
-    font-size: 0.75rem !important;
+    font-size: 0.7rem !important;
     font-weight: 700 !important;
     color: var(--ink) !important;
     cursor: pointer !important;
-    width: 100% !important;
     text-transform: uppercase !important;
-    display: flex !important;
+    display: inline-flex !important;
     align-items: center !important;
-    gap: 8px !important;
-    transition: background 0.12s ease !important;
+    gap: 4px !important;
     white-space: nowrap !important;
+    line-height: 1 !important;
+    transition: all 0.12s ease !important;
   }
 
   .action-dropdown-menu button:hover {
     background: var(--blue-soft) !important;
     color: var(--turmeric-dark) !important;
+    border-color: var(--turmeric) !important;
   }
 
   .action-dropdown-menu button.danger {
     color: var(--brick) !important;
+    border-color: rgba(225, 29, 72, 0.3) !important;
   }
   .action-dropdown-menu button.danger:hover {
-    background: rgba(225, 29, 72, 0.08) !important;
+    background: rgba(225, 29, 72, 0.1) !important;
+    border-color: var(--brick) !important;
   }
 
   /* ---------------- UNIFIED 15-POINT PREMIUM UI/UX ENHANCEMENT ENGINE ---------------- */
