@@ -193,6 +193,15 @@
     flex-shrink: 0;
     transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
   }
+
+  .stamp-btn .btn-short { display: none; }
+  .stamp-btn .btn-text { display: inline; }
+
+  @media (max-width: 640px) {
+    .stamp-btn .btn-short { display: inline !important; font-size: 0.95rem !important; font-weight: 800 !important; }
+    .stamp-btn .btn-text { display: none !important; }
+    .stamp-btn.compact-mobile { padding: 6px 10px !important; min-width: 36px !important; }
+  }
   .stamp-btn:hover {
     background: #1E293B;
     border-color: #1E293B;
@@ -2835,6 +2844,16 @@ async function loadData(){
       if (ct.title === '[EXPIRY_ITEMS_DATA]' && ct.notes) {
         try { localStorage.setItem('br_expiry_' + bizId, ct.notes); } catch(e){}
       }
+      if (ct.title === '[EXPENSES_TRACKER_DATA]' && ct.notes) {
+        try { localStorage.setItem('br_expenses_' + bizId, ct.notes); } catch(e){}
+      }
+      if (ct.title === '[SALARY_ADVANCES_DATA]' && ct.notes) {
+        try {
+          const advs = JSON.parse(ct.notes);
+          localStorage.setItem('br_advances_' + bizId, ct.notes);
+          if (cache) cache.salaryAdvances = advs;
+        } catch(e){}
+      }
       if (ct.title === '[FEATURE_SETTINGS_DATA]' && ct.notes) {
         try { localStorage.setItem('br_features_' + bizId, ct.notes); } catch(e){}
       }
@@ -3422,17 +3441,17 @@ function quickTabs(){
   return isManagerPlus() ? ['dashboard','tasks','sales','accounts'] : ['tasks','attendance','sales','points'];
 }
 function getPrimaryActionBtn(t){
-  if(t==='tasks') return `<button class="stamp-btn desktop-only" onclick="window.__openTask()">+ Add Task</button>`;
-  if(t==='daily' && isManagerPlus()) return `<button class="stamp-btn desktop-only" onclick="window.__openRoutine()">+ Add Daily Task</button>`;
-  if(t==='weekly' && isManagerPlus()) return `<button class="stamp-btn desktop-only" onclick="window.__openWeekly()">+ Add Weekly Task</button>`;
-  if(t==='staff') return `<button class="stamp-btn desktop-only" onclick="window.__openStaff()">+ Add Staff</button>`;
-  if(t==='sales') return `<button class="stamp-btn desktop-only" onclick="window.__openSale()">+ Log Sale</button>`;
-  if(t==='label') return `<button class="stamp-btn desktop-only" onclick="window.__openLabel()">+ Log Label</button>`;
-  if(t==='package') return `<button class="stamp-btn desktop-only" onclick="window.__openPackage()">+ Log Package</button>`;
-  if(t==='salary' && (isOwner() || isManager())) return `<button class="stamp-btn" onclick="window.__openSalaryLogModal()">📜 Salary Log</button>${isOwner() ? `<button class="stamp-btn desktop-only" style="margin-left:6px;" onclick="window.__openSalary()">+ Record Salary</button>` : ''}`;
-  if(t==='points' && isManagerPlus()) return `<button class="stamp-btn desktop-only" onclick="window.__openPoints()">+ Award Points</button>`;
-  if(t==='low_stock') return `<button class="stamp-btn desktop-only" onclick="window.__openLowStockModal()">+ Report Low Stock</button>`;
-  if(t==='customer_report') return `<button class="stamp-btn desktop-only" onclick="window.__openImportCustomerJsonModal()">📥 Import Vyapar / File</button><button class="stamp-btn desktop-only" style="margin-left:6px;" onclick="window.__openAddCustomerReportModal()">+ Add Customer</button>`;
+  if(t==='tasks') return `<button class="stamp-btn compact-mobile" onclick="window.__openTask()"><span class="btn-text">+ Add Task</span><span class="btn-short">+</span></button>`;
+  if(t==='daily' && isManagerPlus()) return `<button class="stamp-btn compact-mobile" onclick="window.__openRoutine()"><span class="btn-text">+ Add Daily Task</span><span class="btn-short">+</span></button>`;
+  if(t==='weekly' && isManagerPlus()) return `<button class="stamp-btn compact-mobile" onclick="window.__openWeekly()"><span class="btn-text">+ Add Weekly Task</span><span class="btn-short">+</span></button>`;
+  if(t==='staff') return `<button class="stamp-btn compact-mobile" onclick="window.__openStaff()"><span class="btn-text">+ Add Staff</span><span class="btn-short">+</span></button>`;
+  if(t==='sales') return `<button class="stamp-btn compact-mobile" onclick="window.__openSale()"><span class="btn-text">+ Log Sale</span><span class="btn-short">+</span></button>`;
+  if(t==='label') return `<button class="stamp-btn compact-mobile" onclick="window.__openLabel()"><span class="btn-text">+ Log Label</span><span class="btn-short">+</span></button>`;
+  if(t==='package') return `<button class="stamp-btn compact-mobile" onclick="window.__openPackage()"><span class="btn-text">+ Log Package</span><span class="btn-short">+</span></button>`;
+  if(t==='salary' && (isOwner() || isManager())) return `<button class="stamp-btn compact-mobile" onclick="window.__openSalaryLogModal()"><span class="btn-text">📜 Salary Log</span><span class="btn-short">📜</span></button>${isOwner() ? `<button class="stamp-btn compact-mobile" style="margin-left:6px;" onclick="window.__openSalary()"><span class="btn-text">+ Record Salary</span><span class="btn-short">+</span></button>` : ''}`;
+  if(t==='points' && isManagerPlus()) return `<button class="stamp-btn compact-mobile" onclick="window.__openPoints()"><span class="btn-text">+ Award Points</span><span class="btn-short">+</span></button>`;
+  if(t==='low_stock') return `<button class="stamp-btn compact-mobile" onclick="window.__openLowStockModal()"><span class="btn-text">+ Report Low Stock</span><span class="btn-short">+</span></button>`;
+  if(t==='customer_report') return `<button class="stamp-btn compact-mobile" onclick="window.__openImportCustomerJsonModal()"><span class="btn-text">📥 Import</span><span class="btn-short">📥</span></button><button class="stamp-btn compact-mobile" style="margin-left:6px;" onclick="window.__openAddCustomerReportModal()"><span class="btn-text">+ Add Customer</span><span class="btn-short">+</span></button>`;
   return '';
 }
 
@@ -11056,11 +11075,18 @@ function getSalaryAdvances() {
   } catch(e) { return []; }
 }
 
+function saveSalaryAdvances(advances) {
+  try {
+    localStorage.setItem('br_advances_' + session.businessId, JSON.stringify(advances));
+    if (cache) cache.salaryAdvances = advances;
+    if (typeof syncCustomCloudPayload === 'function') syncCustomCloudPayload('[SALARY_ADVANCES_DATA]', advances);
+  } catch(e) {}
+}
+
 function saveSalaryAdvanceLocally(adv) {
   const advances = getSalaryAdvances();
   advances.unshift(adv);
-  localStorage.setItem('br_advances_' + session.businessId, JSON.stringify(advances));
-  if (cache) cache.salaryAdvances = advances;
+  saveSalaryAdvances(advances);
 }
 
 window.__openSalaryAdvanceModal = function() {
@@ -12233,6 +12259,8 @@ window.__reloadAppData = async function(btn) {
       if (typeof getCustomerDirectory === 'function') syncCustomCloudPayload('[CUSTOMER_DIRECTORY_DATA]', getCustomerDirectory());
       if (typeof getCustomerReportsData === 'function') syncCustomCloudPayload('[CUSTOMER_REPORTS_DATA]', getCustomerReportsData());
       if (typeof getExpiryItems === 'function') syncCustomCloudPayload('[EXPIRY_ITEMS_DATA]', getExpiryItems());
+      if (typeof getExpensesList === 'function') syncCustomCloudPayload('[EXPENSES_TRACKER_DATA]', getExpensesList());
+      if (typeof getSalaryAdvances === 'function') syncCustomCloudPayload('[SALARY_ADVANCES_DATA]', getSalaryAdvances());
       if (typeof getFeatureConfig === 'function') syncCustomCloudPayload('[FEATURE_SETTINGS_DATA]', getFeatureConfig());
       if (cache.vendorBills && cache.vendorBills.length) syncCustomCloudPayload('[VENDOR_BILLS_DATA]', cache.vendorBills);
     } catch(e){}
