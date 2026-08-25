@@ -3023,6 +3023,15 @@ async function loadData(){
           }
         } catch(e){}
       }
+      if (ct.title === '[OFFICE_LOGS_DATA]' && ct.notes) {
+        try {
+          const parsed = JSON.parse(ct.notes);
+          if (Array.isArray(parsed)) {
+            cache.officeLogs = parsed;
+            localStorage.setItem('br_office_logs_' + bizId, ct.notes);
+          }
+        } catch(e){}
+      }
     });
 
 
@@ -3612,6 +3621,7 @@ const ICONS = {
   sparkles: '<path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" fill="none" stroke-width="2" stroke-linecap="round"/>',
   vendors: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="none" stroke-width="2" stroke-linejoin="round"/><polyline points="14 2 14 8 20 8" fill="none" stroke-width="2"/><line x1="16" y1="13" x2="8" y2="13" stroke-width="2"/><line x1="16" y1="17" x2="8" y2="17" stroke-width="2"/><line x1="10" y1="9" x2="8" y2="9" stroke-width="2"/>',
   low_stock: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" fill="none" stroke-width="2" stroke-linejoin="round"/><polyline points="3.27 6.96 12 12.01 20.73 6.96" fill="none" stroke-width="2"/><line x1="12" y1="22.08" x2="12" y2="12" stroke-width="2"/>',
+  building: '<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18M6 12h12M6 17h12M10 6h4" fill="none" stroke-width="2" stroke-linecap="round"/>',
 };
 function icon(name, size){
   size = size || 18;
@@ -3623,6 +3633,7 @@ const TAB_META = {
   daily: {icon:'daily', label:'Daily'},
   weekly: {icon:'weekly', label:'Weekly'},
   attendance: {icon:'attendance', label:'Attendance'},
+  office_logs: {icon:'building', label:'Office Logs'},
   sales: {icon:'sales', label:'Sales'},
   pricelist: {icon:'clipboard', label:'Price List'},
   label: {icon:'label', label:'Label'},
@@ -3639,16 +3650,17 @@ const TAB_META = {
   low_stock: {icon:'low_stock', label:'Low Stock'},
 };
 function currentTabs(){
-  if(session.role === 'salesman') return ['tasks', 'sales', 'pricelist', 'accounts', 'low_stock'];
+  if(session.role === 'salesman') return ['tasks', 'sales', 'pricelist', 'office_logs', 'accounts', 'low_stock'];
   return isManagerPlus()
-    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','sales','pricelist','label','package','stockkeeper','points','salary','accounts','customer_report','low_stock','reports','audit','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','sales','pricelist','label','package','stockkeeper','points','accounts','customer_report','low_stock','audit','staff'])
-    : ['tasks','daily','weekly','attendance','sales','pricelist','label','package','stockkeeper','points','accounts','low_stock'];
+    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','office_logs','sales','pricelist','label','package','stockkeeper','points','salary','accounts','customer_report','low_stock','reports','audit','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','office_logs','sales','pricelist','label','package','stockkeeper','points','accounts','customer_report','low_stock','audit','staff'])
+    : ['tasks','daily','weekly','attendance','office_logs','sales','pricelist','label','package','stockkeeper','points','accounts','low_stock'];
 }
 function quickTabs(){
-  if(session.role === 'salesman') return ['tasks','sales','pricelist','accounts'];
-  return isManagerPlus() ? ['dashboard','tasks','sales','pricelist'] : ['tasks','sales','pricelist','attendance'];
+  if(session.role === 'salesman') return ['tasks','sales','pricelist','office_logs'];
+  return isManagerPlus() ? ['dashboard','tasks','sales','office_logs'] : ['tasks','sales','pricelist','office_logs'];
 }
 function getPrimaryActionBtn(t){
+  if(t==='office_logs') return `<button class="stamp-btn compact-mobile" onclick="window.__openOfficeLogModal()"><span class="btn-text">+ Log Cash</span><span class="btn-short">+</span></button>`;
   if(t==='tasks') return `<button class="stamp-btn compact-mobile" onclick="window.__openTask()"><span class="btn-text">+ Add Task</span><span class="btn-short">+</span></button>`;
   if(t==='daily' && isManagerPlus()) return `<button class="stamp-btn compact-mobile" onclick="window.__openRoutine()"><span class="btn-text">+ Add Daily Task</span><span class="btn-short">+</span></button>`;
   if(t==='weekly' && isManagerPlus()) return `<button class="stamp-btn compact-mobile" onclick="window.__openWeekly()"><span class="btn-text">+ Add Weekly Task</span><span class="btn-short">+</span></button>`;
@@ -3757,7 +3769,7 @@ function renderShell(){
           { section: 'Overview', keys: ['dashboard','reports'] },
           { section: 'Work', keys: ['tasks','daily','weekly','attendance','low_stock'] },
           { section: 'Sales', keys: ['sales','pricelist','label','package'] },
-          { section: 'Money', keys: ['accounts','customer_report','vendors','salary','points'] },
+          { section: 'Money', keys: ['accounts','office_logs','customer_report','vendors','salary','points'] },
           { section: 'Admin', keys: ['staff','stockkeeper','audit','settings'] }
         ].map(grp => {
           const validKeys = grp.keys.filter(k => tabs.includes(k));
@@ -3848,6 +3860,7 @@ function renderTabBody(){
   else if(activeTab==='package') renderPackageTab(body);
   else if(activeTab==='stockkeeper') renderStockkeeperTab(body);
   else if(activeTab==='accounts' && (isOwner() || (isManager() && getFeatureConfig().allowManagerAccounts))) renderAccountsTab(body);
+  else if(activeTab==='office_logs') renderOfficeLogsTab(body);
   else if(activeTab==='customer_report') renderCustomerReportTab(body);
   else if(activeTab==='low_stock') renderLowStockTab(body);
   else if(activeTab==='audit' && isManagerPlus()) renderAuditTab(body);
@@ -12475,6 +12488,7 @@ window.__reloadAppData = async function(btn) {
       if (typeof getSalaryAdvances === 'function') syncCustomCloudPayload('[SALARY_ADVANCES_DATA]', getSalaryAdvances());
       if (typeof getFeatureConfig === 'function') syncCustomCloudPayload('[FEATURE_SETTINGS_DATA]', getFeatureConfig());
       if (typeof getPriceListData === 'function') syncCustomCloudPayload('[PRICE_LIST_DATA]', getPriceListData());
+      if (typeof getOfficeLogsData === 'function') syncCustomCloudPayload('[OFFICE_LOGS_DATA]', getOfficeLogsData());
       if (cache.vendorBills && cache.vendorBills.length) syncCustomCloudPayload('[VENDOR_BILLS_DATA]', cache.vendorBills);
     } catch(e){}
 
@@ -14479,6 +14493,339 @@ ${new Date().toLocaleString('en-IN')}`;
   setTimeout(() => renderTabBody(), 800);
   window.showToast('📧 Opening email with weekly report…', 'success');
 };
+
+
+/* ---------------- 🏢 OFFICE LOGS (CASH ENTRY & WITHDRAWAL HISTORY) ---------------- */
+let officeLogsSearchQuery = '';
+let officeLogsTypeFilter = 'all';
+
+function getOfficeLogsData() {
+  if (!cache.officeLogs) {
+    if (!session || !session.businessId) cache.officeLogs = [];
+    else {
+      try {
+        const raw = localStorage.getItem('br_office_logs_' + session.businessId);
+        cache.officeLogs = raw ? JSON.parse(raw) : [];
+      } catch(e) { cache.officeLogs = []; }
+    }
+  }
+  return cache.officeLogs || [];
+}
+
+function saveOfficeLogsData(data) {
+  cache.officeLogs = data || [];
+  if (session && session.businessId) {
+    try {
+      localStorage.setItem('br_office_logs_' + session.businessId, JSON.stringify(cache.officeLogs));
+    } catch(e){}
+  }
+  if (typeof syncCustomCloudPayload === 'function') {
+    syncCustomCloudPayload('[OFFICE_LOGS_DATA]', cache.officeLogs);
+  }
+}
+
+window.__onOfficeLogsSearch = function(val) {
+  officeLogsSearchQuery = val || '';
+  renderTabBody();
+};
+
+window.__onOfficeLogsTypeFilter = function(val) {
+  officeLogsTypeFilter = val || 'all';
+  renderTabBody();
+};
+
+window.__toggleOfficeLogCheck = function(id) {
+  const logs = getOfficeLogsData();
+  const item = logs.find(i => i.id === id);
+  if (!item) return;
+  item.checked = !item.checked;
+  saveOfficeLogsData(logs);
+  window.showToast(item.checked ? '☑️ Entry marked as Verified!' : '☐ Entry marked as Unchecked', item.checked ? 'success' : 'info');
+  renderTabBody();
+};
+
+window.__openOfficeLogModal = function(editId) {
+  const logs = getOfficeLogsData();
+  const item = editId ? logs.find(i => i.id === editId) : null;
+  const isEdit = !!item;
+  const today = todayStr();
+  const curTime = new Date().toTimeString().slice(0, 5);
+
+  const html = `
+    <div class="overlay show" onclick="if(event.target===this) window.__closeCurrentModal(this)">
+      <div class="modal" style="max-width:440px;width:90%;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <h3 style="margin:0;">🏢 ${isEdit ? 'Edit Office Cash Log' : 'Record Office Cash Entry'}</h3>
+          <button class="stamp-btn small ghost" onclick="window.__closeCurrentModal(this)">✕</button>
+        </div>
+        <form onsubmit="event.preventDefault(); window.__saveOfficeLog('${editId || ''}', this);">
+          <div style="margin-bottom:12px;">
+            <label style="font-size:0.75rem;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:6px;">LOG TYPE</label>
+            <div style="display:flex;gap:10px;">
+              <label style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid var(--paper-line);border-radius:6px;cursor:pointer;background:var(--paper);">
+                <input type="radio" name="log_type" value="deposit" ${(!item || item.type==='deposit')?'checked':''}>
+                <span style="font-size:0.82rem;font-weight:700;color:var(--leaf);">📥 Cash In (Added)</span>
+              </label>
+              <label style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid var(--paper-line);border-radius:6px;cursor:pointer;background:var(--paper);">
+                <input type="radio" name="log_type" value="withdrawal" ${(item && item.type==='withdrawal')?'checked':''}>
+                <span style="font-size:0.82rem;font-weight:700;color:var(--brick);">📤 Cash Out (Withdrawn)</span>
+              </label>
+            </div>
+          </div>
+          <div style="margin-bottom:12px;">
+            <label style="font-size:0.75rem;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:4px;">AMOUNT (₹) *</label>
+            <input type="number" step="any" name="amount" placeholder="e.g. 5000" value="${item ? item.amount : ''}" required style="width:100%;box-sizing:border-box;font-family:'Roboto Mono',monospace;font-size:1rem;font-weight:700;">
+          </div>
+          <div style="display:flex;gap:10px;margin-bottom:12px;">
+            <div style="flex:1;">
+              <label style="font-size:0.75rem;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:4px;">DATE</label>
+              <input type="date" name="date" value="${item ? item.date : today}" required style="width:100%;box-sizing:border-box;font-size:0.82rem;">
+            </div>
+            <div style="flex:1;">
+              <label style="font-size:0.75rem;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:4px;">TIME</label>
+              <input type="time" name="time" value="${item ? (item.time || curTime) : curTime}" required style="width:100%;box-sizing:border-box;font-size:0.82rem;">
+            </div>
+          </div>
+          <div style="margin-bottom:12px;">
+            <label style="font-size:0.75rem;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:4px;">REASON / REMARKS *</label>
+            <textarea name="reason" rows="2" placeholder="e.g. Received cash payment / Bank withdrawal for office expenses" required style="width:100%;box-sizing:border-box;font-size:0.85rem;">${item ? esc(item.reason) : ''}</textarea>
+          </div>
+          <div style="margin-bottom:16px;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.82rem;font-weight:600;color:var(--ink);">
+              <input type="checkbox" name="checked" ${(!item || item.checked)?'checked':''}>
+              Mark as Verified / Checked
+            </label>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;">
+            <button type="button" class="stamp-btn ghost" onclick="window.__closeCurrentModal(this)">Cancel</button>
+            <button type="submit" class="stamp-btn">💾 Save Office Log</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  getModalHolder('taskModalHolder').innerHTML = html;
+};
+
+window.__saveOfficeLog = function(editId, form) {
+  const type = form.log_type.value || 'deposit';
+  const amount = Number(form.amount.value || 0);
+  const date = form.date.value || todayStr();
+  const time = form.time.value || new Date().toTimeString().slice(0, 5);
+  const reason = (form.reason.value || '').trim();
+  const checked = !!form.checked.checked;
+
+  if (amount <= 0 || !reason) {
+    window.showToast('Please enter a valid amount and reason.', 'warning');
+    return;
+  }
+
+  const logs = getOfficeLogsData();
+  const isEdit = !!editId;
+  if (editId) {
+    const idx = logs.findIndex(i => i.id === editId);
+    if (idx !== -1) {
+      logs[idx].type = type;
+      logs[idx].amount = amount;
+      logs[idx].date = date;
+      logs[idx].time = time;
+      logs[idx].reason = reason;
+      logs[idx].checked = checked;
+    }
+  } else {
+    logs.unshift({
+      id: 'ofl_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      type: type,
+      amount: amount,
+      date: date,
+      time: time,
+      reason: reason,
+      checked: checked,
+      logged_by: session ? session.name : 'Office Staff',
+      staff_id: session ? session.staffId : ''
+    });
+  }
+
+  saveOfficeLogsData(logs);
+  getModalHolder('taskModalHolder').innerHTML = '';
+  window.showToast(isEdit ? 'Office log updated!' : '🏢 Office Cash Log recorded!', 'success');
+  renderTabBody();
+};
+
+window.__deleteOfficeLog = function(id) {
+  if (!confirm('Are you sure you want to delete this office log entry?')) return;
+  let logs = getOfficeLogsData();
+  logs = logs.filter(i => i.id !== id);
+  saveOfficeLogsData(logs);
+  window.showToast('Office log deleted', 'info');
+  renderTabBody();
+};
+
+function renderOfficeLogsTab(body) {
+  const logs = getOfficeLogsData();
+
+  // Calculate totals
+  const totalAdded = logs.filter(i => i.type === 'deposit').reduce((s, i) => s + Number(i.amount || 0), 0);
+  const totalWithdrawn = logs.filter(i => i.type === 'withdrawal').reduce((s, i) => s + Number(i.amount || 0), 0);
+  const netCash = totalAdded - totalWithdrawn;
+  const checkedCount = logs.filter(i => i.checked).length;
+
+  // Filter logs
+  const filtered = logs.filter(i => {
+    const q = officeLogsSearchQuery.toLowerCase().trim();
+    const matchesSearch = !q || (i.reason || '').toLowerCase().includes(q) || (i.logged_by || '').toLowerCase().includes(q) || (i.date || '').includes(q);
+    
+    let matchesType = true;
+    if (officeLogsTypeFilter === 'deposit') matchesType = i.type === 'deposit';
+    else if (officeLogsTypeFilter === 'withdrawal') matchesType = i.type === 'withdrawal';
+    else if (officeLogsTypeFilter === 'unchecked') matchesType = !i.checked;
+    else if (officeLogsTypeFilter === 'checked') matchesType = i.checked;
+
+    return matchesSearch && matchesType;
+  });
+
+  body.innerHTML = `
+    <!-- Top Summary Stat Cards Grid -->
+    <div class="stat-grid" style="margin-bottom:16px;">
+      <div class="stat-card" style="border-left:4px solid var(--leaf);">
+        <div class="num" style="color:${netCash>=0?'var(--leaf)':'var(--brick)'}">₹${netCash.toLocaleString('en-IN')}</div>
+        <div class="label">Net Office Cash in Hand</div>
+      </div>
+      <div class="stat-card" style="border-left:4px solid var(--leaf);">
+        <div class="num" style="color:var(--leaf);">+ ₹${totalAdded.toLocaleString('en-IN')}</div>
+        <div class="label">Total Cash Added</div>
+      </div>
+      <div class="stat-card" style="border-left:4px solid var(--brick);">
+        <div class="num" style="color:var(--brick);">- ₹${totalWithdrawn.toLocaleString('en-IN')}</div>
+        <div class="label">Total Cash Withdrawn</div>
+      </div>
+      <div class="stat-card" style="border-left:4px solid var(--turmeric);">
+        <div class="num">${checkedCount} / ${logs.length}</div>
+        <div class="label">Verified / Checked Entries</div>
+      </div>
+    </div>
+
+    <!-- Controls & Filter Bar -->
+    <div class="row-card" style="flex-wrap:wrap;gap:10px;align-items:center;padding:12px;margin-bottom:16px;">
+      <div style="flex:1;min-width:160px;">
+        <input type="text" placeholder="🔍 Search reason, date, or staff..." value="${esc(officeLogsSearchQuery)}" oninput="window.__onOfficeLogsSearch(this.value)" style="width:100%;box-sizing:border-box;font-size:0.82rem;">
+      </div>
+      <div style="flex:0 0 160px;">
+        <select onchange="window.__onOfficeLogsTypeFilter(this.value)" style="width:100%;box-sizing:border-box;font-size:0.82rem;">
+          <option value="all" ${officeLogsTypeFilter==='all'?'selected':''}>All Entries (${logs.length})</option>
+          <option value="deposit" ${officeLogsTypeFilter==='deposit'?'selected':''}>📥 Cash Added (+)</option>
+          <option value="withdrawal" ${officeLogsTypeFilter==='withdrawal'?'selected':''}>📤 Cash Withdrawn (-)</option>
+          <option value="unchecked" ${officeLogsTypeFilter==='unchecked'?'selected':''}>☐ Unchecked Only</option>
+          <option value="checked" ${officeLogsTypeFilter==='checked'?'selected':''}>☑ Checked Only</option>
+        </select>
+      </div>
+      <button class="stamp-btn small" onclick="window.__openOfficeLogModal()">+ Log Cash Entry</button>
+    </div>
+
+    <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
+      <span>🏢 Office Cash History Logs (${filtered.length} Entries)</span>
+    </div>
+
+    <!-- Mobile Card List View (< 640px) -->
+    <div class="mobile-only" style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+      ${filtered.length ? filtered.map(item => {
+        const isDep = item.type === 'deposit';
+        return `
+          <div class="row-card" style="flex-direction:column;align-items:stretch;padding:12px;margin:0;border-left:4px solid ${isDep?'var(--leaf)':'var(--brick)'};">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;">
+              <div>
+                <span style="font-size:0.78rem;font-weight:700;color:var(--ink-soft);font-family:'Roboto Mono',monospace;">
+                  📅 ${item.date} ${item.time ? '· ' + item.time : ''}
+                </span>
+                <b style="color:var(--ink);font-size:0.85rem;display:block;margin-top:2px;line-height:1.3;">${esc(item.reason)}</b>
+              </div>
+              <b style="font-family:'Roboto Mono',monospace;font-size:0.95rem;color:${isDep?'var(--leaf)':'var(--brick)'};flex-shrink:0;">
+                ${isDep ? '+' : '-'} ₹${Number(item.amount||0).toLocaleString('en-IN')}
+              </b>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid var(--paper-line);margin-top:4px;">
+              <span style="font-size:0.78rem;color:var(--ink-soft);">Logged by: <b>${esc(item.logged_by || 'Staff')}</b></span>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <button class="stamp-btn small ${item.checked?'':'ghost'}" style="padding:3px 8px;font-size:0.78rem;${item.checked?'background:var(--leaf-soft);color:var(--leaf);border-color:var(--leaf);':''}" onclick="window.__toggleOfficeLogCheck('${item.id}')">
+                  ${item.checked ? '☑ Verified' : '☐ Check'}
+                </button>
+                ${isManagerPlus() ? `
+                  <button class="stamp-btn small ghost" style="padding:3px 6px;font-size:0.78rem;" onclick="window.__openOfficeLogModal('${item.id}')">✎</button>
+                  <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:3px 6px;font-size:0.78rem;" onclick="window.__deleteOfficeLog('${item.id}')">🗑</button>
+                ` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('') : `
+        <div class="empty" style="padding:24px;text-align:center;font-size:0.82rem;">No office cash logs recorded matching your filter.</div>
+      `}
+    </div>
+
+    <!-- Desktop Table View (≥ 640px) -->
+    <div class="row-card desktop-only" style="flex-direction:column;padding:0;overflow:hidden;margin-bottom:20px;">
+      <div style="width:100%;overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;text-align:left;font-size:0.82rem;">
+          <thead>
+            <tr style="background:var(--paper-line);color:var(--ink-soft);font-family:'Roboto Mono',monospace;font-size:0.78rem;text-transform:uppercase;border-bottom:1.5px solid var(--paper-line);">
+              <th style="padding:10px 14px;">Verify</th>
+              <th style="padding:10px 14px;">Date &amp; Time</th>
+              <th style="padding:10px 14px;">Type</th>
+              <th style="padding:10px 14px;">Reason / Remarks</th>
+              <th style="padding:10px 14px;">Amount</th>
+              <th style="padding:10px 14px;">Logged By</th>
+              <th style="padding:10px 14px;text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filtered.length ? filtered.map(item => {
+              const isDep = item.type === 'deposit';
+              return `
+                <tr style="border-bottom:1px solid var(--paper-line);transition:background 0.15s ease;">
+                  <td style="padding:12px 14px;">
+                    <button class="stamp-btn small ${item.checked?'':'ghost'}" style="padding:3px 8px;font-size:0.78rem;${item.checked?'background:var(--leaf-soft);color:var(--leaf);border-color:var(--leaf);':''}" onclick="window.__toggleOfficeLogCheck('${item.id}')">
+                      ${item.checked ? '☑ Verified' : '☐ Check'}
+                    </button>
+                  </td>
+                  <td style="padding:12px 14px;font-family:'Roboto Mono',monospace;color:var(--ink-soft);font-size:0.82rem;white-space:nowrap;">
+                    ${item.date} <span style="font-size:0.75rem;">${item.time || ''}</span>
+                  </td>
+                  <td style="padding:12px 14px;">
+                    <span style="display:inline-flex;align-items:center;gap:4px;background:${isDep?'var(--leaf-soft)':'var(--brick-soft)'};color:${isDep?'var(--leaf)':'var(--brick)'};border:1px solid ${isDep?'var(--leaf)':'var(--brick)'};border-radius:6px;font-size:0.78rem;font-weight:700;padding:3px 8px;">
+                      ${isDep ? '📥 Cash Added' : '📤 Cash Out'}
+                    </span>
+                  </td>
+                  <td style="padding:12px 14px;">
+                    <b style="color:var(--ink);font-size:0.85rem;display:block;">${esc(item.reason)}</b>
+                  </td>
+                  <td style="padding:12px 14px;font-family:'Roboto Mono',monospace;font-weight:800;font-size:0.85rem;color:${isDep?'var(--leaf)':'var(--brick)'};">
+                    ${isDep ? '+' : '-'} ₹${Number(item.amount||0).toLocaleString('en-IN')}
+                  </td>
+                  <td style="padding:12px 14px;font-size:0.82rem;color:var(--ink-soft);">
+                    ${esc(item.logged_by || 'Staff')}
+                  </td>
+                  <td style="padding:12px 14px;text-align:right;white-space:nowrap;">
+                    ${isManagerPlus() ? `
+                      <button class="stamp-btn small ghost" style="padding:3px 7px;font-size:0.78rem;margin-right:4px;" onclick="window.__openOfficeLogModal('${item.id}')">✎ Edit</button>
+                      <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:3px 7px;font-size:0.78rem;" onclick="window.__deleteOfficeLog('${item.id}')">🗑 Delete</button>
+                    ` : ''}
+                  </td>
+                </tr>
+              `;
+            }).join('') : `
+              <tr>
+                <td colspan="7" style="padding:24px;text-align:center;color:var(--ink-soft);font-size:0.82rem;">
+                  No office cash logs recorded matching your filter.
+                </td>
+              </tr>
+            `}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
 
 boot();
 
