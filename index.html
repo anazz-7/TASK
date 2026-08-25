@@ -3637,8 +3637,8 @@ function currentTabs(){
     : ['tasks','daily','weekly','attendance','salesman','sales','pricelist','label','package','stockkeeper','points','accounts','low_stock'];
 }
 function quickTabs(){
-  if(session.role === 'salesman') return ['tasks','attendance','sales','pricelist','accounts'];
-  return isManagerPlus() ? ['dashboard','tasks','sales','pricelist','accounts'] : ['tasks','attendance','sales','pricelist','points'];
+  if(session.role === 'salesman') return ['tasks','sales','pricelist','salesman'];
+  return isManagerPlus() ? ['dashboard','tasks','sales','pricelist'] : ['tasks','sales','pricelist','attendance'];
 }
 function getPrimaryActionBtn(t){
   if(t==='tasks') return `<button class="stamp-btn compact-mobile" onclick="window.__openTask()"><span class="btn-text">+ Add Task</span><span class="btn-short">+</span></button>`;
@@ -3748,7 +3748,7 @@ function renderShell(){
         ${[
           { section: 'Overview', keys: ['dashboard','reports'] },
           { section: 'Work', keys: ['tasks','daily','weekly','attendance','low_stock'] },
-          { section: 'Sales', keys: ['sales','salesman','label','package'] },
+          { section: 'Sales', keys: ['sales','salesman','pricelist','label','package'] },
           { section: 'Money', keys: ['accounts','customer_report','vendors','salary','points'] },
           { section: 'Admin', keys: ['staff','stockkeeper','audit','settings'] }
         ].map(grp => {
