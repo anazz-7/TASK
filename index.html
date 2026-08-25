@@ -3995,11 +3995,11 @@ function renderDashboardTab(body){
   const unpaidVendorTotal = unpaidVendorBills.reduce((sum, b) => sum + getBillAmount(b), 0);
 
   body.innerHTML = `
-    <!-- 📈 Sales Trend Interactive Chart (FIRST AT VERY TOP OF DASHBOARD) -->
-    ${buildSalesTrendChartHtml()}
+    <!-- 📈 Sales Trend Interactive Chart (OWNER ONLY SECURITY) -->
+    ${isOwner() ? buildSalesTrendChartHtml() : ''}
 
-    <!-- Vendor Bills Payable Widget -->
-    ${buildDashboardVendorBillsHtml()}
+    <!-- Vendor Bills Payable Widget (OWNER ONLY SECURITY) -->
+    ${isOwner() ? buildDashboardVendorBillsHtml() : ''}
 
 
     <div class="section-label">Tasks</div>
@@ -4028,6 +4028,7 @@ function renderDashboardTab(body){
 
     ${buildQtyGraphHtml(cache.points, dashPointsMode, '__setDashPointsMode', 'pts', 'points', '', 'date')}
 
+    ${isOwner() ? `
     <div class="section-label">Sales${targetAchievedPct!==null?` <span style="color:var(--ink-soft);font-weight:600;">${targetAchievedPct}% of target</span>`:''}</div>
     <div class="stat-grid">
       <div class="stat-card"><div class="num">₹${todaySalesTotal.toFixed(0)}</div><div class="label">Today</div></div>
@@ -4036,6 +4037,7 @@ function renderDashboardTab(body){
     ${leaderboard.length ? `
     <div class="section-label">Top sellers this month</div>
     ${leaderboard.map(([id,val])=>`<div class="row-card" style="align-items:center;"><div class="row-main"><h3>${esc(staffName(id))}</h3></div><b style="font-family:'Roboto Mono',monospace;">₹${val.toFixed(0)}</b></div>`).join('')}
+    ` : ''}
     ` : ''}
 
     <div class="section-label">Incentive points — ${curMonth}</div>
@@ -6538,7 +6540,8 @@ function renderReportsTab(body){
   }).sort((a,b)=>b.total-a.total);
 
   body.innerHTML = `
-    <!-- Executive Stat KPI Cards -->
+    ${isOwner() ? `
+    <!-- Executive Stat KPI Cards (OWNER ONLY) -->
     <div class="dash-kpi-grid" style="margin-bottom:20px;">
       <div class="dash-kpi-card">
         <div class="dash-kpi-title">Total Revenue</div>
@@ -6563,8 +6566,9 @@ function renderReportsTab(body){
     </div>
 
     ${buildSalesTrendChartHtml()}
+    ` : ''}
 
-    ${buildWeeklyEmailReportHtml()}
+    ${isOwner() ? buildWeeklyEmailReportHtml() : ''}
 
     <div class="row-card" style="align-items:flex-end;">
       <div style="flex:1;"><label style="margin-top:0;">From</label><input type="date" id="repFrom" value="${from}"></div>
@@ -12632,30 +12636,15 @@ function maskCustData(text, type) {
 
 function maskSalesAmount(val) {
   const num = Math.round(Number(val || 0));
-  const cfg = getFeatureConfig();
 
-  // ONLY OWNER ROLE CAN VIEW UNMASKED 6-DIGIT OR HIGHER LEDGER AMOUNTS
+  // ONLY OWNER ROLE CAN VIEW UNMASKED FINANCIAL DATA & LEDGER AMOUNTS
   if (isOwner()) {
     return '₹' + num.toLocaleString('en-IN');
   }
 
-  const numStr = Math.abs(num).toString();
-
-  // FOR MANAGERS & OTHER NON-OWNER ROLES:
-  // ANY 6-DIGIT OR HIGHER LEDGER VALUE (≥ ₹1,00,000) MUST ALWAYS BE MASKED
-  if (numStr.length >= 6) {
-    return '₹*,**,*** (🔒 6-Digit Restricted)';
-  }
-
-  // BELOW 6 DIGITS (up to ₹99,999): Apply feature toggle mask if enabled, otherwise show full 5-digit amount
-  if (cfg && cfg.maskSalesDigits) {
-    const showLen = Math.min(2, numStr.length);
-    const maskedStr = numStr.slice(0, showLen) + '*'.repeat(numStr.length - showLen);
-    const formatted = maskedStr.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    return '₹' + formatted;
-  }
-
-  return '₹' + num.toLocaleString('en-IN');
+  // FOR MANAGERS & ALL STAFF / NON-OWNER ROLES:
+  // ALL FINANCIAL MONETARY DATA IS STRICTLY MASKED AND PROTECTED
+  return '🔒 Restricted';
 }
 
 
@@ -13825,6 +13814,7 @@ window.__setTrendChartMode = function(mode) {
 };
 
 function buildSalesTrendChartHtml() {
+  if (!isOwner()) return ''; // SECURITY: Never reveal Sales Trend Graph to Manager or Staff roles
   const today = new Date();
   const buckets = [];
 
