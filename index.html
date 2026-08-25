@@ -3302,9 +3302,19 @@ function showPendingPopup(){
   if (cfg.disablePendingTaskPopups) return;
   if(document.getElementById('reminderOverlay')) return; // one at a time
   if(!session) return;
+
+  // Show ONLY ONCE per session / day:
+  const today = todayStr();
+  const sessionPromptedKey = 'br_pending_prompted_' + (session.staffId || 'user') + '_' + today;
+  if (localStorage.getItem(sessionPromptedKey)) return; // Already shown once today!
+
   const mine = isManagerPlus() ? cache.tasks : cache.tasks.filter(t=>t.assigned_to===session.staffId);
   const pending = mine.filter(t=>t.status!=='done');
   if(!pending.length) return;
+
+  // Mark as prompted for today so it NEVER repeats
+  try { localStorage.setItem(sessionPromptedKey, '1'); } catch(e){}
+
   playReminderSound();
   const holder = document.createElement('div');
   holder.id = 'reminderOverlay';
@@ -3327,15 +3337,13 @@ function showPendingPopup(){
   window.__dismissReminder = () => { holder.remove(); };
   window.__gotoTasksFromReminder = () => { holder.remove(); activeTab='tasks'; renderShell(); };
 }
-let __popupInterval = null;
 let __initialPopupTimer = null;
 function startPopupReminders(){
-  if(__popupInterval || __initialPopupTimer) return;
-  // Wait 1 minute after entering the app before showing first popup
+  if(__initialPopupTimer) return;
+  // Show ONLY ONCE per session after 15 seconds (0 repeated interval loops!)
   __initialPopupTimer = setTimeout(() => {
     showPendingPopup();
-    __popupInterval = setInterval(showPendingPopup, 5 * 60 * 1000); // then every 5 minutes
-  }, 60 * 1000); // 60 seconds (1 minute) initial delay
+  }, 15000);
 }
 function requestNotifications(){
   if(!('Notification' in window)){ alert('Notifications are not supported in this browser.'); return; }
