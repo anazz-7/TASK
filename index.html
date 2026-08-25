@@ -1021,15 +1021,16 @@
     width: calc(100% - 32px);
   }
   .toast-banner {
-    background: #0F172A;
-    color: #FFFFFF;
-    border: 1.5px solid rgba(255,255,255,0.15);
-    border-radius: 10px;
-    padding: 12px 14px;
+    background: #FFFFFF !important;
+    color: var(--ink) !important;
+    border: 1.5px solid var(--paper-line) !important;
+    border-left: 5px solid var(--leaf) !important;
+    border-radius: 12px !important;
+    padding: 12px 16px !important;
     font-family: 'Roboto Mono', monospace !important;
-    font-size: 0.8rem;
-    font-weight: 700;
-    box-shadow: 0 12px 36px rgba(0,0,0,0.35);
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
+    box-shadow: 0 12px 32px rgba(15,23,42,0.18) !important;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -1039,6 +1040,10 @@
     overflow: hidden;
     text-transform: uppercase !important;
   }
+  .toast-banner.toast-success { border-left-color: var(--leaf) !important; }
+  .toast-banner.toast-warning { border-left-color: var(--turmeric) !important; }
+  .toast-banner.toast-error { border-left-color: var(--brick) !important; }
+  .toast-banner.toast-info { border-left-color: #3B82F6 !important; }
   @keyframes toastPopIn {
     from { opacity: 0; transform: translateY(16px) scale(0.96); }
     to { opacity: 1; transform: translateY(0) scale(1); }
@@ -1410,13 +1415,13 @@
   /* ---------------- UI/UX FEATURE 8: GLASSMORTIC TRANSLUCENT TOASTS ---------------- */
   .glass-toast {
     width: 100%;
-    background: rgba(11, 19, 43, 0.92);
+    background: #FFFFFF !important;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
-    border-radius: 12px;
-    color: #FFFFFF;
+    border: 1.5px solid var(--paper-line) !important;
+    box-shadow: 0 12px 32px rgba(15,23,42,0.18) !important;
+    border-radius: 12px !important;
+    color: var(--ink) !important;
     overflow: hidden;
     position: relative;
     animation: toastSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
@@ -1426,10 +1431,10 @@
     opacity: 0;
     transform: translateY(-16px) scale(0.95);
   }
-  .glass-toast-success { border-left: 4px solid var(--leaf); }
-  .glass-toast-warning { border-left: 4px solid var(--amber-soft); }
-  .glass-toast-error { border-left: 4px solid var(--brick); }
-  .glass-toast-info { border-left: 4px solid #3B82F6; }
+  .glass-toast-success { border-left: 5px solid var(--leaf) !important; }
+  .glass-toast-warning { border-left: 5px solid var(--turmeric) !important; }
+  .glass-toast-error { border-left: 5px solid var(--brick) !important; }
+  .glass-toast-info { border-left: 5px solid #3B82F6 !important; }
 
   .glass-toast-timer {
     height: 3px;
@@ -2297,7 +2302,7 @@ window.showToast = function(msg, type = 'success', duration = 4000, actionText =
 
   const icons = { success: '✓', error: '⚠️', info: 'ℹ️', warning: '⚡' };
   const toast = document.createElement('div');
-  toast.className = 'toast-banner';
+  toast.className = 'toast-banner toast-' + (type || 'success');
 
   toast.innerHTML = `
     <span style="font-size:0.9rem;">${icons[type] || '✓'}</span>
