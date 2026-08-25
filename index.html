@@ -3930,8 +3930,8 @@ function renderDashboardTab(body){
   const unpaidVendorTotal = unpaidVendorBills.reduce((sum, b) => sum + getBillAmount(b), 0);
 
   body.innerHTML = `
-    <!-- 📈 Sales Trend Line Chart (FIRST AT TOP OF DASHBOARD) -->
-    ${buildQtyGraphHtml(cache.sales, dashSalesMode, '__setDashSalesMode', '', 'order_value', '₹', 'date')}
+    <!-- 📈 Sales Trend Interactive Chart (FIRST AT VERY TOP OF DASHBOARD) -->
+    ${buildSalesTrendChartHtml()}
 
     <!-- Vendor Bills Payable Widget -->
     ${buildDashboardVendorBillsHtml()}
@@ -3982,7 +3982,6 @@ function renderDashboardTab(body){
     <div class="stat-grid">
       <div class="stat-card"><div class="num">₹${monthSalaryTotal.toFixed(0)}</div><div class="label">Salary paid this month</div></div>
     </div>` : ''}
-    ${isOwner() ? buildSalesTrendChartHtml() : ''}
     ${isOwner() ? buildWeeklyEmailReportHtml() : ''}
   `;
 }
