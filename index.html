@@ -161,13 +161,47 @@
     text-align: left;
   }
   
-  /* Header actions: never wrap, always right-aligned */
+  /* Header actions: never wrap, always right-aligned, strictly 36px even button height */
   .header-actions {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    flex-shrink: 0;
-    flex-wrap: nowrap;
+    display: flex !important;
+    gap: 8px !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
+    flex-wrap: nowrap !important;
+  }
+
+  .header-actions .stamp-btn,
+  .header-actions .offline-badge,
+  .header-actions .reload-btn {
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 8px !important;
+    font-family: 'Roboto Mono', monospace !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    vertical-align: middle !important;
+    margin: 0 !important;
+  }
+
+  .header-actions .stamp-btn {
+    padding: 0 14px !important;
+  }
+
+  .header-actions .offline-badge {
+    padding: 0 12px !important;
+    font-size: 0.72rem !important;
+  }
+
+  .header-actions .reload-btn {
+    width: 36px !important;
+    min-width: 36px !important;
+    padding: 0 !important;
   }
 
   /* ── Buttons ─────────────────────────────────────────────── */
@@ -3522,7 +3556,7 @@ function renderShell(){
           <button class="reload-btn" title="Refresh App Data" onclick="window.__reloadAppData(this)">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3L21.5 8M22 12.5a10 10 0 0 1-18.8 4.3L2.5 16"/></svg>
           </button>
-          ${isManagerPlus() ? `<button class="stamp-btn small" style="background:var(--turmeric-dark);color:#fff;border-color:var(--turmeric-dark);padding:5px 9px;font-size:0.75rem;" onclick="window.__openQuickTaskModal()">⚡ Quick Add</button>` : ''}
+          ${isManagerPlus() ? `<button class="stamp-btn" style="background:var(--turmeric-dark);color:#fff;border-color:var(--turmeric-dark);" onclick="window.__openQuickTaskModal()">⚡ Quick Add</button>` : ''}
           ${getPrimaryActionBtn(activeTab)}
           <button class="avatar-circle mobile-only" style="width:34px;height:34px;font-size:0.75rem;border:none;cursor:pointer;" onclick="window.__openAccount()">${initials(session.name)}</button>
         </div>
