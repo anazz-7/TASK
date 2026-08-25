@@ -4137,8 +4137,6 @@ function renderDashboardTab(body){
       <div class="stat-card"><div class="num">${sharingNowCount}</div><div class="label">Sharing location now</div></div>
     </div>
 
-    ${buildQtyGraphHtml(cache.points, dashPointsMode, '__setDashPointsMode', 'pts', 'points', '', 'date')}
-
     ${isOwner() ? `
     <div class="section-label">Sales${targetAchievedPct!==null?` <span style="color:var(--ink-soft);font-weight:600;">${targetAchievedPct}% of target</span>`:''}</div>
     <div class="stat-grid">
@@ -4150,9 +4148,6 @@ function renderDashboardTab(body){
     ${leaderboard.map(([id,val])=>`<div class="row-card" style="align-items:center;"><div class="row-main"><h3>${esc(staffName(id))}</h3></div><b style="font-family:'Roboto Mono',monospace;">₹${val.toFixed(0)}</b></div>`).join('')}
     ` : ''}
     ` : ''}
-
-    <div class="section-label">Incentive points — ${curMonth}</div>
-    ${pointsLeaderboard.length ? pointsLeaderboard.map(([id,val])=>`<div class="row-card" style="align-items:center;"><div class="row-main"><h3>${esc(staffName(id))}</h3></div><b style="font-family:'Roboto Mono',monospace;color:var(--turmeric-dark);">${val} pts</b></div>`).join('') : `<div class="empty">No points awarded this month yet.</div>`}
 
     ${buildStaffTargetsHtml(curMonth, monthSales)}
     ${isOwner() ? `
