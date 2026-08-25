@@ -3955,33 +3955,26 @@ function buildStaffTargetsHtml(curMonth, monthSales){
 
   // Total Business Sales for current month
   const totalMonthSales = monthSales.reduce((sum, x) => sum + Number(x.order_value || 0), 0);
-  const businessTargetVal = targets.filter(t=>t.month===curMonth).reduce((s,t)=>s+Number(t.target_amount||0),0) || 200000;
+  const businessTargetVal = 200000; // Default Monthly Business Target Goal
   const bizPct = Math.min(100, Math.round((totalMonthSales / businessTargetVal) * 100));
 
   const activeStaffCards = staffList.map(s => {
     const sSales = monthSales.filter(x=>x.staff_id===s.id).reduce((sum,x)=>sum+Number(x.order_value||0),0);
+    // HIDE PROGRESS BAR ENTIRELY IF SALES ARE ZERO
     if (sSales <= 0) return '';
     const targetObj = targets.find(t=>t.staff_id===s.id && t.month===curMonth);
-    const targetVal = targetObj ? Number(targetObj.target_amount||0) : 30000;
-    const bonusVal = targetObj ? Number(targetObj.incentive_bonus||3000) : 3000;
+    const targetVal = targetObj ? Number(targetObj.target_amount||0) : 25000;
     const pct = Math.min(100, Math.round((sSales / Math.max(1, targetVal)) * 100));
     return `
       <div class="row-card" style="flex-direction:column;align-items:stretch;padding:12px;margin-bottom:8px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-          <div>
-            <b style="margin:0;font-size:0.88rem;color:var(--ink);">${esc(s.name)}</b>
-            <span class="role-pill" style="font-size:0.72rem;padding:2px 6px;">${s.role || 'staff'}</span>
-          </div>
+          <b style="margin:0;font-size:0.88rem;color:var(--ink);">${esc(s.name)}</b>
           <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.8rem;color:var(--turmeric-dark);">
             ₹${sSales.toLocaleString('en-IN')} / ₹${targetVal.toLocaleString('en-IN')} (${pct}%)
           </span>
         </div>
-        <div class="progress-track" style="height:8px;background:var(--paper-line);border-radius:6px;overflow:hidden;margin-bottom:4px;">
-          <div class="progress-fill ${pct>=100?'complete':''}" style="width:${pct}%;height:100%;border-radius:6px;"></div>
-        </div>
-        <div style="font-size:0.72rem;color:var(--ink-soft);display:flex;justify-content:space-between;">
-          <span>Incentive Reward: <b style="color:var(--leaf);">₹${bonusVal.toLocaleString('en-IN')} Bonus</b></span>
-          <span>${pct>=100?'🎉 Goal Reached':'🔥 In Progress'}</span>
+        <div class="progress-track" style="height:8px;background:var(--paper-line);border-radius:999px;overflow:hidden;">
+          <div class="progress-fill ${pct>=100?'complete':''}" style="width:${pct}%;height:100%;border-radius:999px;"></div>
         </div>
       </div>
     `;
@@ -3990,7 +3983,7 @@ function buildStaffTargetsHtml(curMonth, monthSales){
   return `
     <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
       <span>Target Progress & Sales Performance — ${curMonth}</span>
-      ${isOwner() ? `<button class="stamp-btn small ghost" style="padding:2px 8px;font-size:0.7rem;" onclick="window.__openSetTargetsModal()">⚙️ Set Custom Targets</button>` : ''}
+      ${isManagerPlus() ? `<button class="stamp-btn small ghost" style="padding:2px 8px;font-size:0.7rem;" onclick="window.__openSetTargetsModal()">Set Targets</button>` : ''}
     </div>
 
     <!-- Overall Business Sales Goal Progress Card -->
@@ -4001,8 +3994,8 @@ function buildStaffTargetsHtml(curMonth, monthSales){
           ₹${totalMonthSales.toLocaleString('en-IN')} / ₹${businessTargetVal.toLocaleString('en-IN')} (${bizPct}%)
         </b>
       </div>
-      <div class="progress-track" style="height:10px;background:var(--paper-line);border-radius:6px;overflow:hidden;">
-        <div class="progress-fill ${bizPct>=100?'complete':''}" style="width:${bizPct}%;height:100%;border-radius:6px;"></div>
+      <div class="progress-track" style="height:10px;background:var(--paper-line);border-radius:999px;overflow:hidden;">
+        <div class="progress-fill ${bizPct>=100?'complete':''}" style="width:${bizPct}%;height:100%;border-radius:999px;"></div>
       </div>
     </div>
 
