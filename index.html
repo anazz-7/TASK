@@ -1111,9 +1111,65 @@
     text-transform: uppercase !important;
   }
 
-  /* 9. Progress animations */
-  .progress-bar-fill, .target-bar-fill, .kpi-progress-bar {
-    transition: width 0.45s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  /* 9. Target Progress Bar Animations */
+  .progress-track {
+    background: var(--paper-line) !important;
+    border-radius: 999px !important;
+    overflow: hidden !important;
+    position: relative !important;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  .progress-fill,
+  .progress-bar-fill,
+  .target-bar-fill,
+  .kpi-progress-bar {
+    position: relative !important;
+    height: 100% !important;
+    border-radius: 999px !important;
+    background: linear-gradient(90deg, var(--turmeric), #F59E0B) !important;
+    transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    animation: targetFillGrow 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    overflow: hidden !important;
+  }
+
+  /* Glowing Sweep Shimmer Effect across the progress bar */
+  .progress-fill::after,
+  .progress-bar-fill::after,
+  .target-bar-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.55) 50%, transparent 100%);
+    animation: targetShimmerSweep 2.2s infinite ease-in-out;
+  }
+
+  /* 100% Target Completion Gold / Emerald Pulse */
+  .progress-fill.complete,
+  .progress-bar-fill.complete,
+  .target-bar-fill.complete {
+    background: linear-gradient(90deg, #10B981, #059669) !important;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.5) !important;
+    animation: targetCompletePulse 1.8s infinite ease-in-out, targetFillGrow 1s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  }
+
+  @keyframes targetFillGrow {
+    from { opacity: 0.4; transform: scaleX(0); transform-origin: left center; }
+    to { opacity: 1; transform: scaleX(1); transform-origin: left center; }
+  }
+
+  @keyframes targetShimmerSweep {
+    0% { left: -100%; }
+    60% { left: 120%; }
+    100% { left: 120%; }
+  }
+
+  @keyframes targetCompletePulse {
+    0%, 100% { box-shadow: 0 0 6px rgba(16, 185, 129, 0.4); }
+    50% { box-shadow: 0 0 16px rgba(16, 185, 129, 0.8); }
   }
 
   /* 13. Save-state indicators & 14. Autosave badge */
