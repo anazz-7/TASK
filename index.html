@@ -3623,7 +3623,6 @@ const TAB_META = {
   daily: {icon:'daily', label:'Daily'},
   weekly: {icon:'weekly', label:'Weekly'},
   attendance: {icon:'attendance', label:'Attendance'},
-  salesman: {icon:'salesman', label:'Salesman'},
   sales: {icon:'sales', label:'Sales'},
   pricelist: {icon:'clipboard', label:'Price List'},
   label: {icon:'label', label:'Label'},
@@ -3640,13 +3639,13 @@ const TAB_META = {
   low_stock: {icon:'low_stock', label:'Low Stock'},
 };
 function currentTabs(){
-  if(session.role === 'salesman') return ['tasks', 'sales', 'salesman', 'pricelist', 'accounts', 'low_stock'];
+  if(session.role === 'salesman') return ['tasks', 'sales', 'pricelist', 'accounts', 'low_stock'];
   return isManagerPlus()
-    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','salesman','sales','pricelist','label','package','stockkeeper','points','salary','accounts','customer_report','low_stock','reports','audit','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','salesman','sales','pricelist','label','package','stockkeeper','points','accounts','customer_report','low_stock','audit','staff'])
-    : ['tasks','daily','weekly','attendance','salesman','sales','pricelist','label','package','stockkeeper','points','accounts','low_stock'];
+    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','sales','pricelist','label','package','stockkeeper','points','salary','accounts','customer_report','low_stock','reports','audit','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','sales','pricelist','label','package','stockkeeper','points','accounts','customer_report','low_stock','audit','staff'])
+    : ['tasks','daily','weekly','attendance','sales','pricelist','label','package','stockkeeper','points','accounts','low_stock'];
 }
 function quickTabs(){
-  if(session.role === 'salesman') return ['tasks','sales','pricelist','salesman'];
+  if(session.role === 'salesman') return ['tasks','sales','pricelist','accounts'];
   return isManagerPlus() ? ['dashboard','tasks','sales','pricelist'] : ['tasks','sales','pricelist','attendance'];
 }
 function getPrimaryActionBtn(t){
@@ -3757,7 +3756,7 @@ function renderShell(){
         ${[
           { section: 'Overview', keys: ['dashboard','reports'] },
           { section: 'Work', keys: ['tasks','daily','weekly','attendance','low_stock'] },
-          { section: 'Sales', keys: ['sales','salesman','pricelist','label','package'] },
+          { section: 'Sales', keys: ['sales','pricelist','label','package'] },
           { section: 'Money', keys: ['accounts','customer_report','vendors','salary','points'] },
           { section: 'Admin', keys: ['staff','stockkeeper','audit','settings'] }
         ].map(grp => {
@@ -3853,7 +3852,6 @@ function renderTabBody(){
   else if(activeTab==='low_stock') renderLowStockTab(body);
   else if(activeTab==='audit' && isManagerPlus()) renderAuditTab(body);
   else if(activeTab==='salary' && (isOwner() || (isManager() && getFeatureConfig().allowManagerSalary))) renderSalaryTab(body);
-  else if(activeTab==='salesman') renderSalesmanTab(body);
   else if(activeTab==='points') renderPointsTab(body);
   else if(activeTab==='staff') renderStaffTab(body);
   else if(activeTab==='reports' && (isOwner() || (isManager() && getFeatureConfig().allowManagerReports))) renderReportsTab(body);
@@ -4134,7 +4132,6 @@ function renderDashboardTab(body){
       <div class="stat-card"><div class="num">${routineDoneToday}/${cache.routines.length}</div><div class="label">Everyday tasks done</div></div>
       <div class="stat-card"><div class="num">${labelsToday}</div><div class="label">Items labelled today</div></div>
       <div class="stat-card"><div class="num">${packagesToday}</div><div class="label">Items packaged today</div></div>
-      <div class="stat-card"><div class="num">${sharingNowCount}</div><div class="label">Sharing location now</div></div>
     </div>
 
     ${isOwner() ? `
