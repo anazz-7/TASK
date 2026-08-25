@@ -234,7 +234,13 @@
   @media (max-width: 640px) {
     .stamp-btn .btn-short { display: inline !important; font-size: 0.95rem !important; font-weight: 800 !important; }
     .stamp-btn .btn-text { display: none !important; }
-    .stamp-btn.compact-mobile { padding: 6px 10px !important; min-width: 36px !important; }
+    .header-actions .stamp-btn.compact-mobile {
+      padding: 0 !important;
+      width: 36px !important;
+      min-width: 36px !important;
+      max-width: 36px !important;
+      justify-content: center !important;
+    }
   }
   .stamp-btn:hover {
     background: #1E293B;
@@ -3605,7 +3611,7 @@ function renderShell(){
           <button class="reload-btn" title="Refresh App Data" onclick="window.__reloadAppData(this)">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3L21.5 8M22 12.5a10 10 0 0 1-18.8 4.3L2.5 16"/></svg>
           </button>
-          ${isManagerPlus() ? `<button class="stamp-btn" style="background:var(--turmeric-dark);color:#fff;border-color:var(--turmeric-dark);" onclick="window.__openQuickTaskModal()">⚡ Quick Add</button>` : ''}
+          ${isManagerPlus() ? `<button class="stamp-btn compact-mobile" style="background:var(--turmeric-dark);color:#fff;border-color:var(--turmeric-dark);" onclick="window.__openQuickTaskModal()"><span class="btn-short">⚡</span><span class="btn-text">⚡ Quick Add</span></button>` : ''}
           ${getPrimaryActionBtn(activeTab)}
           <button class="avatar-circle mobile-only" style="width:34px;height:34px;font-size:0.75rem;border:none;cursor:pointer;" onclick="window.__openAccount()">${initials(session.name)}</button>
         </div>
