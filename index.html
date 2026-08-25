@@ -1398,27 +1398,50 @@
     .stat-grid,
     .dash-kpi-grid {
       grid-template-columns: repeat(2, 1fr) !important;
-      gap: 8px !important;
-      margin-bottom: 12px !important;
+      gap: 6px !important;
+      margin-bottom: 10px !important;
     }
     .stat-card,
     .dash-kpi-card {
-      padding: 10px 12px !important;
-      min-height: 62px !important;
+      padding: 8px 10px !important;
+      min-height: 56px !important;
       border-radius: 10px !important;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06) !important;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+      overflow: hidden !important;
     }
     .stat-card .num,
     .dash-kpi-val {
-      font-size: 1.25rem !important;
-      line-height: 1.1 !important;
+      font-size: 1.05rem !important;
+      line-height: 1.15 !important;
       margin-bottom: 2px !important;
       font-weight: 800 !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      max-width: 100% !important;
+    }
+    .stat-card .num[style*="font-size:1rem"],
+    .stat-card .num[style*="font-size: 1rem"] {
+      font-size: 0.75rem !important;
+      font-weight: 700 !important;
     }
     .stat-card .label,
     .dash-kpi-title {
-      font-size: 0.62rem !important;
+      font-size: 0.58rem !important;
       letter-spacing: 0.02em !important;
+      text-transform: uppercase !important;
+      line-height: 1.2 !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+    .dash-kpi-sub {
+      font-size: 0.55rem !important;
+      line-height: 1.15 !important;
+      margin-top: 2px !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
     }
   }
 
