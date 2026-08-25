@@ -3567,12 +3567,13 @@ function icon(name, size){
 }
 const TAB_META = {
   dashboard: {icon:'dashboard', label:'Dashboard'},
-    tasks: {icon:'tasks', label:'Tasks'},
+  tasks: {icon:'tasks', label:'Tasks'},
   daily: {icon:'daily', label:'Daily'},
   weekly: {icon:'weekly', label:'Weekly'},
   attendance: {icon:'attendance', label:'Attendance'},
   salesman: {icon:'salesman', label:'Salesman'},
   sales: {icon:'sales', label:'Sales'},
+  pricelist: {icon:'clipboard', label:'Price List'},
   label: {icon:'label', label:'Label'},
   package: {icon:'package', label:'Package'},
   points: {icon:'points', label:'Points'},
@@ -3587,14 +3588,14 @@ const TAB_META = {
   low_stock: {icon:'low_stock', label:'Low Stock'},
 };
 function currentTabs(){
-  if(session.role === 'salesman') return ['tasks', 'sales', 'salesman', 'accounts', 'low_stock'];
+  if(session.role === 'salesman') return ['tasks', 'sales', 'salesman', 'pricelist', 'accounts', 'low_stock'];
   return isManagerPlus()
-    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','salary','accounts','customer_report','low_stock','reports','audit','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','customer_report','low_stock','audit','staff'])
-    : ['tasks','daily','weekly','attendance','salesman','sales','label','package','stockkeeper','points','accounts','low_stock'];
+    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','salesman','sales','pricelist','label','package','stockkeeper','points','salary','accounts','customer_report','low_stock','reports','audit','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','salesman','sales','pricelist','label','package','stockkeeper','points','accounts','customer_report','low_stock','audit','staff'])
+    : ['tasks','daily','weekly','attendance','salesman','sales','pricelist','label','package','stockkeeper','points','accounts','low_stock'];
 }
 function quickTabs(){
-  if(session.role === 'salesman') return ['tasks','attendance','sales','accounts'];
-  return isManagerPlus() ? ['dashboard','tasks','sales','accounts'] : ['tasks','attendance','sales','points'];
+  if(session.role === 'salesman') return ['tasks','attendance','sales','pricelist','accounts'];
+  return isManagerPlus() ? ['dashboard','tasks','sales','pricelist','accounts'] : ['tasks','attendance','sales','pricelist','points'];
 }
 function getPrimaryActionBtn(t){
   if(t==='tasks') return `<button class="stamp-btn compact-mobile" onclick="window.__openTask()"><span class="btn-text">+ Add Task</span><span class="btn-short">+</span></button>`;
@@ -3602,6 +3603,7 @@ function getPrimaryActionBtn(t){
   if(t==='weekly' && isManagerPlus()) return `<button class="stamp-btn compact-mobile" onclick="window.__openWeekly()"><span class="btn-text">+ Add Weekly Task</span><span class="btn-short">+</span></button>`;
   if(t==='staff') return `<button class="stamp-btn compact-mobile" onclick="window.__openStaff()"><span class="btn-text">+ Add Staff</span><span class="btn-short">+</span></button>`;
   if(t==='sales') return `<button class="stamp-btn compact-mobile" onclick="window.__openSale()"><span class="btn-text">+ Log Sale</span><span class="btn-short">+</span></button>`;
+  if(t==='pricelist' && isManagerPlus()) return `<button class="stamp-btn compact-mobile" onclick="window.__openAddPriceListItemModal()"><span class="btn-text">+ Add Product</span><span class="btn-short">+</span></button>`;
   if(t==='label') return `<button class="stamp-btn compact-mobile" onclick="window.__openLabel()"><span class="btn-text">+ Log Label</span><span class="btn-short">+</span></button>`;
   if(t==='package') return `<button class="stamp-btn compact-mobile" onclick="window.__openPackage()"><span class="btn-text">+ Log Package</span><span class="btn-short">+</span></button>`;
   if(t==='salary' && (isOwner() || isManager())) return `<button class="stamp-btn compact-mobile" onclick="window.__openSalaryLogModal()"><span class="btn-text">📜 Salary Log</span><span class="btn-short">📜</span></button>${isOwner() ? `<button class="stamp-btn compact-mobile" style="margin-left:6px;" onclick="window.__openSalary()"><span class="btn-text">+ Record Salary</span><span class="btn-short">+</span></button>` : ''}`;
@@ -3790,6 +3792,7 @@ function renderTabBody(){
   else if(activeTab==='weekly') renderWeeklyTab(body);
   else if(activeTab==='attendance') renderAttendanceTab(body);
   else if(activeTab==='sales') renderSalesTab(body);
+  else if(activeTab==='pricelist') renderPriceListTab(body);
   else if(activeTab==='label') renderLabelTab(body);
   else if(activeTab==='package') renderPackageTab(body);
   else if(activeTab==='stockkeeper') renderStockkeeperTab(body);
@@ -13859,6 +13862,239 @@ window.__deleteCustomerReport = function(id) {
 
 
 /* ================================================================
+   FEATURE: PRICE LIST TAB FOR SALESPERSON (TABLE VIEW)
+   Product Name | Beat Name | MRP Price | Scheme Price | Savings
+   ================================================================ */
+
+function getPriceListData() {
+  if (!session || !session.businessId) return [];
+  try {
+    const raw = localStorage.getItem('br_pricelist_' + session.businessId);
+    if (raw) return JSON.parse(raw);
+  } catch(e){}
+  // Default Initial Sample Price List Data
+  return [
+    { id: 'pl_1', product_name: 'Premium Detergent Powder 1kg', mrp_price: 160, scheme_price: 142, beat_name: 'Downtown Beat', created_at: todayStr() },
+    { id: 'pl_2', product_name: 'Crisp Laundry Liquid 500ml', mrp_price: 195, scheme_price: 170, beat_name: 'Central Market Beat', created_at: todayStr() },
+    { id: 'pl_3', product_name: 'Fabric Softener 1L', mrp_price: 220, scheme_price: 190, beat_name: 'West Industrial Beat', created_at: todayStr() },
+    { id: 'pl_4', product_name: 'Stain Remover Gel 250g', mrp_price: 125, scheme_price: 105, beat_name: 'South Retail Beat', created_at: todayStr() },
+    { id: 'pl_5', product_name: 'Dishwash Gel Lemon 750ml', mrp_price: 140, scheme_price: 118, beat_name: 'Downtown Beat', created_at: todayStr() }
+  ];
+}
+
+function savePriceListData(data) {
+  if (!session || !session.businessId) return;
+  const list = data || cache.priceList || [];
+  try {
+    localStorage.setItem('br_pricelist_' + session.businessId, JSON.stringify(list));
+  } catch(e){}
+  if (typeof syncCustomCloudPayload === 'function') {
+    syncCustomCloudPayload('[PRICE_LIST_DATA]', list);
+  }
+}
+
+let priceListSearchQuery = '';
+let priceListBeatFilter = '';
+
+window.__onPriceListSearch = function(val) {
+  priceListSearchQuery = val || '';
+  renderTabBody();
+};
+
+window.__onPriceListBeatFilter = function(val) {
+  priceListBeatFilter = val || '';
+  renderTabBody();
+};
+
+function renderPriceListTab(body) {
+  if (!cache.priceList) cache.priceList = getPriceListData();
+  const items = cache.priceList || [];
+  
+  // Extract all unique Beat Names for filter dropdown
+  const beats = Array.from(new Set(items.map(i => i.beat_name).filter(Boolean))).sort();
+
+  // Filter items based on search query and beat filter
+  const filtered = items.filter(i => {
+    const q = priceListSearchQuery.toLowerCase().trim();
+    const matchesSearch = !q || (i.product_name || '').toLowerCase().includes(q) || (i.beat_name || '').toLowerCase().includes(q);
+    const matchesBeat = !priceListBeatFilter || i.beat_name === priceListBeatFilter;
+    return matchesSearch && matchesBeat;
+  });
+
+  body.innerHTML = `
+    <!-- Top Filter & Search Control Bar -->
+    <div class="row-card" style="flex-wrap:wrap;gap:10px;align-items:center;padding:12px;margin-bottom:16px;">
+      <div style="flex:1;min-width:180px;">
+        <input type="text" id="priceListSearchInput" placeholder="🔍 Search product or beat name..." value="${esc(priceListSearchQuery)}" oninput="window.__onPriceListSearch(this.value)" style="width:100%;box-sizing:border-box;">
+      </div>
+      <div style="flex:0 0 170px;">
+        <select id="priceListBeatFilter" onchange="window.__onPriceListBeatFilter(this.value)" style="width:100%;box-sizing:border-box;">
+          <option value="">All Beats (${items.length})</option>
+          ${beats.map(b => `<option value="${esc(b)}" ${priceListBeatFilter===b?'selected':''}>📍 ${esc(b)}</option>`).join('')}
+        </select>
+      </div>
+      ${isManagerPlus() ? `
+        <button class="stamp-btn small" onclick="window.__openAddPriceListItemModal()">+ Add Product</button>
+      ` : ''}
+    </div>
+
+    <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
+      <span>🏷️ Salesperson Product Price List &amp; Beat Schemes (${filtered.length} Items)</span>
+    </div>
+
+    <!-- Table View -->
+    <div class="row-card" style="flex-direction:column;padding:0;overflow:hidden;margin-bottom:20px;">
+      <div style="width:100%;overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;text-align:left;font-size:0.82rem;">
+          <thead>
+            <tr style="background:var(--paper-line);color:var(--ink-soft);font-family:'Roboto Mono',monospace;font-size:0.72rem;text-transform:uppercase;border-bottom:1.5px solid var(--paper-line);">
+              <th style="padding:10px 14px;">Product Name</th>
+              <th style="padding:10px 14px;">Beat Name</th>
+              <th style="padding:10px 14px;">MRP Price</th>
+              <th style="padding:10px 14px;">Scheme Price</th>
+              <th style="padding:10px 14px;">Savings</th>
+              ${isManagerPlus() ? `<th style="padding:10px 14px;text-align:right;">Actions</th>` : ''}
+            </tr>
+          </thead>
+          <tbody>
+            ${filtered.length ? filtered.map(item => {
+              const mrp = Number(item.mrp_price || 0);
+              const scheme = Number(item.scheme_price || 0);
+              const savings = Math.max(0, mrp - scheme);
+              const discountPct = mrp > 0 ? Math.round((savings / mrp) * 100) : 0;
+              return `
+                <tr style="border-bottom:1px solid var(--paper-line);transition:background 0.15s ease;">
+                  <td style="padding:12px 14px;">
+                    <b style="color:var(--ink);font-size:0.88rem;display:block;">${esc(item.product_name)}</b>
+                  </td>
+                  <td style="padding:12px 14px;">
+                    <span class="role-pill" style="margin:0;background:var(--blue-soft);color:var(--turmeric-dark);border:1px solid var(--turmeric-dark);font-size:0.68rem;padding:3px 8px;">
+                      📍 ${esc(item.beat_name || 'General Beat')}
+                    </span>
+                  </td>
+                  <td style="padding:12px 14px;font-family:'Roboto Mono',monospace;color:var(--ink-soft);text-decoration:line-through;">
+                    ₹${mrp.toLocaleString('en-IN')}
+                  </td>
+                  <td style="padding:12px 14px;font-family:'Roboto Mono',monospace;font-weight:800;color:var(--leaf);font-size:0.92rem;">
+                    ₹${scheme.toLocaleString('en-IN')}
+                  </td>
+                  <td style="padding:12px 14px;font-family:'Roboto Mono',monospace;">
+                    <span style="display:inline-block;padding:2px 6px;border-radius:6px;background:var(--leaf-soft);color:var(--leaf);font-size:0.72rem;font-weight:700;">
+                      Save ₹${savings.toLocaleString('en-IN')} (${discountPct}%)
+                    </span>
+                  </td>
+                  ${isManagerPlus() ? `
+                    <td style="padding:12px 14px;text-align:right;white-space:nowrap;">
+                      <button class="stamp-btn small ghost" style="padding:2px 6px;font-size:0.68rem;margin-right:4px;" onclick="window.__editPriceListItem('${item.id}')">✎ Edit</button>
+                      <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:2px 6px;font-size:0.68rem;" onclick="window.__deletePriceListItem('${item.id}')">🗑 Delete</button>
+                    </td>
+                  ` : ''}
+                </tr>
+              `;
+            }).join('') : `
+              <tr>
+                <td colspan="${isManagerPlus() ? 6 : 5}" style="padding:24px;text-align:center;color:var(--ink-soft);">
+                  No product prices found matching your search.
+                </td>
+              </tr>
+            `}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div id="priceListModalHolder"></div>
+  `;
+}
+
+window.__openAddPriceListItemModal = function(editId = null) {
+  const holder = getModalHolder('priceListModalHolder');
+  const existing = editId ? (cache.priceList || []).find(i => i.id === editId) : null;
+
+  holder.innerHTML = `
+    <div class="overlay show" id="addPriceListItemModal">
+      <div class="modal" style="max-width:440px;">
+        <h2>${existing ? '✎ Edit Product Price & Scheme' : '➕ Add Product Price Item'}</h2>
+        <input type="hidden" id="plEditId" value="${existing ? existing.id : ''}">
+        
+        <label>Product Name *</label>
+        <input type="text" id="plProductName" placeholder="e.g. Premium Detergent 1kg" value="${existing ? esc(existing.product_name) : ''}" required>
+        
+        <label>Beat / Route Name *</label>
+        <input type="text" id="plBeatName" placeholder="e.g. Downtown Beat, Central Market Beat" value="${existing ? esc(existing.beat_name) : 'Downtown Beat'}" required>
+        
+        <div style="display:flex;gap:12px;">
+          <div style="flex:1;">
+            <label>MRP Price (₹) *</label>
+            <input type="number" step="0.01" id="plMrpPrice" placeholder="160" value="${existing ? existing.mrp_price : ''}" required>
+          </div>
+          <div style="flex:1;">
+            <label>Scheme Price (₹) *</label>
+            <input type="number" step="0.01" id="plSchemePrice" placeholder="142" value="${existing ? existing.scheme_price : ''}" required>
+          </div>
+        </div>
+
+        <div class="modal-actions" style="margin-top:16px;">
+          <button class="stamp-btn ghost" onclick="document.getElementById('addPriceListItemModal').classList.remove('show')">Cancel</button>
+          <button class="stamp-btn" onclick="window.__savePriceListItem()">Save Product Price</button>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+window.__editPriceListItem = function(id) {
+  window.__openAddPriceListItemModal(id);
+};
+
+window.__savePriceListItem = function() {
+  const editId = document.getElementById('plEditId').value;
+  const name = document.getElementById('plProductName').value.trim();
+  const beat = document.getElementById('plBeatName').value.trim();
+  const mrp = parseFloat(document.getElementById('plMrpPrice').value || '0');
+  const scheme = parseFloat(document.getElementById('plSchemePrice').value || '0');
+
+  if (!name) { alert('Please enter the Product Name'); return; }
+  if (!beat) { alert('Please enter the Beat / Route Name'); return; }
+  if (mrp <= 0) { alert('Please enter a valid MRP Price'); return; }
+
+  const list = getPriceListData();
+  if (editId) {
+    const item = list.find(i => i.id === editId);
+    if (item) {
+      item.product_name = name;
+      item.beat_name = beat;
+      item.mrp_price = mrp;
+      item.scheme_price = scheme || mrp;
+    }
+  } else {
+    list.push({
+      id: 'pl_' + Date.now(),
+      product_name: name,
+      beat_name: beat,
+      mrp_price: mrp,
+      scheme_price: scheme || mrp,
+      created_at: todayStr()
+    });
+  }
+
+  cache.priceList = list;
+  savePriceListData(list);
+  document.getElementById('addPriceListItemModal').classList.remove('show');
+  window.showToast('✅ Price list updated successfully!', 'success');
+  renderTabBody();
+};
+
+window.__deletePriceListItem = function(id) {
+  if (!confirm('Are you sure you want to delete this product from the price list?')) return;
+  const list = getPriceListData().filter(i => i.id !== id);
+  cache.priceList = list;
+  savePriceListData(list);
+  window.showToast('🗑 Product removed from price list.', 'info');
+  renderTabBody();
+};
+
+
+/* ================================================================
    FEATURE: SALES TREND CHART
    Pure SVG polyline — shows last 30 days / 12 weeks / 12 months
    ================================================================ */
@@ -13931,13 +14167,35 @@ function buildSalesTrendChartHtml() {
     ? `<text x="${p.x.toFixed(1)}" y="${(pT+cH+18).toFixed(1)}" text-anchor="middle" font-size="8" fill="var(--ink-soft)" font-family="'Roboto Mono',monospace">${esc(p.label)}</text>`
     : '').join('');
 
+  // Calculate period percentage growth vs previous period for Green/Red Up/Down Trend Badges
+  const halfN = Math.floor(n / 2);
+  const firstHalfSum = buckets.slice(0, halfN).reduce((s,b) => s + b.val, 0);
+  const secondHalfSum = buckets.slice(halfN).reduce((s,b) => s + b.val, 0);
+  let trendPctChange = 0;
+  let trendBadgeHtml = '';
+  if (firstHalfSum > 0) {
+    trendPctChange = Math.round(((secondHalfSum - firstHalfSum) / firstHalfSum) * 100);
+  } else if (secondHalfSum > 0) {
+    trendPctChange = 100;
+  }
+
+  if (trendPctChange > 0) {
+    trendBadgeHtml = `<span style="display:inline-flex;align-items:center;gap:2px;padding:2px 7px;border-radius:999px;background:var(--leaf-soft);color:var(--leaf);font-size:0.7rem;font-weight:800;margin-left:6px;" title="Sales Growth vs Previous Period">▲ +${trendPctChange}%</span>`;
+  } else if (trendPctChange < 0) {
+    trendBadgeHtml = `<span style="display:inline-flex;align-items:center;gap:2px;padding:2px 7px;border-radius:999px;background:var(--brick-soft);color:var(--brick);font-size:0.7rem;font-weight:800;margin-left:6px;" title="Sales Decline vs Previous Period">▼ ${trendPctChange}%</span>`;
+  } else {
+    trendBadgeHtml = `<span style="display:inline-flex;align-items:center;gap:2px;padding:2px 7px;border-radius:999px;background:var(--paper-line);color:var(--ink-soft);font-size:0.7rem;font-weight:700;margin-left:6px;">▶ 0%</span>`;
+  }
+
   return `
   <div class="trend-chart-wrap">
     <div class="trend-chart-header">
       <div>
         <div class="trend-chart-title">📈 Sales Trend</div>
-        <div style="font-size:0.9rem;font-weight:800;color:var(--ink);font-family:'Roboto Mono',monospace;">
-          ${fmtVal(totalPeriod)} <span style="font-size:0.65rem;font-weight:600;color:var(--ink-soft);">${fmtVal(avgPeriod)} avg</span>
+        <div style="display:flex;align-items:center;gap:4px;margin-top:2px;">
+          <span style="font-size:0.95rem;font-weight:800;color:var(--ink);font-family:'Roboto Mono',monospace;">${fmtVal(totalPeriod)}</span>
+          <span style="font-size:0.68rem;font-weight:600;color:var(--ink-soft);font-family:'Roboto Mono',monospace;">${fmtVal(avgPeriod)} avg</span>
+          ${trendBadgeHtml}
         </div>
       </div>
       <div class="trend-chart-tabs">
