@@ -12516,15 +12516,7 @@ window.safeBackgroundRenderTabBody = function() {
   }
 };
 
-// 30-Second Background Cross-Device Realtime Sync Poll (Safe — never interrupts active typing)
-setInterval(async () => {
-  if (navigator.onLine && typeof session !== 'undefined' && session && session.businessId) {
-    try {
-      await loadData();
-      safeBackgroundRenderTabBody();
-    } catch(e){}
-  }
-}, 30000);
+// Auto-refresh loop disabled as requested by user. Data is loaded synchronously on app start and manually via the top refresh button.
 
 
 let customerSegmentFilter = 'all';
