@@ -1907,10 +1907,8 @@ window.__toggleCompactView = function() {
 
 function showLoading(msg) {
   const tabBody = document.getElementById('tabBody');
-  if (tabBody && (msg === 'Reloading Data...' || !tabBody.children.length)) {
-    if (typeof window.__renderSkeletonHtml === 'function') {
-      tabBody.innerHTML = window.__renderSkeletonHtml(4);
-    }
+  if (tabBody && typeof window.__renderSkeletonHtml === 'function') {
+    tabBody.innerHTML = window.__renderSkeletonHtml(4);
   }
   if (typeof window.__showSyncProgress === 'function') window.__showSyncProgress(msg || 'Syncing to Cloud...');
 }
@@ -2292,7 +2290,12 @@ window.__triggerPageTransition = function() {
 
 // 2. Skeleton Loading Helper (Uiverse.io by Deri-Kurniawan)
 window.__renderSkeletonHtml = function(count = 4) {
-  let html = '';
+  let html = `
+    <div class="stat-grid" style="margin-bottom:14px;">
+      <div class="uiverse-skeleton-row" style="height:62px;border-radius:10px;margin:0;"></div>
+      <div class="uiverse-skeleton-row" style="height:62px;border-radius:10px;margin:0;"></div>
+    </div>
+  `;
   for (let i = 0; i < count; i++) {
     html += `
       <!-- From Uiverse.io by Deri-Kurniawan -->
@@ -3695,6 +3698,10 @@ function renderShell(){
   document.getElementById('drawerOverlay').onclick = () => { document.getElementById('drawerOverlay').classList.remove('show'); };
   window.__setTab = (t) => {
     activeTab = t;
+    const body = document.getElementById('tabBody');
+    if (body && typeof window.__renderSkeletonHtml === 'function') {
+      body.innerHTML = window.__renderSkeletonHtml(4);
+    }
     document.getElementById('drawerOverlay').classList.remove('show');
     renderShell();
     if (typeof window.__triggerPageTransition === 'function') window.__triggerPageTransition();
