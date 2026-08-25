@@ -3884,6 +3884,70 @@ window.__setDashSalesMode = (m) => { dashSalesMode = m; renderTabBody(); };
 let dashPointsMode = 'weekly';
 window.__setDashPointsMode = (m) => { dashPointsMode = m; renderTabBody(); };
 
+function buildPinnedIncentiveTargetWidgetHtml(curMonth, monthSales) {
+  const targets = cache.salesTargets || [];
+  const myStaffId = session ? session.staffId : '';
+  const myTargetObj = targets.find(t => t.staff_id === myStaffId && t.month === curMonth);
+  const isOwnerUser = isOwner();
+
+  let targetVal = 30000;
+  let incentiveBonus = 3000;
+  let achievedSales = 0;
+  let titleText = '';
+
+  if (isOwnerUser) {
+    achievedSales = monthSales.reduce((s, x) => s + Number(x.order_value || 0), 0);
+    targetVal = targets.filter(t=>t.month===curMonth).reduce((s,t)=>s+Number(t.target_amount||0),0) || 200000;
+    incentiveBonus = targets.filter(t=>t.month===curMonth).reduce((s,t)=>s+Number(t.incentive_bonus||3000),0) || 15000;
+    titleText = `🏢 Overall Business Sales & Incentive Target (${curMonth})`;
+  } else {
+    achievedSales = monthSales.filter(x => x.staff_id === myStaffId).reduce((s, x) => s + Number(x.order_value || 0), 0);
+    targetVal = myTargetObj ? Number(myTargetObj.target_amount || 30000) : 30000;
+    incentiveBonus = myTargetObj ? Number(myTargetObj.incentive_bonus || 3000) : 3000;
+    titleText = `🎯 Your Monthly Target to Earn Incentive (${curMonth})`;
+  }
+
+  const pct = Math.min(100, Math.round((achievedSales / Math.max(1, targetVal)) * 100));
+  const remaining = Math.max(0, targetVal - achievedSales);
+
+  return `
+    <!-- 🎯 PINNED INCENTIVE TARGET CARD (FIRST ON DASHBOARD) -->
+    <div class="row-card" style="flex-direction:column;align-items:stretch;padding:16px;margin-bottom:20px;background:linear-gradient(135deg, #0F172A 0%, #1E293B 100%);color:#FFFFFF;border-radius:12px;box-shadow:0 4px 14px rgba(15,23,42,0.25);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:1.5rem;background:rgba(255,255,255,0.1);padding:6px 10px;border-radius:8px;">🎯</span>
+          <div>
+            <b style="font-size:0.95rem;color:#FFFFFF;display:block;line-height:1.2;">${titleText}</b>
+            <span style="font-size:0.78rem;color:#94A3B8;">Reach goal to unlock <b style="color:#34D399;">₹${incentiveBonus.toLocaleString('en-IN')} Incentive Bonus</b></span>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <b style="font-family:'Roboto Mono',monospace;font-size:1.1rem;color:${pct>=100?'#34D399':'#FBBF24'};">
+            ₹${achievedSales.toLocaleString('en-IN')} / ₹${targetVal.toLocaleString('en-IN')}
+          </b>
+          <span style="display:block;font-size:0.75rem;color:#CBD5E1;font-weight:700;margin-top:2px;">${pct}% Completed</span>
+        </div>
+      </div>
+
+      <!-- Animated Dark Slate Progress Bar -->
+      <div class="progress-track" style="height:12px;background:rgba(255,255,255,0.15);border-radius:6px;overflow:hidden;margin-bottom:10px;">
+        <div class="progress-fill ${pct>=100?'complete':''}" style="width:${pct}%;height:100%;border-radius:6px;background:${pct>=100?'linear-gradient(90deg, #10B981, #059669)':'linear-gradient(90deg, #3B82F6, #6366F1)'};"></div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.8rem;padding-top:8px;border-top:1px solid rgba(255,255,255,0.1);flex-wrap:wrap;gap:6px;">
+        ${pct >= 100 ? `
+          <span style="color:#34D399;font-weight:700;display:flex;align-items:center;gap:4px;">🎉 Target Achieved! ₹${incentiveBonus.toLocaleString('en-IN')} Incentive Bonus Unlocked!</span>
+        ` : `
+          <span style="color:#FCD34D;font-weight:600;">🔥 Achieve ₹${remaining.toLocaleString('en-IN')} more to unlock your ₹${incentiveBonus.toLocaleString('en-IN')} Incentive Bonus!</span>
+        `}
+        ${isOwner() ? `
+          <button class="stamp-btn small" style="background:rgba(255,255,255,0.18);color:#FFF;border:1px solid rgba(255,255,255,0.3);padding:3px 10px;font-size:0.75rem;" onclick="window.__openSetTargetsModal()">⚙️ Set Custom Targets</button>
+        ` : ''}
+      </div>
+    </div>
+  `;
+}
+
 function buildStaffTargetsHtml(curMonth, monthSales){
   const targets = cache.salesTargets || [];
   const staffList = cache.staff || [];
@@ -3891,26 +3955,33 @@ function buildStaffTargetsHtml(curMonth, monthSales){
 
   // Total Business Sales for current month
   const totalMonthSales = monthSales.reduce((sum, x) => sum + Number(x.order_value || 0), 0);
-  const businessTargetVal = 200000; // Default Monthly Business Target Goal
+  const businessTargetVal = targets.filter(t=>t.month===curMonth).reduce((s,t)=>s+Number(t.target_amount||0),0) || 200000;
   const bizPct = Math.min(100, Math.round((totalMonthSales / businessTargetVal) * 100));
 
   const activeStaffCards = staffList.map(s => {
     const sSales = monthSales.filter(x=>x.staff_id===s.id).reduce((sum,x)=>sum+Number(x.order_value||0),0);
-    // HIDE PROGRESS BAR ENTIRELY IF SALES ARE ZERO
     if (sSales <= 0) return '';
     const targetObj = targets.find(t=>t.staff_id===s.id && t.month===curMonth);
-    const targetVal = targetObj ? Number(targetObj.target_amount||0) : 25000;
+    const targetVal = targetObj ? Number(targetObj.target_amount||0) : 30000;
+    const bonusVal = targetObj ? Number(targetObj.incentive_bonus||3000) : 3000;
     const pct = Math.min(100, Math.round((sSales / Math.max(1, targetVal)) * 100));
     return `
       <div class="row-card" style="flex-direction:column;align-items:stretch;padding:12px;margin-bottom:8px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-          <b style="margin:0;font-size:0.88rem;color:var(--ink);">${esc(s.name)}</b>
+          <div>
+            <b style="margin:0;font-size:0.88rem;color:var(--ink);">${esc(s.name)}</b>
+            <span class="role-pill" style="font-size:0.72rem;padding:2px 6px;">${s.role || 'staff'}</span>
+          </div>
           <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.8rem;color:var(--turmeric-dark);">
             ₹${sSales.toLocaleString('en-IN')} / ₹${targetVal.toLocaleString('en-IN')} (${pct}%)
           </span>
         </div>
-        <div class="progress-track" style="height:8px;background:var(--paper-line);border-radius:999px;overflow:hidden;">
-          <div class="progress-fill ${pct>=100?'complete':''}" style="width:${pct}%;height:100%;border-radius:999px;"></div>
+        <div class="progress-track" style="height:8px;background:var(--paper-line);border-radius:6px;overflow:hidden;margin-bottom:4px;">
+          <div class="progress-fill ${pct>=100?'complete':''}" style="width:${pct}%;height:100%;border-radius:6px;"></div>
+        </div>
+        <div style="font-size:0.72rem;color:var(--ink-soft);display:flex;justify-content:space-between;">
+          <span>Incentive Reward: <b style="color:var(--leaf);">₹${bonusVal.toLocaleString('en-IN')} Bonus</b></span>
+          <span>${pct>=100?'🎉 Goal Reached':'🔥 In Progress'}</span>
         </div>
       </div>
     `;
@@ -3919,7 +3990,7 @@ function buildStaffTargetsHtml(curMonth, monthSales){
   return `
     <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
       <span>Target Progress & Sales Performance — ${curMonth}</span>
-      ${isManagerPlus() ? `<button class="stamp-btn small ghost" style="padding:2px 8px;font-size:0.7rem;" onclick="window.__openSetTargetsModal()">Set Targets</button>` : ''}
+      ${isOwner() ? `<button class="stamp-btn small ghost" style="padding:2px 8px;font-size:0.7rem;" onclick="window.__openSetTargetsModal()">⚙️ Set Custom Targets</button>` : ''}
     </div>
 
     <!-- Overall Business Sales Goal Progress Card -->
@@ -3930,8 +4001,8 @@ function buildStaffTargetsHtml(curMonth, monthSales){
           ₹${totalMonthSales.toLocaleString('en-IN')} / ₹${businessTargetVal.toLocaleString('en-IN')} (${bizPct}%)
         </b>
       </div>
-      <div class="progress-track" style="height:10px;background:var(--paper-line);border-radius:999px;overflow:hidden;">
-        <div class="progress-fill ${bizPct>=100?'complete':''}" style="width:${bizPct}%;height:100%;border-radius:999px;"></div>
+      <div class="progress-track" style="height:10px;background:var(--paper-line);border-radius:6px;overflow:hidden;">
+        <div class="progress-fill ${bizPct>=100?'complete':''}" style="width:${bizPct}%;height:100%;border-radius:6px;"></div>
       </div>
     </div>
 
@@ -3946,51 +4017,68 @@ window.__openSetTargetsModal = function() {
   const targets = cache.salesTargets || [];
 
   holder.innerHTML = `
-  <div class="overlay show"><div class="modal" style="max-width:500px;">
-    <h2>⚙️ Set Monthly Staff Sales Targets (${curMonth})</h2>
-    <p style="font-size:0.8rem;color:var(--ink-soft);margin-bottom:12px;">Set monthly target sales amounts for each staff member to track their progress bars on the Dashboard.</p>
+  <div class="overlay show" onclick="if(event.target===this) getModalHolder('taskModalHolder').innerHTML=''"><div class="modal" style="max-width:520px;width:92%;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <h3 style="margin:0;">⚙️ Assign Custom Targets & Incentive Bonuses (${curMonth})</h3>
+      <button class="stamp-btn small ghost" onclick="getModalHolder('taskModalHolder').innerHTML=''">✕</button>
+    </div>
+    <p style="font-size:0.8rem;color:var(--ink-soft);margin-bottom:14px;">Set custom monthly target sales amounts and incentive bonus rewards for staff members and managers.</p>
 
-    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;max-height:360px;overflow-y:auto;padding-right:4px;">
       ${cache.staff.map(s => {
         const targetObj = targets.find(t => t.staff_id === s.id && t.month === curMonth);
-        const val = targetObj ? targetObj.target_amount : 25000;
+        const tVal = targetObj ? targetObj.target_amount : 30000;
+        const bVal = targetObj ? (targetObj.incentive_bonus || 3000) : 3000;
         return `
-          <div style="display:flex;justify-content:space-between;align-items:center;background:var(--paper);padding:8px 12px;border-radius:6px;border:1px solid var(--paper-line);">
-            <b>${esc(s.name)}</b>
-            <div style="display:flex;align-items:center;gap:4px;">
-              <span>₹</span>
-              <input type="number" class="mTargetInput" data-staff="${s.id}" value="${val}" style="width:110px;font-family:'Roboto Mono',monospace;font-weight:700;">
+          <div style="display:flex;flex-direction:column;gap:6px;background:var(--paper);padding:10px 12px;border-radius:8px;border:1px solid var(--paper-line);">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <b style="font-size:0.88rem;color:var(--ink);">${esc(s.name)}</b>
+              <span class="role-pill" style="font-size:0.75rem;padding:2px 6px;">${s.role || 'staff'}</span>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;margin-top:4px;">
+              <div style="flex:1;">
+                <label style="font-size:0.7rem;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:2px;">TARGET SALES (₹)</label>
+                <input type="number" class="mTargetInput" data-staff="${s.id}" value="${tVal}" style="width:100%;box-sizing:border-box;font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.85rem;">
+              </div>
+              <div style="flex:1;">
+                <label style="font-size:0.7rem;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:2px;">INCENTIVE BONUS (₹)</label>
+                <input type="number" class="mIncentiveInput" data-staff="${s.id}" value="${bVal}" style="width:100%;box-sizing:border-box;font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.85rem;color:var(--leaf);">
+              </div>
             </div>
           </div>
         `;
       }).join('')}
     </div>
 
-    <div class="modal-actions">
+    <div class="modal-actions" style="display:flex;justify-content:flex-end;gap:8px;">
       <button class="stamp-btn ghost" onclick="getModalHolder('taskModalHolder').innerHTML=''">Cancel</button>
-      <button class="stamp-btn" style="background:var(--turmeric);color:white;" onclick="window.__saveStaffTargets('${curMonth}')">💾 Save Targets</button>
+      <button class="stamp-btn" style="background:var(--turmeric);color:white;" onclick="window.__saveStaffTargets('${curMonth}')">💾 Save Custom Targets</button>
     </div>
   </div></div>`;
 };
 
 window.__saveStaffTargets = async function(curMonth) {
-  const inputs = document.querySelectorAll('.mTargetInput');
+  const tInputs = document.querySelectorAll('.mTargetInput');
   const targets = cache.salesTargets || [];
 
-  for (const input of inputs) {
+  for (const input of tInputs) {
     const staffId = input.getAttribute('data-staff');
     const targetAmt = Number(input.value || 0);
+    const bInput = document.querySelector(`.mIncentiveInput[data-staff="${staffId}"]`);
+    const bonusAmt = bInput ? Number(bInput.value || 0) : 3000;
 
     let targetObj = targets.find(t => t.staff_id === staffId && t.month === curMonth);
     if (targetObj) {
       targetObj.target_amount = targetAmt;
+      targetObj.incentive_bonus = bonusAmt;
     } else {
       targetObj = {
         id: 'targ_' + Date.now() + '_' + Math.random().toString(36).substring(2,6),
         business_id: session.businessId,
         staff_id: staffId,
         month: curMonth,
-        target_amount: targetAmt
+        target_amount: targetAmt,
+        incentive_bonus: bonusAmt
       };
       targets.push(targetObj);
     }
@@ -4006,7 +4094,7 @@ window.__saveStaffTargets = async function(curMonth) {
 
   cache.salesTargets = targets;
   getModalHolder('taskModalHolder').innerHTML = '';
-  window.showToast('🎯 Monthly Sales Targets updated!', 'success');
+  window.showToast('🎯 Custom Sales Targets & Incentive Bonuses updated!', 'success');
   renderTabBody();
 };
 
@@ -4117,6 +4205,9 @@ function renderDashboardTab(body){
   const unpaidVendorTotal = unpaidVendorBills.reduce((sum, b) => sum + getBillAmount(b), 0);
 
   body.innerHTML = `
+    <!-- 🎯 PINNED INCENTIVE TARGET CARD (FIRST ON DASHBOARD) -->
+    ${buildPinnedIncentiveTargetWidgetHtml(curMonth, monthSales)}
+
     <!-- 📈 Sales Trend Interactive Chart (OWNER ONLY SECURITY) -->
     ${isOwner() ? buildSalesTrendChartHtml() : ''}
 
