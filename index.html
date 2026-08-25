@@ -3526,6 +3526,49 @@ window.showToast = function(message, type = 'info', duration = 3200) {
   }, duration);
 };
 
+/* ---------------- UNIVERSAL MODAL CLOSE ENGINE ---------------- */
+window.__closeCurrentModal = function(btnEl) {
+  if (btnEl && typeof btnEl.closest === 'function') {
+    const overlay = btnEl.closest('.overlay');
+    if (overlay) {
+      overlay.classList.remove('show');
+      if (overlay.parentElement && overlay.parentElement.id && (overlay.parentElement.id.endsWith('Holder') || overlay.parentElement.id.endsWith('Modal'))) {
+        overlay.parentElement.innerHTML = '';
+      } else {
+        setTimeout(() => { try { overlay.remove(); } catch(e){} }, 50);
+      }
+      return;
+    }
+  }
+  // Fallback: Clean up all open modal overlays
+  document.querySelectorAll('.overlay.show, .overlay').forEach(el => {
+    if (el.id === 'reminderOverlay' || el.id === 'deleteConfirmOverlay') return;
+    el.classList.remove('show');
+    if (el.parentElement && el.parentElement.id && (el.parentElement.id.endsWith('Holder') || el.parentElement.id.endsWith('Modal'))) {
+      el.parentElement.innerHTML = '';
+    } else {
+      setTimeout(() => { try { el.remove(); } catch(e){} }, 50);
+    }
+  });
+};
+
+// Global Named Modal Close Aliases
+window.__closeModal = function(b) { window.__closeCurrentModal(b); };
+window.__closeRoutineModal = function(b) { window.__closeCurrentModal(b); };
+window.__closeWeeklyModal = function(b) { window.__closeCurrentModal(b); };
+window.__closeTargetModal = function(b) { window.__closeCurrentModal(b); };
+window.__closeSaleModal = function(b) { window.__closeCurrentModal(b); };
+window.__closeLabelModal = function(b) { window.__closeCurrentModal(b); };
+window.__closePackageModal = function(b) { window.__closeCurrentModal(b); };
+window.__closeTrophyModal = function(b) { window.__closeCurrentModal(b); };
+window.__closeIncentiveTargetModal = function(b) { window.__closeCurrentModal(b); };
+window.__closePointsModal = function(b) { window.__closeCurrentModal(b); };
+window.__closeStaffModal = function(b) { window.__closeCurrentModal(b); };
+window.__closeVendorModal = function(b) { window.__closeCurrentModal(b); };
+window.__closeSalaryModal = function(b) { window.__closeCurrentModal(b); };
+window.__closeScheduleModal = function(b) { window.__closeCurrentModal(b); };
+window.__closePaymentVoucherModal = function(b) { window.__closeCurrentModal(b); };
+
 /* ---------------- shell ---------------- */
 
 const ICONS = {
@@ -13590,7 +13633,7 @@ window.__openImportCustomerJsonModal = function() {
         </div>
 
         <div class="modal-actions" style="margin-top:18px;">
-          <button class="stamp-btn ghost" onclick="document.getElementById('importCustomerJsonModal').classList.remove('show')">Cancel</button>
+          <button class="stamp-btn ghost" onclick="window.__closeCurrentModal(this)">Cancel</button>
           <button class="stamp-btn" style="background:var(--turmeric);color:#fff;border-color:var(--turmeric);" onclick="window.__submitImportCustomerJson()">📥 Import &amp; Save Customer Ledger</button>
         </div>
       </div>
@@ -13782,7 +13825,7 @@ window.__openAddCustomerReportModal = function(editId) {
       <textarea id="custNotes" placeholder="e.g. High volume buyer. Prefers Express delivery.">${esc(r.remarks || '')}</textarea>
 
       <div class="modal-actions">
-        <button class="stamp-btn ghost" onclick="document.getElementById('addCustomerReportModal').classList.remove('show')">Cancel</button>
+        <button class="stamp-btn ghost" onclick="window.__closeCurrentModal(this)">Cancel</button>
         <button class="stamp-btn" onclick="window.__saveCustomerReportModal('${editId || ''}')">Save Customer Report</button>
       </div>
     </div>
@@ -14034,7 +14077,7 @@ window.__openAddPriceListItemModal = function(editId = null) {
         </div>
 
         <div class="modal-actions" style="margin-top:16px;">
-          <button class="stamp-btn ghost" onclick="document.getElementById('addPriceListItemModal').classList.remove('show')">Cancel</button>
+          <button class="stamp-btn ghost" onclick="window.__closeCurrentModal(this)">Cancel</button>
           <button class="stamp-btn" onclick="window.__savePriceListItem()">Save Product Price</button>
         </div>
       </div>
