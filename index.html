@@ -3650,14 +3650,14 @@ const TAB_META = {
   low_stock: {icon:'low_stock', label:'Low Stock'},
 };
 function currentTabs(){
-  if(session.role === 'salesman') return ['tasks', 'sales', 'pricelist', 'office_logs', 'accounts', 'low_stock'];
+  if(session.role === 'salesman') return ['tasks', 'sales', 'pricelist', 'accounts', 'low_stock'];
   return isManagerPlus()
-    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','office_logs','sales','pricelist','label','package','stockkeeper','points','salary','accounts','customer_report','low_stock','reports','audit','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','office_logs','sales','pricelist','label','package','stockkeeper','points','accounts','customer_report','low_stock','audit','staff'])
-    : ['tasks','daily','weekly','attendance','office_logs','sales','pricelist','label','package','stockkeeper','points','accounts','low_stock'];
+    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','office_logs','sales','pricelist','label','package','stockkeeper','points','salary','accounts','customer_report','low_stock','reports','audit','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','sales','pricelist','label','package','stockkeeper','points','accounts','customer_report','low_stock','audit','staff'])
+    : ['tasks','daily','weekly','attendance','sales','pricelist','label','package','stockkeeper','points','accounts','low_stock'];
 }
 function quickTabs(){
-  if(session.role === 'salesman') return ['tasks','sales','pricelist','office_logs'];
-  return isManagerPlus() ? ['dashboard','tasks','sales','office_logs'] : ['tasks','sales','pricelist','office_logs'];
+  if(session.role === 'salesman') return ['tasks','sales','pricelist','accounts'];
+  return isOwner() ? ['dashboard','tasks','sales','office_logs'] : (isManagerPlus() ? ['dashboard','tasks','sales','pricelist'] : ['tasks','sales','pricelist','attendance']);
 }
 function getPrimaryActionBtn(t){
   if(t==='office_logs') return `<button class="stamp-btn compact-mobile" onclick="window.__openOfficeLogModal()"><span class="btn-text">+ Log Cash</span><span class="btn-short">+</span></button>`;
@@ -3860,7 +3860,7 @@ function renderTabBody(){
   else if(activeTab==='package') renderPackageTab(body);
   else if(activeTab==='stockkeeper') renderStockkeeperTab(body);
   else if(activeTab==='accounts' && (isOwner() || (isManager() && getFeatureConfig().allowManagerAccounts))) renderAccountsTab(body);
-  else if(activeTab==='office_logs') renderOfficeLogsTab(body);
+  else if(activeTab==='office_logs' && isOwner()) renderOfficeLogsTab(body);
   else if(activeTab==='customer_report') renderCustomerReportTab(body);
   else if(activeTab==='low_stock') renderLowStockTab(body);
   else if(activeTab==='audit' && isManagerPlus()) renderAuditTab(body);
