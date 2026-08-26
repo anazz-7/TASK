@@ -1993,6 +1993,15 @@ let taskFilter = { staffId: '', priority: '', search: '' };
 let taskSubTab = 'active'; // 'active' | 'history'
 let expandedDoneIds = new Set();
 
+function saveCacheLocally() {
+  if (!session || !session.businessId) return;
+  const bizId = session.businessId;
+  try {
+    if (cache.staff) localStorage.setItem('br_staff_' + bizId, JSON.stringify(cache.staff));
+    if (cache.tasks) localStorage.setItem('br_tasks_' + bizId, JSON.stringify(cache.tasks));
+  } catch(e){}
+}
+
 /* ---------------- bootstrap ---------------- */
 function getConfig(){
   const stored = JSON.parse(localStorage.getItem('br_config') || 'null');
@@ -2959,6 +2968,20 @@ async function loadData(){
       sb.from('audit_logs').select('*').eq('business_id', bizId).order('timestamp', {ascending:false}).limit(300),
     ]);
     cache.staff = staffR.data || [];
+    let localSavedStaff = [];
+    try {
+      localSavedStaff = JSON.parse(localStorage.getItem('br_staff_' + bizId) || '[]');
+    } catch(e){}
+
+    if (localSavedStaff && localSavedStaff.length) {
+      const staffMap = new Map();
+      cache.staff.forEach(s => staffMap.set(s.id, s));
+      localSavedStaff.forEach(s => {
+        const existing = staffMap.get(s.id);
+        staffMap.set(s.id, Object.assign({}, existing || {}, s));
+      });
+      cache.staff = Array.from(staffMap.values());
+    }
     const cloudTasks = tasksR.data || [];
     let localSavedTasks = [];
     try {
@@ -7110,6 +7133,7 @@ function openStaffModal(staffId){
     // 4. Close modal and re-render UI instantly
     holder.innerHTML = '';
     renderShell();
+    renderTabBody();
 
     // 5. Background Cloud Upsert with safe fallback (prevents error popups!)
     if (navigator.onLine && typeof sb !== 'undefined' && sb) {
