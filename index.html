@@ -2043,7 +2043,7 @@ async function boot(){
     if(!session){ renderLogin(); return; }
 
     // Instant UI Render from local cache (0ms delay — eliminates white screen)
-    activeTab = isManagerPlus() ? 'dashboard' : 'tasks';
+    activeTab = (typeof currentTabs === 'function' && currentTabs()[0]) ? currentTabs()[0] : (isManagerPlus() ? 'dashboard' : 'tasks');
     renderShell();
 
     // Background Async Cloud Data Load
@@ -2131,7 +2131,7 @@ async function renderLogin(){
     session = { staffId: staffRow.id, name: staffRow.name, role: staffRow.role, businessId: biz.id, businessName: biz.name };
     localStorage.setItem('br_session', JSON.stringify(session));
     await loadData();
-    activeTab = isManagerPlus() ? 'dashboard' : 'tasks';
+    activeTab = (typeof currentTabs === 'function' && currentTabs()[0]) ? currentTabs()[0] : (isManagerPlus() ? 'dashboard' : 'tasks');
     renderShell();
     startReminderLoop();
     startPopupReminders();
@@ -3650,14 +3650,14 @@ const TAB_META = {
   low_stock: {icon:'low_stock', label:'Low Stock'},
 };
 function currentTabs(){
-  if(session.role === 'salesman') return ['tasks', 'sales', 'pricelist', 'accounts', 'low_stock'];
+  if(session.role === 'sales' || session.role === 'salesman') return ['pricelist', 'sales', 'tasks', 'accounts', 'low_stock'];
   return isManagerPlus()
     ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','office_logs','sales','pricelist','label','package','stockkeeper','points','salary','accounts','customer_report','low_stock','reports','audit','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','sales','pricelist','label','package','stockkeeper','points','accounts','customer_report','low_stock','audit','staff'])
-    : ['tasks','daily','weekly','attendance','sales','pricelist','label','package','stockkeeper','points','accounts','low_stock'];
+    : ['pricelist', 'tasks','daily','weekly','attendance','sales','label','package','stockkeeper','points','accounts','low_stock'];
 }
 function quickTabs(){
-  if(session.role === 'salesman') return ['tasks','sales','pricelist','accounts'];
-  return isOwner() ? ['dashboard','tasks','sales','office_logs'] : (isManagerPlus() ? ['dashboard','tasks','sales','pricelist'] : ['tasks','sales','pricelist','attendance']);
+  if(session.role === 'sales' || session.role === 'salesman') return ['pricelist', 'sales', 'tasks', 'accounts'];
+  return isOwner() ? ['dashboard','tasks','sales','office_logs'] : (isManagerPlus() ? ['dashboard','tasks','sales','pricelist'] : ['pricelist','tasks','sales','attendance']);
 }
 function getPrimaryActionBtn(t){
   if(t==='office_logs') return `<button class="stamp-btn compact-mobile" onclick="window.__openOfficeLogModal()"><span class="btn-text">+ Log Cash</span><span class="btn-short">+</span></button>`;
@@ -6998,6 +6998,7 @@ function openStaffModal(staffId){
     <label>Role</label>
     <select id="mStaffRole">
       <option value="staff" ${s && s.role==='staff'?'selected':''}>Staff</option>
+      <option value="sales" ${s && s.role==='sales'?'selected':''}>Sales</option>
       <option value="salesman" ${s && s.role==='salesman'?'selected':''}>Salesman</option>
       <option value="manager" ${s && s.role==='manager'?'selected':''}>Manager</option>
       ${isOwner() ? `<option value="owner" ${s && s.role==='owner'?'selected':''}>Owner</option>` : ''}
@@ -14053,6 +14054,27 @@ function renderPriceListTab(body) {
   });
 
   body.innerHTML = `
+    <!-- 📍 Sales Beat Categories Quick Filter Bar -->
+    <div style="margin-bottom:14px;background:var(--paper);padding:12px;border-radius:10px;border:1px solid var(--paper-line);">
+      <div style="font-size:0.75rem;font-weight:700;color:var(--ink-soft);text-transform:uppercase;margin-bottom:8px;letter-spacing:0.04em;display:flex;align-items:center;gap:4px;">
+        📍 Sales Beat Categories
+      </div>
+      <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;-webkit-overflow-scrolling:touch;">
+        <button class="stamp-btn small ${!priceListBeatFilter ? '' : 'ghost'}" style="white-space:nowrap;padding:5px 12px;font-size:0.78rem;" onclick="window.__onPriceListBeatFilter('')">
+          All Beats (${items.length})
+        </button>
+        ${beats.map(b => {
+          const bCount = items.filter(i => i.beat_name === b).length;
+          const isSel = priceListBeatFilter === b;
+          return `
+            <button class="stamp-btn small ${isSel ? '' : 'ghost'}" style="white-space:nowrap;padding:5px 12px;font-size:0.78rem;${isSel ? 'background:var(--turmeric);color:white;border-color:var(--turmeric);' : ''}" onclick="window.__onPriceListBeatFilter('${esc(b)}')">
+              📍 ${esc(b)} (${bCount})
+            </button>
+          `;
+        }).join('')}
+      </div>
+    </div>
+
     <!-- Top Filter & Search Control Bar -->
     <div class="row-card" style="flex-wrap:wrap;gap:10px;align-items:center;padding:12px;margin-bottom:16px;">
       <div style="flex:1;min-width:160px;">
