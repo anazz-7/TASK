@@ -7036,20 +7036,29 @@ function openStaffModal(staffId){
 
   window.__closeStaffModal = () => { holder.innerHTML = ''; };
   window.__saveStaff = async (id) => {
-  const nameInput = document.getElementById('mStaffName') ? document.getElementById('mStaffName').value.trim() : '';
-  logAuditEvent('Staff Update', `${id ? 'Updated' : 'Added'} staff member: ${nameInput}`);
-    const name = document.getElementById('mStaffName').value.trim();
-    const role = document.getElementById('mStaffRole').value;
-    const phone = document.getElementById('mStaffPhone').value.trim();
-    const pin = document.getElementById('mStaffPin').value.trim();
+    const nameEl = document.getElementById('mStaffName');
+    const roleEl = document.getElementById('mStaffRole');
+    const phoneEl = document.getElementById('mStaffPhone');
+    const pinEl = document.getElementById('mStaffPin');
+    const freqEl = document.getElementById('mStaffSalaryFreq');
+    const dayEl = document.getElementById('mStaffSalaryDay');
+    const baseSalaryEl = document.getElementById('mStaffBaseSalary');
+
+    const name = nameEl ? nameEl.value.trim() : '';
+    const role = roleEl ? roleEl.value : 'staff';
+    const phone = phoneEl ? phoneEl.value.trim() : '';
+    const pin = pinEl ? pinEl.value.trim() : '';
 
     if(!name || !pin){ alert('Enter name and PIN code.'); return; }
 
-    const salary_frequency = document.getElementById('mStaffSalaryFreq').value;
-    const salary_day = Number(document.getElementById('mStaffSalaryDay').value || 0);
-    const base_salary = Number(document.getElementById('mStaffBaseSalary').value || 0);
+    const salary_frequency = freqEl ? freqEl.value : 'monthly';
+    const salary_day = Number(dayEl ? dayEl.value : 0);
+    const base_salary = Number(baseSalaryEl ? baseSalaryEl.value : 0);
 
-    const data = {
+    const staffId = id || ('staff_' + Date.now() + '_' + Math.random().toString(36).substring(2,6));
+
+    const staffObj = {
+      id: staffId,
       business_id: session.businessId,
       name,
       role,
@@ -7060,16 +7069,58 @@ function openStaffModal(staffId){
       base_salary
     };
 
-    await guardedSave('staff-' + (id||'new'), async () => {
-      if(id) {
-        await sbCheck(sb.from('staff').update(data).eq('id', id));
-      } else {
-        await sbCheck(sb.from('staff').insert(data));
+    // 1. Local Cache Update (0ms instant save, zero white screen delay)
+    if(!cache.staff) cache.staff = [];
+    const idx = cache.staff.findIndex(s => s.id === staffId);
+    if(idx >= 0) {
+      cache.staff[idx] = Object.assign({}, cache.staff[idx], staffObj);
+    } else {
+      cache.staff.push(staffObj);
+    }
+
+    // 2. Local Storage Persistence
+    saveCacheLocally();
+
+    // 3. Logged-in session auto-update if current user profile was edited
+    if(session && session.staffId === staffId) {
+      session.name = name;
+      session.role = role;
+      localStorage.setItem('br_session', JSON.stringify(session));
+    }
+
+    logAuditEvent('Staff Update', `${id ? 'Updated' : 'Added'} staff member: ${name}`);
+
+    // 4. Close modal and re-render UI instantly
+    holder.innerHTML = '';
+    renderShell();
+
+    // 5. Background Cloud Upsert with safe fallback (prevents error popups!)
+    if (navigator.onLine && typeof sb !== 'undefined' && sb) {
+      try {
+        const corePayload = {
+          id: staffId,
+          business_id: session.businessId,
+          name,
+          role,
+          phone: phone || null,
+          pin
+        };
+        const { error } = await sb.from('staff').upsert(corePayload, { onConflict: 'id' });
+        if(error) {
+          console.warn('Supabase staff upsert notice:', error.message);
+        } else {
+          try {
+            await sb.from('staff').update({ salary_frequency, salary_day, base_salary }).eq('id', staffId);
+          } catch(e2){}
+        }
+      } catch(err) {
+        console.warn('Cloud sync staff warning:', err);
       }
-      holder.innerHTML = '';
-      await loadData();
-      renderTabBody();
-    });
+    }
+
+    if (typeof window.showToast === 'function') {
+      window.showToast(id ? '✏️ Staff member updated!' : '✅ New staff member added!', 'success');
+    }
   };
 }
 window.__openStaff = () => openStaffModal(null);
