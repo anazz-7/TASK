@@ -2281,13 +2281,18 @@ window.__deleteStaff = function(staffId) {
     onConfirm: async () => {
       showLoading();
       try {
-        await sb.from('staff').delete().eq('id', staffId);
-        cache.staff = cache.staff.filter(s => s.id !== staffId);
+        cache.staff = (cache.staff || []).filter(s => s.id !== staffId);
+        saveCacheLocally();
+        if (typeof syncCustomCloudPayload === 'function') {
+          syncCustomCloudPayload('[STAFF_DIRECTORY_DATA]', cache.staff);
+        }
+        if (navigator.onLine && typeof sb !== 'undefined' && sb) {
+          await sb.from('staff').delete().eq('id', staffId);
+        }
       } catch(e){}
       finally {
         hideLoading();
-        await loadData();
-        renderTabBody();
+        renderShell();
       }
     }
   });
@@ -3029,6 +3034,15 @@ async function loadData(){
           if (Array.isArray(parsed)) {
             cache.officeLogs = parsed;
             localStorage.setItem('br_office_logs_' + bizId, ct.notes);
+          }
+        } catch(e){}
+      }
+      if (ct.title === '[STAFF_DIRECTORY_DATA]' && ct.notes) {
+        try {
+          const parsed = JSON.parse(ct.notes);
+          if (Array.isArray(parsed) && parsed.length) {
+            cache.staff = parsed;
+            localStorage.setItem('br_staff_' + bizId, ct.notes);
           }
         } catch(e){}
       }
@@ -7078,8 +7092,11 @@ function openStaffModal(staffId){
       cache.staff.push(staffObj);
     }
 
-    // 2. Local Storage Persistence
+    // 2. Local Storage Persistence & Custom Cloud Sync
     saveCacheLocally();
+    if (typeof syncCustomCloudPayload === 'function') {
+      syncCustomCloudPayload('[STAFF_DIRECTORY_DATA]', cache.staff);
+    }
 
     // 3. Logged-in session auto-update if current user profile was edited
     if(session && session.staffId === staffId) {
@@ -12621,6 +12638,7 @@ window.__reloadAppData = async function(btn) {
       if (typeof getFeatureConfig === 'function') syncCustomCloudPayload('[FEATURE_SETTINGS_DATA]', getFeatureConfig());
       if (typeof getPriceListData === 'function') syncCustomCloudPayload('[PRICE_LIST_DATA]', getPriceListData());
       if (typeof getOfficeLogsData === 'function') syncCustomCloudPayload('[OFFICE_LOGS_DATA]', getOfficeLogsData());
+      if (cache.staff && cache.staff.length) syncCustomCloudPayload('[STAFF_DIRECTORY_DATA]', cache.staff);
       if (cache.vendorBills && cache.vendorBills.length) syncCustomCloudPayload('[VENDOR_BILLS_DATA]', cache.vendorBills);
     } catch(e){}
 
