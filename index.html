@@ -3956,44 +3956,44 @@ function buildPinnedIncentiveTargetWidgetHtml(curMonth, monthSales) {
   const remaining = Math.max(0, targetVal - achievedSales);
 
   return `
-    <!-- PINNED INCENTIVE TARGET CARD (PROFESSIONAL VECTOR ICON DESIGN) -->
-    <div class="row-card pinned-target-card" style="flex-direction:column;align-items:stretch;padding:16px 18px;margin-bottom:20px;background:linear-gradient(135deg, #0F172A 0%, #1E293B 100%);color:#FFFFFF;border-radius:12px;border:1px solid rgba(255,255,255,0.08);box-shadow:0 4px 16px rgba(15,23,42,0.22);">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <div class="pinned-target-icon-box" style="display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.25);border-radius:10px;color:#38BDF8;flex-shrink:0;">
-            ${icon('target', 22)}
+    <!-- PINNED INCENTIVE TARGET CARD (SLIM COMPACT MOBILE & DESKTOP DESIGN) -->
+    <div class="row-card pinned-target-card" style="flex-direction:column;align-items:stretch;margin-bottom:16px;background:linear-gradient(135deg, #0F172A 0%, #1E293B 100%);color:#FFFFFF;border-radius:12px;border:1px solid rgba(255,255,255,0.08);box-shadow:0 4px 16px rgba(15,23,42,0.22);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:nowrap;gap:8px;">
+        <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1;">
+          <div class="pinned-target-icon-box" style="display:inline-flex;align-items:center;justify-content:center;background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.25);color:#38BDF8;flex-shrink:0;">
+            ${icon('target', 18)}
           </div>
-          <div>
-            <b class="pinned-target-title" style="font-size:0.95rem;color:#FFFFFF;display:block;line-height:1.2;letter-spacing:0.02em;text-transform:uppercase;font-weight:700;">${titleText}</b>
-            <span class="pinned-target-sub" style="font-size:0.78rem;color:#94A3B8;margin-top:2px;display:block;">Reach goal to unlock <b style="color:#34D399;font-weight:700;">₹${incentiveBonus.toLocaleString('en-IN')} Incentive Bonus</b></span>
+          <div style="min-width:0;flex:1;">
+            <b class="pinned-target-title" style="color:#FFFFFF;display:block;letter-spacing:0.01em;text-transform:uppercase;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${titleText}</b>
+            <span class="pinned-target-sub" style="color:#94A3B8;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Reach goal to unlock <b style="color:#34D399;font-weight:700;">₹${incentiveBonus.toLocaleString('en-IN')} Bonus</b></span>
           </div>
         </div>
-        <div style="text-align:right;">
-          <b class="pinned-target-amount" style="font-family:'Roboto Mono',monospace;font-size:1.15rem;color:${pct>=100?'#34D399':'#FBBF24'};letter-spacing:-0.02em;">
+        <div style="text-align:right;flex-shrink:0;">
+          <b class="pinned-target-amount" style="font-family:'Roboto Mono',monospace;color:${pct>=100?'#34D399':'#FBBF24'};letter-spacing:-0.02em;white-space:nowrap;">
             ₹${achievedSales.toLocaleString('en-IN')} / ₹${targetVal.toLocaleString('en-IN')}
           </b>
-          <span class="pinned-target-pct" style="display:block;font-size:0.75rem;color:#CBD5E1;font-weight:700;margin-top:2px;">${pct}% Completed</span>
+          <span class="pinned-target-pct" style="display:block;color:#CBD5E1;font-weight:700;margin-top:1px;">${pct}% Completed</span>
         </div>
       </div>
 
       <!-- Animated Executive Progress Bar -->
-      <div class="progress-track" style="height:10px;background:rgba(255,255,255,0.12);border-radius:999px;overflow:hidden;margin-bottom:12px;">
+      <div class="progress-track" style="height:8px;background:rgba(255,255,255,0.12);border-radius:999px;overflow:hidden;margin-bottom:8px;">
         <div class="progress-fill ${pct>=100?'complete':''}" style="width:${pct}%;height:100%;border-radius:999px;background:${pct>=100?'linear-gradient(90deg, #10B981, #059669)':'linear-gradient(90deg, #3B82F6, #6366F1)'};"></div>
       </div>
 
-      <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.8rem;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);flex-wrap:wrap;gap:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);flex-wrap:nowrap;gap:6px;">
         ${pct >= 100 ? `
-          <span class="pinned-target-status" style="color:#34D399;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
-            ${icon('check', 16)} Target Achieved! ₹${incentiveBonus.toLocaleString('en-IN')} Incentive Bonus Unlocked!
+          <span class="pinned-target-status" style="color:#34D399;font-weight:700;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            ${icon('check', 14)} Target Achieved! ₹${incentiveBonus.toLocaleString('en-IN')} Bonus Unlocked!
           </span>
         ` : `
-          <span class="pinned-target-status" style="color:#FCD34D;font-weight:600;display:inline-flex;align-items:center;gap:6px;">
-            ${icon('trending', 15)} Achieve ₹${remaining.toLocaleString('en-IN')} more to unlock your ₹${incentiveBonus.toLocaleString('en-IN')} Incentive Bonus!
+          <span class="pinned-target-status" style="color:#FCD34D;font-weight:600;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            ${icon('trending', 13)} Achieve ₹${remaining.toLocaleString('en-IN')} more to unlock ₹${incentiveBonus.toLocaleString('en-IN')} Bonus!
           </span>
         `}
         ${isOwner() ? `
-          <button class="stamp-btn small pinned-target-btn" style="background:rgba(255,255,255,0.14);color:#FFFFFF;border:1px solid rgba(255,255,255,0.22);padding:4px 12px;font-size:0.75rem;display:inline-flex;align-items:center;gap:6px;" onclick="window.__openSetTargetsModal()">
-            ${icon('settings', 14)} Set Custom Targets
+          <button class="stamp-btn small pinned-target-btn" style="background:rgba(255,255,255,0.14);color:#FFFFFF;border:1px solid rgba(255,255,255,0.22);display:inline-flex;align-items:center;gap:4px;flex-shrink:0;white-space:nowrap;" onclick="window.__openSetTargetsModal()">
+            ${icon('settings', 12)} Set Targets
           </button>
         ` : ''}
       </div>
