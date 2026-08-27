@@ -1127,13 +1127,15 @@
     position: relative !important;
     height: 100% !important;
     border-radius: 999px !important;
-    background: linear-gradient(90deg, #0F172A, #1E293B) !important;
+    background: linear-gradient(90deg, #D97706, #FBBF24, #FCD34D, #F59E0B) !important;
+    background-size: 200% 100% !important;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.45) !important;
     transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1) !important;
-    animation: targetFillGrow 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: goldBarGrow 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards, goldBarWavePulse 2.5s ease-in-out infinite !important;
     overflow: hidden !important;
   }
 
-  /* Glowing Sweep Shimmer Effect across the progress bar */
+  /* Glowing Sweep Shimmer Beam across the Gold Progress Bar */
   .progress-fill::after,
   .progress-bar-fill::after,
   .target-bar-fill::after {
@@ -1143,33 +1145,38 @@
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.55) 50%, transparent 100%);
-    animation: targetShimmerSweep 2.2s infinite ease-in-out;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.85) 50%, transparent 100%);
+    animation: goldShimmerSweep 1.8s infinite cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* 100% Target Completion Gold / Emerald Pulse */
+  /* 100% Target Completion Gold-Emerald Pulse */
   .progress-fill.complete,
   .progress-bar-fill.complete,
   .target-bar-fill.complete {
-    background: linear-gradient(90deg, #10B981, #059669) !important;
-    box-shadow: 0 0 12px rgba(16, 185, 129, 0.5) !important;
-    animation: targetCompletePulse 1.8s infinite ease-in-out, targetFillGrow 1s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    background: linear-gradient(90deg, #F59E0B, #10B981) !important;
+    box-shadow: 0 0 14px rgba(245, 158, 11, 0.6) !important;
+    animation: goldCompletePulse 1.8s infinite ease-in-out, goldBarGrow 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
   }
 
-  @keyframes targetFillGrow {
-    from { opacity: 0.4; transform: scaleX(0); transform-origin: left center; }
+  @keyframes goldBarGrow {
+    from { opacity: 0.3; transform: scaleX(0); transform-origin: left center; }
     to { opacity: 1; transform: scaleX(1); transform-origin: left center; }
   }
 
-  @keyframes targetShimmerSweep {
-    0% { left: -100%; }
-    60% { left: 120%; }
-    100% { left: 120%; }
+  @keyframes goldBarWavePulse {
+    0% { background-position: 0% 50%; box-shadow: 0 0 6px rgba(245, 158, 11, 0.35); }
+    50% { background-position: 100% 50%; box-shadow: 0 0 14px rgba(251, 191, 36, 0.75); }
+    100% { background-position: 0% 50%; box-shadow: 0 0 6px rgba(245, 158, 11, 0.35); }
   }
 
-  @keyframes targetCompletePulse {
-    0%, 100% { box-shadow: 0 0 6px rgba(16, 185, 129, 0.4); }
-    50% { box-shadow: 0 0 16px rgba(16, 185, 129, 0.8); }
+  @keyframes goldShimmerSweep {
+    0% { left: -100%; }
+    50%, 100% { left: 120%; }
+  }
+
+  @keyframes goldCompletePulse {
+    0%, 100% { box-shadow: 0 0 6px rgba(245, 158, 11, 0.4); }
+    50% { box-shadow: 0 0 18px rgba(16, 185, 129, 0.85); }
   }
 
   /* 13. Save-state indicators & 14. Autosave badge */
@@ -4012,9 +4019,9 @@ function buildPinnedIncentiveTargetWidgetHtml(curMonth, monthSales) {
         </div>
       </div>
 
-      <!-- Animated Executive Progress Bar -->
+      <!-- Animated Executive Gold Progress Bar -->
       <div class="progress-track" style="height:8px;background:rgba(255,255,255,0.12);border-radius:999px;overflow:hidden;margin-bottom:8px;">
-        <div class="progress-fill ${pct>=100?'complete':''}" style="width:${pct}%;height:100%;border-radius:999px;background:${pct>=100?'linear-gradient(90deg, #10B981, #059669)':'linear-gradient(90deg, #3B82F6, #6366F1)'};"></div>
+        <div class="progress-fill ${pct>=100?'complete':''}" style="width:${pct}%;height:100%;border-radius:999px;background:${pct>=100?'linear-gradient(90deg, #F59E0B, #10B981)':'linear-gradient(90deg, #D97706, #FBBF24, #FCD34D)'};"></div>
       </div>
 
       <div style="display:flex;justify-content:space-between;align-items:center;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);flex-wrap:nowrap;gap:6px;">
