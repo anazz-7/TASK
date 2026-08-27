@@ -3957,22 +3957,22 @@ function buildPinnedIncentiveTargetWidgetHtml(curMonth, monthSales) {
 
   return `
     <!-- PINNED INCENTIVE TARGET CARD (PROFESSIONAL VECTOR ICON DESIGN) -->
-    <div class="row-card" style="flex-direction:column;align-items:stretch;padding:16px 18px;margin-bottom:20px;background:linear-gradient(135deg, #0F172A 0%, #1E293B 100%);color:#FFFFFF;border-radius:12px;border:1px solid rgba(255,255,255,0.08);box-shadow:0 4px 16px rgba(15,23,42,0.22);">
+    <div class="row-card pinned-target-card" style="flex-direction:column;align-items:stretch;padding:16px 18px;margin-bottom:20px;background:linear-gradient(135deg, #0F172A 0%, #1E293B 100%);color:#FFFFFF;border-radius:12px;border:1px solid rgba(255,255,255,0.08);box-shadow:0 4px 16px rgba(15,23,42,0.22);">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
         <div style="display:flex;align-items:center;gap:12px;">
-          <div style="display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.25);border-radius:10px;color:#38BDF8;flex-shrink:0;">
+          <div class="pinned-target-icon-box" style="display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.25);border-radius:10px;color:#38BDF8;flex-shrink:0;">
             ${icon('target', 22)}
           </div>
           <div>
-            <b style="font-size:0.95rem;color:#FFFFFF;display:block;line-height:1.2;letter-spacing:0.02em;text-transform:uppercase;font-weight:700;">${titleText}</b>
-            <span style="font-size:0.78rem;color:#94A3B8;margin-top:2px;display:block;">Reach goal to unlock <b style="color:#34D399;font-weight:700;">₹${incentiveBonus.toLocaleString('en-IN')} Incentive Bonus</b></span>
+            <b class="pinned-target-title" style="font-size:0.95rem;color:#FFFFFF;display:block;line-height:1.2;letter-spacing:0.02em;text-transform:uppercase;font-weight:700;">${titleText}</b>
+            <span class="pinned-target-sub" style="font-size:0.78rem;color:#94A3B8;margin-top:2px;display:block;">Reach goal to unlock <b style="color:#34D399;font-weight:700;">₹${incentiveBonus.toLocaleString('en-IN')} Incentive Bonus</b></span>
           </div>
         </div>
         <div style="text-align:right;">
-          <b style="font-family:'Roboto Mono',monospace;font-size:1.15rem;color:${pct>=100?'#34D399':'#FBBF24'};letter-spacing:-0.02em;">
+          <b class="pinned-target-amount" style="font-family:'Roboto Mono',monospace;font-size:1.15rem;color:${pct>=100?'#34D399':'#FBBF24'};letter-spacing:-0.02em;">
             ₹${achievedSales.toLocaleString('en-IN')} / ₹${targetVal.toLocaleString('en-IN')}
           </b>
-          <span style="display:block;font-size:0.75rem;color:#CBD5E1;font-weight:700;margin-top:2px;">${pct}% Completed</span>
+          <span class="pinned-target-pct" style="display:block;font-size:0.75rem;color:#CBD5E1;font-weight:700;margin-top:2px;">${pct}% Completed</span>
         </div>
       </div>
 
@@ -3983,16 +3983,16 @@ function buildPinnedIncentiveTargetWidgetHtml(curMonth, monthSales) {
 
       <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.8rem;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);flex-wrap:wrap;gap:8px;">
         ${pct >= 100 ? `
-          <span style="color:#34D399;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+          <span class="pinned-target-status" style="color:#34D399;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
             ${icon('check', 16)} Target Achieved! ₹${incentiveBonus.toLocaleString('en-IN')} Incentive Bonus Unlocked!
           </span>
         ` : `
-          <span style="color:#FCD34D;font-weight:600;display:inline-flex;align-items:center;gap:6px;">
+          <span class="pinned-target-status" style="color:#FCD34D;font-weight:600;display:inline-flex;align-items:center;gap:6px;">
             ${icon('trending', 15)} Achieve ₹${remaining.toLocaleString('en-IN')} more to unlock your ₹${incentiveBonus.toLocaleString('en-IN')} Incentive Bonus!
           </span>
         `}
         ${isOwner() ? `
-          <button class="stamp-btn small" style="background:rgba(255,255,255,0.14);color:#FFFFFF;border:1px solid rgba(255,255,255,0.22);padding:4px 12px;font-size:0.75rem;display:inline-flex;align-items:center;gap:6px;" onclick="window.__openSetTargetsModal()">
+          <button class="stamp-btn small pinned-target-btn" style="background:rgba(255,255,255,0.14);color:#FFFFFF;border:1px solid rgba(255,255,255,0.22);padding:4px 12px;font-size:0.75rem;display:inline-flex;align-items:center;gap:6px;" onclick="window.__openSetTargetsModal()">
             ${icon('settings', 14)} Set Custom Targets
           </button>
         ` : ''}
@@ -8428,32 +8428,60 @@ window.__printVendorBillReceipt = function(id) {
   /* Mobile Responsiveness & Layout Alignment Overhaul */
   @media (max-width: 480px) {
     .wrap {
-      padding: 16px 10px 140px !important;
+      padding: 14px 10px 140px !important;
     }
     header.top {
-      padding: 14px 10px 10px !important;
+      padding: 12px 10px 8px !important;
       gap: 6px !important;
     }
     .header-title-area h1 {
-      font-size: 1.05rem !important;
+      font-size: 0.95rem !important;
+    }
+    .pinned-target-card {
+      padding: 12px 12px !important;
+    }
+    .pinned-target-title {
+      font-size: 0.76rem !important;
+      letter-spacing: 0.01em !important;
+    }
+    .pinned-target-sub {
+      font-size: 0.68rem !important;
+    }
+    .pinned-target-amount {
+      font-size: 0.88rem !important;
+    }
+    .pinned-target-status {
+      font-size: 0.68rem !important;
+    }
+    .pinned-target-btn {
+      font-size: 0.68rem !important;
+      padding: 3px 8px !important;
+    }
+    .pinned-target-icon-box {
+      width: 32px !important;
+      height: 32px !important;
+    }
+    .pinned-target-icon-box svg {
+      width: 16px !important;
+      height: 16px !important;
     }
     .row-card {
-      padding: 12px 10px !important;
-      gap: 8px !important;
+      padding: 10px 10px !important;
+      gap: 6px !important;
     }
     .stat-grid {
       grid-template-columns: repeat(2, 1fr) !important;
       gap: 8px !important;
     }
     .stat-card {
-      padding: 10px 8px !important;
+      padding: 8px 8px !important;
     }
     .stat-card .num {
-      font-size: clamp(0.95rem, 4vw, 1.25rem) !important;
+      font-size: clamp(0.88rem, 3.8vw, 1.1rem) !important;
     }
     .modal {
       max-width: min(520px, calc(100vw - 16px)) !important;
-      padding: 16px 12px !important;
+      padding: 14px 12px !important;
       max-height: 88vh !important;
       overflow-y: auto !important;
       border-radius: 12px !important;
