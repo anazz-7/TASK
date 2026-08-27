@@ -8428,56 +8428,75 @@ window.__printVendorBillReceipt = function(id) {
   /* Mobile Responsiveness & Layout Alignment Overhaul */
   @media (max-width: 480px) {
     .wrap {
-      padding: 14px 10px 140px !important;
+      padding: 12px 8px 140px !important;
     }
     header.top {
-      padding: 12px 10px 8px !important;
-      gap: 6px !important;
+      padding: 10px 8px 6px !important;
+      gap: 4px !important;
     }
     .header-title-area h1 {
-      font-size: 0.95rem !important;
+      font-size: 0.85rem !important;
+    }
+    .section-label {
+      font-size: 0.7rem !important;
+      margin-bottom: 6px !important;
     }
     .pinned-target-card {
-      padding: 12px 12px !important;
+      padding: 10px 10px !important;
+      margin-bottom: 14px !important;
+      border-radius: 10px !important;
     }
     .pinned-target-title {
-      font-size: 0.76rem !important;
+      font-size: 0.68rem !important;
       letter-spacing: 0.01em !important;
+      line-height: 1.15 !important;
     }
     .pinned-target-sub {
-      font-size: 0.68rem !important;
+      font-size: 0.62rem !important;
+      margin-top: 1px !important;
     }
     .pinned-target-amount {
-      font-size: 0.88rem !important;
+      font-size: 0.78rem !important;
+    }
+    .pinned-target-pct {
+      font-size: 0.62rem !important;
     }
     .pinned-target-status {
-      font-size: 0.68rem !important;
+      font-size: 0.62rem !important;
     }
     .pinned-target-btn {
-      font-size: 0.68rem !important;
-      padding: 3px 8px !important;
+      font-size: 0.62rem !important;
+      padding: 2px 6px !important;
     }
     .pinned-target-icon-box {
-      width: 32px !important;
-      height: 32px !important;
+      width: 28px !important;
+      height: 28px !important;
+      border-radius: 6px !important;
     }
     .pinned-target-icon-box svg {
-      width: 16px !important;
-      height: 16px !important;
+      width: 14px !important;
+      height: 14px !important;
     }
     .row-card {
-      padding: 10px 10px !important;
-      gap: 6px !important;
+      padding: 8px 8px !important;
+      gap: 4px !important;
+      border-radius: 8px !important;
+    }
+    .row-card h3, .row-card b {
+      font-size: 0.76rem !important;
     }
     .stat-grid {
       grid-template-columns: repeat(2, 1fr) !important;
-      gap: 8px !important;
+      gap: 6px !important;
     }
     .stat-card {
-      padding: 8px 8px !important;
+      padding: 6px 6px !important;
     }
     .stat-card .num {
-      font-size: clamp(0.88rem, 3.8vw, 1.1rem) !important;
+      font-size: clamp(0.78rem, 3.5vw, 0.95rem) !important;
+    }
+    .stat-card .label {
+      font-size: 0.62rem !important;
     }
     .modal {
       max-width: min(520px, calc(100vw - 16px)) !important;
