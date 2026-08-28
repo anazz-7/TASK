@@ -3111,15 +3111,34 @@ async function loadData(){
       if (ct.title === '[PNL_RECORDS_DATA]' && ct.notes) {
         try {
           const parsed = JSON.parse(ct.notes);
+          let cloudRecs = [];
+          let cloudOpening = null;
           if (Array.isArray(parsed)) {
-            const localRaw = localStorage.getItem('br_pnl_records_' + bizId);
-            const localArr = localRaw ? JSON.parse(localRaw) : [];
-            const mergedMap = new Map();
-            localArr.forEach(i => { if (i && (i.id || i.month)) mergedMap.set(i.id || i.month, i); });
-            parsed.forEach(i => { if (i && (i.id || i.month)) mergedMap.set(i.id || i.month, i); });
-            cache.pnlRecords = Array.from(mergedMap.values());
-            localStorage.setItem('br_pnl_records_' + bizId, JSON.stringify(cache.pnlRecords));
+            cloudRecs = parsed;
+          } else if (parsed && typeof parsed === 'object') {
+            cloudRecs = parsed.records || [];
+            cloudOpening = parsed.opening || null;
           }
+
+          if (cloudOpening) {
+            cache.pnlOpeningProfit = cloudOpening;
+            localStorage.setItem('br_pnl_opening_' + bizId, JSON.stringify(cloudOpening));
+          }
+
+          const localRaw = localStorage.getItem('br_pnl_records_' + bizId);
+          let localArr = [];
+          if (localRaw) {
+            try {
+              const lParsed = JSON.parse(localRaw);
+              localArr = Array.isArray(lParsed) ? lParsed : (lParsed.records || []);
+            } catch(e){}
+          }
+
+          const mergedMap = new Map();
+          localArr.forEach(i => { if (i && (i.id || i.month)) mergedMap.set(i.id || i.month, i); });
+          cloudRecs.forEach(i => { if (i && (i.id || i.month)) mergedMap.set(i.id || i.month, i); });
+          cache.pnlRecords = Array.from(mergedMap.values());
+          localStorage.setItem('br_pnl_records_' + bizId, JSON.stringify({ records: cache.pnlRecords, opening: cache.pnlOpeningProfit || getPnLOpeningProfit() }));
         } catch(e){}
       }
       if (ct.title === '[STAFF_DIRECTORY_DATA]' && ct.notes) {
@@ -15765,13 +15784,14 @@ function getPnLOpeningProfit() {
 async function savePnLOpeningProfit(amount, notes) {
   const data = { amount: Number(amount || 0), notes: notes || '', updated_at: new Date().toISOString() };
   cache.pnlOpeningProfit = data;
+  const records = getPnLData();
   if (session && session.businessId) {
     try {
       localStorage.setItem('br_pnl_opening_' + session.businessId, JSON.stringify(data));
+      localStorage.setItem('br_pnl_records_' + session.businessId, JSON.stringify({ records, opening: data }));
     } catch(e){}
   }
   if (typeof syncCustomCloudPayload === 'function') {
-    const records = getPnLData();
     await syncCustomCloudPayload('[PNL_RECORDS_DATA]', { records, opening: data });
   }
 }
