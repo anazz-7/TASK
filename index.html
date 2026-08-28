@@ -5497,24 +5497,22 @@ function renderAttendanceCalendarViewReport() {
     const isSaturday = dayOfWeek === 6;
     const isWeekend = isSunday || isSaturday;
 
-    let cellContent = '';
-    let pCount = 0;
-    let aCount = 0;
+    let pPct = 0;
+    let aPct = 0;
 
     if (selectedStaffId !== 'all') {
       const rec = targetRecords.find(a => a.date === dateStr);
       if (rec) {
         const isP = rec.status === 'present';
-        if (isP) pCount = 1; else aCount = 1;
+        if (isP) { pCount = 1; pPct = 100; } else { aCount = 1; aPct = 100; }
         const badgeColor = isP ? 'var(--leaf)' : 'var(--brick)';
         const badgeBg = isP ? 'var(--leaf-soft)' : '#FEE2E2';
-        const badgeLabel = isP ? '✓ Present' : '× Absent';
         const timeVal = rec.marked_at ? timeStr(rec.marked_at) : '';
         const hasLoc = rec.marked_lat != null;
 
         cellContent = `
-          <div style="margin-top:2px;display:flex;flex-direction:column;gap:2px;">
-            <span class="att-cal-badge" style="background:${badgeBg};color:${badgeColor};align-self:flex-start;">
+          <div style="display:flex;flex-direction:column;gap:2px;align-items:flex-start;">
+            <span class="att-cal-badge" style="background:${badgeBg};color:${badgeColor};">
               <span class="desktop-only">${isP ? '✓ Present' : '× Absent'}</span>
               <span class="mobile-only">${isP ? '✓P' : '×A'}</span>
             </span>
@@ -5523,33 +5521,27 @@ function renderAttendanceCalendarViewReport() {
           </div>
         `;
       } else if (isSunday) {
-        cellContent = `<span style="font-size:0.58rem;font-weight:600;color:var(--ink-soft);display:inline-block;margin-top:2px;">OFF</span>`;
+        cellContent = `<span style="font-size:0.58rem;font-weight:600;color:var(--ink-soft);display:inline-block;">OFF</span>`;
       } else if (dateStr < today) {
-        cellContent = `<span style="font-size:0.58rem;font-weight:700;color:var(--brick);display:inline-block;margin-top:2px;">—</span>`;
+        cellContent = `<span style="font-size:0.58rem;font-weight:700;color:var(--brick);display:inline-block;">—</span>`;
       }
     } else {
       const dayAtts = monthRecords.filter(a => a.date === dateStr);
       pCount = dayAtts.filter(a => a.status === 'present').length;
       aCount = dayAtts.filter(a => a.status === 'absent').length;
 
-      const pPct = Math.min(100, Math.round((pCount / totalStaffCount) * 100));
-      const aPct = Math.min(100 - pPct, Math.round((aCount / totalStaffCount) * 100));
-
       if (pCount > 0 || aCount > 0) {
+        pPct = Math.min(100, Math.round((pCount / totalStaffCount) * 100));
+        aPct = Math.min(100 - pPct, Math.round((aCount / totalStaffCount) * 100));
+
         cellContent = `
-          <div style="margin-top:2px;display:flex;flex-direction:column;gap:2px;">
-            <div style="display:flex;flex-wrap:wrap;gap:2px;align-items:center;">
-              ${pCount > 0 ? `<span class="att-cal-badge" style="background:var(--leaf-soft);color:var(--leaf);"><span class="desktop-only">✓ ${pCount} Present</span><span class="mobile-only">✓${pCount}</span></span>` : ''}
-              ${aCount > 0 ? `<span class="att-cal-badge" style="background:#FEE2E2;color:var(--brick);"><span class="desktop-only">× ${aCount} Absent</span><span class="mobile-only">×${aCount}</span></span>` : ''}
-            </div>
-            <div style="height:3px;background:#E2E8F0;border-radius:999px;overflow:hidden;display:flex;width:100%;margin-top:1px;">
-              <div style="width:${pPct}%;background:var(--leaf);height:100%;"></div>
-              <div style="width:${aPct}%;background:var(--brick);height:100%;"></div>
-            </div>
+          <div style="display:flex;flex-wrap:wrap;gap:2px;align-items:center;">
+            ${pCount > 0 ? `<span class="att-cal-badge" style="background:var(--leaf-soft);color:var(--leaf);"><span class="desktop-only">✓ ${pCount} Present</span><span class="mobile-only">✓${pCount}</span></span>` : ''}
+            ${aCount > 0 ? `<span class="att-cal-badge" style="background:#FEE2E2;color:var(--brick);"><span class="desktop-only">× ${aCount} Absent</span><span class="mobile-only">×${aCount}</span></span>` : ''}
           </div>
         `;
       } else if (isSunday) {
-        cellContent = `<span style="font-size:0.58rem;font-weight:600;color:var(--ink-soft);display:inline-block;margin-top:2px;">OFF</span>`;
+        cellContent = `<span style="font-size:0.58rem;font-weight:600;color:var(--ink-soft);display:inline-block;">OFF</span>`;
       }
     }
 
@@ -5573,7 +5565,16 @@ function renderAttendanceCalendarViewReport() {
           ${isToday ? `<span style="font-size:0.58rem;font-weight:700;background:var(--turmeric);color:#FFF;padding:1px 5px;border-radius:4px;letter-spacing:0.02em;">TODAY</span>` : '<div></div>'}
           <b style="font-size:0.9rem;color:${isSunday?'var(--brick)':'var(--ink)'};">${d}</b>
         </div>
-        ${cellContent}
+        
+        <div style="flex:1;display:flex;align-items:center;margin:4px 0;">
+          ${cellContent}
+        </div>
+
+        <!-- Uniform 5-6px Attendance Indicator Bar Pinned at Bottom -->
+        <div class="att-cal-indicator-track">
+          ${pPct > 0 ? `<div style="width:${pPct}%;background:var(--leaf);height:100%;transition:width 0.3s ease;"></div>` : ''}
+          ${aPct > 0 ? `<div style="width:${aPct}%;background:var(--brick);height:100%;transition:width 0.3s ease;"></div>` : ''}
+        </div>
       </div>
     `;
   }
@@ -8898,6 +8899,20 @@ window.__printVendorBillReceipt = function(id) {
     gap: 4px !important;
   }
 
+  /* Attendance Indicator Line Track (Uniform 5-6px Straight Bar with Fully Rounded Ends) */
+  .att-cal-indicator-track {
+    width: 100% !important;
+    height: 5px !important;
+    background: var(--paper-line) !important;
+    border-radius: 999px !important;
+    overflow: hidden !important;
+    display: flex !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
+    margin-top: auto !important;
+    box-sizing: border-box !important;
+  }
+
   /* Mobile Responsiveness & Layout Alignment Overhaul */
   @media (max-width: 640px) {
     .att-cal-container {
@@ -8924,6 +8939,10 @@ window.__printVendorBillReceipt = function(id) {
       font-size: 0.46rem !important;
       padding: 1px 2px !important;
       border-radius: 3px !important;
+    }
+    .att-cal-indicator-track {
+      height: 4px !important;
+      margin-top: 2px !important;
     }
   }
 
@@ -8952,6 +8971,10 @@ window.__printVendorBillReceipt = function(id) {
       font-size: 0.42rem !important;
       padding: 0px 2px !important;
       letter-spacing: -0.02em !important;
+    }
+    .att-cal-indicator-track {
+      height: 3px !important;
+      margin-top: 1px !important;
     }
     .wrap {
       padding: 12px 8px 140px !important;
