@@ -15788,63 +15788,40 @@ window.__openPnLModal = function(editId) {
 
   const html = `
     <div class="overlay show" onclick="if(event.target===this) window.__closeCurrentModal(this)">
-      <div class="modal" style="max-width:480px;width:94%;">
+      <div class="modal" style="max-width:440px;width:94%;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
           <h3 style="margin:0;display:inline-flex;align-items:center;gap:6px;">
-            ${icon('reports', 18)} ${isEdit ? 'Edit P&L Financial Record' : 'Record Monthly Profit & Loss'}
+            ${icon('reports', 18)} ${isEdit ? 'Edit Monthly Net Profit' : 'Log Monthly Net Profit'}
           </h3>
           <button class="stamp-btn small ghost" onclick="window.__closeCurrentModal(this)">✕</button>
         </div>
 
         <form onsubmit="event.preventDefault(); window.__savePnLRecord('${editId || ''}', this);">
-          <div style="margin-bottom:12px;display:flex;justify-content:flex-end;">
-            <button type="button" class="stamp-btn small ghost" style="font-size:0.75rem;color:var(--turmeric-dark);padding:4px 8px;" onclick="window.__autoCalculatePnLForMonth(this.form)">
-              ✨ Auto-Calculate from Sales &amp; Expenses
-            </button>
-          </div>
-
-          <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
-            <div style="flex:1;min-width:140px;">
-              <label style="font-size:0.75rem;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:4px;">MONTH / PERIOD *</label>
-              <input type="month" name="month" value="${item ? item.month : currentMonth}" required style="width:100%;box-sizing:border-box;font-size:0.85rem;">
-            </div>
-            <div style="flex:1;min-width:140px;">
-              <label style="font-size:0.75rem;font-weight:700;color:var(--leaf);display:block;margin-bottom:4px;">GROSS REVENUE (₹) *</label>
-              <input type="number" step="any" name="revenue" placeholder="e.g. 250000" value="${item ? item.revenue : ''}" required oninput="window.__calcPnLNetProfit(this.form)" style="width:100%;box-sizing:border-box;font-family:'Roboto Mono',monospace;font-size:0.95rem;font-weight:700;">
-            </div>
-          </div>
-
-          <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
-            <div style="flex:1;min-width:140px;">
-              <label style="font-size:0.75rem;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:4px;">COST OF GOODS / VENDOR BILLS (₹)</label>
-              <input type="number" step="any" name="cogs" placeholder="e.g. 100000" value="${item ? (item.cogs || 0) : ''}" oninput="window.__calcPnLNetProfit(this.form)" style="width:100%;box-sizing:border-box;font-family:'Roboto Mono',monospace;font-size:0.88rem;">
-            </div>
-            <div style="flex:1;min-width:140px;">
-              <label style="font-size:0.75rem;font-weight:700;color:var(--brick);display:block;margin-bottom:4px;">OPERATING EXPENSES / SALARY (₹)</label>
-              <input type="number" step="any" name="expenses" placeholder="e.g. 45000" value="${item ? (item.expenses || 0) : ''}" oninput="window.__calcPnLNetProfit(this.form)" style="width:100%;box-sizing:border-box;font-family:'Roboto Mono',monospace;font-size:0.88rem;">
-            </div>
-          </div>
-
-          <!-- Calculated Preview Scorecard -->
-          <div style="background:var(--paper-line);padding:10px 12px;border-radius:8px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
-            <div>
-              <div style="font-size:0.68rem;font-weight:700;color:var(--ink-soft);text-transform:uppercase;">CALCULATED NET PROFIT</div>
-              <b id="pnlPreviewNet" style="font-size:1.1rem;color:var(--leaf);font-family:'Roboto Mono',monospace;">₹${item ? Number(item.net_profit || 0).toLocaleString('en-IN') : '0'}</b>
-            </div>
-            <div style="text-align:right;">
-              <div style="font-size:0.68rem;font-weight:700;color:var(--ink-soft);text-transform:uppercase;">PROFIT MARGIN</div>
-              <b id="pnlPreviewMargin" style="font-size:1.1rem;color:var(--turmeric-dark);font-family:'Roboto Mono',monospace;">${item && item.revenue ? ((item.net_profit / item.revenue) * 100).toFixed(1) + '%' : '0.0%'}</b>
-            </div>
+          <div style="margin-bottom:12px;">
+            <label style="font-size:0.75rem;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:4px;">MONTH / PERIOD *</label>
+            <input type="month" name="month" value="${item ? item.month : currentMonth}" required style="width:100%;box-sizing:border-box;font-size:0.9rem;padding:8px 10px;">
           </div>
 
           <div style="margin-bottom:14px;">
-            <label style="font-size:0.75rem;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:4px;">REMARKS / SUMMARY NOTES</label>
-            <textarea name="notes" rows="2" placeholder="e.g. Higher margin due to bulk festival sales" style="width:100%;box-sizing:border-box;font-size:0.82rem;">${item ? esc(item.notes) : ''}</textarea>
+            <label style="font-size:0.78rem;font-weight:700;color:var(--leaf);display:block;margin-bottom:4px;">NET PROFIT AMOUNT (₹) *</label>
+            <input type="number" step="any" name="net_profit" placeholder="e.g. 85000 (Use negative for loss e.g. -5000)" value="${item ? item.net_profit : ''}" required style="width:100%;box-sizing:border-box;font-family:'Roboto Mono',monospace;font-size:1.15rem;font-weight:800;color:var(--leaf);padding:10px 12px;border:2px solid var(--paper-line);border-radius:8px;">
+            <span style="font-size:0.68rem;color:var(--ink-soft);margin-top:4px;display:block;">Tip: Enter positive number for Profit (e.g. 50000) or negative for Loss (e.g. -12000)</span>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:140px;">
+              <label style="font-size:0.75rem;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:4px;">GROSS REVENUE (₹) (OPTIONAL)</label>
+              <input type="number" step="any" name="revenue" placeholder="e.g. 250000" value="${item ? (item.revenue || '') : ''}" style="width:100%;box-sizing:border-box;font-family:'Roboto Mono',monospace;font-size:0.88rem;">
+            </div>
+            <div style="flex:1;min-width:140px;">
+              <label style="font-size:0.75rem;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:4px;">REMARKS / NOTES (OPTIONAL)</label>
+              <input type="text" name="notes" placeholder="e.g. Festival month profit" value="${item ? esc(item.notes || '') : ''}" style="width:100%;box-sizing:border-box;font-size:0.82rem;">
+            </div>
           </div>
 
           <div style="display:flex;justify-content:flex-end;gap:8px;">
             <button type="button" class="stamp-btn ghost" onclick="window.__closeCurrentModal(this)">Cancel</button>
-            <button type="submit" class="stamp-btn">💾 Save P&amp;L Record</button>
+            <button type="submit" class="stamp-btn">💾 Log Month Profit</button>
           </div>
         </form>
       </div>
@@ -15853,58 +15830,14 @@ window.__openPnLModal = function(editId) {
   getModalHolder('taskModalHolder').innerHTML = html;
 };
 
-window.__calcPnLNetProfit = function(form) {
-  if (!form) return;
-  const rev = Number(form.revenue.value || 0);
-  const cogs = Number(form.cogs.value || 0);
-  const exp = Number(form.expenses.value || 0);
-  const net = rev - (cogs + exp);
-  const margin = rev > 0 ? ((net / rev) * 100).toFixed(1) : '0.0';
-
-  const previewNet = document.getElementById('pnlPreviewNet');
-  const previewMargin = document.getElementById('pnlPreviewMargin');
-  if (previewNet) {
-    previewNet.textContent = `${net >= 0 ? '+' : ''} ₹${net.toLocaleString('en-IN')}`;
-    previewNet.style.color = net >= 0 ? 'var(--leaf)' : 'var(--brick)';
-  }
-  if (previewMargin) {
-    previewMargin.textContent = `${margin}%`;
-  }
-};
-
-window.__autoCalculatePnLForMonth = function(form) {
-  if (!form) return;
-  const selectedMonth = form.month.value || monthKey(todayStr());
-  
-  // Calculate total revenue from cache.sales for selectedMonth
-  const monthSales = (cache.sales || []).filter(s => monthKey(s.date || s.created_at) === selectedMonth);
-  const revTotal = monthSales.reduce((sum, s) => sum + Number(s.amount || s.total_amount || 0), 0);
-
-  // Calculate expenses from cache.expenses / vendor bills
-  const monthExp = (cache.expenses || []).filter(e => monthKey(e.date || e.created_at) === selectedMonth);
-  const expTotal = monthExp.reduce((sum, e) => sum + Number(e.amount || 0), 0);
-
-  // Calculate vendor bills paid
-  const monthBills = (cache.vendorBills || []).filter(b => monthKey(b.date || b.created_at) === selectedMonth);
-  const cogsTotal = monthBills.reduce((sum, b) => sum + Number(b.amount || 0), 0);
-
-  form.revenue.value = revTotal || '';
-  form.cogs.value = cogsTotal || '';
-  form.expenses.value = expTotal || '';
-  window.__calcPnLNetProfit(form);
-  window.showToast('✨ Auto-populated revenue & expenses from logged records!', 'success');
-};
-
 window.__savePnLRecord = async function(editId, form) {
   const month = form.month.value;
+  const net_profit = Number(form.net_profit.value || 0);
   const revenue = Number(form.revenue.value || 0);
-  const cogs = Number(form.cogs.value || 0);
-  const expenses = Number(form.expenses.value || 0);
-  const net_profit = revenue - (cogs + expenses);
   const notes = (form.notes.value || '').trim();
 
-  if (!month || revenue < 0) {
-    window.showToast('Please enter a valid month and revenue.', 'warning');
+  if (!month) {
+    window.showToast('Please select a valid month.', 'warning');
     return;
   }
 
@@ -15915,10 +15848,8 @@ window.__savePnLRecord = async function(editId, form) {
     const idx = records.findIndex(r => r.id === editId);
     if (idx !== -1) {
       records[idx].month = month;
-      records[idx].revenue = revenue;
-      records[idx].cogs = cogs;
-      records[idx].expenses = expenses;
       records[idx].net_profit = net_profit;
+      records[idx].revenue = revenue;
       records[idx].notes = notes;
     }
   } else {
@@ -15926,13 +15857,13 @@ window.__savePnLRecord = async function(editId, form) {
     if (existingIdx !== -1) {
       records[existingIdx] = {
         id: records[existingIdx].id,
-        month, revenue, cogs, expenses, net_profit, notes,
+        month, net_profit, revenue, notes,
         updated_at: new Date().toISOString()
       };
     } else {
       records.unshift({
         id: 'pnl_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-        month, revenue, cogs, expenses, net_profit, notes,
+        month, net_profit, revenue, notes,
         created_at: new Date().toISOString()
       });
     }
@@ -15942,7 +15873,7 @@ window.__savePnLRecord = async function(editId, form) {
 
   await savePnLData(records);
   getModalHolder('taskModalHolder').innerHTML = '';
-  window.showToast(isEdit ? 'P&L record updated!' : '📊 Profit & Loss log saved!', 'success');
+  window.showToast(isEdit ? 'P&L profit updated!' : '📈 Monthly Net Profit recorded & synced!', 'success');
   renderTabBody();
 };
 
@@ -15965,68 +15896,69 @@ function renderPnLTab(body) {
   const curMonth = monthKey(todayStr());
   const thisMonthRec = records.find(r => r.month === curMonth) || records[0];
 
-  const thisRev = thisMonthRec ? Number(thisMonthRec.revenue || 0) : 0;
-  const thisCogs = thisMonthRec ? Number(thisMonthRec.cogs || 0) : 0;
-  const thisExp = thisMonthRec ? Number(thisMonthRec.expenses || 0) : 0;
-  const thisNet = thisMonthRec ? Number(thisMonthRec.net_profit || (thisRev - (thisCogs + thisExp))) : 0;
-  const thisMargin = thisRev > 0 ? ((thisNet / thisRev) * 100).toFixed(1) : '0.0';
+  const thisNet = thisMonthRec ? Number(thisMonthRec.net_profit || 0) : 0;
+  const totalNetAllMonths = records.reduce((sum, r) => sum + Number(r.net_profit || 0), 0);
+  const avgMonthlyNet = records.length ? Math.round(totalNetAllMonths / records.length) : 0;
+  const totalRevenueAllMonths = records.reduce((sum, r) => sum + Number(r.revenue || 0), 0);
 
   const filtered = records.filter(r => {
     const q = pnlSearchQuery.toLowerCase().trim();
     return !q || (r.month || '').includes(q) || (r.notes || '').toLowerCase().includes(q);
   });
 
-  const chartEntries = records.slice(0, 6).reverse();
-  const maxVal = Math.max(1, ...chartEntries.map(r => Math.max(Number(r.revenue||0), Number(r.cogs||0) + Number(r.expenses||0))));
+  // Chart data: up to 10 past logged months (chronological left to right)
+  const chartEntries = records.slice(0, 10).reverse();
+  const maxAbsProfit = Math.max(1, ...chartEntries.map(r => Math.abs(Number(r.net_profit || 0))));
 
   let chartBarsSvg = '';
   if (chartEntries.length > 0) {
     const chartW = 600;
     const chartH = 180;
-    const barW = Math.max(16, Math.floor((chartW / (chartEntries.length * 3.2))));
-    
+    const baselineY = 120;
+    const barWidth = Math.max(20, Math.floor((chartW / (chartEntries.length * 2.2))));
+
     chartBarsSvg = `
       <svg viewBox="0 0 ${chartW} ${chartH}" style="width:100%;height:auto;max-height:220px;overflow:visible;">
+        <!-- Background Grid Lines -->
         <line x1="0" y1="30" x2="${chartW}" y2="30" stroke="var(--paper-line)" stroke-dasharray="3,3" stroke-width="1"/>
-        <line x1="0" y1="85" x2="${chartW}" y2="85" stroke="var(--paper-line)" stroke-dasharray="3,3" stroke-width="1"/>
-        <line x1="0" y1="140" x2="${chartW}" y2="140" stroke="var(--paper-line)" stroke-width="1.5"/>
+        <line x1="0" y1="${baselineY}" x2="${chartW}" y2="${baselineY}" stroke="var(--paper-line)" stroke-width="2"/>
 
         ${chartEntries.map((r, idx) => {
-          const rev = Number(r.revenue || 0);
-          const exp = Number(r.cogs || 0) + Number(r.expenses || 0);
-          const net = Number(r.net_profit || (rev - exp));
-
-          const revH = Math.max(4, Math.round((rev / maxVal) * 110));
-          const expH = Math.max(4, Math.round((exp / maxVal) * 110));
+          const net = Number(r.net_profit || 0);
+          const isPos = net >= 0;
+          const barH = Math.max(6, Math.round((Math.abs(net) / maxAbsProfit) * 80));
           const groupX = 35 + idx * (chartW / chartEntries.length);
+          const barY = isPos ? (baselineY - barH) : baselineY;
+          const barColor = isPos ? 'var(--leaf)' : 'var(--brick)';
 
-          const monthLabel = r.month ? r.month : `M${idx+1}`;
+          const monthPretty = r.month ? r.month : `M${idx+1}`;
+          const amountText = `${isPos?'+':''}₹${Math.abs(net)>=100000 ? (net/100000).toFixed(1)+'L' : Math.round(net/1000)+'k'}`;
 
           return `
             <g transform="translate(${groupX}, 0)">
-              <rect x="0" y="${140 - revH}" width="${barW}" height="${revH}" fill="var(--leaf)" rx="3" opacity="0.9">
-                <title>Revenue: ₹${rev.toLocaleString('en-IN')}</title>
-              </rect>
-              <rect x="${barW + 4}" y="${140 - expH}" width="${barW}" height="${expH}" fill="var(--brick)" rx="3" opacity="0.85">
-                <title>Expenses: ₹${exp.toLocaleString('en-IN')}</title>
+              <!-- Column Bar -->
+              <rect x="0" y="${barY}" width="${barWidth}" height="${barH}" fill="${barColor}" rx="4" opacity="0.9">
+                <title>${monthPretty}: ${net>=0?'+':''}₹${net.toLocaleString('en-IN')}</title>
               </rect>
 
-              <text x="${barW}" y="160" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ink-soft)" font-family="sans-serif">${monthLabel}</text>
-
-              <text x="${barW}" y="${Math.min(130, 140 - Math.max(revH, expH) - 10)}" text-anchor="middle" font-size="10" font-weight="700" fill="${net>=0?'var(--leaf)':'var(--brick)'}" font-family="'Roboto Mono',monospace">
-                ${net>=0?'+':''}₹${Math.round(net/1000)}k
+              <!-- Amount Label Above/Below -->
+              <text x="${barWidth/2}" y="${isPos ? (barY - 6) : (barY + barH + 12)}" text-anchor="middle" font-size="10" font-weight="800" fill="${barColor}" font-family="'Roboto Mono',monospace">
+                ${amountText}
               </text>
+
+              <!-- Month Label -->
+              <text x="${barWidth/2}" y="152" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink-soft)" font-family="sans-serif">${monthPretty}</text>
             </g>
           `;
         }).join('')}
       </svg>
     `;
   } else {
-    chartBarsSvg = `<div style="padding:40px;text-align:center;color:var(--ink-soft);font-size:0.85rem;">No historical P&amp;L records yet. Click <b>+ Log Monthly P&amp;L</b> to create your first report!</div>`;
+    chartBarsSvg = `<div style="padding:40px;text-align:center;color:var(--ink-soft);font-size:0.85rem;">No historical Net Profit records logged yet. Click <b>+ Log Month Profit</b> to record your first month!</div>`;
   }
 
   body.innerHTML = `
-    <!-- Top Executive Scorecards -->
+    <!-- Top Executive Net Profit Scorecards -->
     <div class="stat-grid" style="margin-bottom:16px;">
       <div class="stat-card" style="border-left:4px solid ${thisNet>=0?'var(--leaf)':'var(--brick)'};">
         <div class="num" style="color:${thisNet>=0?'var(--leaf)':'var(--brick)'}">
@@ -16035,31 +15967,35 @@ function renderPnLTab(body) {
         <div class="label">Net Profit (${thisMonthRec ? thisMonthRec.month : 'Current'})</div>
       </div>
       <div class="stat-card" style="border-left:4px solid var(--leaf);">
-        <div class="num" style="color:var(--leaf);">₹${thisRev.toLocaleString('en-IN')}</div>
-        <div class="label">Gross Revenue</div>
-      </div>
-      <div class="stat-card" style="border-left:4px solid var(--brick);">
-        <div class="num" style="color:var(--brick);">₹${(thisCogs + thisExp).toLocaleString('en-IN')}</div>
-        <div class="label">Total Cost &amp; Expenses</div>
+        <div class="num" style="color:${totalNetAllMonths>=0?'var(--leaf)':'var(--brick)'}">
+          ${totalNetAllMonths>=0?'+':''} ₹${totalNetAllMonths.toLocaleString('en-IN')}
+        </div>
+        <div class="label">Total Cumulative Profit</div>
       </div>
       <div class="stat-card" style="border-left:4px solid var(--turmeric);">
-        <div class="num" style="color:var(--turmeric-dark);">${thisMargin}%</div>
-        <div class="label">Net Profit Margin</div>
+        <div class="num" style="color:var(--turmeric-dark);">
+          ${avgMonthlyNet>=0?'+':''} ₹${avgMonthlyNet.toLocaleString('en-IN')}
+        </div>
+        <div class="label">Average Monthly Profit</div>
+      </div>
+      <div class="stat-card" style="border-left:4px solid var(--leaf);">
+        <div class="num">${records.length} Months</div>
+        <div class="label">Total Recorded Months</div>
       </div>
     </div>
 
-    <!-- Analytical Visual Financial Performance Chart Card -->
+    <!-- Analytical Visual Monthly Net Profit Chart Card -->
     <div class="att-cal-container" style="margin-bottom:18px;padding:16px;background:var(--paper);border:1px solid var(--paper-line);border-radius:12px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
         <div>
           <h3 style="margin:0;font-size:0.95rem;color:var(--ink);display:inline-flex;align-items:center;gap:6px;">
-            ${icon('reports', 16)} Financial Performance &amp; Profit Trends
+            ${icon('reports', 16)} Monthly Net Profit Trend &amp; Growth Report
           </h3>
-          <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">Comparing Revenue (Green) vs Expenses (Red)</div>
+          <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">Green columns represent Net Profit · Red columns represent Loss</div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;font-size:0.72rem;font-weight:700;">
-          <span style="display:inline-flex;align-items:center;gap:4px;"><b style="color:var(--leaf);">■</b> Revenue</span>
-          <span style="display:inline-flex;align-items:center;gap:4px;"><b style="color:var(--brick);">■</b> Expenses</span>
+          <span style="display:inline-flex;align-items:center;gap:4px;"><b style="color:var(--leaf);">■</b> Net Profit</span>
+          <span style="display:inline-flex;align-items:center;gap:4px;"><b style="color:var(--brick);">■</b> Net Loss</span>
         </div>
       </div>
 
@@ -16071,33 +16007,27 @@ function renderPnLTab(body) {
       <div style="flex:1;min-width:160px;">
         <input type="text" placeholder="Search month (e.g. 2026-08) or notes..." value="${esc(pnlSearchQuery)}" oninput="window.__onPnLSearch(this.value)" style="width:100%;box-sizing:border-box;font-size:0.82rem;">
       </div>
-      <button class="stamp-btn small" onclick="window.__openPnLModal()">${icon('plus', 14)} Log Monthly P&amp;L</button>
+      <button class="stamp-btn small" onclick="window.__openPnLModal()">${icon('plus', 14)} Log Month Profit</button>
     </div>
 
     <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
-      <span style="display:inline-flex;align-items:center;gap:6px;">📊 Historical P&amp;L Statements (${filtered.length} Entries)</span>
+      <span style="display:inline-flex;align-items:center;gap:6px;">📊 Logged Monthly Net Profit History (${filtered.length} Months)</span>
     </div>
 
     <!-- Mobile Card List (< 640px) -->
     <div class="mobile-only" style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
       ${filtered.length ? filtered.map(item => {
+        const net = Number(item.net_profit || 0);
         const rev = Number(item.revenue || 0);
-        const cogs = Number(item.cogs || 0);
-        const exp = Number(item.expenses || 0);
-        const net = Number(item.net_profit || (rev - (cogs + exp)));
-        const margin = rev > 0 ? ((net / rev) * 100).toFixed(1) : '0.0';
         return `
           <div class="row-card" style="flex-direction:column;align-items:stretch;padding:12px;margin:0;border-left:4px solid ${net>=0?'var(--leaf)':'var(--brick)'};">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
               <b style="font-size:0.9rem;color:var(--ink);">${item.month}</b>
-              <span class="stamp ${net>=0?'present':'absent'}" style="font-size:0.72rem;">
-                ${net>=0?'+':''} ₹${net.toLocaleString('en-IN')} (${margin}%)
+              <span class="stamp ${net>=0?'present':'absent'}" style="font-size:0.8rem;font-weight:800;">
+                ${net>=0?'+':''} ₹${net.toLocaleString('en-IN')}
               </span>
             </div>
-            <div style="font-size:0.75rem;color:var(--ink-soft);display:flex;justify-content:space-between;margin-bottom:4px;">
-              <span>Revenue: <b style="color:var(--leaf);">₹${rev.toLocaleString('en-IN')}</b></span>
-              <span>Expenses: <b style="color:var(--brick);">₹${(cogs+exp).toLocaleString('en-IN')}</b></span>
-            </div>
+            ${rev > 0 ? `<div style="font-size:0.75rem;color:var(--ink-soft);margin-bottom:4px;">Gross Revenue: <b>₹${rev.toLocaleString('en-IN')}</b></div>` : ''}
             ${item.notes ? `<div style="font-size:0.75rem;color:var(--ink);font-style:italic;margin-top:2px;">"${esc(item.notes)}"</div>` : ''}
             <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px;padding-top:6px;border-top:1px solid var(--paper-line);">
               <button class="stamp-btn small ghost" style="padding:3px 8px;font-size:0.75rem;" onclick="window.__openPnLModal('${item.id}')">✎ Edit</button>
@@ -16106,7 +16036,7 @@ function renderPnLTab(body) {
           </div>
         `;
       }).join('') : `
-        <div class="empty" style="padding:24px;text-align:center;font-size:0.82rem;">No P&amp;L records found matching filter.</div>
+        <div class="empty" style="padding:24px;text-align:center;font-size:0.82rem;">No monthly profit records found matching filter.</div>
       `}
     </div>
 
@@ -16116,33 +16046,24 @@ function renderPnLTab(body) {
         <table style="width:100%;border-collapse:collapse;text-align:left;font-size:0.82rem;">
           <thead>
             <tr style="background:var(--paper-line);color:var(--ink-soft);font-family:'Roboto Mono',monospace;font-size:0.78rem;text-transform:uppercase;border-bottom:1.5px solid var(--paper-line);">
-              <th style="padding:10px 14px;">Month</th>
-              <th style="padding:10px 14px;">Gross Revenue</th>
-              <th style="padding:10px 14px;">Cost of Goods</th>
-              <th style="padding:10px 14px;">Operating Expenses</th>
+              <th style="padding:10px 14px;">Month / Period</th>
               <th style="padding:10px 14px;">Net Profit / Loss</th>
-              <th style="padding:10px 14px;">Margin</th>
-              <th style="padding:10px 14px;">Notes</th>
+              <th style="padding:10px 14px;">Gross Revenue (Optional)</th>
+              <th style="padding:10px 14px;">Remarks / Notes</th>
               <th style="padding:10px 14px;text-align:right;">Actions</th>
             </tr>
           </thead>
           <tbody>
             ${filtered.length ? filtered.map(item => {
+              const net = Number(item.net_profit || 0);
               const rev = Number(item.revenue || 0);
-              const cogs = Number(item.cogs || 0);
-              const exp = Number(item.expenses || 0);
-              const net = Number(item.net_profit || (rev - (cogs + exp)));
-              const margin = rev > 0 ? ((net / rev) * 100).toFixed(1) : '0.0';
               return `
                 <tr style="border-bottom:1px solid var(--paper-line);">
                   <td style="padding:10px 14px;font-weight:700;">${item.month}</td>
-                  <td style="padding:10px 14px;color:var(--leaf);font-weight:700;font-family:'Roboto Mono',monospace;">₹${rev.toLocaleString('en-IN')}</td>
-                  <td style="padding:10px 14px;font-family:'Roboto Mono',monospace;">₹${cogs.toLocaleString('en-IN')}</td>
-                  <td style="padding:10px 14px;font-family:'Roboto Mono',monospace;">₹${exp.toLocaleString('en-IN')}</td>
-                  <td style="padding:10px 14px;font-weight:700;font-family:'Roboto Mono',monospace;color:${net>=0?'var(--leaf)':'var(--brick)'};">
+                  <td style="padding:10px 14px;font-weight:800;font-size:0.9rem;font-family:'Roboto Mono',monospace;color:${net>=0?'var(--leaf)':'var(--brick)'};">
                     ${net>=0?'+':''} ₹${net.toLocaleString('en-IN')}
                   </td>
-                  <td style="padding:10px 14px;font-weight:700;">${margin}%</td>
+                  <td style="padding:10px 14px;font-family:'Roboto Mono',monospace;">${rev > 0 ? '₹' + rev.toLocaleString('en-IN') : '—'}</td>
                   <td style="padding:10px 14px;color:var(--ink-soft);">${esc(item.notes || '—')}</td>
                   <td style="padding:10px 14px;text-align:right;">
                     <button class="stamp-btn small ghost" style="padding:3px 8px;font-size:0.75rem;" onclick="window.__openPnLModal('${item.id}')">✎ Edit</button>
@@ -16151,7 +16072,7 @@ function renderPnLTab(body) {
                 </tr>
               `;
             }).join('') : `
-              <tr><td colspan="8" style="padding:24px;text-align:center;color:var(--ink-soft);">No P&amp;L statements recorded yet.</td></tr>
+              <tr><td colspan="5" style="padding:24px;text-align:center;color:var(--ink-soft);">No monthly Net Profit recorded yet. Click <b>+ Log Month Profit</b> to record!</td></tr>
             `}
           </tbody>
         </table>
