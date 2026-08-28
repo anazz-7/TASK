@@ -4383,6 +4383,122 @@ function renderDashboardTab(body){
       <div class="stat-card"><div class="num">₹${monthSalaryTotal.toFixed(0)}</div><div class="label">Salary paid this month</div></div>
     </div>` : ''}
     ${isOwner() ? buildWeeklyEmailReportHtml() : ''}
+    ${isOwner() ? buildDashboardPnLLineGraphHtml() : ''}
+  `;
+}
+
+function buildDashboardPnLLineGraphHtml() {
+  if (!isOwner()) return '';
+  const records = typeof getPnLData === 'function' ? getPnLData() : [];
+  const opening = typeof getPnLOpeningProfit === 'function' ? getPnLOpeningProfit() : { amount: 0 };
+  const openingAmt = Number(opening.amount || 0);
+
+  const curMonth = monthKey(todayStr());
+  const thisMonthRec = records.find(r => r.month === curMonth) || records[0];
+  const thisNet = thisMonthRec ? Number(thisMonthRec.net_profit || 0) : 0;
+  const monthlyNetSum = records.reduce((sum, r) => sum + Number(r.net_profit || 0), 0);
+  const totalCumulativeNet = openingAmt + monthlyNetSum;
+
+  const chartEntries = [];
+  if (openingAmt > 0) {
+    chartEntries.push({ month: '🏁 Opening', net_profit: openingAmt, isOpening: true });
+  }
+  const pastMonths = records.slice(0, 8).reverse();
+  chartEntries.push(...pastMonths);
+
+  if (chartEntries.length === 0) return '';
+
+  const chartW = 600;
+  const chartH = 180;
+  const baselineY = 120;
+  const paddingX = 40;
+  const usableW = chartW - (paddingX * 2);
+
+  const maxAbs = Math.max(1, ...chartEntries.map(r => Math.abs(Number(r.net_profit || 0))));
+
+  const points = chartEntries.map((r, idx) => {
+    const net = Number(r.net_profit || 0);
+    const stepX = chartEntries.length > 1 ? usableW / (chartEntries.length - 1) : 0;
+    const x = paddingX + idx * stepX;
+    const isPos = net >= 0;
+    const h = Math.round((Math.abs(net) / maxAbs) * 75);
+    const y = isPos ? (baselineY - h) : (baselineY + h);
+    return { x, y, net, month: r.month, isOpening: r.isOpening };
+  });
+
+  let pathD = '';
+  if (points.length === 1) {
+    pathD = `M ${points[0].x - 20},${points[0].y} L ${points[0].x + 20},${points[0].y}`;
+  } else {
+    pathD = `M ${points[0].x},${points[0].y}`;
+    for (let i = 0; i < points.length - 1; i++) {
+      const p1 = points[i];
+      const p2 = points[i + 1];
+      const cx1 = p1.x + (p2.x - p1.x) / 2;
+      const cy1 = p1.y;
+      const cx2 = p1.x + (p2.x - p1.x) / 2;
+      const cy2 = p2.y;
+      pathD += ` C ${cx1},${cy1} ${cx2},${cy2} ${p2.x},${p2.y}`;
+    }
+  }
+
+  const areaD = `${pathD} L ${points[points.length - 1].x},${baselineY} L ${points[0].x},${baselineY} Z`;
+
+  return `
+    <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;margin-top:18px;">
+      <span>📈 Net Profit &amp; Loss (P&amp;L) Trend</span>
+      <a onclick="window.__setTab('pnl')" style="font-size:0.75rem;color:var(--turmeric-dark);font-weight:700;cursor:pointer;">View P&amp;L Analytics &rarr;</a>
+    </div>
+
+    <div class="att-cal-container" style="margin-bottom:20px;padding:16px;background:var(--paper);border:1px solid var(--paper-line);border-radius:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;align-items:center;gap:12px;font-size:0.82rem;flex-wrap:wrap;">
+          <span>Cumulative Net Profit: <b style="color:${totalCumulativeNet>=0?'var(--leaf)':'var(--brick)'};font-family:'Roboto Mono',monospace;">₹${totalCumulativeNet.toLocaleString('en-IN')}</b></span>
+          ${openingAmt > 0 ? `<span style="color:var(--turmeric-dark);font-weight:600;">🏁 Opening: ₹${openingAmt.toLocaleString('en-IN')}</span>` : ''}
+          <span style="color:var(--leaf);font-weight:600;">Latest: ${thisNet>=0?'+':''}₹${thisNet.toLocaleString('en-IN')}</span>
+        </div>
+      </div>
+
+      <svg viewBox="0 0 ${chartW} ${chartH}" style="width:100%;height:auto;max-height:220px;overflow:visible;">
+        <defs>
+          <linearGradient id="pnlDashGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#10B981" stop-opacity="0.35"/>
+            <stop offset="100%" stop-color="#10B981" stop-opacity="0.0"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Grid Lines -->
+        <line x1="0" y1="35" x2="${chartW}" y2="35" stroke="var(--paper-line)" stroke-dasharray="3,3" stroke-width="1"/>
+        <line x1="0" y1="${baselineY}" x2="${chartW}" y2="${baselineY}" stroke="var(--paper-line)" stroke-width="2"/>
+
+        <!-- Filled Gradient Area -->
+        <path d="${areaD}" fill="url(#pnlDashGrad)"/>
+
+        <!-- Trend Line -->
+        <path d="${pathD}" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round"/>
+
+        <!-- Data Points & Labels -->
+        ${points.map(p => {
+          const isPos = p.net >= 0;
+          const color = p.isOpening ? 'var(--turmeric-dark)' : (isPos ? 'var(--leaf)' : 'var(--brick)');
+          const amtText = `${isPos?'+':''}₹${Math.abs(p.net)>=100000 ? (p.net/100000).toFixed(1)+'L' : Math.round(p.net/1000)+'k'}`;
+          return `
+            <g transform="translate(${p.x}, 0)">
+              <!-- Glowing Data Node -->
+              <circle cx="0" cy="${p.y}" r="5" fill="${color}" stroke="#FFFFFF" stroke-width="2"/>
+
+              <!-- Amount Callout Badge -->
+              <text x="0" y="${isPos ? (p.y - 9) : (p.y + 16)}" text-anchor="middle" font-size="10" font-weight="800" fill="${color}" font-family="'Roboto Mono',monospace">
+                ${amtText}
+              </text>
+
+              <!-- Month Label below axis -->
+              <text x="0" y="152" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink-soft)" font-family="sans-serif">${p.month}</text>
+            </g>
+          `;
+        }).join('')}
+      </svg>
+    </div>
   `;
 }
 
