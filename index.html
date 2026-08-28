@@ -15360,6 +15360,12 @@ ${new Date().toLocaleString('en-IN')}`;
 /* ---------------- 🏢 OFFICE LOGS (CASH ENTRY & WITHDRAWAL HISTORY) ---------------- */
 let officeLogsSearchQuery = '';
 let officeLogsTypeFilter = 'all';
+let officeLogsHeaderCollapsed = false;
+
+window.__toggleOfficeLogsHeaderCollapse = function() {
+  officeLogsHeaderCollapsed = !officeLogsHeaderCollapsed;
+  renderTabBody();
+};
 
 function getOfficeLogsData() {
   if (!cache.officeLogs) {
@@ -15547,28 +15553,53 @@ function renderOfficeLogsTab(body) {
   });
 
   body.innerHTML = `
-    <!-- Top Summary Stat Cards Grid -->
-    <div class="stat-grid" style="margin-bottom:16px;">
-      <div class="stat-card" style="border-left:4px solid var(--leaf);">
-        <div class="num" style="color:${netCash>=0?'var(--leaf)':'var(--brick)'}">₹${netCash.toLocaleString('en-IN')}</div>
-        <div class="label">Net Office Cash in Hand</div>
-      </div>
-      <div class="stat-card" style="border-left:4px solid var(--leaf);">
-        <div class="num" style="color:var(--leaf);">+ ₹${totalAdded.toLocaleString('en-IN')}</div>
-        <div class="label">Total Cash Added</div>
-      </div>
-      <div class="stat-card" style="border-left:4px solid var(--brick);">
-        <div class="num" style="color:var(--brick);">- ₹${totalWithdrawn.toLocaleString('en-IN')}</div>
-        <div class="label">Total Cash Withdrawn</div>
-      </div>
-      <div class="stat-card" style="border-left:4px solid var(--turmeric);">
-        <div class="num">${checkedCount} / ${logs.length}</div>
-        <div class="label">Verified / Checked Entries</div>
+    <!-- Top Action & Collapse Bar -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+      <h3 style="margin:0;font-size:0.95rem;color:var(--ink);display:inline-flex;align-items:center;gap:6px;">
+        ${icon('building', 18)} Office Cash Ledger
+      </h3>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <button class="stamp-btn small ghost" style="font-size:0.75rem;padding:3px 8px;" onclick="window.__toggleOfficeLogsHeaderCollapse()">
+          ${officeLogsHeaderCollapsed ? '⯆ Expand Summary' : '⯅ Collapse Summary'}
+        </button>
+        <button class="stamp-btn small" onclick="window.__openOfficeLogModal()">${icon('plus', 14)} Log Cash Entry</button>
       </div>
     </div>
 
+    ${!officeLogsHeaderCollapsed ? `
+      <!-- Top Summary Stat Cards Grid -->
+      <div class="stat-grid" style="margin-bottom:14px;">
+        <div class="stat-card" style="border-left:4px solid var(--leaf);">
+          <div class="num" style="color:${netCash>=0?'var(--leaf)':'var(--brick)'}">₹${netCash.toLocaleString('en-IN')}</div>
+          <div class="label">Net Cash in Hand</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid var(--leaf);">
+          <div class="num" style="color:var(--leaf);">+ ₹${totalAdded.toLocaleString('en-IN')}</div>
+          <div class="label">Total Cash Added</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid var(--brick);">
+          <div class="num" style="color:var(--brick);">- ₹${totalWithdrawn.toLocaleString('en-IN')}</div>
+          <div class="label">Total Cash Withdrawn</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid var(--turmeric);">
+          <div class="num">${checkedCount} / ${logs.length}</div>
+          <div class="label">Verified Entries</div>
+        </div>
+      </div>
+    ` : `
+      <!-- Compact Mini Summary Bar when collapsed -->
+      <div class="row-card" style="padding:8px 12px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;background:var(--paper);border:1px solid var(--paper-line);border-radius:8px;flex-wrap:wrap;gap:6px;">
+        <div style="display:flex;align-items:center;gap:12px;font-size:0.82rem;flex-wrap:wrap;">
+          <span>Net Cash: <b style="color:${netCash>=0?'var(--leaf)':'var(--brick)'};font-family:'Roboto Mono',monospace;">₹${netCash.toLocaleString('en-IN')}</b></span>
+          <span style="color:var(--leaf);font-weight:600;">+₹${totalAdded.toLocaleString('en-IN')}</span>
+          <span style="color:var(--brick);font-weight:600;">-₹${totalWithdrawn.toLocaleString('en-IN')}</span>
+        </div>
+        <span style="font-size:0.72rem;color:var(--ink-soft);font-weight:600;">${checkedCount}/${logs.length} Verified</span>
+      </div>
+    `}
+
     <!-- Controls & Filter Bar -->
-    <div class="row-card" style="flex-wrap:wrap;gap:10px;align-items:center;padding:12px;margin-bottom:16px;">
+    <div class="row-card" style="flex-wrap:wrap;gap:10px;align-items:center;padding:10px 12px;margin-bottom:14px;">
       <div style="flex:1;min-width:160px;">
         <input type="text" placeholder="Search reason, date, or staff..." value="${esc(officeLogsSearchQuery)}" oninput="window.__onOfficeLogsSearch(this.value)" style="width:100%;box-sizing:border-box;font-size:0.82rem;">
       </div>
@@ -15581,7 +15612,6 @@ function renderOfficeLogsTab(body) {
           <option value="checked" ${officeLogsTypeFilter==='checked'?'selected':''}>Checked Only</option>
         </select>
       </div>
-      <button class="stamp-btn small" onclick="window.__openOfficeLogModal()">${icon('plus', 14)} Log Cash Entry</button>
     </div>
 
     <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
