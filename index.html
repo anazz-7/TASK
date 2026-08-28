@@ -5299,6 +5299,242 @@ function computePresenceStreak(staffId){
   }
   return streak;
 }
+let attendanceSubTab = 'daily'; // 'daily' | 'calendar'
+let attendanceCalendarMonth = monthKey(todayStr());
+let attendanceCalendarStaffId = 'all';
+
+window.__setAttendanceSubTab = function(sub) {
+  attendanceSubTab = sub || 'daily';
+  renderTabBody();
+};
+
+window.__setCalendarReportMonth = function(m) {
+  attendanceCalendarMonth = m || monthKey(todayStr());
+  renderTabBody();
+};
+
+window.__setCalendarReportStaff = function(st) {
+  attendanceCalendarStaffId = st || 'all';
+  renderTabBody();
+};
+
+window.__openCalendarDayDetailModal = function(dateStr, staffId) {
+  const holder = getModalHolder('taskModalHolder');
+  const dayRecords = cache.attendance.filter(a => a.date === dateStr);
+  const targetStaffList = (staffId === 'all' || !staffId) ? cache.staff : cache.staff.filter(s => s.id === staffId);
+
+  const html = `
+    <div class="overlay show" onclick="if(event.target===this) getModalHolder('taskModalHolder').innerHTML=''">
+      <div class="modal" style="max-width:440px;width:92%;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <h3 style="margin:0;display:inline-flex;align-items:center;gap:6px;font-size:0.9rem;">
+            ${icon('weekly',16)} Attendance Detail — ${dateStr}
+          </h3>
+          <button class="stamp-btn small ghost" onclick="getModalHolder('taskModalHolder').innerHTML=''">✕</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto;">
+          ${targetStaffList.map(s => {
+            const rec = dayRecords.find(a => a.staff_id === s.id);
+            const status = rec ? rec.status : 'unmarked';
+            const timeVal = rec && rec.marked_at ? timeStr(rec.marked_at) : 'Not marked';
+            const locLink = rec && rec.marked_lat != null ? `<a class="link" href="${mapLink(rec.marked_lat, rec.marked_lng)}" target="_blank" style="font-size:0.65rem;">${icon('pin',12)} View Map Location</a>` : '';
+            return `
+              <div style="background:var(--paper);padding:8px 10px;border-radius:8px;border:1px solid var(--paper-line);display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                  <b style="font-size:0.78rem;color:var(--ink);display:block;">${esc(s.name)}</b>
+                  <span style="font-size:0.65rem;color:var(--ink-soft);">${timeVal}</span>
+                  ${locLink ? `<div style="font-size:0.62rem;margin-top:2px;">${locLink}</div>` : ''}
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span class="stamp ${status}" style="font-size:0.68rem;">${status}</span>
+                  ${isManagerPlus() ? `
+                    <button class="stamp-btn small ghost" style="font-size:0.62rem;padding:2px 6px;" onclick="getModalHolder('taskModalHolder').innerHTML=''; window.__markStaffAttendanceForDate('${s.id}', '${dateStr}', '${status==='present'?'absent':'present'}')">
+                      Switch
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+  holder.innerHTML = html;
+};
+
+window.__markStaffAttendanceForDate = async function(staffId, dateStr, status) {
+  const key = 'markatt-' + staffId + '-' + dateStr;
+  if (__busyKeys.has(key)) return;
+  __busyKeys.add(key);
+  try {
+    const existing = cache.attendance.find(a => a.staff_id === staffId && a.date === dateStr);
+    const data = { status, marked_at: new Date().toISOString(), marked_by: session.staffId };
+    if (existing) await sbCheck(sb.from('attendance').update(data).eq('id', existing.id));
+    else await sbCheck(sb.from('attendance').insert({ business_id: session.businessId, staff_id: staffId, date: dateStr, ...data }));
+    await loadData();
+    renderTabBody();
+  } catch(e) {
+    alert('Could not update attendance for date: ' + (e.message || e));
+  } finally {
+    __busyKeys.delete(key);
+  }
+};
+
+function renderAttendanceCalendarViewReport() {
+  const parts = attendanceCalendarMonth.split('-');
+  const year = parseInt(parts[0], 10) || 2026;
+  const month = parseInt(parts[1], 10) || 8;
+  const today = todayStr();
+
+  const selectedStaffId = (attendanceCalendarStaffId === 'all' && !isManagerPlus()) ? session.staffId : attendanceCalendarStaffId;
+
+  const firstDayIndex = new Date(year, month - 1, 1).getDay(); // 0 = Sun
+  const totalDays = new Date(year, month, 0).getDate();
+
+  const monthRecords = cache.attendance.filter(a => monthKey(a.date) === attendanceCalendarMonth);
+  let targetRecords = monthRecords;
+  if (selectedStaffId !== 'all') {
+    targetRecords = monthRecords.filter(a => a.staff_id === selectedStaffId);
+  }
+
+  const presentCount = targetRecords.filter(a => a.status === 'present').length;
+  const absentCount = targetRecords.filter(a => a.status === 'absent').length;
+
+  let pastWeekdays = 0;
+  for (let d = 1; d <= totalDays; d++) {
+    const dateNum = String(d).padStart(2, '0');
+    const dStr = `${year}-${String(month).padStart(2,'0')}-${dateNum}`;
+    const dayOfWeek = new Date(year, month - 1, d).getDay();
+    if (dayOfWeek !== 0 && dStr <= today) {
+      pastWeekdays++;
+    }
+  }
+
+  const denominator = selectedStaffId === 'all' ? Math.max(1, pastWeekdays * cache.staff.length) : Math.max(1, pastWeekdays);
+  const scorePct = Math.min(100, Math.round((presentCount / denominator) * 100));
+
+  const staffOptions = cache.staff.map(s => `<option value="${s.id}" ${selectedStaffId===s.id?'selected':''}>${esc(s.name)}</option>`).join('');
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayHeadersHtml = dayNames.map((dName, idx) => `
+    <div style="font-size:0.62rem;font-weight:700;color:${idx===0?'var(--brick)':'var(--ink-soft)'};text-align:center;padding:4px 0;text-transform:uppercase;letter-spacing:0.02em;">
+      ${dName}
+    </div>
+  `).join('');
+
+  let cellsHtml = '';
+  for (let i = 0; i < firstDayIndex; i++) {
+    cellsHtml += `<div style="background:var(--paper-line);opacity:0.25;border-radius:6px;min-height:50px;"></div>`;
+  }
+
+  for (let d = 1; d <= totalDays; d++) {
+    const dateNum = String(d).padStart(2, '0');
+    const dateStr = `${year}-${String(month).padStart(2,'0')}-${dateNum}`;
+    const isToday = dateStr === today;
+    const dayOfWeek = new Date(year, month - 1, d).getDay();
+    const isSunday = dayOfWeek === 0;
+
+    let cellContent = '';
+
+    if (selectedStaffId !== 'all') {
+      const rec = targetRecords.find(a => a.date === dateStr);
+      if (rec) {
+        const isP = rec.status === 'present';
+        const badgeColor = isP ? 'var(--leaf)' : 'var(--brick)';
+        const badgeBg = isP ? 'var(--leaf-soft)' : '#FEE2E2';
+        const badgeLabel = isP ? 'PRESENT' : 'ABSENT';
+        const timeVal = rec.marked_at ? timeStr(rec.marked_at) : '';
+        const hasLoc = rec.marked_lat != null;
+
+        cellContent = `
+          <div style="margin-top:2px;">
+            <span style="font-size:0.56rem;font-weight:700;padding:1px 3px;border-radius:3px;background:${badgeBg};color:${badgeColor};display:inline-block;">
+              ${badgeLabel}
+            </span>
+            ${timeVal ? `<div style="font-size:0.55rem;color:var(--ink-soft);margin-top:1px;font-family:'Roboto Mono',monospace;">${timeVal}</div>` : ''}
+            ${hasLoc ? `<div style="font-size:0.52rem;color:var(--leaf);margin-top:1px;">📍</div>` : ''}
+          </div>
+        `;
+      } else if (isSunday) {
+        cellContent = `<span style="font-size:0.56rem;color:var(--ink-soft);display:inline-block;margin-top:2px;">OFF</span>`;
+      } else if (dateStr < today) {
+        cellContent = `<span style="font-size:0.56rem;color:var(--brick);display:inline-block;margin-top:2px;">—</span>`;
+      }
+    } else {
+      const dayAtts = monthRecords.filter(a => a.date === dateStr);
+      const pCount = dayAtts.filter(a => a.status === 'present').length;
+      const aCount = dayAtts.filter(a => a.status === 'absent').length;
+
+      if (pCount > 0 || aCount > 0) {
+        cellContent = `
+          <div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:2px;">
+            ${pCount > 0 ? `<span style="font-size:0.54rem;font-weight:700;background:var(--leaf-soft);color:var(--leaf);padding:1px 3px;border-radius:3px;">${pCount}P</span>` : ''}
+            ${aCount > 0 ? `<span style="font-size:0.54rem;font-weight:700;background:#FEE2E2;color:var(--brick);padding:1px 3px;border-radius:3px;">${aCount}A</span>` : ''}
+          </div>
+        `;
+      } else if (isSunday) {
+        cellContent = `<span style="font-size:0.56rem;color:var(--ink-soft);display:inline-block;margin-top:2px;">OFF</span>`;
+      }
+    }
+
+    cellsHtml += `
+      <div onclick="window.__openCalendarDayDetailModal('${dateStr}', '${selectedStaffId}')" 
+           style="background:var(--paper);border:1px solid ${isToday?'var(--turmeric)':'var(--paper-line)'};border-radius:6px;padding:4px 3px;min-height:52px;cursor:pointer;position:relative;${isToday?'box-shadow:0 0 0 2px rgba(234,179,8,0.25);':''}">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <b style="font-size:0.68rem;color:${isSunday?'var(--brick)':'var(--ink)'};">${d}</b>
+          ${isToday ? `<span style="font-size:0.48rem;font-weight:700;background:var(--turmeric);color:#FFF;padding:0 2px;border-radius:2px;">TODAY</span>` : ''}
+        </div>
+        ${cellContent}
+      </div>
+    `;
+  }
+
+  return `
+    <!-- Control Filter Bar -->
+    <div class="row-card" style="flex-wrap:wrap;gap:8px;align-items:center;padding:8px 10px;margin-bottom:10px;">
+      <div style="flex:1;min-width:130px;">
+        <label style="font-size:0.62rem;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:2px;">SELECT MONTH</label>
+        <input type="month" value="${attendanceCalendarMonth}" onchange="window.__setCalendarReportMonth(this.value)" style="width:100%;box-sizing:border-box;font-size:0.7rem;padding:3px 6px;">
+      </div>
+      ${isManagerPlus() ? `
+        <div style="flex:1;min-width:130px;">
+          <label style="font-size:0.62rem;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:2px;">STAFF MEMBER</label>
+          <select onchange="window.__setCalendarReportStaff(this.value)" style="width:100%;box-sizing:border-box;font-size:0.7rem;padding:3px 6px;">
+            <option value="all" ${selectedStaffId==='all'?'selected':''}>👥 All Staff Members</option>
+            ${staffOptions}
+          </select>
+        </div>
+      ` : ''}
+    </div>
+
+    <!-- Attendance KPI Scorecard -->
+    <div class="stat-grid" style="margin-bottom:10px;">
+      <div class="stat-card" style="border-left:3px solid var(--leaf);padding:5px 7px;">
+        <div class="num" style="color:var(--leaf);font-size:0.85rem;">${presentCount}</div>
+        <div class="label" style="font-size:0.58rem;">Days Present</div>
+      </div>
+      <div class="stat-card" style="border-left:3px solid var(--brick);padding:5px 7px;">
+        <div class="num" style="color:var(--brick);font-size:0.85rem;">${absentCount}</div>
+        <div class="label" style="font-size:0.58rem;">Days Absent</div>
+      </div>
+      <div class="stat-card" style="border-left:3px solid var(--turmeric);padding:5px 7px;">
+        <div class="num" style="color:var(--turmeric-dark);font-size:0.85rem;">${scorePct}%</div>
+        <div class="label" style="font-size:0.58rem;">Attendance Score</div>
+      </div>
+    </div>
+
+    <!-- Calendar Grid Container -->
+    <div class="row-card" style="flex-direction:column;padding:8px;margin-bottom:16px;background:var(--paper);border:1px solid var(--paper-line);">
+      <div style="display:grid;grid-template-columns:repeat(7, 1fr);gap:3px;margin-bottom:4px;">
+        ${dayHeadersHtml}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7, 1fr);gap:3px;">
+        ${cellsHtml}
+      </div>
+    </div>
+  `;
+}
+
 function renderAttendanceTab(body){
   const today = todayStr();
   const curMonth = monthKey(today);
@@ -5380,10 +5616,27 @@ function renderAttendanceTab(body){
     } finally { __busyKeys.delete(key); }
   };
 
+  // Sub-Tab Switcher Navigation Header
+  const subTabHeaderHtml = `
+    <div class="row-card" style="padding:4px;margin-bottom:12px;background:var(--paper-line);display:flex;gap:4px;">
+      <button class="stamp-btn small ${attendanceSubTab==='daily'?'':'ghost'}" style="flex:1;font-size:0.68rem;padding:4px 6px;" onclick="window.__setAttendanceSubTab('daily')">
+        ${icon('clipboard',14)} Daily Punch Log
+      </button>
+      <button class="stamp-btn small ${attendanceSubTab==='calendar'?'':'ghost'}" style="flex:1;font-size:0.68rem;padding:4px 6px;" onclick="window.__setAttendanceSubTab('calendar')">
+        ${icon('weekly',14)} Calendar View Report
+      </button>
+    </div>
+  `;
+
+  if (attendanceSubTab === 'calendar') {
+    body.innerHTML = subTabHeaderHtml + renderAttendanceCalendarViewReport();
+    return;
+  }
+
   if(isManagerPlus()){
     const monthAtt = cache.attendance.filter(a=>monthKey(a.date)===curMonth);
     body.innerHTML = `
-    
+      ${subTabHeaderHtml}
       ${selfSection}
       <div class="section-label">Team — Today</div>
       ${cache.staff.map(s=>{
@@ -5397,7 +5650,7 @@ function renderAttendanceTab(body){
             <button class="attend-btn absent ${status==='absent'?'active':''}" onclick="window.__markStaffAttendance('${s.id}','absent')">Absent</button>
           </div>
         </div>`;
-      }).join('') + `</div>`}
+      }).join('')}
       <div class="section-label">Monthly summary — ${curMonth}</div>
       ${cache.staff.map(s=>{
         const mine = monthAtt.filter(a=>a.staff_id===s.id);
@@ -5421,7 +5674,7 @@ function renderAttendanceTab(body){
     `;
   } else {
     body.innerHTML = `
-    
+      ${subTabHeaderHtml}
       ${selfSection}
       <div class="section-label">Your recent history</div>
       ${cache.attendance.filter(a=>a.staff_id===session.staffId && a.date!==today && a.status).slice(0,20).map(a=>`
