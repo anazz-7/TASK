@@ -5417,14 +5417,14 @@ function renderAttendanceCalendarViewReport() {
   const staffOptions = cache.staff.map(s => `<option value="${s.id}" ${selectedStaffId===s.id?'selected':''}>${esc(s.name)}</option>`).join('');
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const dayHeadersHtml = dayNames.map((dName, idx) => `
-    <div style="font-size:0.62rem;font-weight:700;color:${idx===0?'var(--brick)':'var(--ink-soft)'};text-align:center;padding:4px 0;text-transform:uppercase;letter-spacing:0.02em;">
+    <div class="att-cal-header-cell" style="color:${idx===0?'var(--brick)':'var(--ink-soft)'};">
       ${dName}
     </div>
   `).join('');
 
   let cellsHtml = '';
   for (let i = 0; i < firstDayIndex; i++) {
-    cellsHtml += `<div style="background:var(--paper-line);opacity:0.25;border-radius:6px;min-height:50px;"></div>`;
+    cellsHtml += `<div class="att-cal-cell" style="background:var(--paper-line);opacity:0.25;border-color:transparent;cursor:default;"></div>`;
   }
 
   for (let d = 1; d <= totalDays; d++) {
@@ -5447,18 +5447,18 @@ function renderAttendanceCalendarViewReport() {
         const hasLoc = rec.marked_lat != null;
 
         cellContent = `
-          <div style="margin-top:2px;">
-            <span style="font-size:0.56rem;font-weight:700;padding:1px 3px;border-radius:3px;background:${badgeBg};color:${badgeColor};display:inline-block;">
+          <div style="margin-top:4px;">
+            <span class="att-cal-badge" style="background:${badgeBg};color:${badgeColor};">
               ${badgeLabel}
             </span>
-            ${timeVal ? `<div style="font-size:0.55rem;color:var(--ink-soft);margin-top:1px;font-family:'Roboto Mono',monospace;">${timeVal}</div>` : ''}
-            ${hasLoc ? `<div style="font-size:0.52rem;color:var(--leaf);margin-top:1px;">📍</div>` : ''}
+            ${timeVal ? `<div style="font-size:0.68rem;color:var(--ink-soft);margin-top:3px;font-family:'Roboto Mono',monospace;">${timeVal}</div>` : ''}
+            ${hasLoc ? `<div style="font-size:0.65rem;color:var(--leaf);margin-top:2px;">📍 Mapped</div>` : ''}
           </div>
         `;
       } else if (isSunday) {
-        cellContent = `<span style="font-size:0.56rem;color:var(--ink-soft);display:inline-block;margin-top:2px;">OFF</span>`;
+        cellContent = `<span style="font-size:0.68rem;font-weight:600;color:var(--ink-soft);display:inline-block;margin-top:4px;">OFF</span>`;
       } else if (dateStr < today) {
-        cellContent = `<span style="font-size:0.56rem;color:var(--brick);display:inline-block;margin-top:2px;">—</span>`;
+        cellContent = `<span style="font-size:0.68rem;font-weight:700;color:var(--brick);display:inline-block;margin-top:4px;">—</span>`;
       }
     } else {
       const dayAtts = monthRecords.filter(a => a.date === dateStr);
@@ -5467,22 +5467,22 @@ function renderAttendanceCalendarViewReport() {
 
       if (pCount > 0 || aCount > 0) {
         cellContent = `
-          <div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:2px;">
-            ${pCount > 0 ? `<span style="font-size:0.54rem;font-weight:700;background:var(--leaf-soft);color:var(--leaf);padding:1px 3px;border-radius:3px;">${pCount}P</span>` : ''}
-            ${aCount > 0 ? `<span style="font-size:0.54rem;font-weight:700;background:#FEE2E2;color:var(--brick);padding:1px 3px;border-radius:3px;">${aCount}A</span>` : ''}
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">
+            ${pCount > 0 ? `<span class="att-cal-badge" style="background:var(--leaf-soft);color:var(--leaf);">${pCount} Present</span>` : ''}
+            ${aCount > 0 ? `<span class="att-cal-badge" style="background:#FEE2E2;color:var(--brick);">${aCount} Absent</span>` : ''}
           </div>
         `;
       } else if (isSunday) {
-        cellContent = `<span style="font-size:0.56rem;color:var(--ink-soft);display:inline-block;margin-top:2px;">OFF</span>`;
+        cellContent = `<span style="font-size:0.68rem;font-weight:600;color:var(--ink-soft);display:inline-block;margin-top:4px;">OFF</span>`;
       }
     }
 
     cellsHtml += `
       <div onclick="window.__openCalendarDayDetailModal('${dateStr}', '${selectedStaffId}')" 
-           style="background:var(--paper);border:1px solid ${isToday?'var(--turmeric)':'var(--paper-line)'};border-radius:6px;padding:4px 3px;min-height:52px;cursor:pointer;position:relative;${isToday?'box-shadow:0 0 0 2px rgba(234,179,8,0.25);':''}">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <b style="font-size:0.68rem;color:${isSunday?'var(--brick)':'var(--ink)'};">${d}</b>
-          ${isToday ? `<span style="font-size:0.48rem;font-weight:700;background:var(--turmeric);color:#FFF;padding:0 2px;border-radius:2px;">TODAY</span>` : ''}
+           class="att-cal-cell ${isToday ? 'is-today' : ''}">
+        <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
+          <b style="font-size:0.85rem;color:${isSunday?'var(--brick)':'var(--ink)'};">${d}</b>
+          ${isToday ? `<span style="font-size:0.58rem;font-weight:700;background:var(--turmeric);color:#FFF;padding:1px 4px;border-radius:3px;">TODAY</span>` : ''}
         </div>
         ${cellContent}
       </div>
@@ -5491,15 +5491,15 @@ function renderAttendanceCalendarViewReport() {
 
   return `
     <!-- Control Filter Bar -->
-    <div class="row-card" style="flex-wrap:wrap;gap:8px;align-items:center;padding:8px 10px;margin-bottom:10px;">
-      <div style="flex:1;min-width:130px;">
-        <label style="font-size:0.62rem;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:2px;">SELECT MONTH</label>
-        <input type="month" value="${attendanceCalendarMonth}" onchange="window.__setCalendarReportMonth(this.value)" style="width:100%;box-sizing:border-box;font-size:0.7rem;padding:3px 6px;">
+    <div class="row-card" style="flex-wrap:wrap;gap:12px;align-items:center;padding:12px 14px;margin-bottom:14px;width:100%;box-sizing:border-box;">
+      <div style="flex:1;min-width:160px;">
+        <label style="font-size:0.68rem;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:4px;letter-spacing:0.02em;">SELECT MONTH</label>
+        <input type="month" value="${attendanceCalendarMonth}" onchange="window.__setCalendarReportMonth(this.value)" style="width:100%;box-sizing:border-box;font-size:0.82rem;padding:6px 10px;">
       </div>
       ${isManagerPlus() ? `
-        <div style="flex:1;min-width:130px;">
-          <label style="font-size:0.62rem;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:2px;">STAFF MEMBER</label>
-          <select onchange="window.__setCalendarReportStaff(this.value)" style="width:100%;box-sizing:border-box;font-size:0.7rem;padding:3px 6px;">
+        <div style="flex:1;min-width:160px;">
+          <label style="font-size:0.68rem;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:4px;letter-spacing:0.02em;">STAFF MEMBER</label>
+          <select onchange="window.__setCalendarReportStaff(this.value)" style="width:100%;box-sizing:border-box;font-size:0.82rem;padding:6px 10px;">
             <option value="all" ${selectedStaffId==='all'?'selected':''}>👥 All Staff Members</option>
             ${staffOptions}
           </select>
@@ -5508,27 +5508,27 @@ function renderAttendanceCalendarViewReport() {
     </div>
 
     <!-- Attendance KPI Scorecard -->
-    <div class="stat-grid" style="margin-bottom:10px;">
-      <div class="stat-card" style="border-left:3px solid var(--leaf);padding:5px 7px;">
-        <div class="num" style="color:var(--leaf);font-size:0.85rem;">${presentCount}</div>
-        <div class="label" style="font-size:0.58rem;">Days Present</div>
+    <div class="stat-grid" style="margin-bottom:14px;width:100%;box-sizing:border-box;">
+      <div class="stat-card" style="border-left:4px solid var(--leaf);padding:10px 12px;">
+        <div class="num" style="color:var(--leaf);font-size:1.1rem;">${presentCount}</div>
+        <div class="label" style="font-size:0.68rem;">Days Present</div>
       </div>
-      <div class="stat-card" style="border-left:3px solid var(--brick);padding:5px 7px;">
-        <div class="num" style="color:var(--brick);font-size:0.85rem;">${absentCount}</div>
-        <div class="label" style="font-size:0.58rem;">Days Absent</div>
+      <div class="stat-card" style="border-left:4px solid var(--brick);padding:10px 12px;">
+        <div class="num" style="color:var(--brick);font-size:1.1rem;">${absentCount}</div>
+        <div class="label" style="font-size:0.68rem;">Days Absent</div>
       </div>
-      <div class="stat-card" style="border-left:3px solid var(--turmeric);padding:5px 7px;">
-        <div class="num" style="color:var(--turmeric-dark);font-size:0.85rem;">${scorePct}%</div>
-        <div class="label" style="font-size:0.58rem;">Attendance Score</div>
+      <div class="stat-card" style="border-left:4px solid var(--turmeric);padding:10px 12px;">
+        <div class="num" style="color:var(--turmeric-dark);font-size:1.1rem;">${scorePct}%</div>
+        <div class="label" style="font-size:0.68rem;">Attendance Score</div>
       </div>
     </div>
 
     <!-- Calendar Grid Container -->
-    <div class="row-card" style="flex-direction:column;padding:8px;margin-bottom:16px;background:var(--paper);border:1px solid var(--paper-line);">
-      <div style="display:grid;grid-template-columns:repeat(7, 1fr);gap:3px;margin-bottom:4px;">
+    <div class="att-cal-container">
+      <div class="att-cal-grid" style="margin-bottom:8px;">
         ${dayHeadersHtml}
       </div>
-      <div style="display:grid;grid-template-columns:repeat(7, 1fr);gap:3px;">
+      <div class="att-cal-grid">
         ${cellsHtml}
       </div>
     </div>
@@ -8720,9 +8720,94 @@ window.__printVendorBillReceipt = function(id) {
     100% { transform: rotate(360deg); }
   }
 
+  /* Attendance Calendar Grid Responsive Overhaul (Full Desktop View + Mobile Scaled) */
+  .att-cal-container {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    background: var(--paper) !important;
+    border: 1px solid var(--paper-line) !important;
+    border-radius: 12px !important;
+    padding: 16px !important;
+    margin-bottom: 20px !important;
+  }
+
+  .att-cal-grid {
+    display: grid !important;
+    grid-template-columns: repeat(7, 1fr) !important;
+    gap: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .att-cal-header-cell {
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    text-align: center !important;
+    padding: 8px 0 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+  }
+
+  .att-cal-cell {
+    background: var(--card) !important;
+    border: 1.5px solid var(--paper-line) !important;
+    border-radius: 8px !important;
+    padding: 8px 10px !important;
+    min-height: 82px !important;
+    cursor: pointer !important;
+    transition: all 0.18s ease !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+  }
+
+  .att-cal-cell:hover {
+    border-color: var(--turmeric) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06) !important;
+    transform: translateY(-1px) !important;
+  }
+
+  .att-cal-cell.is-today {
+    border-color: var(--turmeric) !important;
+    box-shadow: 0 0 0 2.5px rgba(234, 179, 8, 0.35) !important;
+    background: var(--paper) !important;
+  }
+
+  .att-cal-badge {
+    font-size: 0.70rem !important;
+    font-weight: 700 !important;
+    padding: 3px 6px !important;
+    border-radius: 4px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+  }
 
   /* Mobile Responsiveness & Layout Alignment Overhaul */
   @media (max-width: 480px) {
+    .att-cal-container {
+      padding: 8px 6px !important;
+      border-radius: 8px !important;
+    }
+    .att-cal-grid {
+      gap: 3px !important;
+    }
+    .att-cal-header-cell {
+      font-size: 0.58rem !important;
+      padding: 4px 0 !important;
+    }
+    .att-cal-cell {
+      padding: 3px !important;
+      min-height: 48px !important;
+      border-radius: 5px !important;
+      border-width: 1px !important;
+    }
+    .att-cal-badge {
+      font-size: 0.52rem !important;
+      padding: 1px 3px !important;
+    }
     .wrap {
       padding: 12px 8px 140px !important;
     }
