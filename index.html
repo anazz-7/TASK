@@ -5523,12 +5523,12 @@ function renderAttendanceCalendarViewReport() {
       </div>
     </div>
 
-    <!-- Calendar Grid Container -->
-    <div class="att-cal-container">
-      <div class="att-cal-grid" style="margin-bottom:8px;">
+    <!-- Calendar Grid Container (Guaranteed 7-Column Layout) -->
+    <div class="att-cal-container" style="width:100%;box-sizing:border-box;background:var(--paper);border:1px solid var(--paper-line);border-radius:12px;padding:16px;margin-bottom:20px;">
+      <div class="att-cal-grid" style="display:grid !important;grid-template-columns:repeat(7, 1fr) !important;gap:8px;width:100%;box-sizing:border-box;margin-bottom:8px;">
         ${dayHeadersHtml}
       </div>
-      <div class="att-cal-grid">
+      <div class="att-cal-grid" style="display:grid !important;grid-template-columns:repeat(7, 1fr) !important;gap:8px;width:100%;box-sizing:border-box;">
         ${cellsHtml}
       </div>
     </div>
