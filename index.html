@@ -3098,8 +3098,27 @@ async function loadData(){
         try {
           const parsed = JSON.parse(ct.notes);
           if (Array.isArray(parsed)) {
-            cache.officeLogs = parsed;
-            localStorage.setItem('br_office_logs_' + bizId, ct.notes);
+            const localRaw = localStorage.getItem('br_office_logs_' + bizId);
+            const localArr = localRaw ? JSON.parse(localRaw) : [];
+            const mergedMap = new Map();
+            localArr.forEach(i => { if (i && i.id) mergedMap.set(i.id, i); });
+            parsed.forEach(i => { if (i && i.id) mergedMap.set(i.id, i); });
+            cache.officeLogs = Array.from(mergedMap.values());
+            localStorage.setItem('br_office_logs_' + bizId, JSON.stringify(cache.officeLogs));
+          }
+        } catch(e){}
+      }
+      if (ct.title === '[PNL_RECORDS_DATA]' && ct.notes) {
+        try {
+          const parsed = JSON.parse(ct.notes);
+          if (Array.isArray(parsed)) {
+            const localRaw = localStorage.getItem('br_pnl_records_' + bizId);
+            const localArr = localRaw ? JSON.parse(localRaw) : [];
+            const mergedMap = new Map();
+            localArr.forEach(i => { if (i && (i.id || i.month)) mergedMap.set(i.id || i.month, i); });
+            parsed.forEach(i => { if (i && (i.id || i.month)) mergedMap.set(i.id || i.month, i); });
+            cache.pnlRecords = Array.from(mergedMap.values());
+            localStorage.setItem('br_pnl_records_' + bizId, JSON.stringify(cache.pnlRecords));
           }
         } catch(e){}
       }
@@ -3722,6 +3741,7 @@ const TAB_META = {
   weekly: {icon:'weekly', label:'Weekly'},
   attendance: {icon:'attendance', label:'Attendance'},
   office_logs: {icon:'building', label:'Office Logs'},
+  pnl: {icon:'trending', label:'P&L Analytics'},
   sales: {icon:'sales', label:'Sales'},
   pricelist: {icon:'clipboard', label:'Price List'},
   label: {icon:'label', label:'Label'},
@@ -3740,15 +3760,16 @@ const TAB_META = {
 function currentTabs(){
   if(session.role === 'sales' || session.role === 'salesman') return ['pricelist', 'sales', 'tasks', 'accounts', 'low_stock'];
   return isManagerPlus()
-    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','office_logs','sales','pricelist','label','package','stockkeeper','points','salary','accounts','customer_report','low_stock','reports','audit','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','sales','pricelist','label','package','stockkeeper','points','accounts','customer_report','low_stock','audit','staff'])
+    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','office_logs','pnl','sales','pricelist','label','package','stockkeeper','points','salary','accounts','customer_report','low_stock','reports','audit','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','sales','pricelist','label','package','stockkeeper','points','accounts','customer_report','low_stock','audit','staff'])
     : ['pricelist', 'tasks','daily','weekly','attendance','sales','label','package','stockkeeper','points','accounts','low_stock'];
 }
 function quickTabs(){
   if(session.role === 'sales' || session.role === 'salesman') return ['pricelist', 'sales', 'tasks', 'accounts'];
-  return isOwner() ? ['dashboard','tasks','sales','office_logs'] : (isManagerPlus() ? ['dashboard','tasks','sales','pricelist'] : ['pricelist','tasks','sales','attendance']);
+  return isOwner() ? ['dashboard','tasks','sales','office_logs','pnl'] : (isManagerPlus() ? ['dashboard','tasks','sales','pricelist'] : ['pricelist','tasks','sales','attendance']);
 }
 function getPrimaryActionBtn(t){
   if(t==='office_logs') return `<button class="stamp-btn compact-mobile" onclick="window.__openOfficeLogModal()"><span class="btn-text">+ Log Cash</span><span class="btn-short">+</span></button>`;
+  if(t==='pnl' && isOwner()) return `<button class="stamp-btn compact-mobile" onclick="window.__openPnLModal()"><span class="btn-text">+ Log P&amp;L</span><span class="btn-short">+</span></button>`;
   if(t==='tasks') return `<button class="stamp-btn compact-mobile" onclick="window.__openTask()"><span class="btn-text">+ Add Task</span><span class="btn-short">+</span></button>`;
   if(t==='daily' && isManagerPlus()) return `<button class="stamp-btn compact-mobile" onclick="window.__openRoutine()"><span class="btn-text">+ Add Daily Task</span><span class="btn-short">+</span></button>`;
   if(t==='weekly' && isManagerPlus()) return `<button class="stamp-btn compact-mobile" onclick="window.__openWeekly()"><span class="btn-text">+ Add Weekly Task</span><span class="btn-short">+</span></button>`;
@@ -3857,7 +3878,7 @@ function renderShell(){
           { section: 'Overview', keys: ['dashboard','reports'] },
           { section: 'Work', keys: ['tasks','daily','weekly','attendance','low_stock'] },
           { section: 'Sales', keys: ['sales','pricelist','label','package'] },
-          { section: 'Money', keys: ['accounts','office_logs','customer_report','vendors','salary','points'] },
+          { section: 'Money', keys: ['accounts','office_logs','pnl','customer_report','vendors','salary','points'] },
           { section: 'Admin', keys: ['staff','stockkeeper','audit','settings'] }
         ].map(grp => {
           const validKeys = grp.keys.filter(k => tabs.includes(k));
@@ -3949,6 +3970,7 @@ function renderTabBody(){
   else if(activeTab==='stockkeeper') renderStockkeeperTab(body);
   else if(activeTab==='accounts' && (isOwner() || (isManager() && getFeatureConfig().allowManagerAccounts))) renderAccountsTab(body);
   else if(activeTab==='office_logs' && isOwner()) renderOfficeLogsTab(body);
+  else if(activeTab==='pnl' && isOwner()) renderPnLTab(body);
   else if(activeTab==='customer_report') renderCustomerReportTab(body);
   else if(activeTab==='low_stock') renderLowStockTab(body);
   else if(activeTab==='audit' && isManagerPlus()) renderAuditTab(body);
@@ -15352,7 +15374,7 @@ function getOfficeLogsData() {
   return cache.officeLogs || [];
 }
 
-function saveOfficeLogsData(data) {
+async function saveOfficeLogsData(data) {
   cache.officeLogs = data || [];
   if (session && session.businessId) {
     try {
@@ -15360,7 +15382,7 @@ function saveOfficeLogsData(data) {
     } catch(e){}
   }
   if (typeof syncCustomCloudPayload === 'function') {
-    syncCustomCloudPayload('[OFFICE_LOGS_DATA]', cache.officeLogs);
+    await syncCustomCloudPayload('[OFFICE_LOGS_DATA]', cache.officeLogs);
   }
 }
 
@@ -15447,7 +15469,7 @@ window.__openOfficeLogModal = function(editId) {
   getModalHolder('taskModalHolder').innerHTML = html;
 };
 
-window.__saveOfficeLog = function(editId, form) {
+window.__saveOfficeLog = async function(editId, form) {
   const type = form.log_type.value || 'deposit';
   const amount = Number(form.amount.value || 0);
   const date = form.date.value || todayStr();
@@ -15486,9 +15508,9 @@ window.__saveOfficeLog = function(editId, form) {
     });
   }
 
-  saveOfficeLogsData(logs);
+  await saveOfficeLogsData(logs);
   getModalHolder('taskModalHolder').innerHTML = '';
-  window.showToast(isEdit ? 'Office log updated!' : '🏢 Office Cash Log recorded!', 'success');
+  window.showToast(isEdit ? 'Office log updated & synced!' : '🏢 Office Cash Log recorded & synced to Cloud!', 'success');
   renderTabBody();
 };
 
@@ -15659,6 +15681,422 @@ function renderOfficeLogsTab(body) {
                   No office cash logs recorded matching your filter.
                 </td>
               </tr>
+            `}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/* ================================================================
+   >>> P&L STATEMENT & ANALYTICAL GRAPH ENGINE (OWNER ONLY) <<<
+================================================================ */
+let pnlSearchQuery = '';
+
+function getPnLData() {
+  if (!cache.pnlRecords) {
+    if (!session || !session.businessId) cache.pnlRecords = [];
+    else {
+      try {
+        const raw = localStorage.getItem('br_pnl_records_' + session.businessId);
+        cache.pnlRecords = raw ? JSON.parse(raw) : [];
+      } catch(e) { cache.pnlRecords = []; }
+    }
+  }
+  return cache.pnlRecords || [];
+}
+
+async function savePnLData(data) {
+  cache.pnlRecords = data || [];
+  if (session && session.businessId) {
+    try {
+      localStorage.setItem('br_pnl_records_' + session.businessId, JSON.stringify(cache.pnlRecords));
+    } catch(e){}
+  }
+  if (typeof syncCustomCloudPayload === 'function') {
+    await syncCustomCloudPayload('[PNL_RECORDS_DATA]', cache.pnlRecords);
+  }
+}
+
+window.__onPnLSearch = function(val) {
+  pnlSearchQuery = val || '';
+  renderTabBody();
+};
+
+window.__openPnLModal = function(editId) {
+  if (!isOwner()) return;
+  const records = getPnLData();
+  const item = editId ? records.find(r => r.id === editId) : null;
+  const isEdit = !!item;
+  const currentMonth = monthKey(todayStr());
+
+  const html = `
+    <div class="overlay show" onclick="if(event.target===this) window.__closeCurrentModal(this)">
+      <div class="modal" style="max-width:480px;width:94%;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <h3 style="margin:0;display:inline-flex;align-items:center;gap:6px;">
+            ${icon('reports', 18)} ${isEdit ? 'Edit P&L Financial Record' : 'Record Monthly Profit & Loss'}
+          </h3>
+          <button class="stamp-btn small ghost" onclick="window.__closeCurrentModal(this)">✕</button>
+        </div>
+
+        <form onsubmit="event.preventDefault(); window.__savePnLRecord('${editId || ''}', this);">
+          <div style="margin-bottom:12px;display:flex;justify-content:flex-end;">
+            <button type="button" class="stamp-btn small ghost" style="font-size:0.75rem;color:var(--turmeric-dark);padding:4px 8px;" onclick="window.__autoCalculatePnLForMonth(this.form)">
+              ✨ Auto-Calculate from Sales &amp; Expenses
+            </button>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:140px;">
+              <label style="font-size:0.75rem;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:4px;">MONTH / PERIOD *</label>
+              <input type="month" name="month" value="${item ? item.month : currentMonth}" required style="width:100%;box-sizing:border-box;font-size:0.85rem;">
+            </div>
+            <div style="flex:1;min-width:140px;">
+              <label style="font-size:0.75rem;font-weight:700;color:var(--leaf);display:block;margin-bottom:4px;">GROSS REVENUE (₹) *</label>
+              <input type="number" step="any" name="revenue" placeholder="e.g. 250000" value="${item ? item.revenue : ''}" required oninput="window.__calcPnLNetProfit(this.form)" style="width:100%;box-sizing:border-box;font-family:'Roboto Mono',monospace;font-size:0.95rem;font-weight:700;">
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:140px;">
+              <label style="font-size:0.75rem;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:4px;">COST OF GOODS / VENDOR BILLS (₹)</label>
+              <input type="number" step="any" name="cogs" placeholder="e.g. 100000" value="${item ? (item.cogs || 0) : ''}" oninput="window.__calcPnLNetProfit(this.form)" style="width:100%;box-sizing:border-box;font-family:'Roboto Mono',monospace;font-size:0.88rem;">
+            </div>
+            <div style="flex:1;min-width:140px;">
+              <label style="font-size:0.75rem;font-weight:700;color:var(--brick);display:block;margin-bottom:4px;">OPERATING EXPENSES / SALARY (₹)</label>
+              <input type="number" step="any" name="expenses" placeholder="e.g. 45000" value="${item ? (item.expenses || 0) : ''}" oninput="window.__calcPnLNetProfit(this.form)" style="width:100%;box-sizing:border-box;font-family:'Roboto Mono',monospace;font-size:0.88rem;">
+            </div>
+          </div>
+
+          <!-- Calculated Preview Scorecard -->
+          <div style="background:var(--paper-line);padding:10px 12px;border-radius:8px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="font-size:0.68rem;font-weight:700;color:var(--ink-soft);text-transform:uppercase;">CALCULATED NET PROFIT</div>
+              <b id="pnlPreviewNet" style="font-size:1.1rem;color:var(--leaf);font-family:'Roboto Mono',monospace;">₹${item ? Number(item.net_profit || 0).toLocaleString('en-IN') : '0'}</b>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:0.68rem;font-weight:700;color:var(--ink-soft);text-transform:uppercase;">PROFIT MARGIN</div>
+              <b id="pnlPreviewMargin" style="font-size:1.1rem;color:var(--turmeric-dark);font-family:'Roboto Mono',monospace;">${item && item.revenue ? ((item.net_profit / item.revenue) * 100).toFixed(1) + '%' : '0.0%'}</b>
+            </div>
+          </div>
+
+          <div style="margin-bottom:14px;">
+            <label style="font-size:0.75rem;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:4px;">REMARKS / SUMMARY NOTES</label>
+            <textarea name="notes" rows="2" placeholder="e.g. Higher margin due to bulk festival sales" style="width:100%;box-sizing:border-box;font-size:0.82rem;">${item ? esc(item.notes) : ''}</textarea>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;gap:8px;">
+            <button type="button" class="stamp-btn ghost" onclick="window.__closeCurrentModal(this)">Cancel</button>
+            <button type="submit" class="stamp-btn">💾 Save P&amp;L Record</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  getModalHolder('taskModalHolder').innerHTML = html;
+};
+
+window.__calcPnLNetProfit = function(form) {
+  if (!form) return;
+  const rev = Number(form.revenue.value || 0);
+  const cogs = Number(form.cogs.value || 0);
+  const exp = Number(form.expenses.value || 0);
+  const net = rev - (cogs + exp);
+  const margin = rev > 0 ? ((net / rev) * 100).toFixed(1) : '0.0';
+
+  const previewNet = document.getElementById('pnlPreviewNet');
+  const previewMargin = document.getElementById('pnlPreviewMargin');
+  if (previewNet) {
+    previewNet.textContent = `${net >= 0 ? '+' : ''} ₹${net.toLocaleString('en-IN')}`;
+    previewNet.style.color = net >= 0 ? 'var(--leaf)' : 'var(--brick)';
+  }
+  if (previewMargin) {
+    previewMargin.textContent = `${margin}%`;
+  }
+};
+
+window.__autoCalculatePnLForMonth = function(form) {
+  if (!form) return;
+  const selectedMonth = form.month.value || monthKey(todayStr());
+  
+  // Calculate total revenue from cache.sales for selectedMonth
+  const monthSales = (cache.sales || []).filter(s => monthKey(s.date || s.created_at) === selectedMonth);
+  const revTotal = monthSales.reduce((sum, s) => sum + Number(s.amount || s.total_amount || 0), 0);
+
+  // Calculate expenses from cache.expenses / vendor bills
+  const monthExp = (cache.expenses || []).filter(e => monthKey(e.date || e.created_at) === selectedMonth);
+  const expTotal = monthExp.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+
+  // Calculate vendor bills paid
+  const monthBills = (cache.vendorBills || []).filter(b => monthKey(b.date || b.created_at) === selectedMonth);
+  const cogsTotal = monthBills.reduce((sum, b) => sum + Number(b.amount || 0), 0);
+
+  form.revenue.value = revTotal || '';
+  form.cogs.value = cogsTotal || '';
+  form.expenses.value = expTotal || '';
+  window.__calcPnLNetProfit(form);
+  window.showToast('✨ Auto-populated revenue & expenses from logged records!', 'success');
+};
+
+window.__savePnLRecord = async function(editId, form) {
+  const month = form.month.value;
+  const revenue = Number(form.revenue.value || 0);
+  const cogs = Number(form.cogs.value || 0);
+  const expenses = Number(form.expenses.value || 0);
+  const net_profit = revenue - (cogs + expenses);
+  const notes = (form.notes.value || '').trim();
+
+  if (!month || revenue < 0) {
+    window.showToast('Please enter a valid month and revenue.', 'warning');
+    return;
+  }
+
+  const records = getPnLData();
+  const isEdit = !!editId;
+
+  if (editId) {
+    const idx = records.findIndex(r => r.id === editId);
+    if (idx !== -1) {
+      records[idx].month = month;
+      records[idx].revenue = revenue;
+      records[idx].cogs = cogs;
+      records[idx].expenses = expenses;
+      records[idx].net_profit = net_profit;
+      records[idx].notes = notes;
+    }
+  } else {
+    const existingIdx = records.findIndex(r => r.month === month);
+    if (existingIdx !== -1) {
+      records[existingIdx] = {
+        id: records[existingIdx].id,
+        month, revenue, cogs, expenses, net_profit, notes,
+        updated_at: new Date().toISOString()
+      };
+    } else {
+      records.unshift({
+        id: 'pnl_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        month, revenue, cogs, expenses, net_profit, notes,
+        created_at: new Date().toISOString()
+      });
+    }
+  }
+
+  records.sort((a, b) => b.month.localeCompare(a.month));
+
+  await savePnLData(records);
+  getModalHolder('taskModalHolder').innerHTML = '';
+  window.showToast(isEdit ? 'P&L record updated!' : '📊 Profit & Loss log saved!', 'success');
+  renderTabBody();
+};
+
+window.__deletePnLRecord = async function(id) {
+  if (!confirm('Are you sure you want to delete this P&L record?')) return;
+  let records = getPnLData();
+  records = records.filter(r => r.id !== id);
+  await savePnLData(records);
+  window.showToast('P&L record deleted', 'info');
+  renderTabBody();
+};
+
+function renderPnLTab(body) {
+  if (!isOwner()) {
+    body.innerHTML = `<div class="empty" style="padding:40px;text-align:center;color:var(--brick);font-weight:700;">⚠️ Access Restricted. Only business owners can view P&L Analytics.</div>`;
+    return;
+  }
+
+  const records = getPnLData();
+  const curMonth = monthKey(todayStr());
+  const thisMonthRec = records.find(r => r.month === curMonth) || records[0];
+
+  const thisRev = thisMonthRec ? Number(thisMonthRec.revenue || 0) : 0;
+  const thisCogs = thisMonthRec ? Number(thisMonthRec.cogs || 0) : 0;
+  const thisExp = thisMonthRec ? Number(thisMonthRec.expenses || 0) : 0;
+  const thisNet = thisMonthRec ? Number(thisMonthRec.net_profit || (thisRev - (thisCogs + thisExp))) : 0;
+  const thisMargin = thisRev > 0 ? ((thisNet / thisRev) * 100).toFixed(1) : '0.0';
+
+  const filtered = records.filter(r => {
+    const q = pnlSearchQuery.toLowerCase().trim();
+    return !q || (r.month || '').includes(q) || (r.notes || '').toLowerCase().includes(q);
+  });
+
+  const chartEntries = records.slice(0, 6).reverse();
+  const maxVal = Math.max(1, ...chartEntries.map(r => Math.max(Number(r.revenue||0), Number(r.cogs||0) + Number(r.expenses||0))));
+
+  let chartBarsSvg = '';
+  if (chartEntries.length > 0) {
+    const chartW = 600;
+    const chartH = 180;
+    const barW = Math.max(16, Math.floor((chartW / (chartEntries.length * 3.2))));
+    
+    chartBarsSvg = `
+      <svg viewBox="0 0 ${chartW} ${chartH}" style="width:100%;height:auto;max-height:220px;overflow:visible;">
+        <line x1="0" y1="30" x2="${chartW}" y2="30" stroke="var(--paper-line)" stroke-dasharray="3,3" stroke-width="1"/>
+        <line x1="0" y1="85" x2="${chartW}" y2="85" stroke="var(--paper-line)" stroke-dasharray="3,3" stroke-width="1"/>
+        <line x1="0" y1="140" x2="${chartW}" y2="140" stroke="var(--paper-line)" stroke-width="1.5"/>
+
+        ${chartEntries.map((r, idx) => {
+          const rev = Number(r.revenue || 0);
+          const exp = Number(r.cogs || 0) + Number(r.expenses || 0);
+          const net = Number(r.net_profit || (rev - exp));
+
+          const revH = Math.max(4, Math.round((rev / maxVal) * 110));
+          const expH = Math.max(4, Math.round((exp / maxVal) * 110));
+          const groupX = 35 + idx * (chartW / chartEntries.length);
+
+          const monthLabel = r.month ? r.month : `M${idx+1}`;
+
+          return `
+            <g transform="translate(${groupX}, 0)">
+              <rect x="0" y="${140 - revH}" width="${barW}" height="${revH}" fill="var(--leaf)" rx="3" opacity="0.9">
+                <title>Revenue: ₹${rev.toLocaleString('en-IN')}</title>
+              </rect>
+              <rect x="${barW + 4}" y="${140 - expH}" width="${barW}" height="${expH}" fill="var(--brick)" rx="3" opacity="0.85">
+                <title>Expenses: ₹${exp.toLocaleString('en-IN')}</title>
+              </rect>
+
+              <text x="${barW}" y="160" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ink-soft)" font-family="sans-serif">${monthLabel}</text>
+
+              <text x="${barW}" y="${Math.min(130, 140 - Math.max(revH, expH) - 10)}" text-anchor="middle" font-size="10" font-weight="700" fill="${net>=0?'var(--leaf)':'var(--brick)'}" font-family="'Roboto Mono',monospace">
+                ${net>=0?'+':''}₹${Math.round(net/1000)}k
+              </text>
+            </g>
+          `;
+        }).join('')}
+      </svg>
+    `;
+  } else {
+    chartBarsSvg = `<div style="padding:40px;text-align:center;color:var(--ink-soft);font-size:0.85rem;">No historical P&amp;L records yet. Click <b>+ Log Monthly P&amp;L</b> to create your first report!</div>`;
+  }
+
+  body.innerHTML = `
+    <!-- Top Executive Scorecards -->
+    <div class="stat-grid" style="margin-bottom:16px;">
+      <div class="stat-card" style="border-left:4px solid ${thisNet>=0?'var(--leaf)':'var(--brick)'};">
+        <div class="num" style="color:${thisNet>=0?'var(--leaf)':'var(--brick)'}">
+          ${thisNet>=0?'+':''} ₹${thisNet.toLocaleString('en-IN')}
+        </div>
+        <div class="label">Net Profit (${thisMonthRec ? thisMonthRec.month : 'Current'})</div>
+      </div>
+      <div class="stat-card" style="border-left:4px solid var(--leaf);">
+        <div class="num" style="color:var(--leaf);">₹${thisRev.toLocaleString('en-IN')}</div>
+        <div class="label">Gross Revenue</div>
+      </div>
+      <div class="stat-card" style="border-left:4px solid var(--brick);">
+        <div class="num" style="color:var(--brick);">₹${(thisCogs + thisExp).toLocaleString('en-IN')}</div>
+        <div class="label">Total Cost &amp; Expenses</div>
+      </div>
+      <div class="stat-card" style="border-left:4px solid var(--turmeric);">
+        <div class="num" style="color:var(--turmeric-dark);">${thisMargin}%</div>
+        <div class="label">Net Profit Margin</div>
+      </div>
+    </div>
+
+    <!-- Analytical Visual Financial Performance Chart Card -->
+    <div class="att-cal-container" style="margin-bottom:18px;padding:16px;background:var(--paper);border:1px solid var(--paper-line);border-radius:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+        <div>
+          <h3 style="margin:0;font-size:0.95rem;color:var(--ink);display:inline-flex;align-items:center;gap:6px;">
+            ${icon('reports', 16)} Financial Performance &amp; Profit Trends
+          </h3>
+          <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">Comparing Revenue (Green) vs Expenses (Red)</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;font-size:0.72rem;font-weight:700;">
+          <span style="display:inline-flex;align-items:center;gap:4px;"><b style="color:var(--leaf);">■</b> Revenue</span>
+          <span style="display:inline-flex;align-items:center;gap:4px;"><b style="color:var(--brick);">■</b> Expenses</span>
+        </div>
+      </div>
+
+      ${chartBarsSvg}
+    </div>
+
+    <!-- Controls & Action Header -->
+    <div class="row-card" style="flex-wrap:wrap;gap:10px;align-items:center;padding:12px;margin-bottom:16px;">
+      <div style="flex:1;min-width:160px;">
+        <input type="text" placeholder="Search month (e.g. 2026-08) or notes..." value="${esc(pnlSearchQuery)}" oninput="window.__onPnLSearch(this.value)" style="width:100%;box-sizing:border-box;font-size:0.82rem;">
+      </div>
+      <button class="stamp-btn small" onclick="window.__openPnLModal()">${icon('plus', 14)} Log Monthly P&amp;L</button>
+    </div>
+
+    <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
+      <span style="display:inline-flex;align-items:center;gap:6px;">📊 Historical P&amp;L Statements (${filtered.length} Entries)</span>
+    </div>
+
+    <!-- Mobile Card List (< 640px) -->
+    <div class="mobile-only" style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+      ${filtered.length ? filtered.map(item => {
+        const rev = Number(item.revenue || 0);
+        const cogs = Number(item.cogs || 0);
+        const exp = Number(item.expenses || 0);
+        const net = Number(item.net_profit || (rev - (cogs + exp)));
+        const margin = rev > 0 ? ((net / rev) * 100).toFixed(1) : '0.0';
+        return `
+          <div class="row-card" style="flex-direction:column;align-items:stretch;padding:12px;margin:0;border-left:4px solid ${net>=0?'var(--leaf)':'var(--brick)'};">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <b style="font-size:0.9rem;color:var(--ink);">${item.month}</b>
+              <span class="stamp ${net>=0?'present':'absent'}" style="font-size:0.72rem;">
+                ${net>=0?'+':''} ₹${net.toLocaleString('en-IN')} (${margin}%)
+              </span>
+            </div>
+            <div style="font-size:0.75rem;color:var(--ink-soft);display:flex;justify-content:space-between;margin-bottom:4px;">
+              <span>Revenue: <b style="color:var(--leaf);">₹${rev.toLocaleString('en-IN')}</b></span>
+              <span>Expenses: <b style="color:var(--brick);">₹${(cogs+exp).toLocaleString('en-IN')}</b></span>
+            </div>
+            ${item.notes ? `<div style="font-size:0.75rem;color:var(--ink);font-style:italic;margin-top:2px;">"${esc(item.notes)}"</div>` : ''}
+            <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px;padding-top:6px;border-top:1px solid var(--paper-line);">
+              <button class="stamp-btn small ghost" style="padding:3px 8px;font-size:0.75rem;" onclick="window.__openPnLModal('${item.id}')">✎ Edit</button>
+              <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:3px 8px;font-size:0.75rem;" onclick="window.__deletePnLRecord('${item.id}')">🗑 Delete</button>
+            </div>
+          </div>
+        `;
+      }).join('') : `
+        <div class="empty" style="padding:24px;text-align:center;font-size:0.82rem;">No P&amp;L records found matching filter.</div>
+      `}
+    </div>
+
+    <!-- Desktop Table View (≥ 640px) -->
+    <div class="row-card desktop-only" style="flex-direction:column;padding:0;overflow:hidden;margin-bottom:20px;">
+      <div style="width:100%;overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;text-align:left;font-size:0.82rem;">
+          <thead>
+            <tr style="background:var(--paper-line);color:var(--ink-soft);font-family:'Roboto Mono',monospace;font-size:0.78rem;text-transform:uppercase;border-bottom:1.5px solid var(--paper-line);">
+              <th style="padding:10px 14px;">Month</th>
+              <th style="padding:10px 14px;">Gross Revenue</th>
+              <th style="padding:10px 14px;">Cost of Goods</th>
+              <th style="padding:10px 14px;">Operating Expenses</th>
+              <th style="padding:10px 14px;">Net Profit / Loss</th>
+              <th style="padding:10px 14px;">Margin</th>
+              <th style="padding:10px 14px;">Notes</th>
+              <th style="padding:10px 14px;text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filtered.length ? filtered.map(item => {
+              const rev = Number(item.revenue || 0);
+              const cogs = Number(item.cogs || 0);
+              const exp = Number(item.expenses || 0);
+              const net = Number(item.net_profit || (rev - (cogs + exp)));
+              const margin = rev > 0 ? ((net / rev) * 100).toFixed(1) : '0.0';
+              return `
+                <tr style="border-bottom:1px solid var(--paper-line);">
+                  <td style="padding:10px 14px;font-weight:700;">${item.month}</td>
+                  <td style="padding:10px 14px;color:var(--leaf);font-weight:700;font-family:'Roboto Mono',monospace;">₹${rev.toLocaleString('en-IN')}</td>
+                  <td style="padding:10px 14px;font-family:'Roboto Mono',monospace;">₹${cogs.toLocaleString('en-IN')}</td>
+                  <td style="padding:10px 14px;font-family:'Roboto Mono',monospace;">₹${exp.toLocaleString('en-IN')}</td>
+                  <td style="padding:10px 14px;font-weight:700;font-family:'Roboto Mono',monospace;color:${net>=0?'var(--leaf)':'var(--brick)'};">
+                    ${net>=0?'+':''} ₹${net.toLocaleString('en-IN')}
+                  </td>
+                  <td style="padding:10px 14px;font-weight:700;">${margin}%</td>
+                  <td style="padding:10px 14px;color:var(--ink-soft);">${esc(item.notes || '—')}</td>
+                  <td style="padding:10px 14px;text-align:right;">
+                    <button class="stamp-btn small ghost" style="padding:3px 8px;font-size:0.75rem;" onclick="window.__openPnLModal('${item.id}')">✎ Edit</button>
+                    <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:3px 8px;font-size:0.75rem;margin-left:4px;" onclick="window.__deletePnLRecord('${item.id}')">🗑 Delete</button>
+                  </td>
+                </tr>
+              `;
+            }).join('') : `
+              <tr><td colspan="8" style="padding:24px;text-align:center;color:var(--ink-soft);">No P&amp;L statements recorded yet.</td></tr>
             `}
           </tbody>
         </table>
