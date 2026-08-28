@@ -5302,6 +5302,7 @@ function computePresenceStreak(staffId){
 let attendanceSubTab = 'daily'; // 'daily' | 'calendar'
 let attendanceCalendarMonth = monthKey(todayStr());
 let attendanceCalendarStaffId = 'all';
+let attendanceCalendarStatusFilter = 'all'; // 'all' | 'present' | 'absent'
 
 window.__setAttendanceSubTab = function(sub) {
   attendanceSubTab = sub || 'daily';
@@ -5313,8 +5314,36 @@ window.__setCalendarReportMonth = function(m) {
   renderTabBody();
 };
 
+window.__prevCalendarMonth = function() {
+  const parts = attendanceCalendarMonth.split('-');
+  let y = parseInt(parts[0], 10) || 2026;
+  let m = parseInt(parts[1], 10) - 1;
+  if (m < 1) { m = 12; y--; }
+  attendanceCalendarMonth = `${y}-${String(m).padStart(2, '0')}`;
+  renderTabBody();
+};
+
+window.__nextCalendarMonth = function() {
+  const parts = attendanceCalendarMonth.split('-');
+  let y = parseInt(parts[0], 10) || 2026;
+  let m = parseInt(parts[1], 10) + 1;
+  if (m > 12) { m = 1; y++; }
+  attendanceCalendarMonth = `${y}-${String(m).padStart(2, '0')}`;
+  renderTabBody();
+};
+
+window.__todayCalendarMonth = function() {
+  attendanceCalendarMonth = monthKey(todayStr());
+  renderTabBody();
+};
+
 window.__setCalendarReportStaff = function(st) {
   attendanceCalendarStaffId = st || 'all';
+  renderTabBody();
+};
+
+window.__setCalendarStatusFilter = function(f) {
+  attendanceCalendarStatusFilter = f || 'all';
   renderTabBody();
 };
 
@@ -5322,33 +5351,60 @@ window.__openCalendarDayDetailModal = function(dateStr, staffId) {
   const holder = getModalHolder('taskModalHolder');
   const dayRecords = cache.attendance.filter(a => a.date === dateStr);
   const targetStaffList = (staffId === 'all' || !staffId) ? cache.staff : cache.staff.filter(s => s.id === staffId);
+  const prettyDate = new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+
+  const pCount = dayRecords.filter(a => a.status === 'present').length;
+  const aCount = dayRecords.filter(a => a.status === 'absent').length;
+  const totalTarget = targetStaffList.length || 1;
+  const attPct = Math.round((pCount / totalTarget) * 100);
 
   const html = `
     <div class="overlay show" onclick="if(event.target===this) getModalHolder('taskModalHolder').innerHTML=''">
-      <div class="modal" style="max-width:440px;width:92%;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-          <h3 style="margin:0;display:inline-flex;align-items:center;gap:6px;font-size:0.9rem;">
-            ${icon('weekly',16)} Attendance Detail — ${dateStr}
-          </h3>
+      <div class="modal" style="max-width:480px;width:94%;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div>
+            <h3 style="margin:0;font-size:0.95rem;color:var(--ink);display:inline-flex;align-items:center;gap:6px;">
+              ${icon('weekly',16)} Attendance Detail
+            </h3>
+            <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;font-weight:600;">${prettyDate}</div>
+          </div>
           <button class="stamp-btn small ghost" onclick="getModalHolder('taskModalHolder').innerHTML=''">✕</button>
         </div>
+
+        <!-- Quick Summary Bar inside modal -->
+        <div style="display:flex;gap:6px;margin-bottom:12px;background:var(--paper-line);padding:6px;border-radius:8px;">
+          <div style="flex:1;background:var(--paper);padding:6px;border-radius:6px;text-align:center;">
+            <div style="font-size:0.9rem;font-weight:700;color:var(--leaf);">${pCount}</div>
+            <div style="font-size:0.58rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">✓ Present</div>
+          </div>
+          <div style="flex:1;background:var(--paper);padding:6px;border-radius:6px;text-align:center;">
+            <div style="font-size:0.9rem;font-weight:700;color:var(--brick);">${aCount}</div>
+            <div style="font-size:0.58rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">× Absent</div>
+          </div>
+          <div style="flex:1;background:var(--paper);padding:6px;border-radius:6px;text-align:center;">
+            <div style="font-size:0.9rem;font-weight:700;color:var(--turmeric-dark);">${attPct}%</div>
+            <div style="font-size:0.58rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">Score</div>
+          </div>
+        </div>
+
+        <!-- Staff Records List -->
         <div style="display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto;">
           ${targetStaffList.map(s => {
             const rec = dayRecords.find(a => a.staff_id === s.id);
             const status = rec ? rec.status : 'unmarked';
             const timeVal = rec && rec.marked_at ? timeStr(rec.marked_at) : 'Not marked';
-            const locLink = rec && rec.marked_lat != null ? `<a class="link" href="${mapLink(rec.marked_lat, rec.marked_lng)}" target="_blank" style="font-size:0.65rem;">${icon('pin',12)} View Map Location</a>` : '';
+            const locLink = rec && rec.marked_lat != null ? `<a class="link" href="${mapLink(rec.marked_lat, rec.marked_lng)}" target="_blank" style="font-size:0.68rem;display:inline-flex;align-items:center;gap:3px;">${icon('pin',12)} Mapped Location</a>` : '';
             return `
               <div style="background:var(--paper);padding:8px 10px;border-radius:8px;border:1px solid var(--paper-line);display:flex;justify-content:space-between;align-items:center;">
                 <div>
-                  <b style="font-size:0.78rem;color:var(--ink);display:block;">${esc(s.name)}</b>
-                  <span style="font-size:0.65rem;color:var(--ink-soft);">${timeVal}</span>
-                  ${locLink ? `<div style="font-size:0.62rem;margin-top:2px;">${locLink}</div>` : ''}
+                  <b style="font-size:0.8rem;color:var(--ink);display:block;">${esc(s.name)}</b>
+                  <span style="font-size:0.68rem;color:var(--ink-soft);font-family:'Roboto Mono',monospace;">${timeVal}</span>
+                  ${locLink ? `<div style="margin-top:2px;">${locLink}</div>` : ''}
                 </div>
                 <div style="display:flex;align-items:center;gap:6px;">
                   <span class="stamp ${status}" style="font-size:0.68rem;">${status}</span>
                   ${isManagerPlus() ? `
-                    <button class="stamp-btn small ghost" style="font-size:0.62rem;padding:2px 6px;" onclick="getModalHolder('taskModalHolder').innerHTML=''; window.__markStaffAttendanceForDate('${s.id}', '${dateStr}', '${status==='present'?'absent':'present'}')">
+                    <button class="stamp-btn small ghost" style="font-size:0.65rem;padding:2px 6px;" onclick="getModalHolder('taskModalHolder').innerHTML=''; window.__markStaffAttendanceForDate('${s.id}', '${dateStr}', '${status==='present'?'absent':'present'}')">
                       Switch
                     </button>
                   ` : ''}
@@ -5386,6 +5442,9 @@ function renderAttendanceCalendarViewReport() {
   const year = parseInt(parts[0], 10) || 2026;
   const month = parseInt(parts[1], 10) || 8;
   const today = todayStr();
+
+  const monthDateObj = new Date(year, month - 1, 1);
+  const monthTitlePretty = monthDateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   const selectedStaffId = (attendanceCalendarStaffId === 'all' && !isManagerPlus()) ? session.staffId : attendanceCalendarStaffId;
 
@@ -5427,62 +5486,91 @@ function renderAttendanceCalendarViewReport() {
     cellsHtml += `<div class="att-cal-cell" style="background:var(--paper-line);opacity:0.25;border-color:transparent;cursor:default;"></div>`;
   }
 
+  const totalStaffCount = (selectedStaffId === 'all' ? cache.staff.length : 1) || 1;
+
   for (let d = 1; d <= totalDays; d++) {
     const dateNum = String(d).padStart(2, '0');
     const dateStr = `${year}-${String(month).padStart(2,'0')}-${dateNum}`;
     const isToday = dateStr === today;
     const dayOfWeek = new Date(year, month - 1, d).getDay();
     const isSunday = dayOfWeek === 0;
+    const isSaturday = dayOfWeek === 6;
+    const isWeekend = isSunday || isSaturday;
 
     let cellContent = '';
+    let pCount = 0;
+    let aCount = 0;
 
     if (selectedStaffId !== 'all') {
       const rec = targetRecords.find(a => a.date === dateStr);
       if (rec) {
         const isP = rec.status === 'present';
+        if (isP) pCount = 1; else aCount = 1;
         const badgeColor = isP ? 'var(--leaf)' : 'var(--brick)';
         const badgeBg = isP ? 'var(--leaf-soft)' : '#FEE2E2';
-        const badgeLabel = isP ? 'PRESENT' : 'ABSENT';
+        const badgeLabel = isP ? '✓ Present' : '× Absent';
         const timeVal = rec.marked_at ? timeStr(rec.marked_at) : '';
         const hasLoc = rec.marked_lat != null;
 
         cellContent = `
-          <div style="margin-top:4px;">
-            <span class="att-cal-badge" style="background:${badgeBg};color:${badgeColor};">
+          <div style="margin-top:6px;display:flex;flex-direction:column;gap:3px;">
+            <span class="att-cal-badge" style="background:${badgeBg};color:${badgeColor};align-self:flex-start;">
               ${badgeLabel}
             </span>
-            ${timeVal ? `<div style="font-size:0.68rem;color:var(--ink-soft);margin-top:3px;font-family:'Roboto Mono',monospace;">${timeVal}</div>` : ''}
-            ${hasLoc ? `<div style="font-size:0.65rem;color:var(--leaf);margin-top:2px;">📍 Mapped</div>` : ''}
+            ${timeVal ? `<div style="font-size:0.68rem;color:var(--ink-soft);margin-top:2px;font-family:'Roboto Mono',monospace;">${timeVal}</div>` : ''}
+            ${hasLoc ? `<div style="font-size:0.65rem;color:var(--leaf);margin-top:1px;">📍 Mapped</div>` : ''}
           </div>
         `;
       } else if (isSunday) {
-        cellContent = `<span style="font-size:0.68rem;font-weight:600;color:var(--ink-soft);display:inline-block;margin-top:4px;">OFF</span>`;
+        cellContent = `<span style="font-size:0.68rem;font-weight:600;color:var(--ink-soft);display:inline-block;margin-top:6px;">OFF</span>`;
       } else if (dateStr < today) {
-        cellContent = `<span style="font-size:0.68rem;font-weight:700;color:var(--brick);display:inline-block;margin-top:4px;">—</span>`;
+        cellContent = `<span style="font-size:0.68rem;font-weight:700;color:var(--brick);display:inline-block;margin-top:6px;">—</span>`;
       }
     } else {
       const dayAtts = monthRecords.filter(a => a.date === dateStr);
-      const pCount = dayAtts.filter(a => a.status === 'present').length;
-      const aCount = dayAtts.filter(a => a.status === 'absent').length;
+      pCount = dayAtts.filter(a => a.status === 'present').length;
+      aCount = dayAtts.filter(a => a.status === 'absent').length;
+
+      const pPct = Math.min(100, Math.round((pCount / totalStaffCount) * 100));
+      const aPct = Math.min(100 - pPct, Math.round((aCount / totalStaffCount) * 100));
 
       if (pCount > 0 || aCount > 0) {
         cellContent = `
-          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">
-            ${pCount > 0 ? `<span class="att-cal-badge" style="background:var(--leaf-soft);color:var(--leaf);">${pCount} Present</span>` : ''}
-            ${aCount > 0 ? `<span class="att-cal-badge" style="background:#FEE2E2;color:var(--brick);">${aCount} Absent</span>` : ''}
+          <div style="margin-top:6px;display:flex;flex-direction:column;gap:4px;">
+            <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
+              ${pCount > 0 ? `<span class="att-cal-badge" style="background:var(--leaf-soft);color:var(--leaf);">✓ ${pCount} Present</span>` : ''}
+              ${aCount > 0 ? `<span class="att-cal-badge" style="background:#FEE2E2;color:var(--brick);">× ${aCount} Absent</span>` : ''}
+            </div>
+            <div style="height:4px;background:#E2E8F0;border-radius:999px;overflow:hidden;display:flex;width:100%;margin-top:2px;">
+              <div style="width:${pPct}%;background:var(--leaf);height:100%;"></div>
+              <div style="width:${aPct}%;background:var(--brick);height:100%;"></div>
+            </div>
           </div>
         `;
       } else if (isSunday) {
-        cellContent = `<span style="font-size:0.68rem;font-weight:600;color:var(--ink-soft);display:inline-block;margin-top:4px;">OFF</span>`;
+        cellContent = `<span style="font-size:0.68rem;font-weight:600;color:var(--ink-soft);display:inline-block;margin-top:6px;">OFF</span>`;
       }
     }
 
+    // Status filter matching
+    let dimStyle = '';
+    if (attendanceCalendarStatusFilter === 'present' && pCount === 0) dimStyle = 'opacity:0.4;';
+    if (attendanceCalendarStatusFilter === 'absent' && aCount === 0) dimStyle = 'opacity:0.4;';
+
+    // Weekend background shading
+    const weekendBg = isWeekend ? 'background:rgba(241,245,249,0.65);' : '';
+
+    // Cell title hover preview
+    const hoverTitle = `${monthTitlePretty} ${d}: ${pCount} Present, ${aCount} Absent`;
+
     cellsHtml += `
       <div onclick="window.__openCalendarDayDetailModal('${dateStr}', '${selectedStaffId}')" 
-           class="att-cal-cell ${isToday ? 'is-today' : ''}">
+           title="${hoverTitle}"
+           class="att-cal-cell ${isToday ? 'is-today' : ''}"
+           style="${weekendBg} ${dimStyle}">
         <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
-          <b style="font-size:0.85rem;color:${isSunday?'var(--brick)':'var(--ink)'};">${d}</b>
-          ${isToday ? `<span style="font-size:0.58rem;font-weight:700;background:var(--turmeric);color:#FFF;padding:1px 4px;border-radius:3px;">TODAY</span>` : ''}
+          ${isToday ? `<span style="font-size:0.58rem;font-weight:700;background:var(--turmeric);color:#FFF;padding:1px 5px;border-radius:4px;letter-spacing:0.02em;">TODAY</span>` : '<div></div>'}
+          <b style="font-size:0.9rem;color:${isSunday?'var(--brick)':'var(--ink)'};">${d}</b>
         </div>
         ${cellContent}
       </div>
@@ -5490,36 +5578,60 @@ function renderAttendanceCalendarViewReport() {
   }
 
   return `
-    <!-- Control Filter Bar -->
-    <div class="row-card" style="flex-wrap:wrap;gap:12px;align-items:center;padding:12px 14px;margin-bottom:14px;width:100%;box-sizing:border-box;">
-      <div style="flex:1;min-width:160px;">
-        <label style="font-size:0.68rem;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:4px;letter-spacing:0.02em;">SELECT MONTH</label>
-        <input type="month" value="${attendanceCalendarMonth}" onchange="window.__setCalendarReportMonth(this.value)" style="width:100%;box-sizing:border-box;font-size:0.82rem;padding:6px 10px;">
-      </div>
-      ${isManagerPlus() ? `
-        <div style="flex:1;min-width:160px;">
-          <label style="font-size:0.68rem;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:4px;letter-spacing:0.02em;">STAFF MEMBER</label>
-          <select onchange="window.__setCalendarReportStaff(this.value)" style="width:100%;box-sizing:border-box;font-size:0.82rem;padding:6px 10px;">
-            <option value="all" ${selectedStaffId==='all'?'selected':''}>👥 All Staff Members</option>
-            ${staffOptions}
-          </select>
+    <!-- Top Executive Controls & Filters -->
+    <div class="row-card" style="flex-direction:column;align-items:stretch;gap:10px;padding:12px 14px;margin-bottom:14px;width:100%;box-sizing:border-box;">
+      
+      <!-- Month Navigation Bar -->
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button class="stamp-btn small ghost" onclick="window.__prevCalendarMonth()" style="padding:4px 10px;font-size:0.78rem;">‹ Prev</button>
+          <b style="font-size:0.95rem;color:var(--ink);padding:0 4px;">${monthTitlePretty}</b>
+          <button class="stamp-btn small ghost" onclick="window.__nextCalendarMonth()" style="padding:4px 10px;font-size:0.78rem;">Next ›</button>
+          <button class="stamp-btn small" onclick="window.__todayCalendarMonth()" style="padding:4px 8px;font-size:0.72rem;background:var(--turmeric);color:#FFF;border-color:var(--turmeric);">Today</button>
         </div>
-      ` : ''}
+
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <input type="month" value="${attendanceCalendarMonth}" onchange="window.__setCalendarReportMonth(this.value)" style="font-size:0.78rem;padding:4px 8px;border-radius:6px;border:1px solid var(--paper-line);">
+          ${isManagerPlus() ? `
+            <select onchange="window.__setCalendarReportStaff(this.value)" style="font-size:0.78rem;padding:4px 8px;border-radius:6px;border:1px solid var(--paper-line);">
+              <option value="all" ${selectedStaffId==='all'?'selected':''}>👥 All Staff Members</option>
+              ${staffOptions}
+            </select>
+          ` : ''}
+        </div>
+      </div>
+
+      <!-- Quick Status Filter Pills & Legend Bar -->
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding-top:8px;border-top:1px dashed var(--paper-line);">
+        <div style="display:flex;align-items:center;gap:4px;">
+          <span style="font-size:0.65rem;font-weight:700;color:var(--ink-soft);margin-right:4px;">FILTER:</span>
+          <button class="stamp-btn small ${attendanceCalendarStatusFilter==='all'?'':'ghost'}" style="padding:2px 8px;font-size:0.65rem;" onclick="window.__setCalendarStatusFilter('all')">All</button>
+          <button class="stamp-btn small ${attendanceCalendarStatusFilter==='present'?'':'ghost'}" style="padding:2px 8px;font-size:0.65rem;${attendanceCalendarStatusFilter==='present'?'background:var(--leaf);border-color:var(--leaf);color:#FFF;':''}" onclick="window.__setCalendarStatusFilter('present')">✓ Present</button>
+          <button class="stamp-btn small ${attendanceCalendarStatusFilter==='absent'?'':'ghost'}" style="padding:2px 8px;font-size:0.65rem;${attendanceCalendarStatusFilter==='absent'?'background:var(--brick);border-color:var(--brick);color:#FFF;':''}" onclick="window.__setCalendarStatusFilter('absent')">× Absent</button>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;font-size:0.65rem;color:var(--ink-soft);font-weight:600;">
+          <span style="display:inline-flex;align-items:center;gap:4px;"><b style="color:var(--leaf);">●</b> Present</span>
+          <span style="display:inline-flex;align-items:center;gap:4px;"><b style="color:var(--brick);">●</b> Absent</span>
+          <span style="display:inline-flex;align-items:center;gap:4px;"><b style="color:#94A3B8;">●</b> Weekend/Off</span>
+        </div>
+      </div>
+
     </div>
 
-    <!-- Attendance KPI Scorecard -->
+    <!-- Attendance KPI Executive Scorecard -->
     <div class="stat-grid" style="margin-bottom:14px;width:100%;box-sizing:border-box;">
       <div class="stat-card" style="border-left:4px solid var(--leaf);padding:10px 12px;">
-        <div class="num" style="color:var(--leaf);font-size:1.1rem;">${presentCount}</div>
-        <div class="label" style="font-size:0.68rem;">Days Present</div>
+        <div class="num" style="color:var(--leaf);font-size:1.1rem;">${presentCount} Present</div>
+        <div class="label" style="font-size:0.68rem;">Total Monthly Present Marks</div>
       </div>
       <div class="stat-card" style="border-left:4px solid var(--brick);padding:10px 12px;">
-        <div class="num" style="color:var(--brick);font-size:1.1rem;">${absentCount}</div>
-        <div class="label" style="font-size:0.68rem;">Days Absent</div>
+        <div class="num" style="color:var(--brick);font-size:1.1rem;">${absentCount} Absent</div>
+        <div class="label" style="font-size:0.68rem;">Total Monthly Absent Marks</div>
       </div>
       <div class="stat-card" style="border-left:4px solid var(--turmeric);padding:10px 12px;">
-        <div class="num" style="color:var(--turmeric-dark);font-size:1.1rem;">${scorePct}%</div>
-        <div class="label" style="font-size:0.68rem;">Attendance Score</div>
+        <div class="num" style="color:var(--turmeric-dark);font-size:1.1rem;">${scorePct}% Attendance</div>
+        <div class="label" style="font-size:0.68rem;">Calculated Rate (${cache.staff.length} Active Staff)</div>
       </div>
     </div>
 
