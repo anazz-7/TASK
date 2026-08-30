@@ -3779,7 +3779,7 @@ const TAB_META = {
 function currentTabs(){
   if(session.role === 'sales' || session.role === 'salesman') return ['pricelist', 'sales', 'tasks', 'accounts', 'low_stock'];
   return isManagerPlus()
-    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','office_logs','pnl','sales','pricelist','label','package','stockkeeper','points','salary','accounts','customer_report','low_stock','audit','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','sales','pricelist','label','package','stockkeeper','points','accounts','customer_report','low_stock','audit'])
+    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','office_logs','pnl','sales','pricelist','label','package','stockkeeper','points','salary','accounts','customer_report','low_stock','reports','audit','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','sales','pricelist','label','package','stockkeeper','points','accounts','customer_report','low_stock','reports','audit'])
     : ['pricelist', 'tasks','daily','weekly','attendance','sales','label','package','stockkeeper','points','accounts','low_stock'];
 }
 function quickTabs(){
@@ -3894,7 +3894,7 @@ function renderShell(){
       <!-- Regrouped 5 Labeled Sections -->
       <div style="display:flex;flex-direction:column;gap:12px;">
         ${[
-          { section: 'Overview', keys: ['dashboard'] },
+          { section: 'Overview', keys: ['dashboard','reports'] },
           { section: 'Work', keys: ['tasks','daily','weekly','attendance','low_stock'] },
           { section: 'Sales', keys: ['sales','pricelist','label','package'] },
           { section: 'Money', keys: ['accounts','office_logs','pnl','customer_report','vendors','salary','points'] },
@@ -13165,6 +13165,198 @@ window.__openSalary = () => {
     });
   };
 };
+
+/* ---------------- REPORTS HUB ---------------- */
+let reportsCategoryFilter = 'all'; // 'all' | 'pnl' | 'salary' | 'inventory' | 'attendance' | 'sales'
+
+window.__setReportsFilter = function(cat) {
+  reportsCategoryFilter = cat;
+  renderTabBody();
+};
+
+function renderReportsTab(body) {
+  const currentMonth = monthKey(todayStr());
+  
+  // 1. P&L Net Profit Data
+  const pnlObj = typeof getPnLDataObj === 'function' ? getPnLDataObj() : { records: [] };
+  const pnlRecords = pnlObj.records || [];
+  const latestPnL = pnlRecords[0] || {};
+  
+  // 2. Salary & Payroll Data
+  const totals = typeof getAssumedSalaryTotals === 'function' ? getAssumedSalaryTotals() : { monthlyTotal: 0, weeklyTotal: 0, count: 0 };
+  const actualPaidThisMonth = (cache.salaries || []).filter(sa => monthKey(sa.paid_date) === currentMonth).reduce((sum, sa) => sum + Number(sa.amount||0), 0);
+  const advancesThisMonth = (typeof getSalaryAdvances === 'function' ? getSalaryAdvances() : []).filter(a => monthKey(a.date) === currentMonth).reduce((sum, a) => sum + Number(a.amount||0), 0);
+  const totalSalaryOutflow = actualPaidThisMonth + advancesThisMonth;
+  const remainingSalaryDue = Math.max(0, totals.monthlyTotal - totalSalaryOutflow);
+  const salaryPaidPct = totals.monthlyTotal > 0 ? Math.min(100, Math.round((totalSalaryOutflow / totals.monthlyTotal) * 100)) : 0;
+  
+  // 3. Inventory Stock Data
+  const lowStockList = typeof getLowStockList === 'function' ? getLowStockList() : [];
+  const stockItems = cache.stockItems || [];
+  const totalStockVal = stockItems.reduce((sum, item) => sum + (Number(item.qty||0) * Number(item.rate||0)), 0);
+  
+  // 4. Staff & Attendance Data
+  const activeStaff = typeof getActiveStaff === 'function' ? getActiveStaff() : (cache.staff || []);
+  const todayAtt = (cache.attendance || []).filter(a => a.date === todayStr());
+  const todayPresent = todayAtt.filter(a => a.status === 'present').length;
+  const attPct = activeStaff.length > 0 ? Math.round((todayPresent / activeStaff.length) * 100) : 0;
+  
+  // 5. Sales & Customer Data
+  const salesList = cache.sales || [];
+  const totalSalesThisMonth = salesList.filter(s => monthKey(s.date || s.created_at) === currentMonth).reduce((sum, s) => sum + Number(s.amount||0), 0);
+
+  body.innerHTML = `
+    <!-- Reports Hub Header Control Bar -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+      <div>
+        <h3 style="margin:0;font-size:1.1rem;color:var(--ink);">📊 Master Visual Reports Hub</h3>
+        <p style="margin:2px 0 0;font-size:0.75rem;color:var(--ink-soft);">Real-time executive visual analytics across all business modules</p>
+      </div>
+
+      <!-- Filter Categories -->
+      <div style="display:flex;gap:6px;overflow-x:auto;align-items:center;">
+        <button class="stamp-btn small ${reportsCategoryFilter==='all'?'':'ghost'}" onclick="window.__setReportsFilter('all')">All Reports</button>
+        <button class="stamp-btn small ${reportsCategoryFilter==='pnl'?'':'ghost'}" onclick="window.__setReportsFilter('pnl')">📈 P&amp;L</button>
+        <button class="stamp-btn small ${reportsCategoryFilter==='salary'?'':'ghost'}" onclick="window.__setReportsFilter('salary')">💰 Payroll</button>
+        <button class="stamp-btn small ${reportsCategoryFilter==='inventory'?'':'ghost'}" onclick="window.__setReportsFilter('inventory')">📦 Inventory</button>
+        <button class="stamp-btn small ${reportsCategoryFilter==='attendance'?'':'ghost'}" onclick="window.__setReportsFilter('attendance')">👥 Attendance</button>
+        <button class="stamp-btn small ${reportsCategoryFilter==='sales'?'':'ghost'}" onclick="window.__setReportsFilter('sales')">🧾 Sales</button>
+      </div>
+    </div>
+
+    <!-- 1. P&L & Profitability Visual Report Section -->
+    ${(reportsCategoryFilter==='all' || reportsCategoryFilter==='pnl') && isOwner() ? `
+      <div style="margin-bottom:20px;">
+        <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>📈 P&amp;L Net Profits &amp; Revenue Analytics</span>
+          <button class="stamp-btn small ghost" onclick="window.__setTab('pnl')">View Full P&amp;L Tab ➔</button>
+        </div>
+        ${typeof buildDashboardPnLLineGraphHtml === 'function' ? buildDashboardPnLLineGraphHtml() : ''}
+      </div>
+    ` : ''}
+
+    <!-- 2. Salary & Payroll Assumptions Visual Report Section -->
+    ${(reportsCategoryFilter==='all' || reportsCategoryFilter==='salary') ? `
+      <div style="margin-bottom:20px;">
+        <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>💰 Salary Assumptions &amp; Expense Outflow Report</span>
+          <button class="stamp-btn small ghost" onclick="window.__setTab('salary')">View Salary Tab ➔</button>
+        </div>
+
+        <div class="dash-kpi-grid" style="margin-bottom:12px;">
+          <div class="dash-kpi-card">
+            <div class="dash-kpi-title">Assumed Monthly Salary</div>
+            <div class="dash-kpi-val" style="color:var(--turmeric-dark);">₹${totals.monthlyTotal.toLocaleString('en-IN')}</div>
+            <div class="dash-kpi-sub">Total monthly commitment (${totals.count} active staff)</div>
+          </div>
+          <div class="dash-kpi-card">
+            <div class="dash-kpi-title">Actual Paid This Month</div>
+            <div class="dash-kpi-val" style="color:var(--leaf);">₹${totalSalaryOutflow.toLocaleString('en-IN')}</div>
+            <div class="dash-kpi-sub">Paid payouts &amp; advances (${currentMonth})</div>
+          </div>
+          <div class="dash-kpi-card">
+            <div class="dash-kpi-title">Remaining Commitment</div>
+            <div class="dash-kpi-val" style="color:${remainingSalaryDue>0?'var(--brick)':'var(--leaf)'};">₹${remainingSalaryDue.toLocaleString('en-IN')}</div>
+            <div class="dash-kpi-sub">Outstanding balance for current month</div>
+          </div>
+        </div>
+
+        <!-- Monthly Salary Outflow Visual Bar -->
+        <div class="row-card" style="flex-direction:column;align-items:stretch;padding:12px 14px;background:var(--paper);border:1px solid var(--paper-line);border-radius:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <b style="font-size:0.82rem;color:var(--ink);">Monthly Payroll Outflow Progress (${currentMonth})</b>
+            <b style="font-family:'Roboto Mono',monospace;font-size:0.8rem;color:var(--leaf);">${salaryPaidPct}% Paid</b>
+          </div>
+          <div class="progress-track" style="height:8px;background:var(--paper-line);border-radius:999px;overflow:hidden;margin-bottom:6px;">
+            <div class="progress-fill ${salaryPaidPct>=100?'complete':''}" style="width:${salaryPaidPct}%;height:100%;border-radius:999px;background:linear-gradient(90deg, #10B981, #059669);"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--ink-soft);">
+            <span>Paid: <b style="color:var(--leaf);">₹${totalSalaryOutflow.toLocaleString('en-IN')}</b></span>
+            <span>Assumed Budget: <b style="color:var(--ink);">₹${totals.monthlyTotal.toLocaleString('en-IN')}</b></span>
+          </div>
+        </div>
+      </div>
+    ` : ''}
+
+    <!-- 3. Inventory & Stock Visual Report Section -->
+    ${(reportsCategoryFilter==='all' || reportsCategoryFilter==='inventory') ? `
+      <div style="margin-bottom:20px;">
+        <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>📦 Inventory &amp; Stock Health Reports</span>
+          <button class="stamp-btn small ghost" onclick="window.__setTab('low_stock')">View Low Stock Tab ➔</button>
+        </div>
+
+        <div class="dash-kpi-grid" style="margin-bottom:12px;">
+          <div class="dash-kpi-card">
+            <div class="dash-kpi-title">Low Stock Item Alerts</div>
+            <div class="dash-kpi-val" style="color:${lowStockList.length>0?'var(--brick)':'var(--leaf)'};">${lowStockList.length}</div>
+            <div class="dash-kpi-sub">Items requiring immediate reorder</div>
+          </div>
+          <div class="dash-kpi-card">
+            <div class="dash-kpi-title">Total Catalog Items</div>
+            <div class="dash-kpi-val" style="color:var(--turmeric-dark);">${stockItems.length}</div>
+            <div class="dash-kpi-sub">Stock items registered</div>
+          </div>
+          <div class="dash-kpi-card">
+            <div class="dash-kpi-title">Estimated Stock Value</div>
+            <div class="dash-kpi-val" style="color:var(--ink);">₹${totalStockVal.toLocaleString('en-IN')}</div>
+            <div class="dash-kpi-sub">Total inventory asset valuation</div>
+          </div>
+        </div>
+
+        ${typeof buildQtyGraphHtml === 'function' && lowStockList.length ? buildQtyGraphHtml(lowStockList, 'monthly', null, 'Low Stock Quantity Distribution', 'qty', 'Pcs', 'created_at') : ''}
+      </div>
+    ` : ''}
+
+    <!-- 4. Staff & Attendance Visual Report Section -->
+    ${(reportsCategoryFilter==='all' || reportsCategoryFilter==='attendance') ? `
+      <div style="margin-bottom:20px;">
+        <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>👥 Staff Attendance &amp; Team Performance Visuals</span>
+          <button class="stamp-btn small ghost" onclick="window.__setTab('attendance')">View Attendance Tab ➔</button>
+        </div>
+
+        <div class="dash-kpi-grid" style="margin-bottom:12px;">
+          <div class="dash-kpi-card">
+            <div class="dash-kpi-title">Active Team Members</div>
+            <div class="dash-kpi-val" style="color:var(--turmeric-dark);">${activeStaff.length}</div>
+            <div class="dash-kpi-sub">Active registered staff</div>
+          </div>
+          <div class="dash-kpi-card">
+            <div class="dash-kpi-title">Today's Attendance Rate</div>
+            <div class="dash-kpi-val" style="color:${attPct>=80?'var(--leaf)':'var(--turmeric-dark)'};">${attPct}%</div>
+            <div class="dash-kpi-sub">${todayPresent} / ${activeStaff.length} present today</div>
+          </div>
+        </div>
+      </div>
+    ` : ''}
+
+    <!-- 5. Sales & Revenue Visual Report Section -->
+    ${(reportsCategoryFilter==='all' || reportsCategoryFilter==='sales') ? `
+      <div style="margin-bottom:20px;">
+        <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>🧾 Sales &amp; Revenue Reports</span>
+          <button class="stamp-btn small ghost" onclick="window.__setTab('sales')">View Sales Tab ➔</button>
+        </div>
+
+        <div class="dash-kpi-grid" style="margin-bottom:12px;">
+          <div class="dash-kpi-card">
+            <div class="dash-kpi-title">Total Sales This Month</div>
+            <div class="dash-kpi-val" style="color:var(--leaf);">₹${totalSalesThisMonth.toLocaleString('en-IN')}</div>
+            <div class="dash-kpi-sub">Gross logged sales revenue (${currentMonth})</div>
+          </div>
+          <div class="dash-kpi-card">
+            <div class="dash-kpi-title">Total Sales Entries</div>
+            <div class="dash-kpi-val" style="color:var(--ink);">${salesList.length}</div>
+            <div class="dash-kpi-sub">Total sales records in history</div>
+          </div>
+        </div>
+
+        ${typeof buildQtyGraphHtml === 'function' && salesList.length ? buildQtyGraphHtml(salesList, 'monthly', null, 'Monthly Sales Volume (₹)', 'amount', '₹', 'date') : ''}
+      </div>
+    ` : ''}
+  `;
+}
 
 /* ---------------- ACCOUNT (staff profile page) ---------------- */
 window.__openAccount = () => { activeTab = 'account'; renderShell(); };
