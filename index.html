@@ -5627,10 +5627,11 @@ function renderAttendanceCalendarViewReport() {
     }
   }
 
-  const denominator = selectedStaffId === 'all' ? Math.max(1, pastWeekdays * cache.staff.length) : Math.max(1, pastWeekdays);
+  const activeStaffList = typeof getActiveStaff === 'function' ? getActiveStaff() : cache.staff;
+  const denominator = selectedStaffId === 'all' ? Math.max(1, pastWeekdays * activeStaffList.length) : Math.max(1, pastWeekdays);
   const scorePct = Math.min(100, Math.round((presentCount / denominator) * 100));
 
-  const staffOptions = cache.staff.map(s => `<option value="${s.id}" ${selectedStaffId===s.id?'selected':''}>${esc(s.name)}</option>`).join('');
+  const staffOptions = activeStaffList.map(s => `<option value="${s.id}" ${selectedStaffId===s.id?'selected':''}>${esc(s.name)}</option>`).join('');
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const dayHeadersHtml = dayNames.map((dName, idx) => `
     <div class="att-cal-header-cell" style="color:${idx===0?'var(--brick)':'var(--ink-soft)'};">
@@ -7570,41 +7571,114 @@ function renderSalesmanTab(body){
 }
 
 /* ---------------- STAFF (management tab for owners/managers) ---------------- */
+let staffTabFilter = 'all'; // 'all' | 'active' | 'inactive'
+
+function isStaffActive(s) {
+  if (!s) return false;
+  return s.status !== 'inactive';
+}
+
+function getActiveStaff() {
+  return (cache.staff || []).filter(s => isStaffActive(s));
+}
+
+window.__setStaffTabFilter = function(f) {
+  staffTabFilter = f;
+  renderTabBody();
+};
+
+window.__toggleStaffStatus = async function(staffId, newStatus) {
+  const s = (cache.staff || []).find(x => x.id === staffId);
+  if (!s) return;
+  s.status = newStatus;
+  saveCacheLocally();
+  if (typeof syncCustomCloudPayload === 'function') {
+    syncCustomCloudPayload('[STAFF_DIRECTORY_DATA]', cache.staff);
+  }
+  logAuditEvent('Staff Status Change', `${newStatus === 'inactive' ? 'Deactivated' : 'Reactivated'} staff member: ${s.name}`);
+  if (navigator.onLine && typeof sb !== 'undefined' && sb) {
+    try {
+      await sb.from('staff').update({ status: newStatus }).eq('id', staffId);
+    } catch(e){}
+  }
+  window.showToast(newStatus === 'inactive' ? `⏸ ${s.name} is now Inactive` : `▶ ${s.name} is now Active`, 'info');
+  renderTabBody();
+};
+
 function renderStaffTab(body){
+  const allStaff = cache.staff || [];
+  const activeStaff = allStaff.filter(s => isStaffActive(s));
+  const inactiveStaff = allStaff.filter(s => !isStaffActive(s));
+
+  const filteredStaff = allStaff.filter(s => {
+    if (staffTabFilter === 'active') return isStaffActive(s);
+    if (staffTabFilter === 'inactive') return !isStaffActive(s);
+    return true;
+  });
+
   body.innerHTML = `
-    
-    <div class="section-label">Team Members (${cache.staff.length})</div>
+    <!-- Top Staff Status Filter Bar -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+      <div style="display:flex;gap:6px;overflow-x:auto;">
+        <button class="stamp-btn small ${staffTabFilter==='all'?'':'ghost'}" onclick="window.__setStaffTabFilter('all')">
+          All Staff (${allStaff.length})
+        </button>
+        <button class="stamp-btn small ${staffTabFilter==='active'?'':'ghost'}" onclick="window.__setStaffTabFilter('active')">
+          🟢 Active (${activeStaff.length})
+        </button>
+        <button class="stamp-btn small ${staffTabFilter==='inactive'?'':'ghost'}" onclick="window.__setStaffTabFilter('inactive')">
+          🔴 Inactive (${inactiveStaff.length})
+        </button>
+      </div>
+      ${isManagerPlus() ? `<button class="stamp-btn small" onclick="window.__openStaff()">+ Add Staff</button>` : ''}
+    </div>
+
     <div class="cards-grid">
-      ${cache.staff.map(s => `
-        <div class="row-card">
-          <div class="avatar-circle" style="width:44px;height:44px;font-size:1.05rem;">${initials(s.name)}</div>
-          <div class="row-main" style="min-width:140px;">
-            <h3>${esc(s.name)} <span class="role-pill ${s.role}">${s.role}</span></h3>
-            <div class="meta">
-              <span>Phone: ${s.phone ? esc(s.phone) : 'None'}</span>
-              ${isOwner() ? `<span>PIN: ${esc(s.pin || '••••')}</span>` : ''}
+      ${filteredStaff.length ? filteredStaff.map(s => {
+        const isActive = isStaffActive(s);
+        return `
+          <div class="row-card" style="border-left:4px solid ${isActive?'var(--leaf)':'var(--brick)'};opacity:${isActive?'1.0':'0.82'};">
+            <div class="avatar-circle" style="width:44px;height:44px;font-size:1.05rem;background:${isActive?'var(--leaf-soft)':'var(--brick-soft)'};color:${isActive?'var(--leaf)':'var(--brick)'};">${initials(s.name)}</div>
+            <div class="row-main" style="min-width:140px;">
+              <h3>
+                ${esc(s.name)}
+                <span class="role-pill ${s.role}">${s.role}</span>
+                <span class="stamp ${isActive?'present':'absent'}" style="font-size:0.68rem;padding:2px 6px;margin-left:4px;">
+                  ${isActive ? '🟢 Active' : '🔴 Inactive'}
+                </span>
+              </h3>
+              <div class="meta">
+                <span>Phone: ${s.phone ? esc(s.phone) : 'None'}</span>
+                ${isOwner() ? `<span>PIN: ${esc(s.pin || '••••')}</span>` : ''}
+              </div>
+              <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:4px;">
+                Pay Schedule: <b>${payScheduleLabel(s)}</b>
+              </div>
             </div>
-            <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:4px;">
-              Pay Schedule: <b>${payScheduleLabel(s)}</b>
-            </div>
-          </div>
-          <div class="row-actions">
-            <div class="action-dropdown-holder">
-              <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${s.id}')">More ▾</button>
-              <div class="action-dropdown-menu" id="actionMenu_${s.id}">
-                ${isManagerPlus() ? `<button onclick="window.__editStaff('${s.id}')">✎ Edit</button>` : ''}
-                ${isOwner() && s.id !== session.staffId ? `<button class="danger" onclick="window.__deleteStaff('${s.id}')">🗑 Delete</button>` : ''}
+            <div class="row-actions">
+              <div class="action-dropdown-holder">
+                <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${s.id}')">More ▾</button>
+                <div class="action-dropdown-menu" id="actionMenu_${s.id}">
+                  ${isManagerPlus() ? `<button onclick="window.__editStaff('${s.id}')">✎ Edit</button>` : ''}
+                  ${isManagerPlus() ? `
+                    <button onclick="window.__toggleStaffStatus('${s.id}', '${isActive?'inactive':'active'}')">
+                      ${isActive ? '⏸ Deactivate Staff' : '▶ Activate Staff'}
+                    </button>
+                  ` : ''}
+                  ${isOwner() && s.id !== session.staffId ? `<button class="danger" onclick="window.__deleteStaff('${s.id}')">🗑 Delete</button>` : ''}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      `).join('')}
+        `;
+      }).join('') : `
+        <div class="empty" style="padding:24px;text-align:center;font-size:0.85rem;">No staff members matching selected filter.</div>
+      `}
     </div>
     <div id="staffModalHolder"></div>
   `;
 
   window.__editStaff = (staffId) => openStaffModal(staffId);
-  
 }
 
 function openStaffModal(staffId){
@@ -7622,6 +7696,11 @@ function openStaffModal(staffId){
       <option value="salesman" ${s && s.role==='salesman'?'selected':''}>Salesman</option>
       <option value="manager" ${s && s.role==='manager'?'selected':''}>Manager</option>
       ${isOwner() ? `<option value="owner" ${s && s.role==='owner'?'selected':''}>Owner</option>` : ''}
+    </select>
+    <label>Account Status</label>
+    <select id="mStaffStatus">
+      <option value="active" ${(!s || s.status!=='inactive')?'selected':''}>🟢 Active Member</option>
+      <option value="inactive" ${(s && s.status==='inactive')?'selected':''}>🔴 Inactive / Deactivated</option>
     </select>
     <label>Phone number (for WhatsApp/SMS alerts)</label>
     <input id="mStaffPhone" value="${s ? esc(s.phone||'') : ''}" placeholder="e.g. 9876543210">
@@ -7658,6 +7737,7 @@ function openStaffModal(staffId){
   window.__saveStaff = async (id) => {
     const nameEl = document.getElementById('mStaffName');
     const roleEl = document.getElementById('mStaffRole');
+    const statusEl = document.getElementById('mStaffStatus');
     const phoneEl = document.getElementById('mStaffPhone');
     const pinEl = document.getElementById('mStaffPin');
     const freqEl = document.getElementById('mStaffSalaryFreq');
@@ -7666,6 +7746,7 @@ function openStaffModal(staffId){
 
     const name = nameEl ? nameEl.value.trim() : '';
     const role = roleEl ? roleEl.value : 'staff';
+    const status = statusEl ? statusEl.value : 'active';
     const phone = phoneEl ? phoneEl.value.trim() : '';
     const pin = pinEl ? pinEl.value.trim() : '';
 
@@ -7682,6 +7763,7 @@ function openStaffModal(staffId){
       business_id: session.businessId,
       name,
       role,
+      status,
       phone: phone || null,
       pin,
       salary_frequency,
@@ -7726,6 +7808,7 @@ function openStaffModal(staffId){
           business_id: session.businessId,
           name,
           role,
+          status,
           phone: phone || null,
           pin
         };
