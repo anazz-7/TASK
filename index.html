@@ -3987,7 +3987,7 @@ function renderTabBody(){
   else if(activeTab==='label') renderLabelTab(body);
   else if(activeTab==='package') renderPackageTab(body);
   else if(activeTab==='stockkeeper') renderStockkeeperTab(body);
-  else if(activeTab==='accounts' && (isOwner() || (isManager() && getFeatureConfig().allowManagerAccounts))) renderAccountsTab(body);
+  else if(activeTab==='accounts') renderAccountsTab(body);
   else if(activeTab==='office_logs' && isOwner()) renderOfficeLogsTab(body);
   else if(activeTab==='pnl' && isOwner()) renderPnLTab(body);
   else if(activeTab==='customer_report') renderCustomerReportTab(body);
