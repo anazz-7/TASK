@@ -3779,7 +3779,7 @@ const TAB_META = {
 function currentTabs(){
   if(session.role === 'sales' || session.role === 'salesman') return ['pricelist', 'sales', 'tasks', 'accounts', 'low_stock'];
   return isManagerPlus()
-    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','office_logs','pnl','sales','pricelist','label','package','stockkeeper','points','salary','accounts','customer_report','low_stock','reports','audit','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','sales','pricelist','label','package','stockkeeper','points','accounts','customer_report','low_stock','audit','staff'])
+    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','office_logs','pnl','sales','pricelist','label','package','stockkeeper','points','salary','accounts','customer_report','low_stock','reports','audit','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','sales','pricelist','label','package','stockkeeper','points','accounts','customer_report','low_stock','audit'])
     : ['pricelist', 'tasks','daily','weekly','attendance','sales','label','package','stockkeeper','points','accounts','low_stock'];
 }
 function quickTabs(){
@@ -3792,7 +3792,7 @@ function getPrimaryActionBtn(t){
   if(t==='tasks') return `<button class="stamp-btn compact-mobile" onclick="window.__openTask()"><span class="btn-text">+ Add Task</span><span class="btn-short">+</span></button>`;
   if(t==='daily' && isManagerPlus()) return `<button class="stamp-btn compact-mobile" onclick="window.__openRoutine()"><span class="btn-text">+ Add Daily Task</span><span class="btn-short">+</span></button>`;
   if(t==='weekly' && isManagerPlus()) return `<button class="stamp-btn compact-mobile" onclick="window.__openWeekly()"><span class="btn-text">+ Add Weekly Task</span><span class="btn-short">+</span></button>`;
-  if(t==='staff') return `<button class="stamp-btn compact-mobile" onclick="window.__openStaff()"><span class="btn-text">+ Add Staff</span><span class="btn-short">+</span></button>`;
+  if(t==='staff' && isOwner()) return `<button class="stamp-btn compact-mobile" onclick="window.__openStaff()"><span class="btn-text">+ Add Staff</span><span class="btn-short">+</span></button>`;
   if(t==='sales') return `<button class="stamp-btn compact-mobile" onclick="window.__openSale()"><span class="btn-text">+ Log Sale</span><span class="btn-short">+</span></button>`;
   if(t==='pricelist' && isManagerPlus()) return `<button class="stamp-btn compact-mobile" onclick="window.__openAddPriceListItemModal()"><span class="btn-text">+ Add Product</span><span class="btn-short">+</span></button>`;
   if(t==='label') return `<button class="stamp-btn compact-mobile" onclick="window.__openLabel()"><span class="btn-text">+ Log Label</span><span class="btn-short">+</span></button>`;
@@ -3995,7 +3995,7 @@ function renderTabBody(){
   else if(activeTab==='audit' && isManagerPlus()) renderAuditTab(body);
   else if(activeTab==='salary' && (isOwner() || (isManager() && getFeatureConfig().allowManagerSalary))) renderSalaryTab(body);
   else if(activeTab==='points') renderPointsTab(body);
-  else if(activeTab==='staff') renderStaffTab(body);
+  else if(activeTab==='staff' && isOwner()) renderStaffTab(body);
   else if(activeTab==='reports' && (isOwner() || (isManager() && getFeatureConfig().allowManagerReports))) renderReportsTab(body);
   else if(activeTab==='settings') renderSettingsTab(body);
   else if(activeTab==='account') renderAccountTab(body);
@@ -7625,6 +7625,20 @@ window.__toggleStaffStatus = async function(staffId, newStatus) {
 };
 
 function renderStaffTab(body){
+  if (!isOwner()) {
+    body.innerHTML = `
+      <div class="empty" style="padding:40px 20px;text-align:center;">
+        <div style="font-size:2.5rem;margin-bottom:12px;">🔒</div>
+        <h3>Access Restricted</h3>
+        <p style="font-size:0.85rem;color:var(--ink-soft);max-width:360px;margin:0 auto 16px;">
+          The Staff Directory & Team Management tab is strictly restricted to Business Owner access only.
+        </p>
+        <button class="stamp-btn" onclick="window.__setTab('dashboard')">Go to Dashboard</button>
+      </div>
+    `;
+    return;
+  }
+
   const allStaff = cache.staff || [];
   const activeStaff = allStaff.filter(s => isStaffActive(s));
   const inactiveStaff = allStaff.filter(s => !isStaffActive(s));
