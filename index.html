@@ -7667,43 +7667,39 @@ function renderStaffTab(body){
       </div>
     </div>
 
-    <!-- Staff Cards Grid with Compact Expand/Collapse Details -->
-    <div class="cards-grid" style="grid-template-columns:1fr;gap:6px;">
+    <!-- Staff Cards Grid with Ultra-Compact Perfectly Aligned Expand/Collapse Layout -->
+    <div class="cards-grid" style="grid-template-columns:1fr;gap:4px;">
       ${filteredStaff.length ? filteredStaff.map(s => {
         const isActive = isStaffActive(s);
         const isExpanded = expandedStaffIds.has(s.id);
         const cleanPhone = (s.phone || '').replace(/\D/g, '');
 
         return `
-          <div class="row-card" style="flex-direction:column;align-items:stretch;padding:6px 10px;border-left:3px solid ${isActive?'var(--leaf)':'var(--brick)'};opacity:${isActive?'1.0':'0.85'};margin-bottom:0;border:1px solid var(--paper-line);border-radius:8px;">
-            <!-- Ultra-Compact Header Row -->
-            <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;" onclick="window.__toggleStaffExpand('${s.id}')">
-              <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1;">
-                <span style="font-size:0.72rem;color:var(--turmeric-dark);font-weight:700;flex-shrink:0;">
+          <div class="row-card" style="flex-direction:column;align-items:stretch;padding:5px 8px;border-left:3px solid ${isActive?'var(--leaf)':'var(--brick)'};opacity:${isActive?'1.0':'0.85'};margin-bottom:0;border:1px solid var(--paper-line);border-radius:6px;background:var(--paper);">
+            <!-- Perfectly Aligned Single Header Row -->
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;cursor:pointer;user-select:none;min-height:28px;" onclick="window.__toggleStaffExpand('${s.id}')">
+              <!-- Left Info Group -->
+              <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1;">
+                <span style="font-size:0.68rem;color:var(--turmeric-dark);font-weight:700;flex-shrink:0;width:10px;text-align:center;">
                   ${isExpanded ? '⯅' : '⯆'}
                 </span>
-                <div class="avatar-circle" style="width:28px;height:28px;font-size:0.75rem;flex-shrink:0;background:${isActive?'var(--leaf-soft)':'var(--brick-soft)'};color:${isActive?'var(--leaf)':'var(--brick)'};font-weight:700;">
+                <div class="avatar-circle" style="width:24px;height:24px;font-size:0.7rem;flex-shrink:0;background:${isActive?'var(--leaf-soft)':'var(--brick-soft)'};color:${isActive?'var(--leaf)':'var(--brick)'};font-weight:700;">
                   ${initials(s.name)}
                 </div>
-                <div style="min-width:0;flex:1;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                  <b style="font-size:0.82rem;color:var(--ink);line-height:1.2;">${esc(s.name)}</b>
-                  <span class="role-pill ${s.role}" style="font-size:0.6rem;padding:1px 5px;">${s.role}</span>
-                  <span class="stamp ${isActive?'present':'absent'}" style="font-size:0.6rem;padding:1px 5px;">
-                    ${isActive ? 'Active' : 'Inactive'}
-                  </span>
-                  ${s.phone ? `<span style="font-size:0.7rem;color:var(--ink-soft);font-family:'Roboto Mono',monospace;margin-left:auto;">${esc(s.phone)}</span>` : ''}
+                <div style="display:flex;align-items:center;gap:4px;min-width:0;flex:1;overflow:hidden;">
+                  <b style="font-size:0.8rem;color:var(--ink);line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(s.name)}</b>
+                  <span class="role-pill ${s.role}" style="font-size:0.58rem;padding:0px 4px;height:15px;line-height:15px;flex-shrink:0;">${s.role}</span>
                 </div>
               </div>
 
-              <!-- Header Compact Pill Buttons -->
-              <div style="display:flex;align-items:center;gap:4px;margin-left:6px;" onclick="event.stopPropagation();">
-                ${isManagerPlus() ? `
-                  <button class="stamp-btn small ghost" style="padding:2px 6px;font-size:0.68rem;height:24px;display:inline-flex;align-items:center;gap:3px;" onclick="window.__editStaff('${s.id}')">
-                    ${icon('edit', 11)} Edit
-                  </button>
-                ` : ''}
-                <button class="stamp-btn small ghost" style="padding:2px 6px;font-size:0.68rem;height:24px;display:inline-flex;align-items:center;gap:2px;" onclick="window.__toggleStaffExpand('${s.id}')">
-                  ${isExpanded ? 'Hide ⯅' : 'Details ⯆'}
+              <!-- Right Alignment Group (Status + Phone + Mini Toggle Button) -->
+              <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                <span class="stamp ${isActive?'present':'absent'}" style="font-size:0.58rem;padding:1px 5px;">
+                  ${isActive ? 'Active' : 'Inactive'}
+                </span>
+                ${s.phone ? `<span class="desktop-only" style="font-size:0.68rem;color:var(--ink-soft);font-family:'Roboto Mono',monospace;">${esc(s.phone)}</span>` : ''}
+                <button class="stamp-btn small ghost" style="padding:1px 6px;font-size:0.65rem;height:22px;line-height:20px;min-width:24px;" onclick="event.stopPropagation(); window.__toggleStaffExpand('${s.id}')">
+                  ${isExpanded ? '⯅' : '⯆'}
                 </button>
               </div>
             </div>
@@ -7711,48 +7707,48 @@ function renderStaffTab(body){
             <!-- Compact Expanded Details Panel -->
             ${isExpanded ? `
               <div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--paper-line);display:flex;flex-direction:column;gap:6px;">
-                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:6px;font-size:0.72rem;">
-                  <div style="background:var(--paper);padding:6px 8px;border-radius:6px;border:1px solid var(--paper-line);">
-                    <span style="color:var(--ink-soft);display:block;font-size:0.62rem;font-weight:700;text-transform:uppercase;">Phone Contact</span>
-                    <b style="color:var(--ink);font-family:'Roboto Mono',monospace;">${s.phone ? esc(s.phone) : 'Not provided'}</b>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(120px, 1fr));gap:6px;font-size:0.72rem;">
+                  <div style="background:var(--paper-soft, #f8fafc);padding:5px 8px;border-radius:4px;border:1px solid var(--paper-line);">
+                    <span style="color:var(--ink-soft);display:block;font-size:0.6rem;font-weight:700;text-transform:uppercase;">Phone Contact</span>
+                    <b style="color:var(--ink);font-family:'Roboto Mono',monospace;font-size:0.75rem;">${s.phone ? esc(s.phone) : 'Not provided'}</b>
                     ${cleanPhone ? `
                       <div style="display:flex;gap:4px;margin-top:4px;">
-                        <a href="tel:${cleanPhone}" class="stamp-btn small ghost" style="padding:1px 5px;font-size:0.65rem;text-decoration:none;">📞 Call</a>
-                        <a href="https://wa.me/91${cleanPhone}" target="_blank" class="stamp-btn small" style="background:#25D366;color:#fff;border-color:#25D366;padding:1px 5px;font-size:0.65rem;text-decoration:none;">💬 WhatsApp</a>
+                        <a href="tel:${cleanPhone}" class="stamp-btn small ghost" style="padding:1px 4px;font-size:0.62rem;text-decoration:none;">📞 Call</a>
+                        <a href="https://wa.me/91${cleanPhone}" target="_blank" class="stamp-btn small" style="background:#25D366;color:#fff;border-color:#25D366;padding:1px 4px;font-size:0.62rem;text-decoration:none;">💬 WhatsApp</a>
                       </div>
                     ` : ''}
                   </div>
                   ${isOwner() ? `
-                    <div style="background:var(--paper);padding:6px 8px;border-radius:6px;border:1px solid var(--paper-line);">
-                      <span style="color:var(--ink-soft);display:block;font-size:0.62rem;font-weight:700;text-transform:uppercase;">Login PIN Code</span>
-                      <b style="color:var(--turmeric-dark);font-family:'Roboto Mono',monospace;font-size:0.85rem;">${esc(s.pin || '••••')}</b>
+                    <div style="background:var(--paper-soft, #f8fafc);padding:5px 8px;border-radius:4px;border:1px solid var(--paper-line);">
+                      <span style="color:var(--ink-soft);display:block;font-size:0.6rem;font-weight:700;text-transform:uppercase;">Login PIN Code</span>
+                      <b style="color:var(--turmeric-dark);font-family:'Roboto Mono',monospace;font-size:0.82rem;">${esc(s.pin || '••••')}</b>
                     </div>
                   ` : ''}
-                  <div style="background:var(--paper);padding:6px 8px;border-radius:6px;border:1px solid var(--paper-line);">
-                    <span style="color:var(--ink-soft);display:block;font-size:0.62rem;font-weight:700;text-transform:uppercase;">Payout Schedule</span>
-                    <b style="color:var(--ink);">${payScheduleLabel(s)}</b>
+                  <div style="background:var(--paper-soft, #f8fafc);padding:5px 8px;border-radius:4px;border:1px solid var(--paper-line);">
+                    <span style="color:var(--ink-soft);display:block;font-size:0.6rem;font-weight:700;text-transform:uppercase;">Payout Schedule</span>
+                    <b style="color:var(--ink);font-size:0.75rem;">${payScheduleLabel(s)}</b>
                   </div>
-                  <div style="background:var(--paper);padding:6px 8px;border-radius:6px;border:1px solid var(--paper-line);">
-                    <span style="color:var(--ink-soft);display:block;font-size:0.62rem;font-weight:700;text-transform:uppercase;">Base Salary</span>
-                    <b style="color:var(--leaf);font-family:'Roboto Mono',monospace;">₹${Number(s.base_salary || 0).toLocaleString('en-IN')}</b>
+                  <div style="background:var(--paper-soft, #f8fafc);padding:5px 8px;border-radius:4px;border:1px solid var(--paper-line);">
+                    <span style="color:var(--ink-soft);display:block;font-size:0.6rem;font-weight:700;text-transform:uppercase;">Base Salary</span>
+                    <b style="color:var(--leaf);font-family:'Roboto Mono',monospace;font-size:0.75rem;">₹${Number(s.base_salary || 0).toLocaleString('en-IN')}</b>
                   </div>
                 </div>
 
                 <!-- Footer Compact Action Pills -->
                 <div style="display:flex;justify-content:flex-end;gap:4px;margin-top:2px;flex-wrap:wrap;align-items:center;">
                   ${isManagerPlus() ? `
-                    <button class="stamp-btn small ghost" style="padding:2px 6px;font-size:0.68rem;height:24px;display:inline-flex;align-items:center;gap:3px;" onclick="window.__toggleStaffStatus('${s.id}', '${isActive?'inactive':'active'}')">
+                    <button class="stamp-btn small ghost" style="padding:1px 6px;font-size:0.65rem;height:22px;display:inline-flex;align-items:center;gap:3px;" onclick="window.__toggleStaffStatus('${s.id}', '${isActive?'inactive':'active'}')">
                       ${isActive ? 'Set Inactive' : 'Set Active'}
                     </button>
                   ` : ''}
                   ${isManagerPlus() ? `
-                    <button class="stamp-btn small ghost" style="padding:2px 6px;font-size:0.68rem;height:24px;display:inline-flex;align-items:center;gap:3px;" onclick="window.__editStaff('${s.id}')">
-                      ${icon('edit', 11)} Edit Profile
+                    <button class="stamp-btn small ghost" style="padding:1px 6px;font-size:0.65rem;height:22px;display:inline-flex;align-items:center;gap:3px;" onclick="window.__editStaff('${s.id}')">
+                      ${icon('edit', 10)} Edit Profile
                     </button>
                   ` : ''}
                   ${isOwner() && s.id !== session.staffId ? `
-                    <button class="stamp-btn small ghost danger" style="padding:2px 6px;font-size:0.68rem;height:24px;display:inline-flex;align-items:center;gap:3px;color:var(--brick);border-color:var(--brick);" onclick="window.__deleteStaff('${s.id}')">
-                      ${icon('trash', 11)} Delete
+                    <button class="stamp-btn small ghost danger" style="padding:1px 6px;font-size:0.65rem;height:22px;display:inline-flex;align-items:center;gap:3px;color:var(--brick);border-color:var(--brick);" onclick="window.__deleteStaff('${s.id}')">
+                      ${icon('trash', 10)} Delete
                     </button>
                   ` : ''}
                 </div>
@@ -7761,7 +7757,7 @@ function renderStaffTab(body){
           </div>
         `;
       }).join('') : `
-        <div class="empty" style="padding:16px;text-align:center;font-size:0.8rem;">No staff members matching selected filter.</div>
+        <div class="empty" style="padding:14px;text-align:center;font-size:0.78rem;">No staff members matching selected filter.</div>
       `}
     </div>
     <div id="staffModalHolder"></div>
