@@ -3779,7 +3779,7 @@ const TAB_META = {
 function currentTabs(){
   if(session.role === 'sales' || session.role === 'salesman') return ['pricelist', 'sales', 'tasks', 'accounts', 'low_stock'];
   return isManagerPlus()
-    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','office_logs','pnl','sales','pricelist','label','package','stockkeeper','points','salary','accounts','customer_report','low_stock','reports','audit','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','sales','pricelist','label','package','stockkeeper','points','accounts','customer_report','low_stock','audit'])
+    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','office_logs','pnl','sales','pricelist','label','package','stockkeeper','points','salary','accounts','customer_report','low_stock','audit','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','sales','pricelist','label','package','stockkeeper','points','accounts','customer_report','low_stock','audit'])
     : ['pricelist', 'tasks','daily','weekly','attendance','sales','label','package','stockkeeper','points','accounts','low_stock'];
 }
 function quickTabs(){
@@ -3894,7 +3894,7 @@ function renderShell(){
       <!-- Regrouped 5 Labeled Sections -->
       <div style="display:flex;flex-direction:column;gap:12px;">
         ${[
-          { section: 'Overview', keys: ['dashboard','reports'] },
+          { section: 'Overview', keys: ['dashboard'] },
           { section: 'Work', keys: ['tasks','daily','weekly','attendance','low_stock'] },
           { section: 'Sales', keys: ['sales','pricelist','label','package'] },
           { section: 'Money', keys: ['accounts','office_logs','pnl','customer_report','vendors','salary','points'] },
@@ -12416,8 +12416,6 @@ function renderStockkeeperTab(body){
   };
 
   window.__saveStockNotes = async () => {
-    // Saving the check record should just save it — sending an SMS is a
-    // separate, explicit action via the "SMS Owner" button.
     if(!myCheck) return;
     const rawNotes = document.getElementById('mStockNotes') ? document.getElementById('mStockNotes').value.trim() : '';
     const arr = Array.from(checkedGodowns);
@@ -12447,7 +12445,134 @@ let salaryReportMode = 'monthly';
 window.__setSalaryReportMode = (m) => { salaryReportMode = m; renderTabBody(); };
 const WEEKDAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
-let salarySubTab = 'payouts'; // 'payouts' | 'advances' | 'schedules'
+let salarySubTab = 'report'; // 'report' | 'payouts' | 'advances' | 'expenses' | 'schedules'
+
+function getStaffMonthlyAssumedSalary(s) {
+  if (!s || s.status === 'inactive') return 0;
+  const base = Number(s.base_salary || 0);
+  const freq = s.salary_frequency || 'monthly';
+  if (freq === 'weekly') return Math.round(base * 52 / 12);
+  if (freq === 'daily') return Math.round(base * 26);
+  return base;
+}
+
+function getAssumedSalaryTotals() {
+  const activeStaff = typeof getActiveStaff === 'function' ? getActiveStaff() : (cache.staff || []);
+  const monthlyTotal = activeStaff.reduce((sum, s) => sum + getStaffMonthlyAssumedSalary(s), 0);
+  const weeklyTotal = Math.round(monthlyTotal * 12 / 52);
+  const annualTotal = monthlyTotal * 12;
+  return { monthlyTotal, weeklyTotal, annualTotal, count: activeStaff.length };
+}
+
+function renderSalaryReportHtml() {
+  const currentMonth = monthKey(todayStr());
+  const activeStaff = typeof getActiveStaff === 'function' ? getActiveStaff() : (cache.staff || []);
+  const totals = getAssumedSalaryTotals();
+
+  const actualPaidThisMonth = (cache.salaries || []).filter(sa => monthKey(sa.paid_date) === currentMonth).reduce((sum, sa) => sum + Number(sa.amount||0), 0);
+  const advancesThisMonth = (getSalaryAdvances() || []).filter(a => monthKey(a.date) === currentMonth).reduce((sum, a) => sum + Number(a.amount||0), 0);
+  const totalOutflowThisMonth = actualPaidThisMonth + advancesThisMonth;
+  const remainingDue = Math.max(0, totals.monthlyTotal - totalOutflowThisMonth);
+  const paidPct = totals.monthlyTotal > 0 ? Math.min(100, Math.round((totalOutflowThisMonth / totals.monthlyTotal) * 100)) : 0;
+
+  const staffRowsHtml = activeStaff.map(s => {
+    const assumedMonthly = getStaffMonthlyAssumedSalary(s);
+    const paidThisMonth = (cache.salaries || []).filter(sa => sa.staff_id === s.id && monthKey(sa.paid_date) === currentMonth).reduce((sum, sa) => sum + Number(sa.amount||0), 0);
+    const advThisMonth = (getSalaryAdvances() || []).filter(a => a.staff_id === s.id && monthKey(a.date) === currentMonth).reduce((sum, a) => sum + Number(a.amount||0), 0);
+    const totalStaffPaid = paidThisMonth + advThisMonth;
+    const staffPending = Math.max(0, assumedMonthly - totalStaffPaid);
+
+    return `
+      <tr style="border-bottom:1px solid var(--paper-line);font-size:0.8rem;">
+        <td style="padding:10px 12px;">
+          <b style="color:var(--ink);display:block;">${esc(s.name)}</b>
+          <span class="role-pill ${s.role}">${s.role}</span>
+        </td>
+        <td style="padding:10px 12px;font-family:'Roboto Mono',monospace;color:var(--ink);">
+          ₹${Number(s.base_salary||0).toLocaleString('en-IN')} <span style="font-size:0.7rem;color:var(--ink-soft);">/ ${s.salary_frequency||'monthly'}</span>
+        </td>
+        <td style="padding:10px 12px;font-family:'Roboto Mono',monospace;color:var(--ink);font-weight:700;">
+          ₹${assumedMonthly.toLocaleString('en-IN')}
+        </td>
+        <td style="padding:10px 12px;font-family:'Roboto Mono',monospace;color:var(--leaf);font-weight:700;">
+          ₹${totalStaffPaid.toLocaleString('en-IN')}
+          ${advThisMonth > 0 ? `<div style="font-size:0.65rem;color:var(--turmeric-dark);">(Incl. ₹${advThisMonth} Adv)</div>` : ''}
+        </td>
+        <td style="padding:10px 12px;font-family:'Roboto Mono',monospace;color:${staffPending>0?'var(--brick)':'var(--leaf)'};font-weight:700;">
+          ${staffPending > 0 ? `₹${staffPending.toLocaleString('en-IN')}` : '✓ Settled'}
+        </td>
+        <td style="padding:10px 12px;text-align:right;">
+          <button class="stamp-btn small ghost" style="font-size:0.7rem;padding:2px 6px;" onclick="window.__editStaff('${s.id}')">✎ Base Rate</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  return `
+    <!-- Salary Expenses Executive Scorecards -->
+    <div class="dash-kpi-grid" style="margin-bottom:16px;">
+      <div class="dash-kpi-card">
+        <div class="dash-kpi-title">Assumed Monthly Salary</div>
+        <div class="dash-kpi-val" style="color:var(--turmeric-dark);">₹${totals.monthlyTotal.toLocaleString('en-IN')}</div>
+        <div class="dash-kpi-sub">Total monthly commitment (${totals.count} active staff)</div>
+      </div>
+      <div class="dash-kpi-card">
+        <div class="dash-kpi-title">Assumed Weekly Salary</div>
+        <div class="dash-kpi-val" style="color:var(--ink);">₹${totals.weeklyTotal.toLocaleString('en-IN')}</div>
+        <div class="dash-kpi-sub">Weekly payroll commitment</div>
+      </div>
+      <div class="dash-kpi-card">
+        <div class="dash-kpi-title">Actual Paid This Month</div>
+        <div class="dash-kpi-val" style="color:var(--leaf);">₹${totalOutflowThisMonth.toLocaleString('en-IN')}</div>
+        <div class="dash-kpi-sub">Paid payouts &amp; advances (${currentMonth})</div>
+      </div>
+      <div class="dash-kpi-card">
+        <div class="dash-kpi-title">Remaining Commitment</div>
+        <div class="dash-kpi-val" style="color:${remainingDue>0?'var(--brick)':'var(--leaf)'};">₹${remainingDue.toLocaleString('en-IN')}</div>
+        <div class="dash-kpi-sub">Outstanding balance for current month</div>
+      </div>
+    </div>
+
+    <!-- Monthly Salary Expense Progress Bar Widget -->
+    <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px;margin-bottom:18px;background:var(--paper);border:1px solid var(--paper-line);border-radius:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <b style="font-size:0.88rem;color:var(--ink);">Monthly Salary Outflow Progress (${currentMonth})</b>
+        <b style="font-family:'Roboto Mono',monospace;font-size:0.85rem;color:var(--leaf);">${paidPct}% Paid</b>
+      </div>
+      <div class="progress-track" style="height:10px;background:var(--paper-line);border-radius:999px;overflow:hidden;margin-bottom:6px;">
+        <div class="progress-fill ${paidPct>=100?'complete':''}" style="width:${paidPct}%;height:100%;border-radius:999px;background:linear-gradient(90deg, #10B981, #059669);"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--ink-soft);">
+        <span>Paid Outflow: <b style="color:var(--leaf);font-family:'Roboto Mono',monospace;">₹${totalOutflowThisMonth.toLocaleString('en-IN')}</b></span>
+        <span>Budgeted Goal: <b style="color:var(--ink);font-family:'Roboto Mono',monospace;">₹${totals.monthlyTotal.toLocaleString('en-IN')}</b></span>
+      </div>
+    </div>
+
+    <!-- Staff Members Salary Commitment Table -->
+    <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
+      <span>Staff Member Salary Breakdown &amp; Commitments</span>
+      ${isOwner() ? `<button class="stamp-btn small" onclick="getModalHolder('taskModalHolder').innerHTML='';window.__openSalary();">+ Record Salary Payout</button>` : ''}
+    </div>
+
+    <div class="row-card" style="flex-direction:column;align-items:stretch;padding:0;overflow-x:auto;margin-bottom:16px;border:1px solid var(--paper-line);">
+      <table style="width:100%;border-collapse:collapse;text-align:left;">
+        <thead>
+          <tr style="background:var(--paper-line);font-size:0.72rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.03em;">
+            <th style="padding:10px 12px;">Staff Member</th>
+            <th style="padding:10px 12px;">Base Rate</th>
+            <th style="padding:10px 12px;">Assumed Monthly</th>
+            <th style="padding:10px 12px;">Paid (${currentMonth})</th>
+            <th style="padding:10px 12px;">Pending</th>
+            <th style="padding:10px 12px;text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${staffRowsHtml || '<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--ink-soft);">No active staff members found.</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
 
 /* ---------------- FEATURE 7: SALARY ADVANCES & DEDUCTIONS ---------------- */
 function getSalaryAdvances() {
@@ -12474,13 +12599,17 @@ function saveSalaryAdvanceLocally(adv) {
 window.__openSalaryAdvanceModal = function() {
   const holder = getModalHolder('salaryModalHolder');
   holder.innerHTML = `
-  <div class="overlay show"><div class="modal">
-    <h2>💸 Record Salary Advance / Loan</h2>
-    <label>Staff Member</label>
+  <div class="overlay show" onclick="if(event.target===this) window.__closeSalaryModal()"><div class="modal" style="max-width:440px;width:92%;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <h3 style="margin:0;">💸 Record Salary Advance</h3>
+      <button class="stamp-btn small ghost" onclick="window.__closeSalaryModal()">✕</button>
+    </div>
+
+    <label>Select Staff Member *</label>
     <select id="mAdvStaffId">
       ${cache.staff.map(s => `<option value="${s.id}">${esc(s.name)} (${s.role})</option>`).join('')}
     </select>
-    <label>Advance Amount (₹)</label>
+    <label>Advance Amount (₹) *</label>
     <input type="number" step="0.01" id="mAdvAmount" placeholder="e.g. 2000">
     <label>Date of Advance</label>
     <input type="date" id="mAdvDate" value="${todayStr()}">
@@ -12578,10 +12707,7 @@ function saveExpensesList(expenses) {
 function renderExpensesTrackerHtml() {
   const expenses = getExpensesList();
   const currentMonth = monthKey(todayStr());
-  const monthExpenses = expenses.filter(e => monthKey(e.date) === currentMonth);
-  const totalMonthExp = monthExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
-  const cashExp = monthExpenses.filter(e => (e.payment_mode || 'Cash') === 'Cash').reduce((sum, e) => sum + Number(e.amount || 0), 0);
-  const gpayExp = monthExpenses.filter(e => (e.payment_mode || '').includes('GPay') || (e.payment_mode || '').includes('Online')).reduce((sum, e) => sum + Number(e.amount || 0), 0);
+  const totalThisMonth = expenses.filter(e => monthKey(e.date) === currentMonth).reduce((sum, e) => sum + Number(e.amount||0), 0);
 
   return `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
