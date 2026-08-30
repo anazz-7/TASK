@@ -7572,6 +7572,7 @@ function renderSalesmanTab(body){
 
 /* ---------------- STAFF (management tab for owners/managers) ---------------- */
 let staffTabFilter = 'all'; // 'all' | 'active' | 'inactive'
+let expandedStaffIds = new Set();
 
 function isStaffActive(s) {
   if (!s) return false;
@@ -7584,6 +7585,24 @@ function getActiveStaff() {
 
 window.__setStaffTabFilter = function(f) {
   staffTabFilter = f;
+  renderTabBody();
+};
+
+window.__toggleStaffExpand = function(id) {
+  if (expandedStaffIds.has(id)) {
+    expandedStaffIds.delete(id);
+  } else {
+    expandedStaffIds.add(id);
+  }
+  renderTabBody();
+};
+
+window.__toggleAllStaffExpand = function(expandAll) {
+  if (expandAll) {
+    (cache.staff || []).forEach(s => expandedStaffIds.add(s.id));
+  } else {
+    expandedStaffIds.clear();
+  }
   renderTabBody();
 };
 
@@ -7601,7 +7620,7 @@ window.__toggleStaffStatus = async function(staffId, newStatus) {
       await sb.from('staff').update({ status: newStatus }).eq('id', staffId);
     } catch(e){}
   }
-  window.showToast(newStatus === 'inactive' ? `⏸ ${s.name} is now Inactive` : `▶ ${s.name} is now Active`, 'info');
+  window.showToast(newStatus === 'inactive' ? `${s.name} set to Inactive` : `${s.name} set to Active`, 'info');
   renderTabBody();
 };
 
@@ -7617,58 +7636,132 @@ function renderStaffTab(body){
   });
 
   body.innerHTML = `
-    <!-- Top Staff Status Filter Bar -->
+    <!-- Professional Top Control Bar -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-      <div style="display:flex;gap:6px;overflow-x:auto;">
+      <!-- Status Filter Tabs -->
+      <div style="display:flex;gap:6px;overflow-x:auto;align-items:center;">
         <button class="stamp-btn small ${staffTabFilter==='all'?'':'ghost'}" onclick="window.__setStaffTabFilter('all')">
-          All Staff (${allStaff.length})
+          All Members (${allStaff.length})
         </button>
         <button class="stamp-btn small ${staffTabFilter==='active'?'':'ghost'}" onclick="window.__setStaffTabFilter('active')">
-          🟢 Active (${activeStaff.length})
+          Active (${activeStaff.length})
         </button>
         <button class="stamp-btn small ${staffTabFilter==='inactive'?'':'ghost'}" onclick="window.__setStaffTabFilter('inactive')">
-          🔴 Inactive (${inactiveStaff.length})
+          Inactive (${inactiveStaff.length})
         </button>
       </div>
-      ${isManagerPlus() ? `<button class="stamp-btn small" onclick="window.__openStaff()">+ Add Staff</button>` : ''}
+
+      <!-- Actions & Section-Level Expand/Collapse Controls -->
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <button class="stamp-btn small ghost" style="font-size:0.75rem;padding:4px 8px;" onclick="window.__toggleAllStaffExpand(true)">
+          ⯆ Expand All
+        </button>
+        <button class="stamp-btn small ghost" style="font-size:0.75rem;padding:4px 8px;" onclick="window.__toggleAllStaffExpand(false)">
+          ⯅ Collapse All
+        </button>
+        ${isManagerPlus() ? `
+          <button class="stamp-btn small" onclick="window.__openStaff()" style="display:inline-flex;align-items:center;gap:4px;">
+            ${icon('plus', 14)} Add Staff
+          </button>
+        ` : ''}
+      </div>
     </div>
 
-    <div class="cards-grid">
+    <!-- Staff Cards Grid with Expand/Collapse Details -->
+    <div class="cards-grid" style="grid-template-columns:1fr;gap:10px;">
       ${filteredStaff.length ? filteredStaff.map(s => {
         const isActive = isStaffActive(s);
+        const isExpanded = expandedStaffIds.has(s.id);
+        const cleanPhone = (s.phone || '').replace(/\D/g, '');
+
         return `
-          <div class="row-card" style="border-left:4px solid ${isActive?'var(--leaf)':'var(--brick)'};opacity:${isActive?'1.0':'0.82'};">
-            <div class="avatar-circle" style="width:44px;height:44px;font-size:1.05rem;background:${isActive?'var(--leaf-soft)':'var(--brick-soft)'};color:${isActive?'var(--leaf)':'var(--brick)'};">${initials(s.name)}</div>
-            <div class="row-main" style="min-width:140px;">
-              <h3>
-                ${esc(s.name)}
-                <span class="role-pill ${s.role}">${s.role}</span>
-                <span class="stamp ${isActive?'present':'absent'}" style="font-size:0.68rem;padding:2px 6px;margin-left:4px;">
-                  ${isActive ? '🟢 Active' : '🔴 Inactive'}
+          <div class="row-card" style="flex-direction:column;align-items:stretch;padding:12px 14px;border-left:4px solid ${isActive?'var(--leaf)':'var(--brick)'};opacity:${isActive?'1.0':'0.85'};margin-bottom:0;border:1px solid var(--paper-line);">
+            <!-- Compact Header Row (Always Visible) -->
+            <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;" onclick="window.__toggleStaffExpand('${s.id}')">
+              <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">
+                <span style="font-size:0.8rem;color:var(--turmeric-dark);font-weight:700;flex-shrink:0;">
+                  ${isExpanded ? '⯅' : '⯆'}
                 </span>
-              </h3>
-              <div class="meta">
-                <span>Phone: ${s.phone ? esc(s.phone) : 'None'}</span>
-                ${isOwner() ? `<span>PIN: ${esc(s.pin || '••••')}</span>` : ''}
-              </div>
-              <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:4px;">
-                Pay Schedule: <b>${payScheduleLabel(s)}</b>
-              </div>
-            </div>
-            <div class="row-actions">
-              <div class="action-dropdown-holder">
-                <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${s.id}')">More ▾</button>
-                <div class="action-dropdown-menu" id="actionMenu_${s.id}">
-                  ${isManagerPlus() ? `<button onclick="window.__editStaff('${s.id}')">✎ Edit</button>` : ''}
-                  ${isManagerPlus() ? `
-                    <button onclick="window.__toggleStaffStatus('${s.id}', '${isActive?'inactive':'active'}')">
-                      ${isActive ? '⏸ Deactivate Staff' : '▶ Activate Staff'}
-                    </button>
-                  ` : ''}
-                  ${isOwner() && s.id !== session.staffId ? `<button class="danger" onclick="window.__deleteStaff('${s.id}')">🗑 Delete</button>` : ''}
+                <div class="avatar-circle" style="width:38px;height:38px;font-size:0.95rem;flex-shrink:0;background:${isActive?'var(--leaf-soft)':'var(--brick-soft)'};color:${isActive?'var(--leaf)':'var(--brick)'};font-weight:700;">
+                  ${initials(s.name)}
+                </div>
+                <div style="min-width:0;flex:1;">
+                  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                    <b style="font-size:0.92rem;color:var(--ink);">${esc(s.name)}</b>
+                    <span class="role-pill ${s.role}">${s.role}</span>
+                    <span class="stamp ${isActive?'present':'absent'}" style="font-size:0.68rem;padding:2px 6px;">
+                      ${isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                  <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">
+                    ${s.phone ? `Phone: ${esc(s.phone)}` : 'No phone number'}
+                  </div>
                 </div>
               </div>
+
+              <!-- Header Action & Expand Toggle -->
+              <div style="display:flex;align-items:center;gap:6px;" onclick="event.stopPropagation();">
+                ${isManagerPlus() ? `
+                  <button class="stamp-btn small ghost" style="padding:3px 8px;font-size:0.72rem;display:inline-flex;align-items:center;gap:4px;" onclick="window.__editStaff('${s.id}')">
+                    ${icon('edit', 12)} Edit
+                  </button>
+                ` : ''}
+                <button class="stamp-btn small ghost" style="padding:3px 8px;font-size:0.72rem;" onclick="window.__toggleStaffExpand('${s.id}')">
+                  ${isExpanded ? 'Hide Details ⯅' : 'Show Details ⯆'}
+                </button>
+              </div>
             </div>
+
+            <!-- Expanded Details Panel -->
+            ${isExpanded ? `
+              <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--paper-line);display:flex;flex-direction:column;gap:8px;">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:8px;font-size:0.78rem;">
+                  <div style="background:var(--paper);padding:8px 10px;border-radius:6px;border:1px solid var(--paper-line);">
+                    <span style="color:var(--ink-soft);display:block;font-size:0.7rem;font-weight:700;text-transform:uppercase;">Phone Contact</span>
+                    <b style="color:var(--ink);font-family:'Roboto Mono',monospace;">${s.phone ? esc(s.phone) : 'Not provided'}</b>
+                    ${cleanPhone ? `
+                      <div style="display:flex;gap:4px;margin-top:6px;">
+                        <a href="tel:${cleanPhone}" class="stamp-btn small ghost" style="padding:2px 6px;font-size:0.68rem;text-decoration:none;">📞 Call</a>
+                        <a href="https://wa.me/91${cleanPhone}" target="_blank" class="stamp-btn small" style="background:#25D366;color:#fff;border-color:#25D366;padding:2px 6px;font-size:0.68rem;text-decoration:none;">💬 WhatsApp</a>
+                      </div>
+                    ` : ''}
+                  </div>
+                  ${isOwner() ? `
+                    <div style="background:var(--paper);padding:8px 10px;border-radius:6px;border:1px solid var(--paper-line);">
+                      <span style="color:var(--ink-soft);display:block;font-size:0.7rem;font-weight:700;text-transform:uppercase;">Login PIN Code</span>
+                      <b style="color:var(--turmeric-dark);font-family:'Roboto Mono',monospace;font-size:0.95rem;">${esc(s.pin || '••••')}</b>
+                    </div>
+                  ` : ''}
+                  <div style="background:var(--paper);padding:8px 10px;border-radius:6px;border:1px solid var(--paper-line);">
+                    <span style="color:var(--ink-soft);display:block;font-size:0.7rem;font-weight:700;text-transform:uppercase;">Payout Schedule</span>
+                    <b style="color:var(--ink);">${payScheduleLabel(s)}</b>
+                  </div>
+                  <div style="background:var(--paper);padding:8px 10px;border-radius:6px;border:1px solid var(--paper-line);">
+                    <span style="color:var(--ink-soft);display:block;font-size:0.7rem;font-weight:700;text-transform:uppercase;">Base Salary</span>
+                    <b style="color:var(--leaf);font-family:'Roboto Mono',monospace;">₹${Number(s.base_salary || 0).toLocaleString('en-IN')}</b>
+                  </div>
+                </div>
+
+                <!-- Footer Action Buttons -->
+                <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:4px;flex-wrap:wrap;align-items:center;">
+                  ${isManagerPlus() ? `
+                    <button class="stamp-btn small ghost" style="font-size:0.72rem;display:inline-flex;align-items:center;gap:4px;" onclick="window.__toggleStaffStatus('${s.id}', '${isActive?'inactive':'active'}')">
+                      ${isActive ? 'Set Inactive' : 'Set Active'}
+                    </button>
+                  ` : ''}
+                  ${isManagerPlus() ? `
+                    <button class="stamp-btn small ghost" style="font-size:0.72rem;display:inline-flex;align-items:center;gap:4px;" onclick="window.__editStaff('${s.id}')">
+                      ${icon('edit', 12)} Edit Profile
+                    </button>
+                  ` : ''}
+                  ${isOwner() && s.id !== session.staffId ? `
+                    <button class="stamp-btn small ghost danger" style="font-size:0.72rem;display:inline-flex;align-items:center;gap:4px;color:var(--brick);border-color:var(--brick);" onclick="window.__deleteStaff('${s.id}')">
+                      ${icon('trash', 12)} Delete
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
+            ` : ''}
           </div>
         `;
       }).join('') : `
@@ -7686,8 +7779,8 @@ function openStaffModal(staffId){
   const holder = getModalHolder('staffModalHolder');
   holder.innerHTML = `
   <div class="overlay show"><div class="modal">
-    <h2>${s ? 'Edit staff member' : 'New staff member'}</h2>
-    <label>Full name</label>
+    <h2>${s ? 'Edit Staff Member' : 'New Staff Member'}</h2>
+    <label>Full Name</label>
     <input id="mStaffName" value="${s ? esc(s.name) : ''}" placeholder="e.g. Ramesh Kumar">
     <label>Role</label>
     <select id="mStaffRole">
@@ -7699,17 +7792,19 @@ function openStaffModal(staffId){
     </select>
     <label>Account Status</label>
     <select id="mStaffStatus">
-      <option value="active" ${(!s || s.status!=='inactive')?'selected':''}>🟢 Active Member</option>
-      <option value="inactive" ${(s && s.status==='inactive')?'selected':''}>🔴 Inactive / Deactivated</option>
+      <option value="active" ${(!s || s.status!=='inactive')?'selected':''}>Active Member</option>
+      <option value="inactive" ${(s && s.status==='inactive')?'selected':''}>Inactive / Deactivated</option>
     </select>
-    <label>Phone number (for WhatsApp/SMS alerts)</label>
+    <label>Phone Number (for WhatsApp/SMS Alerts)</label>
     <input id="mStaffPhone" value="${s ? esc(s.phone||'') : ''}" placeholder="e.g. 9876543210">
     <label>PIN Code (4-6 digits)</label>
     <input id="mStaffPin" type="password" inputmode="numeric" value="${s ? esc(s.pin||'') : ''}" placeholder="••••">
     
     <!-- Weekly & Monthly Salary Payout Configuration -->
     <div style="margin-top:14px;padding:12px;background:var(--paper);border-radius:8px;border:1px solid var(--paper-line);">
-      <div style="font-weight:700;font-size:0.85rem;color:var(--turmeric-dark);margin-bottom:8px;">💰 Salary Payout Schedule</div>
+      <div style="font-weight:700;font-size:0.85rem;color:var(--turmeric-dark);margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+        ${icon('salary', 16)} Salary Payout Schedule
+      </div>
       <label style="margin-top:0;">Payout Frequency</label>
       <select id="mStaffSalaryFreq" onchange="window.__toggleStaffSalaryFields()">
         <option value="weekly" ${s && s.salary_frequency==='weekly'?'selected':''}>Weekly Payouts</option>
@@ -7725,8 +7820,6 @@ function openStaffModal(staffId){
           ${Array.from({length:31},(_,i)=>i+1).map(d=>`<option value="${d}" ${s && s.salary_day===d?'selected':''}>Day ${d} of Month (Monthly)</option>`).join('')}
         </select>
       </div>
-    </div>
-
     <div class="modal-actions">
       <button class="stamp-btn ghost" onclick="window.__closeStaffModal()">Cancel</button>
       <button class="stamp-btn" onclick="window.__saveStaff('${staffId||''}')">Save Staff</button>
