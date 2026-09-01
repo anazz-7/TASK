@@ -4063,8 +4063,8 @@ function buildPinnedIncentiveTargetWidgetHtml(curMonth, monthSales) {
       <!-- Catchy Incentive Bonus Highlight Banner Pinned Above Progress Track -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
         <span style="font-size:0.72rem;color:#CBD5E1;font-weight:600;">Target Goal Progress</span>
-        <span style="background:linear-gradient(135deg, #10B981, #059669);color:#FFFFFF;font-family:'Roboto Mono',monospace;font-size:0.72rem;font-weight:800;padding:2px 8px;border-radius:999px;box-shadow:0 0 10px rgba(16,185,129,0.5);display:inline-flex;align-items:center;gap:4px;">
-          🎁 INCENTIVE BONUS: ₹${incentiveBonus.toLocaleString('en-IN')}
+        <span style="background:linear-gradient(135deg, #10B981, #059669);color:#FFFFFF;font-family:'Roboto Mono',monospace;font-size:0.72rem;font-weight:800;padding:2px 8px;border-radius:999px;box-shadow:0 0 10px rgba(16,185,129,0.4);display:inline-flex;align-items:center;gap:4px;">
+          ${icon('trophy', 12)} INCENTIVE BONUS: ₹${incentiveBonus.toLocaleString('en-IN')}
         </span>
       </div>
 
@@ -4116,8 +4116,8 @@ function buildStaffTargetsHtml(curMonth, monthSales){
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px;">
           <div style="display:flex;align-items:center;gap:6px;">
             <b style="margin:0;font-size:0.88rem;color:var(--ink);">${esc(s.name)}</b>
-            <span style="background:var(--leaf-soft);color:var(--leaf);border:1px solid var(--leaf);font-family:'Roboto Mono',monospace;font-size:0.68rem;font-weight:800;padding:1px 7px;border-radius:999px;display:inline-flex;align-items:center;gap:3px;box-shadow:0 1px 4px rgba(16,185,129,0.2);">
-              🎁 BONUS: ₹${bonusVal.toLocaleString('en-IN')}
+            <span style="background:var(--leaf-soft);color:var(--leaf);border:1px solid var(--leaf);font-family:'Roboto Mono',monospace;font-size:0.68rem;font-weight:800;padding:1px 7px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;box-shadow:0 1px 4px rgba(16,185,129,0.15);">
+              ${icon('trophy', 11)} Bonus: ₹${bonusVal.toLocaleString('en-IN')}
             </span>
           </div>
           <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.8rem;color:var(--turmeric-dark);">
@@ -5985,8 +5985,8 @@ function buildTargetsHtml(){
         <div class="row-main">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
             <h3 style="margin:0;">${esc(s.name)}</h3>
-            <span style="background:var(--leaf-soft);color:var(--leaf);border:1px solid var(--leaf);font-family:'Roboto Mono',monospace;font-size:0.68rem;font-weight:800;padding:1px 7px;border-radius:999px;display:inline-flex;align-items:center;gap:3px;box-shadow:0 1px 4px rgba(16,185,129,0.2);">
-              🎁 BONUS: ₹${bonusVal.toLocaleString('en-IN')}
+            <span style="background:var(--leaf-soft);color:var(--leaf);border:1px solid var(--leaf);font-family:'Roboto Mono',monospace;font-size:0.68rem;font-weight:800;padding:1px 7px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;box-shadow:0 1px 4px rgba(16,185,129,0.15);">
+              ${icon('trophy', 11)} Bonus: ₹${bonusVal.toLocaleString('en-IN')}
             </span>
           </div>
           <div class="kv"><span>₹${staffTotal.toFixed(0)} of ₹${Number(t.target_amount).toFixed(0)}</span><b>${pct}%</b></div>
@@ -13228,18 +13228,20 @@ function renderReportsTab(body) {
     <!-- Reports Hub Header Control Bar -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
       <div>
-        <h3 style="margin:0;font-size:1.1rem;color:var(--ink);">📊 Master Visual Reports Hub</h3>
+        <h3 style="margin:0;font-size:1.1rem;color:var(--ink);display:inline-flex;align-items:center;gap:6px;">
+          ${icon('reports', 18)} Master Visual Reports Hub
+        </h3>
         <p style="margin:2px 0 0;font-size:0.75rem;color:var(--ink-soft);">Real-time executive visual analytics across all business modules</p>
       </div>
 
       <!-- Filter Categories -->
       <div style="display:flex;gap:6px;overflow-x:auto;align-items:center;">
         <button class="stamp-btn small ${reportsCategoryFilter==='all'?'':'ghost'}" onclick="window.__setReportsFilter('all')">All Reports</button>
-        <button class="stamp-btn small ${reportsCategoryFilter==='pnl'?'':'ghost'}" onclick="window.__setReportsFilter('pnl')">📈 P&amp;L</button>
-        <button class="stamp-btn small ${reportsCategoryFilter==='salary'?'':'ghost'}" onclick="window.__setReportsFilter('salary')">💰 Payroll</button>
-        <button class="stamp-btn small ${reportsCategoryFilter==='inventory'?'':'ghost'}" onclick="window.__setReportsFilter('inventory')">📦 Inventory</button>
-        <button class="stamp-btn small ${reportsCategoryFilter==='attendance'?'':'ghost'}" onclick="window.__setReportsFilter('attendance')">👥 Attendance</button>
-        <button class="stamp-btn small ${reportsCategoryFilter==='sales'?'':'ghost'}" onclick="window.__setReportsFilter('sales')">🧾 Sales</button>
+        <button class="stamp-btn small ${reportsCategoryFilter==='pnl'?'':'ghost'}" onclick="window.__setReportsFilter('pnl')">P&amp;L Analytics</button>
+        <button class="stamp-btn small ${reportsCategoryFilter==='salary'?'':'ghost'}" onclick="window.__setReportsFilter('salary')">Payroll</button>
+        <button class="stamp-btn small ${reportsCategoryFilter==='inventory'?'':'ghost'}" onclick="window.__setReportsFilter('inventory')">Inventory</button>
+        <button class="stamp-btn small ${reportsCategoryFilter==='attendance'?'':'ghost'}" onclick="window.__setReportsFilter('attendance')">Attendance</button>
+        <button class="stamp-btn small ${reportsCategoryFilter==='sales'?'':'ghost'}" onclick="window.__setReportsFilter('sales')">Sales</button>
       </div>
     </div>
 
@@ -13247,7 +13249,7 @@ function renderReportsTab(body) {
     ${(reportsCategoryFilter==='all' || reportsCategoryFilter==='pnl') && isOwner() ? `
       <div style="margin-bottom:20px;">
         <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
-          <span>📈 P&amp;L Net Profits &amp; Revenue Analytics</span>
+          <span>P&amp;L Net Profits &amp; Revenue Analytics</span>
           <button class="stamp-btn small ghost" onclick="window.__setTab('pnl')">View Full P&amp;L Tab ➔</button>
         </div>
         ${typeof buildDashboardPnLLineGraphHtml === 'function' ? buildDashboardPnLLineGraphHtml() : ''}
@@ -13258,7 +13260,7 @@ function renderReportsTab(body) {
     ${(reportsCategoryFilter==='all' || reportsCategoryFilter==='salary') ? `
       <div style="margin-bottom:20px;">
         <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
-          <span>💰 Salary Assumptions &amp; Expense Outflow Report</span>
+          <span>Salary Assumptions &amp; Expense Outflow Report</span>
           <button class="stamp-btn small ghost" onclick="window.__setTab('salary')">View Salary Tab ➔</button>
         </div>
 
@@ -13301,7 +13303,7 @@ function renderReportsTab(body) {
     ${(reportsCategoryFilter==='all' || reportsCategoryFilter==='inventory') ? `
       <div style="margin-bottom:20px;">
         <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
-          <span>📦 Inventory &amp; Stock Health Reports</span>
+          <span>Inventory &amp; Stock Health Reports</span>
           <button class="stamp-btn small ghost" onclick="window.__setTab('low_stock')">View Low Stock Tab ➔</button>
         </div>
 
@@ -13331,7 +13333,7 @@ function renderReportsTab(body) {
     ${(reportsCategoryFilter==='all' || reportsCategoryFilter==='attendance') ? `
       <div style="margin-bottom:20px;">
         <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
-          <span>👥 Staff Attendance &amp; Team Performance Visuals</span>
+          <span>Staff Attendance &amp; Team Performance Visuals</span>
           <button class="stamp-btn small ghost" onclick="window.__setTab('attendance')">View Attendance Tab ➔</button>
         </div>
 
@@ -13354,7 +13356,7 @@ function renderReportsTab(body) {
     ${(reportsCategoryFilter==='all' || reportsCategoryFilter==='sales') ? `
       <div style="margin-bottom:20px;">
         <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
-          <span>🧾 Sales &amp; Revenue Reports</span>
+          <span>Sales &amp; Revenue Reports</span>
           <button class="stamp-btn small ghost" onclick="window.__setTab('sales')">View Sales Tab ➔</button>
         </div>
 
