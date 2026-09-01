@@ -3895,10 +3895,10 @@ function renderShell(){
       <div style="display:flex;flex-direction:column;gap:12px;">
         ${[
           { section: 'Overview', keys: ['dashboard','reports'] },
-          { section: 'Work', keys: ['tasks','daily','weekly','attendance','low_stock'] },
-          { section: 'Sales', keys: ['sales','pricelist','label','package'] },
-          { section: 'Money', keys: ['accounts','office_logs','pnl','customer_report','vendors','salary','points'] },
-          { section: 'Admin', keys: ['staff','stockkeeper','audit','settings'] }
+          { section: 'Work', keys: ['tasks','daily','weekly','attendance'] },
+          { section: 'Sales', keys: ['sales'] },
+          { section: 'Money', keys: ['accounts','office_logs','pnl','customer_report','vendors','salary'] },
+          { section: 'Admin', keys: ['staff','audit','settings'] }
         ].map(grp => {
           const validKeys = grp.keys.filter(k => tabs.includes(k));
           if(!validKeys.length) return '';
@@ -4437,6 +4437,49 @@ function renderDashboardTab(body){
     </div>` : ''}
     ${isOwner() ? buildWeeklyEmailReportHtml() : ''}
     ${isOwner() ? buildDashboardPnLLineGraphHtml() : ''}
+    ${buildDashboardQuickLinksHtml()}
+  `;
+}
+
+function buildDashboardQuickLinksHtml() {
+  return `
+    <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;">
+      <span>Operations &amp; Quick Links Hub</span>
+    </div>
+
+    <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px;background:var(--paper);border:1.5px solid var(--paper-line);border-radius:12px;margin-bottom:20px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(130px, 1fr));gap:10px;width:100%;box-sizing:border-box;">
+        <button class="stamp-btn ghost" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;gap:6px;height:auto;font-size:0.75rem;text-align:center;background:var(--paper-line);" onclick="window.__setTab('pricelist')">
+          <span style="font-size:1.2rem;color:var(--turmeric-dark);">${icon('clipboard', 22)}</span>
+          <b style="color:var(--ink);">Price List</b>
+        </button>
+        
+        <button class="stamp-btn ghost" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;gap:6px;height:auto;font-size:0.75rem;text-align:center;background:var(--paper-line);" onclick="window.__setTab('label')">
+          <span style="font-size:1.2rem;color:var(--leaf);">${icon('label', 22)}</span>
+          <b style="color:var(--ink);">Label Log</b>
+        </button>
+
+        <button class="stamp-btn ghost" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;gap:6px;height:auto;font-size:0.75rem;text-align:center;background:var(--paper-line);" onclick="window.__setTab('package')">
+          <span style="font-size:1.2rem;color:var(--blue);">${icon('box', 22)}</span>
+          <b style="color:var(--ink);">Package Log</b>
+        </button>
+
+        <button class="stamp-btn ghost" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;gap:6px;height:auto;font-size:0.75rem;text-align:center;background:var(--paper-line);" onclick="window.__setTab('points')">
+          <span style="font-size:1.2rem;color:var(--turmeric-dark);">${icon('trophy', 22)}</span>
+          <b style="color:var(--ink);">Points &amp; Rewards</b>
+        </button>
+
+        <button class="stamp-btn ghost" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;gap:6px;height:auto;font-size:0.75rem;text-align:center;background:var(--paper-line);" onclick="window.__setTab('stockkeeper')">
+          <span style="font-size:1.2rem;color:var(--ink);">${icon('database', 22)}</span>
+          <b style="color:var(--ink);">Stock Keeper</b>
+        </button>
+
+        <button class="stamp-btn ghost" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;gap:6px;height:auto;font-size:0.75rem;text-align:center;background:var(--paper-line);" onclick="window.__setTab('low_stock')">
+          <span style="font-size:1.2rem;color:var(--brick);">${icon('alert', 22)}</span>
+          <b style="color:var(--ink);">Low Stock Alerts</b>
+        </button>
+      </div>
+    </div>
   `;
 }
 
