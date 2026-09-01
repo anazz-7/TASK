@@ -4013,11 +4013,26 @@ window.__setDashSalesMode = (m) => { dashSalesMode = m; renderTabBody(); };
 let dashPointsMode = 'weekly';
 window.__setDashPointsMode = (m) => { dashPointsMode = m; renderTabBody(); };
 
+function getPreviousMonthSalesTotal(curMonthKey) {
+  const parts = (curMonthKey || monthKey(todayStr())).split('-');
+  const y = parseInt(parts[0], 10) || 2026;
+  const m = parseInt(parts[1], 10) || 9;
+  const prevDate = new Date(y, m - 2, 1);
+  const prevKey = monthKey(localDateStr(prevDate));
+  const prevSales = (cache.sales || []).filter(s => monthKey(s.date || s.created_at) === prevKey);
+  const total = prevSales.reduce((sum, s) => sum + Number(s.order_value || s.amount || 0), 0);
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const prevMonthTitle = (monthNames[prevDate.getMonth()] || '') + ' ' + prevDate.getFullYear();
+  return { prevKey, prevMonthTitle, total };
+}
+
 function buildPinnedIncentiveTargetWidgetHtml(curMonth, monthSales) {
   const targets = cache.salesTargets || [];
   const myStaffId = session ? session.staffId : '';
   const myTargetObj = targets.find(t => t.staff_id === myStaffId && t.month === curMonth);
   const isOwnerUser = isOwner();
+  const prevInfo = getPreviousMonthSalesTotal(curMonth);
+  const autoOwnerTarget = prevInfo.total > 0 ? prevInfo.total : 200000;
 
   let targetVal = 30000;
   let incentiveBonus = 3000;
@@ -4026,9 +4041,10 @@ function buildPinnedIncentiveTargetWidgetHtml(curMonth, monthSales) {
 
   if (isOwnerUser) {
     achievedSales = monthSales.reduce((s, x) => s + Number(x.order_value || 0), 0);
-    targetVal = targets.filter(t=>t.month===curMonth).reduce((s,t)=>s+Number(t.target_amount||0),0) || 200000;
-    incentiveBonus = targets.filter(t=>t.month===curMonth).reduce((s,t)=>s+Number(t.incentive_bonus||3000),0) || 15000;
-    titleText = `Overall Business Sales & Incentive Target (${curMonth})`;
+    const setTargetSum = targets.filter(t => t.month === curMonth).reduce((s, t) => s + Number(t.target_amount || 0), 0);
+    targetVal = setTargetSum > 0 ? setTargetSum : autoOwnerTarget;
+    incentiveBonus = targets.filter(t => t.month === curMonth).reduce((s, t) => s + Number(t.incentive_bonus || 3000), 0) || 15000;
+    titleText = `Overall Business Target (${curMonth} Goal vs ${prevInfo.prevMonthTitle})`;
   } else {
     achievedSales = monthSales.filter(x => x.staff_id === myStaffId).reduce((s, x) => s + Number(x.order_value || 0), 0);
     targetVal = myTargetObj ? Number(myTargetObj.target_amount || 30000) : 30000;
@@ -4059,6 +4075,24 @@ function buildPinnedIncentiveTargetWidgetHtml(curMonth, monthSales) {
           <span class="pinned-target-pct" style="display:block;color:#CBD5E1;font-weight:700;margin-top:1px;">${pct}% Completed</span>
         </div>
       </div>
+
+      ${isOwnerUser ? `
+        <!-- Simple Report Visual: Previous Month Sales Benchmark vs Current Goal -->
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:rgba(255,255,255,0.06);border-radius:8px;margin-bottom:8px;font-size:0.75rem;border:1px solid rgba(255,255,255,0.08);">
+          <div>
+            <span style="color:#94A3B8;display:block;font-size:0.62rem;text-transform:uppercase;font-weight:700;">${prevInfo.prevMonthTitle} Sales Benchmark</span>
+            <b style="color:#F8FAFC;font-family:'Roboto Mono',monospace;font-size:0.82rem;">₹${prevInfo.total.toLocaleString('en-IN')}</b>
+          </div>
+          <div style="text-align:center;">
+            <span style="color:#94A3B8;display:block;font-size:0.62rem;text-transform:uppercase;font-weight:700;">${curMonth} Target Goal</span>
+            <b style="color:#FBBF24;font-family:'Roboto Mono',monospace;font-size:0.82rem;">₹${targetVal.toLocaleString('en-IN')}</b>
+          </div>
+          <div style="text-align:right;">
+            <span style="color:#94A3B8;display:block;font-size:0.62rem;text-transform:uppercase;font-weight:700;">Achieved So Far</span>
+            <b style="color:#34D399;font-family:'Roboto Mono',monospace;font-size:0.82rem;">₹${achievedSales.toLocaleString('en-IN')}</b>
+          </div>
+        </div>
+      ` : ''}
 
       <!-- Catchy Incentive Bonus Highlight Banner Pinned Above Progress Track -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
@@ -4100,8 +4134,10 @@ function buildStaffTargetsHtml(curMonth, monthSales){
 
   // Total Business Sales for current month
   const totalMonthSales = monthSales.reduce((sum, x) => sum + Number(x.order_value || 0), 0);
-  const businessTargetVal = 200000; // Default Monthly Business Target Goal
-  const bizPct = Math.min(100, Math.round((totalMonthSales / businessTargetVal) * 100));
+  const prevInfo = getPreviousMonthSalesTotal(curMonth);
+  const setTargetSum = targets.filter(t => t.month === curMonth).reduce((s, t) => s + Number(t.target_amount || 0), 0);
+  const businessTargetVal = setTargetSum > 0 ? setTargetSum : (prevInfo.total > 0 ? prevInfo.total : 200000);
+  const bizPct = Math.min(100, Math.round((totalMonthSales / Math.max(1, businessTargetVal)) * 100));
 
   const activeStaffCards = staffList.map(s => {
     const sSales = monthSales.filter(x=>x.staff_id===s.id).reduce((sum,x)=>sum+Number(x.order_value||0),0);
@@ -4139,8 +4175,11 @@ function buildStaffTargetsHtml(curMonth, monthSales){
 
     <!-- Overall Business Sales Goal Progress Card -->
     <div class="row-card" style="flex-direction:column;align-items:stretch;padding:12px 14px;margin-bottom:12px;background:var(--blue-soft);border:1px solid var(--paper-line);">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-        <b style="font-size:0.9rem;color:var(--ink);">Business Monthly Sales Target Goal</b>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <div>
+          <b style="font-size:0.9rem;color:var(--ink);">Business Monthly Target Goal (${curMonth})</b>
+          <div style="font-size:0.7rem;color:var(--ink-soft);margin-top:1px;">Based on ${prevInfo.prevMonthTitle} Total Sales Baseline: <b>₹${prevInfo.total.toLocaleString('en-IN')}</b></div>
+        </div>
         <b style="font-family:'Roboto Mono',monospace;font-size:0.85rem;color:var(--ink);">
           ₹${totalMonthSales.toLocaleString('en-IN')} / ₹${businessTargetVal.toLocaleString('en-IN')} (${bizPct}%)
         </b>
@@ -15512,56 +15551,56 @@ function renderPriceListTab(body) {
     </div>
 
     <!-- Mobile Card View (< 640px) -->
-    <div class="mobile-only" style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+    <div class="mobile-only" style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px;">
       ${filtered.length ? filtered.map(item => {
         const mrp = Number(item.mrp_price || 0);
         const scheme = Number(item.scheme_price || 0);
         const savings = Math.max(0, mrp - scheme);
         const discountPct = mrp > 0 ? Math.round((savings / mrp) * 100) : 0;
         return `
-          <div class="row-card" style="flex-direction:column;align-items:stretch;padding:8px 10px;margin:0;">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:6px;">
-              <div style="flex:1;">
-                <b style="color:var(--ink);font-size:0.75rem;display:block;line-height:1.2;">${esc(item.product_name)}</b>
-                <span style="margin-top:2px;display:inline-flex;align-items:center;gap:3px;background:var(--blue-soft);color:var(--ink);border:1px solid var(--paper-line);border-radius:4px;font-size:0.65rem;font-weight:600;padding:2px 6px;">
-                  ${icon('pin', 12)} ${esc(item.beat_name || 'General Beat')}
+          <div class="row-card" style="flex-direction:column;align-items:stretch;padding:5px 8px;margin:0;border-radius:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+              <div style="flex:1;min-width:0;display:flex;align-items:center;gap:6px;overflow:hidden;">
+                <b style="color:var(--ink);font-size:0.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;">${esc(item.product_name)}</b>
+                <span style="display:inline-flex;align-items:center;gap:2px;background:var(--blue-soft);color:var(--ink);border:1px solid var(--paper-line);border-radius:4px;font-size:0.6rem;font-weight:600;padding:1px 4px;flex-shrink:0;white-space:nowrap;">
+                  ${icon('pin', 10)} ${esc(item.beat_name || 'General')}
                 </span>
               </div>
               ${isManagerPlus() ? `
-                <div style="display:flex;gap:3px;flex-shrink:0;">
-                  <button class="stamp-btn small ghost" style="padding:2px 6px;font-size:0.65rem;" onclick="window.__editPriceListItem('${item.id}')">✎ Edit</button>
-                  <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:2px 6px;font-size:0.65rem;" onclick="window.__deletePriceListItem('${item.id}')">🗑</button>
+                <div style="display:flex;gap:2px;flex-shrink:0;">
+                  <button class="stamp-btn small ghost" style="padding:1px 5px;font-size:0.62rem;height:20px;line-height:1;" onclick="window.__editPriceListItem('${item.id}')">✎ Edit</button>
+                  <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:1px 5px;font-size:0.62rem;height:20px;line-height:1;" onclick="window.__deletePriceListItem('${item.id}')">🗑</button>
                 </div>
               ` : ''}
             </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;padding-top:6px;border-top:1px solid var(--paper-line);font-family:'Roboto Mono',monospace;font-size:0.72rem;">
-              <div>
-                <span style="font-size:0.68rem;color:var(--ink-soft);text-decoration:line-through;margin-right:6px;">₹${mrp.toLocaleString('en-IN')} MRP</span>
-                <b style="font-size:0.74rem;color:var(--leaf);">₹${scheme.toLocaleString('en-IN')} Scheme</b>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px;padding-top:3px;border-top:1px dashed var(--paper-line);font-family:'Roboto Mono',monospace;font-size:0.7rem;">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="font-size:0.65rem;color:var(--ink-soft);text-decoration:line-through;">₹${mrp.toLocaleString('en-IN')}</span>
+                <b style="font-size:0.75rem;color:var(--leaf);font-weight:800;">₹${scheme.toLocaleString('en-IN')} Scheme</b>
               </div>
-              <span style="padding:2px 6px;border-radius:4px;background:var(--leaf-soft);color:var(--leaf);font-size:0.65rem;font-weight:700;">
+              <span style="padding:1px 5px;border-radius:4px;background:var(--leaf-soft);color:var(--leaf);font-size:0.62rem;font-weight:700;">
                 Save ₹${savings.toLocaleString('en-IN')} (${discountPct}%)
               </span>
             </div>
           </div>
         `;
       }).join('') : `
-        <div class="empty" style="padding:24px;text-align:center;font-size:0.82rem;">No product prices found matching your search.</div>
+        <div class="empty" style="padding:16px;text-align:center;font-size:0.8rem;">No product prices found matching your search.</div>
       `}
     </div>
 
     <!-- Desktop Table View (≥ 640px) -->
     <div class="row-card desktop-only" style="flex-direction:column;padding:0;overflow:hidden;margin-bottom:20px;">
       <div style="width:100%;overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;text-align:left;font-size:0.82rem;">
+        <table style="width:100%;border-collapse:collapse;text-align:left;font-size:0.8rem;">
           <thead>
-            <tr style="background:var(--paper-line);color:var(--ink-soft);font-family:'Roboto Mono',monospace;font-size:0.78rem;text-transform:uppercase;border-bottom:1.5px solid var(--paper-line);">
-              <th style="padding:10px 14px;">Product Name</th>
-              <th style="padding:10px 14px;">Beat Name</th>
-              <th style="padding:10px 14px;">MRP Price</th>
-              <th style="padding:10px 14px;">Scheme Price</th>
-              <th style="padding:10px 14px;">Savings</th>
-              ${isManagerPlus() ? `<th style="padding:10px 14px;text-align:right;">Actions</th>` : ''}
+            <tr style="background:var(--paper-line);color:var(--ink-soft);font-family:'Roboto Mono',monospace;font-size:0.72rem;text-transform:uppercase;border-bottom:1.5px solid var(--paper-line);">
+              <th style="padding:6px 10px;">Product Name</th>
+              <th style="padding:6px 10px;">Beat Name</th>
+              <th style="padding:6px 10px;">MRP Price</th>
+              <th style="padding:6px 10px;">Scheme Price</th>
+              <th style="padding:6px 10px;">Savings</th>
+              ${isManagerPlus() ? `<th style="padding:6px 10px;text-align:right;">Actions</th>` : ''}
             </tr>
           </thead>
           <tbody>
@@ -15572,29 +15611,29 @@ function renderPriceListTab(body) {
               const discountPct = mrp > 0 ? Math.round((savings / mrp) * 100) : 0;
               return `
                 <tr style="border-bottom:1px solid var(--paper-line);transition:background 0.15s ease;">
-                  <td style="padding:12px 14px;">
-                    <b style="color:var(--ink);font-size:0.85rem;display:block;">${esc(item.product_name)}</b>
+                  <td style="padding:6px 10px;">
+                    <b style="color:var(--ink);font-size:0.8rem;display:block;">${esc(item.product_name)}</b>
                   </td>
-                  <td style="padding:12px 14px;">
-                    <span style="display:inline-flex;align-items:center;gap:4px;background:var(--blue-soft);color:var(--ink);border:1px solid var(--paper-line);border-radius:6px;font-size:0.78rem;font-weight:600;padding:3px 8px;">
-                      📍 ${esc(item.beat_name || 'General Beat')}
+                  <td style="padding:6px 10px;">
+                    <span style="display:inline-flex;align-items:center;gap:3px;background:var(--blue-soft);color:var(--ink);border:1px solid var(--paper-line);border-radius:4px;font-size:0.72rem;font-weight:600;padding:2px 6px;">
+                      ${icon('pin', 11)} ${esc(item.beat_name || 'General Beat')}
                     </span>
                   </td>
-                  <td style="padding:12px 14px;font-family:'Roboto Mono',monospace;color:var(--ink-soft);font-size:0.82rem;text-decoration:line-through;">
+                  <td style="padding:6px 10px;font-family:'Roboto Mono',monospace;color:var(--ink-soft);font-size:0.78rem;text-decoration:line-through;">
                     ₹${mrp.toLocaleString('en-IN')}
                   </td>
-                  <td style="padding:12px 14px;font-family:'Roboto Mono',monospace;font-weight:800;color:var(--leaf);font-size:0.85rem;">
+                  <td style="padding:6px 10px;font-family:'Roboto Mono',monospace;font-weight:800;color:var(--leaf);font-size:0.8rem;">
                     ₹${scheme.toLocaleString('en-IN')}
                   </td>
-                  <td style="padding:12px 14px;font-family:'Roboto Mono',monospace;">
-                    <span style="display:inline-block;padding:3px 7px;border-radius:6px;background:var(--leaf-soft);color:var(--leaf);font-size:0.78rem;font-weight:700;">
+                  <td style="padding:6px 10px;font-family:'Roboto Mono',monospace;">
+                    <span style="display:inline-block;padding:2px 6px;border-radius:4px;background:var(--leaf-soft);color:var(--leaf);font-size:0.72rem;font-weight:700;">
                       Save ₹${savings.toLocaleString('en-IN')} (${discountPct}%)
                     </span>
                   </td>
                   ${isManagerPlus() ? `
-                    <td style="padding:12px 14px;text-align:right;white-space:nowrap;">
-                      <button class="stamp-btn small ghost" style="padding:3px 7px;font-size:0.78rem;margin-right:4px;" onclick="window.__editPriceListItem('${item.id}')">✎ Edit</button>
-                      <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:3px 7px;font-size:0.78rem;" onclick="window.__deletePriceListItem('${item.id}')">🗑 Delete</button>
+                    <td style="padding:6px 10px;text-align:right;white-space:nowrap;">
+                      <button class="stamp-btn small ghost" style="padding:2px 6px;font-size:0.72rem;margin-right:4px;" onclick="window.__editPriceListItem('${item.id}')">✎ Edit</button>
+                      <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:2px 6px;font-size:0.72rem;" onclick="window.__deletePriceListItem('${item.id}')">🗑 Delete</button>
                     </td>
                   ` : ''}
                 </tr>
