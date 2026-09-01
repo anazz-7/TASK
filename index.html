@@ -4060,8 +4060,16 @@ function buildPinnedIncentiveTargetWidgetHtml(curMonth, monthSales) {
         </div>
       </div>
 
+      <!-- Catchy Incentive Bonus Highlight Banner Pinned Above Progress Track -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <span style="font-size:0.72rem;color:#CBD5E1;font-weight:600;">Target Goal Progress</span>
+        <span style="background:linear-gradient(135deg, #10B981, #059669);color:#FFFFFF;font-family:'Roboto Mono',monospace;font-size:0.72rem;font-weight:800;padding:2px 8px;border-radius:999px;box-shadow:0 0 10px rgba(16,185,129,0.5);display:inline-flex;align-items:center;gap:4px;">
+          🎁 INCENTIVE BONUS: ₹${incentiveBonus.toLocaleString('en-IN')}
+        </span>
+      </div>
+
       <!-- Animated Executive Gold Progress Bar -->
-      <div class="progress-track" style="height:8px;background:rgba(255,255,255,0.12);border-radius:999px;overflow:hidden;margin-bottom:8px;">
+      <div class="progress-track" style="height:10px;background:rgba(255,255,255,0.12);border-radius:999px;overflow:hidden;margin-bottom:8px;">
         <div class="progress-fill ${pct>=100?'complete':''}" style="width:${pct}%;height:100%;border-radius:999px;background:${pct>=100?'linear-gradient(90deg, #F59E0B, #10B981)':'linear-gradient(90deg, #D97706, #FBBF24, #FCD34D)'};"></div>
       </div>
 
@@ -4101,11 +4109,17 @@ function buildStaffTargetsHtml(curMonth, monthSales){
     if (sSales <= 0) return '';
     const targetObj = targets.find(t=>t.staff_id===s.id && t.month===curMonth);
     const targetVal = targetObj ? Number(targetObj.target_amount||0) : 25000;
+    const bonusVal = targetObj ? Number(targetObj.incentive_bonus||3000) : 3000;
     const pct = Math.min(100, Math.round((sSales / Math.max(1, targetVal)) * 100));
     return `
       <div class="row-card" style="flex-direction:column;align-items:stretch;padding:12px;margin-bottom:8px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-          <b style="margin:0;font-size:0.88rem;color:var(--ink);">${esc(s.name)}</b>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <b style="margin:0;font-size:0.88rem;color:var(--ink);">${esc(s.name)}</b>
+            <span style="background:var(--leaf-soft);color:var(--leaf);border:1px solid var(--leaf);font-family:'Roboto Mono',monospace;font-size:0.68rem;font-weight:800;padding:1px 7px;border-radius:999px;display:inline-flex;align-items:center;gap:3px;box-shadow:0 1px 4px rgba(16,185,129,0.2);">
+              🎁 BONUS: ₹${bonusVal.toLocaleString('en-IN')}
+            </span>
+          </div>
           <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.8rem;color:var(--turmeric-dark);">
             ₹${sSales.toLocaleString('en-IN')} / ₹${targetVal.toLocaleString('en-IN')} (${pct}%)
           </span>
@@ -5505,9 +5519,8 @@ window.__setCalendarStatusFilter = function(f) {
 };
 
 window.__openCalendarDayDetailModal = function(dateStr, staffId) {
-  const holder = getModalHolder('taskModalHolder');
-  const dayRecords = cache.attendance.filter(a => a.date === dateStr);
-  const targetStaffList = (staffId === 'all' || !staffId) ? cache.staff : cache.staff.filter(s => s.id === staffId);
+  const activeStaffList = typeof getActiveStaff === 'function' ? getActiveStaff() : cache.staff.filter(s => isStaffActive(s));
+  const targetStaffList = (staffId === 'all' || !staffId) ? activeStaffList : activeStaffList.filter(s => s.id === staffId);
   const prettyDate = new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
 
   const pCount = dayRecords.filter(a => a.status === 'present').length;
@@ -5644,7 +5657,7 @@ function renderAttendanceCalendarViewReport() {
     cellsHtml += `<div class="att-cal-cell" style="background:var(--paper-line);opacity:0.25;border-color:transparent;cursor:default;"></div>`;
   }
 
-  const totalStaffCount = (selectedStaffId === 'all' ? cache.staff.length : 1) || 1;
+  const totalStaffCount = (selectedStaffId === 'all' ? activeStaffList.length : 1) || 1;
 
   for (let d = 1; d <= totalDays; d++) {
     const dateNum = String(d).padStart(2, '0');
@@ -5791,7 +5804,7 @@ function renderAttendanceCalendarViewReport() {
       </div>
       <div class="stat-card" style="border-left:4px solid var(--turmeric);padding:10px 12px;">
         <div class="num" style="color:var(--turmeric-dark);font-size:1.1rem;">${scorePct}% Attendance</div>
-        <div class="label" style="font-size:0.68rem;">Calculated Rate (${cache.staff.length} Active Staff)</div>
+        <div class="label" style="font-size:0.68rem;">Calculated Rate (${activeStaffList.length} Active Staff)</div>
       </div>
     </div>
 
@@ -5881,7 +5894,6 @@ function renderAttendanceTab(body){
       const existing = cache.attendance.find(a=>a.staff_id===staffId && a.date===today);
       const data = { status, marked_at: new Date().toISOString(), marked_by: session.staffId };
       if(existing) await sbCheck(sb.from('attendance').update(data).eq('id', existing.id));
-      else await sbCheck(sb.from('attendance').insert({business_id:session.businessId, staff_id:staffId, date:today, ...data}));
       await loadData(); renderTabBody();
     } catch(e){
       alert('Could not save attendance — please check your connection and try again.\n\n('+(e.message||e)+')');
@@ -5911,7 +5923,7 @@ function renderAttendanceTab(body){
       ${subTabHeaderHtml}
       ${selfSection}
       <div class="section-label">Team — Today</div>
-      ${cache.staff.map(s=>{
+      ${getActiveStaff().map(s=>{
         const rec = cache.attendance.find(a=>a.staff_id===s.id && a.date===today);
         const status = rec ? rec.status : 'unmarked';
         const loc = rec && rec.marked_lat!=null ? `<a class="link" href="${mapLink(rec.marked_lat,rec.marked_lng)}" target="_blank">${icon('pin',14)}</a>` : '';
@@ -5924,7 +5936,7 @@ function renderAttendanceTab(body){
         </div>`;
       }).join('')}
       <div class="section-label">Monthly summary — ${curMonth}</div>
-      ${cache.staff.map(s=>{
+      ${getActiveStaff().map(s=>{
         const mine = monthAtt.filter(a=>a.staff_id===s.id);
         const daysPresent = mine.filter(a=>a.status==='present').length;
         const daysAbsent = mine.filter(a=>a.status==='absent').length;
@@ -5963,13 +5975,20 @@ function buildTargetsHtml(){
   const monthSalesTotal = cache.sales.filter(s=>s.date.startsWith(curMonth)).reduce((sum,s)=>sum+Number(s.order_value||0),0);
   return `
     <div class="section-label">Sales targets — ${curMonth} <a onclick="window.__openTargets()">Set targets</a></div>
-    ${cache.staff.map(s=>{
+    ${getActiveStaff().map(s=>{
       const t = cache.salesTargets.find(x=>x.staff_id===s.id && x.month===curMonth);
       if(!t || !t.target_amount) return '';
       const staffTotal = cache.sales.filter(x=>x.staff_id===s.id && x.date.startsWith(curMonth)).reduce((sum,x)=>sum+Number(x.order_value||0),0);
+      const bonusVal = t ? Number(t.incentive_bonus||3000) : 3000;
       const pct = Math.min(100, Math.round((staffTotal/t.target_amount)*100));
       return `<div class="row-card" style="flex-direction:column;align-items:stretch;">
-        <div class="row-main"><h3 style="margin-bottom:4px;">${esc(s.name)}</h3>
+        <div class="row-main">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <h3 style="margin:0;">${esc(s.name)}</h3>
+            <span style="background:var(--leaf-soft);color:var(--leaf);border:1px solid var(--leaf);font-family:'Roboto Mono',monospace;font-size:0.68rem;font-weight:800;padding:1px 7px;border-radius:999px;display:inline-flex;align-items:center;gap:3px;box-shadow:0 1px 4px rgba(16,185,129,0.2);">
+              🎁 BONUS: ₹${bonusVal.toLocaleString('en-IN')}
+            </span>
+          </div>
           <div class="kv"><span>₹${staffTotal.toFixed(0)} of ₹${Number(t.target_amount).toFixed(0)}</span><b>${pct}%</b></div>
         </div>
         <div style="background:var(--paper-line);border-radius:6px;height:8px;overflow:hidden;">
