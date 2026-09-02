@@ -1992,7 +1992,7 @@ function renderShell(){
       <!-- Regrouped 5 Labeled Sections -->
       <div style="display:flex;flex-direction:column;gap:12px;">
         ${[
-          { section: 'Overview', keys: ['dashboard','reports'] },
+          { section: 'Overview', keys: ['dashboard','reports','projects'] },
           { section: 'Work', keys: ['tasks','daily','weekly','attendance'] },
           { section: 'Sales', keys: ['sales'] },
           { section: 'Money', keys: ['accounts','office_logs','pnl','customer_report','vendors','salary'] },
