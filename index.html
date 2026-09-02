@@ -3073,6 +3073,15 @@ async function loadData(){
           if (cache) cache.salaryAdvances = advs;
         } catch(e){}
       }
+      if (ct.title === '[FUTURE_PROJECTS_DATA]' && ct.notes) {
+        try {
+          const parsed = JSON.parse(ct.notes);
+          if (Array.isArray(parsed)) {
+            cache.projects = parsed;
+            localStorage.setItem('br_projects_' + bizId, ct.notes);
+          }
+        } catch(e){}
+      }
       if (ct.title === '[FEATURE_SETTINGS_DATA]' && ct.notes) {
         try { localStorage.setItem('br_features_' + bizId, ct.notes); } catch(e){}
       }
@@ -3752,6 +3761,7 @@ const ICONS = {
   database: '<ellipse cx="12" cy="5" rx="9" ry="3" fill="none" stroke-width="2"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3M21 5v14c0 1.66-4 3-9 3s-9-1.34-9-3V5" fill="none" stroke-width="2"/>',
   alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" fill="none" stroke-width="2" stroke-linejoin="round"/><line x1="12" y1="9" x2="12" y2="13" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12.01" y2="17" stroke-width="2" stroke-linecap="round"/>',
   stockkeeper: '<ellipse cx="12" cy="5" rx="9" ry="3" fill="none" stroke-width="2"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3M21 5v14c0 1.66-4 3-9 3s-9-1.34-9-3V5" fill="none" stroke-width="2"/>',
+  project: '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" fill="none" stroke-width="2" stroke-linejoin="round"/><path d="M12 11v6M9 14h6" stroke-width="2" stroke-linecap="round"/>',
 };
 function icon(name, size){
   size = size || 18;
@@ -3779,11 +3789,12 @@ const TAB_META = {
   customer_report: {icon:'user', label:'Customer Report'},
   audit: {icon:'clipboard', label:'Audit Log'},
   low_stock: {icon:'low_stock', label:'Low Stock'},
+  projects: {icon:'project', label:'Projects'},
 };
 function currentTabs(){
   if(session.role === 'sales' || session.role === 'salesman') return ['pricelist', 'sales', 'tasks', 'accounts', 'low_stock'];
   return isManagerPlus()
-    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','office_logs','pnl','sales','pricelist','label','package','stockkeeper','points','salary','accounts','customer_report','low_stock','reports','audit','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','sales','pricelist','label','package','stockkeeper','points','accounts','customer_report','low_stock','reports','audit'])
+    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','office_logs','pnl','sales','pricelist','label','package','stockkeeper','points','salary','accounts','customer_report','low_stock','reports','audit','projects','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','sales','pricelist','label','package','stockkeeper','points','accounts','customer_report','low_stock','reports','audit'])
     : ['pricelist', 'tasks','daily','weekly','attendance','sales','label','package','stockkeeper','points','accounts','low_stock'];
 }
 function quickTabs(){
@@ -3805,6 +3816,7 @@ function getPrimaryActionBtn(t){
   if(t==='points' && isManagerPlus()) return `<button class="stamp-btn compact-mobile" onclick="window.__openPoints()"><span class="btn-text">+ Award Points</span><span class="btn-short">+</span></button>`;
   if(t==='low_stock') return `<button class="stamp-btn compact-mobile" onclick="window.__openLowStockModal()"><span class="btn-text">+ Report Low Stock</span><span class="btn-short">+</span></button>`;
   if(t==='customer_report') return `<button class="stamp-btn compact-mobile" onclick="window.__openImportCustomerJsonModal()"><span class="btn-text">📥 Import</span><span class="btn-short">📥</span></button><button class="stamp-btn compact-mobile" style="margin-left:6px;" onclick="window.__openAddCustomerReportModal()"><span class="btn-text">+ Add Customer</span><span class="btn-short">+</span></button>`;
+  if(t==='projects' && isOwner()) return `<button class="stamp-btn compact-mobile" onclick="window.__openAddProjectModal()"><span class="btn-text">+ New Project</span><span class="btn-short">+</span></button>`;
   return '';
 }
 
@@ -4000,6 +4012,7 @@ function renderTabBody(){
   else if(activeTab==='salary' && (isOwner() || (isManager() && getFeatureConfig().allowManagerSalary))) renderSalaryTab(body);
   else if(activeTab==='points') renderPointsTab(body);
   else if(activeTab==='staff' && isOwner()) renderStaffTab(body);
+  else if(activeTab==='projects') renderProjectsTab(body);
   else if(activeTab==='reports' && (isOwner() || (isManager() && getFeatureConfig().allowManagerReports))) renderReportsTab(body);
   else if(activeTab==='settings') renderSettingsTab(body);
   else if(activeTab==='account') renderAccountTab(body);
@@ -15699,6 +15712,520 @@ function renderPriceListTab(body) {
     <div id="priceListModalHolder"></div>
   `;
 }
+
+/* ---------------- PROJECTS (OWNER ONLY) ---------------- */
+let projectsStatusFilter = 'all';
+let projectsSearchQuery = '';
+
+function getProjectsData() {
+  const bizId = session ? session.businessId : '';
+  if (!cache.projects) {
+    try {
+      const raw = localStorage.getItem('br_projects_' + bizId);
+      cache.projects = raw ? JSON.parse(raw) : [];
+    } catch(e) {
+      cache.projects = [];
+    }
+  }
+  return cache.projects || [];
+}
+
+function saveProjectsData(list) {
+  const bizId = session ? session.businessId : '';
+  cache.projects = list || [];
+  try {
+    localStorage.setItem('br_projects_' + bizId, JSON.stringify(cache.projects));
+  } catch(e){}
+  guardedSave('[FUTURE_PROJECTS_DATA]', JSON.stringify(cache.projects), 'Future Projects Payload');
+}
+
+function renderProjectsTab(body) {
+  if (!isOwner()) {
+    body.innerHTML = `
+      <div class="row-card" style="text-align:center;padding:36px 20px;flex-direction:column;align-items:center;margin-top:20px;">
+        <div style="font-size:3rem;margin-bottom:12px;">🔒</div>
+        <h3 style="margin:0;color:var(--ink);font-size:1.1rem;">Owner Access Only</h3>
+        <p style="font-size:0.82rem;color:var(--ink-soft);max-width:340px;margin:8px 0 16px;line-height:1.4;">The Future Projects Hub is private and strictly restricted to the Business Owner.</p>
+        <button class="stamp-btn" onclick="window.__setTab('dashboard')">Return to Dashboard</button>
+      </div>
+    `;
+    return;
+  }
+
+  const allProjects = getProjectsData();
+  const totalCount = allProjects.length;
+  const planningCount = allProjects.filter(p => p.status === 'planning').length;
+  const inProgressCount = allProjects.filter(p => p.status === 'in_progress').length;
+  const completedCount = allProjects.filter(p => p.status === 'completed').length;
+  const onHoldCount = allProjects.filter(p => p.status === 'on_hold').length;
+
+  let filtered = allProjects;
+  if (projectsStatusFilter !== 'all') {
+    filtered = filtered.filter(p => p.status === projectsStatusFilter);
+  }
+  if (projectsSearchQuery) {
+    const q = projectsSearchQuery.toLowerCase().trim();
+    filtered = filtered.filter(p => 
+      (p.title || '').toLowerCase().includes(q) || 
+      (p.category || '').toLowerCase().includes(q) || 
+      (p.description || '').toLowerCase().includes(q)
+    );
+  }
+
+  body.innerHTML = `
+    <!-- Executive KPI Summary Cards -->
+    <div class="stat-grid" style="margin-bottom:14px;">
+      <div class="stat-card">
+        <div class="num">${totalCount}</div>
+        <div class="label">Total Projects</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" style="color:var(--turmeric-dark);">${planningCount}</div>
+        <div class="label">In Planning</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" style="color:var(--blue);">${inProgressCount}</div>
+        <div class="label">In Progress</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" style="color:var(--leaf);">${completedCount}</div>
+        <div class="label">Completed</div>
+      </div>
+    </div>
+
+    <!-- Search & Action Toolbar -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:200px;position:relative;">
+        <input type="text" class="search-input" placeholder="Search projects by title, category, or notes..." value="${esc(projectsSearchQuery)}" oninput="projectsSearchQuery=this.value;renderProjectsTab(document.getElementById('tabBody'));" style="width:100%;box-sizing:border-box;padding-left:32px;height:36px;font-size:0.8rem;border-radius:8px;border:1px solid var(--paper-line);">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--ink-soft);">${icon('search', 14)}</span>
+      </div>
+      <button class="stamp-btn" onclick="window.__openAddProjectModal()">+ Create New Project</button>
+    </div>
+
+    <!-- Status Filter Pills Bar -->
+    <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:14px;scrollbar-width:none;">
+      ${[
+        { key: 'all', label: `All (${totalCount})` },
+        { key: 'planning', label: `📌 Planning (${planningCount})` },
+        { key: 'in_progress', label: `🚀 In Progress (${inProgressCount})` },
+        { key: 'completed', label: `✅ Completed (${completedCount})` },
+        { key: 'on_hold', label: `⏸ On Hold (${onHoldCount})` }
+      ].map(tab => `
+        <button class="stamp-btn small ${projectsStatusFilter===tab.key ? '' : 'ghost'}" style="white-space:nowrap;padding:4px 10px;font-size:0.75rem;" onclick="projectsStatusFilter='${tab.key}';renderProjectsTab(document.getElementById('tabBody'));">
+          ${tab.label}
+        </button>
+      `).join('')}
+    </div>
+
+    <!-- Projects List Grid -->
+    ${filtered.length ? filtered.map(proj => {
+      const tasks = proj.tasks || [];
+      const completedTasks = tasks.filter(t => t.done).length;
+      const taskPct = tasks.length ? Math.round((completedTasks / tasks.length) * 100) : 0;
+
+      const reminders = proj.reminders || [];
+
+      const statusBadge = proj.status === 'completed'
+        ? '<span style="background:var(--leaf-soft);color:var(--leaf);border:1px solid var(--leaf);font-size:0.68rem;font-weight:800;padding:2px 8px;border-radius:999px;">✅ Completed</span>'
+        : (proj.status === 'in_progress'
+          ? '<span style="background:var(--blue-soft);color:var(--blue);border:1px solid var(--blue);font-size:0.68rem;font-weight:800;padding:2px 8px;border-radius:999px;">🚀 In Progress</span>'
+          : (proj.status === 'on_hold'
+            ? '<span style="background:var(--brick-soft);color:var(--brick);border:1px solid var(--brick);font-size:0.68rem;font-weight:800;padding:2px 8px;border-radius:999px;">⏸ On Hold</span>'
+            : '<span style="background:var(--turmeric-soft);color:var(--turmeric-dark);border:1px solid var(--turmeric);font-size:0.68rem;font-weight:800;padding:2px 8px;border-radius:999px;">📌 Planning</span>'));
+
+      const priorityBadge = proj.priority === 'high'
+        ? '<span style="color:var(--brick);font-weight:800;font-size:0.68rem;background:rgba(239,68,68,0.1);padding:1px 6px;border-radius:4px;">🔥 High Priority</span>'
+        : (proj.priority === 'medium'
+          ? '<span style="color:var(--turmeric-dark);font-weight:700;font-size:0.68rem;background:rgba(245,158,11,0.1);padding:1px 6px;border-radius:4px;">⚡ Medium</span>'
+          : '<span style="color:var(--ink-soft);font-size:0.68rem;background:var(--paper-line);padding:1px 6px;border-radius:4px;">Low</span>');
+
+      return `
+        <div class="row-card" style="flex-direction:column;align-items:stretch;padding:16px;margin-bottom:14px;background:var(--paper);border:1px solid var(--paper-line);border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+          <!-- Top Row Header -->
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+            <div>
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;">
+                <b style="font-size:0.98rem;color:var(--ink);">${esc(proj.title)}</b>
+                ${statusBadge}
+                ${priorityBadge}
+                ${proj.category ? `<span style="background:var(--paper-line);color:var(--ink-soft);font-size:0.68rem;font-weight:600;padding:1px 7px;border-radius:999px;">${esc(proj.category)}</span>` : ''}
+              </div>
+              ${proj.description ? `<div style="font-size:0.8rem;color:var(--ink-soft);line-height:1.4;margin-bottom:6px;">${esc(proj.description)}</div>` : ''}
+            </div>
+            <div style="text-align:right;white-space:nowrap;font-family:'Roboto Mono',monospace;font-size:0.78rem;">
+              ${proj.estimated_budget ? `<div style="color:var(--leaf);font-weight:800;font-size:0.88rem;">Est. Budget: ₹${Number(proj.estimated_budget).toLocaleString('en-IN')}</div>` : ''}
+              ${proj.target_date ? `<div style="color:var(--ink-soft);font-size:0.72rem;margin-top:2px;">📅 Target: ${proj.target_date}</div>` : ''}
+            </div>
+          </div>
+
+          <!-- Interactive Sub-Tasks Checklist Section -->
+          <div style="background:var(--paper-line);padding:10px 12px;border-radius:8px;margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-size:0.75rem;font-weight:700;color:var(--ink);display:inline-flex;align-items:center;gap:4px;">
+                ${icon('check', 14)} Project Sub-Tasks &amp; Action Plan (${completedTasks}/${tasks.length})
+              </span>
+              <button class="stamp-btn small ghost" style="padding:1px 6px;font-size:0.68rem;" onclick="window.__openAddProjectTaskModal('${proj.id}')">+ Add Task</button>
+            </div>
+
+            ${tasks.length ? `
+              <div class="progress-track" style="height:6px;background:rgba(0,0,0,0.08);border-radius:999px;overflow:hidden;margin-bottom:8px;">
+                <div class="progress-fill ${taskPct>=100?'complete':''}" style="width:${taskPct}%;height:100%;border-radius:999px;background:var(--leaf);"></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:4px;">
+                ${tasks.map(t => `
+                  <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.78rem;background:var(--paper);padding:4px 8px;border-radius:6px;border:1px solid var(--paper-line);">
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;min-width:0;">
+                      <input type="checkbox" ${t.done ? 'checked' : ''} onchange="window.__toggleProjectTask('${proj.id}', '${t.id}')">
+                      <span style="${t.done ? 'text-decoration:line-through;color:var(--ink-soft);' : 'color:var(--ink);font-weight:600;'}">${esc(t.title)}</span>
+                      ${t.due_date ? `<span style="font-size:0.68rem;color:var(--ink-soft);font-family:'Roboto Mono',monospace;">(Due: ${t.due_date})</span>` : ''}
+                    </label>
+                    <button style="background:none;border:none;color:var(--brick);cursor:pointer;padding:2px 4px;font-size:0.72rem;" onclick="window.__deleteProjectTask('${proj.id}', '${t.id}')" title="Delete Task">✕</button>
+                  </div>
+                `).join('')}
+              </div>
+            ` : `<div style="font-size:0.72rem;color:var(--ink-soft);font-style:italic;">No tasks added to this project yet.</div>`}
+          </div>
+
+          <!-- Milestones & Reminders Section -->
+          <div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);padding:10px 12px;border-radius:8px;margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-size:0.75rem;font-weight:700;color:var(--turmeric-dark);display:inline-flex;align-items:center;gap:4px;">
+                ${icon('bell', 14)} Milestones &amp; Date Reminders (${reminders.length})
+              </span>
+              <button class="stamp-btn small ghost" style="padding:1px 6px;font-size:0.68rem;border-color:var(--turmeric);" onclick="window.__openAddProjectReminderModal('${proj.id}')">+ Add Reminder</button>
+            </div>
+
+            ${reminders.length ? `
+              <div style="display:flex;flex-direction:column;gap:4px;">
+                ${reminders.map(r => `
+                  <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;background:var(--paper);padding:4px 8px;border-radius:6px;border:1px solid var(--paper-line);">
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;min-width:0;">
+                      <input type="checkbox" ${r.done ? 'checked' : ''} onchange="window.__toggleProjectReminder('${proj.id}', '${r.id}')">
+                      <span style="${r.done ? 'text-decoration:line-through;color:var(--ink-soft);' : 'color:var(--ink);font-weight:600;'}">${esc(r.title)}</span>
+                    </label>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                      <span style="font-size:0.68rem;color:var(--turmeric-dark);font-weight:700;font-family:'Roboto Mono',monospace;">🔔 ${r.reminder_date}</span>
+                      <button style="background:none;border:none;color:var(--brick);cursor:pointer;padding:2px 4px;font-size:0.72rem;" onclick="window.__deleteProjectReminder('${proj.id}', '${r.id}')" title="Delete Reminder">✕</button>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            ` : `<div style="font-size:0.72rem;color:var(--ink-soft);font-style:italic;">No date reminders set for this project.</div>`}
+          </div>
+
+          <!-- Bottom Action Buttons -->
+          <div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;padding-top:6px;border-top:1px solid var(--paper-line);">
+            <button class="stamp-btn small ghost" style="font-size:0.72rem;padding:3px 8px;" onclick="window.__openAddProjectModal('${proj.id}')">✎ Edit Project</button>
+            <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);font-size:0.72rem;padding:3px 8px;" onclick="window.__deleteProject('${proj.id}')">🗑 Delete</button>
+          </div>
+        </div>
+      `;
+    }).join('') : `
+      <div class="empty" style="padding:32px 16px;text-align:center;background:var(--paper);border:1px solid var(--paper-line);border-radius:12px;">
+        <div style="font-size:2rem;margin-bottom:8px;">📁</div>
+        <b style="color:var(--ink);display:block;margin-bottom:4px;">No Future Projects Found</b>
+        <p style="font-size:0.8rem;color:var(--ink-soft);margin-bottom:12px;">Plan and store your future business goals, milestones, and task checklists privately.</p>
+        <button class="stamp-btn" onclick="window.__openAddProjectModal()">+ Create Your First Project</button>
+      </div>
+    `}
+    <div id="projectsModalHolder"></div>
+  `;
+}
+
+window.__openAddProjectModal = function(editId = null) {
+  const holder = getModalHolder('projectsModalHolder');
+  const list = getProjectsData();
+  const existing = editId ? list.find(p => p.id === editId) : null;
+
+  holder.innerHTML = `
+    <div class="overlay show" id="projectModalOverlay">
+      <div class="modal" style="max-width:480px;width:92%;">
+        <h2 style="margin:0 0 12px;display:flex;align-items:center;gap:6px;">
+          ${icon('project', 20)} ${existing ? '✎ Edit Future Project' : '➕ Create New Future Project'}
+        </h2>
+        <input type="hidden" id="projEditId" value="${existing ? existing.id : ''}">
+
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div>
+            <label style="font-size:0.75rem;font-weight:700;color:var(--ink);display:block;margin-bottom:4px;">Project Title *</label>
+            <input type="text" id="projTitle" class="search-input" placeholder="e.g. New Branch Launch, Solar Panel Upgrade" value="${existing ? esc(existing.title) : ''}" style="width:100%;box-sizing:border-box;">
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div>
+              <label style="font-size:0.75rem;font-weight:700;color:var(--ink);display:block;margin-bottom:4px;">Category</label>
+              <select id="projCategory" class="search-input" style="width:100%;box-sizing:border-box;">
+                <option value="Expansion" ${existing && existing.category==='Expansion'?'selected':''}>Business Expansion</option>
+                <option value="Infrastructure" ${existing && existing.category==='Infrastructure'?'selected':''}>Infrastructure &amp; Equipment</option>
+                <option value="Technology" ${existing && existing.category==='Technology'?'selected':''}>Software &amp; Technology</option>
+                <option value="Product Launch" ${existing && existing.category==='Product Launch'?'selected':''}>Product Launch</option>
+                <option value="General" ${!existing || existing.category==='General'?'selected':''}>General Goal</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:0.75rem;font-weight:700;color:var(--ink);display:block;margin-bottom:4px;">Priority</label>
+              <select id="projPriority" class="search-input" style="width:100%;box-sizing:border-box;">
+                <option value="high" ${existing && existing.priority==='high'?'selected':''}>🔥 High Priority</option>
+                <option value="medium" ${!existing || existing.priority==='medium'?'selected':''}>⚡ Medium Priority</option>
+                <option value="low" ${existing && existing.priority==='low'?'selected':''}>Low Priority</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div>
+              <label style="font-size:0.75rem;font-weight:700;color:var(--ink);display:block;margin-bottom:4px;">Status</label>
+              <select id="projStatus" class="search-input" style="width:100%;box-sizing:border-box;">
+                <option value="planning" ${!existing || existing.status==='planning'?'selected':''}>📌 Planning</option>
+                <option value="in_progress" ${existing && existing.status==='in_progress'?'selected':''}>🚀 In Progress</option>
+                <option value="completed" ${existing && existing.status==='completed'?'selected':''}>✅ Completed</option>
+                <option value="on_hold" ${existing && existing.status==='on_hold'?'selected':''}>⏸ On Hold</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:0.75rem;font-weight:700;color:var(--ink);display:block;margin-bottom:4px;">Target Date</label>
+              <input type="date" id="projTargetDate" class="search-input" value="${existing ? (existing.target_date||'') : ''}" style="width:100%;box-sizing:border-box;">
+            </div>
+          </div>
+
+          <div>
+            <label style="font-size:0.75rem;font-weight:700;color:var(--ink);display:block;margin-bottom:4px;">Estimated Budget (₹)</label>
+            <input type="number" id="projBudget" class="search-input" placeholder="e.g. 150000" value="${existing ? (existing.estimated_budget||'') : ''}" style="width:100%;box-sizing:border-box;">
+          </div>
+
+          <div>
+            <label style="font-size:0.75rem;font-weight:700;color:var(--ink);display:block;margin-bottom:4px;">Project Vision, Details &amp; Notes</label>
+            <textarea id="projDescription" class="search-input" rows="3" placeholder="Add private details, vision, vendor requirements..." style="width:100%;box-sizing:border-box;resize:vertical;font-family:inherit;font-size:0.8rem;"></textarea>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+          <button class="stamp-btn ghost" onclick="getModalHolder('projectsModalHolder').innerHTML=''">Cancel</button>
+          <button class="stamp-btn" onclick="window.__saveProject()">Save Project</button>
+        </div>
+      </div>
+    </div>
+  `;
+  if (existing && existing.description) {
+    document.getElementById('projDescription').value = existing.description;
+  }
+};
+
+window.__saveProject = function() {
+  const editId = document.getElementById('projEditId').value;
+  const title = document.getElementById('projTitle').value.trim();
+  if (!title) {
+    alert('Please enter a project title.');
+    return;
+  }
+
+  const category = document.getElementById('projCategory').value;
+  const priority = document.getElementById('projPriority').value;
+  const status = document.getElementById('projStatus').value;
+  const targetDate = document.getElementById('projTargetDate').value;
+  const budget = Number(document.getElementById('projBudget').value || 0);
+  const description = document.getElementById('projDescription').value.trim();
+
+  let list = getProjectsData();
+  if (editId) {
+    list = list.map(p => p.id === editId ? Object.assign({}, p, {
+      title, category, priority, status, target_date: targetDate, estimated_budget: budget, description, updated_at: new Date().toISOString()
+    }) : p);
+  } else {
+    list.unshift({
+      id: 'proj_' + Date.now(),
+      business_id: session.businessId,
+      title,
+      category,
+      priority,
+      status,
+      target_date: targetDate,
+      estimated_budget: budget,
+      description,
+      tasks: [],
+      reminders: [],
+      created_at: new Date().toISOString()
+    });
+  }
+
+  saveProjectsData(list);
+  getModalHolder('projectsModalHolder').innerHTML = '';
+  renderProjectsTab(document.getElementById('tabBody'));
+};
+
+window.__openAddProjectTaskModal = function(projId) {
+  const holder = getModalHolder('projectsModalHolder');
+  holder.innerHTML = `
+    <div class="overlay show">
+      <div class="modal" style="max-width:400px;width:90%;">
+        <h3 style="margin:0 0 12px;">+ Add Sub-Task to Project</h3>
+        <input type="hidden" id="projTaskProjId" value="${projId}">
+        
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div>
+            <label style="font-size:0.75rem;font-weight:700;color:var(--ink);display:block;margin-bottom:4px;">Task Description *</label>
+            <input type="text" id="projTaskTitle" class="search-input" placeholder="e.g. Finalize vendor contract, Get permit" style="width:100%;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-size:0.75rem;font-weight:700;color:var(--ink);display:block;margin-bottom:4px;">Due Date (Optional)</label>
+            <input type="date" id="projTaskDueDate" class="search-input" style="width:100%;box-sizing:border-box;">
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">
+          <button class="stamp-btn ghost" onclick="getModalHolder('projectsModalHolder').innerHTML=''">Cancel</button>
+          <button class="stamp-btn" onclick="window.__saveProjectTask()">Add Task</button>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+window.__saveProjectTask = function() {
+  const projId = document.getElementById('projTaskProjId').value;
+  const title = document.getElementById('projTaskTitle').value.trim();
+  const dueDate = document.getElementById('projTaskDueDate').value;
+  if (!title) {
+    alert('Please enter a task description.');
+    return;
+  }
+
+  let list = getProjectsData();
+  list = list.map(p => {
+    if (p.id === projId) {
+      const tasks = p.tasks || [];
+      tasks.push({
+        id: 'ptask_' + Date.now(),
+        title,
+        due_date: dueDate,
+        done: false
+      });
+      return Object.assign({}, p, { tasks });
+    }
+    return p;
+  });
+
+  saveProjectsData(list);
+  getModalHolder('projectsModalHolder').innerHTML = '';
+  renderProjectsTab(document.getElementById('tabBody'));
+};
+
+window.__openAddProjectReminderModal = function(projId) {
+  const holder = getModalHolder('projectsModalHolder');
+  holder.innerHTML = `
+    <div class="overlay show">
+      <div class="modal" style="max-width:400px;width:90%;">
+        <h3 style="margin:0 0 12px;">+ Add Milestone Reminder</h3>
+        <input type="hidden" id="projRemProjId" value="${projId}">
+        
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div>
+            <label style="font-size:0.75rem;font-weight:700;color:var(--ink);display:block;margin-bottom:4px;">Reminder Milestone *</label>
+            <input type="text" id="projRemTitle" class="search-input" placeholder="e.g. Inspect site progress, Pay advance installment" style="width:100%;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-size:0.75rem;font-weight:700;color:var(--ink);display:block;margin-bottom:4px;">Reminder Date *</label>
+            <input type="date" id="projRemDate" class="search-input" value="${todayStr()}" style="width:100%;box-sizing:border-box;">
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">
+          <button class="stamp-btn ghost" onclick="getModalHolder('projectsModalHolder').innerHTML=''">Cancel</button>
+          <button class="stamp-btn" onclick="window.__saveProjectReminder()">Add Reminder</button>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+window.__saveProjectReminder = function() {
+  const projId = document.getElementById('projRemProjId').value;
+  const title = document.getElementById('projRemTitle').value.trim();
+  const reminderDate = document.getElementById('projRemDate').value;
+  if (!title || !reminderDate) {
+    alert('Please enter a milestone title and reminder date.');
+    return;
+  }
+
+  let list = getProjectsData();
+  list = list.map(p => {
+    if (p.id === projId) {
+      const reminders = p.reminders || [];
+      reminders.push({
+        id: 'prem_' + Date.now(),
+        title,
+        reminder_date: reminderDate,
+        done: false
+      });
+      return Object.assign({}, p, { reminders });
+    }
+    return p;
+  });
+
+  saveProjectsData(list);
+  getModalHolder('projectsModalHolder').innerHTML = '';
+  renderProjectsTab(document.getElementById('tabBody'));
+};
+
+window.__toggleProjectTask = function(projId, taskId) {
+  let list = getProjectsData();
+  list = list.map(p => {
+    if (p.id === projId) {
+      const tasks = (p.tasks || []).map(t => t.id === taskId ? Object.assign({}, t, { done: !t.done }) : t);
+      return Object.assign({}, p, { tasks });
+    }
+    return p;
+  });
+  saveProjectsData(list);
+  renderProjectsTab(document.getElementById('tabBody'));
+};
+
+window.__toggleProjectReminder = function(projId, remId) {
+  let list = getProjectsData();
+  list = list.map(p => {
+    if (p.id === projId) {
+      const reminders = (p.reminders || []).map(r => r.id === remId ? Object.assign({}, r, { done: !r.done }) : r);
+      return Object.assign({}, p, { reminders });
+    }
+    return p;
+  });
+  saveProjectsData(list);
+  renderProjectsTab(document.getElementById('tabBody'));
+};
+
+window.__deleteProjectTask = function(projId, taskId) {
+  let list = getProjectsData();
+  list = list.map(p => {
+    if (p.id === projId) {
+      const tasks = (p.tasks || []).filter(t => t.id !== taskId);
+      return Object.assign({}, p, { tasks });
+    }
+    return p;
+  });
+  saveProjectsData(list);
+  renderProjectsTab(document.getElementById('tabBody'));
+};
+
+window.__deleteProjectReminder = function(projId, remId) {
+  let list = getProjectsData();
+  list = list.map(p => {
+    if (p.id === projId) {
+      const reminders = (p.reminders || []).filter(r => r.id !== remId);
+      return Object.assign({}, p, { reminders });
+    }
+    return p;
+  });
+  saveProjectsData(list);
+  renderProjectsTab(document.getElementById('tabBody'));
+};
+
+window.__deleteProject = function(projId) {
+  if (!confirm('Are you sure you want to delete this future project record?')) return;
+  let list = getProjectsData();
+  list = list.filter(p => p.id !== projId);
+  saveProjectsData(list);
+  renderProjectsTab(document.getElementById('tabBody'));
+};
 
 window.__openAddPriceListItemModal = function(editId = null) {
   const holder = getModalHolder('priceListModalHolder');
