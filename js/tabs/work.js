@@ -841,19 +841,22 @@ window.__openWeekly = () => openWeeklyModal(null);
 
 /* ---------------- ATTENDANCE ---------------- */
 function timeStr(iso){ return new Date(iso).toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit'}); }
-function getLocation(){
+function getLocation(timeoutMs = 1200){
   return new Promise((resolve) => {
     if(!navigator.geolocation){ resolve(null); return; }
+    let done = false;
+    const timer = setTimeout(() => {
+      if(!done) { done = true; resolve(null); }
+    }, timeoutMs);
+
     navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      (err) => {
-        navigator.geolocation.getCurrentPosition(
-          (pos2) => resolve({ lat: pos2.coords.latitude, lng: pos2.coords.longitude }),
-          () => resolve(null),
-          { enableHighAccuracy: false, timeout: 8000, maximumAge: 0 }
-        );
+      (pos) => {
+        if(!done) { done = true; clearTimeout(timer); resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }); }
       },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
+      () => {
+        if(!done) { done = true; clearTimeout(timer); resolve(null); }
+      },
+      { enableHighAccuracy: false, timeout: timeoutMs, maximumAge: 60000 }
     );
   });
 }
@@ -1073,15 +1076,40 @@ window.__markStaffAttendanceForDate = async function(staffId, dateStr, status) {
   const key = 'markatt-' + staffId + '-' + dateStr;
   if (__busyKeys.has(key)) return;
   __busyKeys.add(key);
+
+  const nowIso = new Date().toISOString();
+  let existing = cache.attendance.find(a => a.staff_id === staffId && a.date === dateStr);
+  if (existing) {
+    existing.status = status;
+    existing.marked_at = nowIso;
+    existing.marked_by = session.staffId;
+  } else {
+    existing = {
+      id: 'loc_att_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      business_id: session.businessId,
+      staff_id: staffId,
+      date: dateStr,
+      status: status,
+      marked_at: nowIso,
+      marked_by: session.staffId
+    };
+    cache.attendance.unshift(existing);
+  }
+  if (typeof saveCacheLocally === 'function') saveCacheLocally();
+  renderTabBody();
+  if (typeof showToast === 'function') showToast(`ATTENDANCE MARKED: ${status.toUpperCase()}`, status === 'present' ? 'success' : 'warning');
+
   try {
-    const existing = cache.attendance.find(a => a.staff_id === staffId && a.date === dateStr);
-    const data = { status, marked_at: new Date().toISOString(), marked_by: session.staffId };
-    if (existing) await sbCheck(sb.from('attendance').update(data).eq('id', existing.id));
-    else await sbCheck(sb.from('attendance').insert({ business_id: session.businessId, staff_id: staffId, date: dateStr, ...data }));
-    await loadData();
-    renderTabBody();
+    const data = { status, marked_at: nowIso, marked_by: session.staffId };
+    if (existing.id && !existing.id.startsWith('loc_')) {
+      await sbCheck(sb.from('attendance').update(data).eq('id', existing.id));
+    } else {
+      const { data: inserted } = await sb.from('attendance').insert({ business_id: session.businessId, staff_id: staffId, date: dateStr, ...data }).select().single();
+      if (inserted && inserted.id) existing.id = inserted.id;
+    }
+    if (typeof saveCacheLocally === 'function') saveCacheLocally();
   } catch(e) {
-    alert('Could not update attendance for date: ' + (e.message || e));
+    console.warn('Background calendar attendance sync warning:', e.message || e);
   } finally {
     __busyKeys.delete(key);
   }
@@ -1350,34 +1378,102 @@ function renderAttendanceTab(body){
   };
 
   window.__markMyAttendance = async (status) => {
-    const key = 'markatt-'+session.staffId;
-    if(__busyKeys.has(key)) return;
+    const key = 'markatt-' + session.staffId + '-' + today;
+    if (__busyKeys.has(key)) return;
     __busyKeys.add(key);
-    try{
-      const loc = await getLocation();
-      const existing = cache.attendance.find(a=>a.staff_id===session.staffId && a.date===today);
-      const data = { status, marked_at: new Date().toISOString(), marked_by: session.staffId };
-      if(loc){ data.marked_lat = loc.lat; data.marked_lng = loc.lng; }
-      if(existing) await sbCheck(sb.from('attendance').update(data).eq('id', existing.id));
-      else await sbCheck(sb.from('attendance').insert({business_id:session.businessId, staff_id:session.staffId, date:today, ...data}));
-      await loadData(); renderTabBody();
-      if(status==='present') notifyOwnerOfAttendance('marked present', loc);
-    } catch(e){
-      alert('Could not save attendance — please check your connection and try again.\n\n('+(e.message||e)+')');
-    } finally { __busyKeys.delete(key); }
+
+    const nowIso = new Date().toISOString();
+    let existing = cache.attendance.find(a => a.staff_id === session.staffId && a.date === today);
+    if (existing) {
+      existing.status = status;
+      existing.marked_at = nowIso;
+      existing.marked_by = session.staffId;
+    } else {
+      existing = {
+        id: 'loc_att_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+        business_id: session.businessId,
+        staff_id: session.staffId,
+        date: today,
+        status: status,
+        marked_at: nowIso,
+        marked_by: session.staffId
+      };
+      cache.attendance.unshift(existing);
+    }
+    if (typeof saveCacheLocally === 'function') saveCacheLocally();
+    renderTabBody();
+    if (typeof showToast === 'function') showToast(`ATTENDANCE MARKED: ${status.toUpperCase()}`, status === 'present' ? 'success' : 'warning');
+
+    (async () => {
+      try {
+        const loc = await getLocation(1200);
+        const data = { status, marked_at: nowIso, marked_by: session.staffId };
+        if (loc) {
+          data.marked_lat = loc.lat;
+          data.marked_lng = loc.lng;
+          existing.marked_lat = loc.lat;
+          existing.marked_lng = loc.lng;
+        }
+
+        if (existing.id && !existing.id.startsWith('loc_')) {
+          await sbCheck(sb.from('attendance').update(data).eq('id', existing.id));
+        } else {
+          const { data: inserted } = await sb.from('attendance').insert({ business_id: session.businessId, staff_id: session.staffId, date: today, ...data }).select().single();
+          if (inserted && inserted.id) existing.id = inserted.id;
+        }
+        if (typeof saveCacheLocally === 'function') saveCacheLocally();
+        if (status === 'present') notifyOwnerOfAttendance('marked present', loc);
+      } catch (e) {
+        console.warn('Background self attendance sync warning:', e.message || e);
+      } finally {
+        __busyKeys.delete(key);
+      }
+    })();
   };
+
   window.__markStaffAttendance = async (staffId, status) => {
-    const key = 'markatt-'+staffId;
-    if(__busyKeys.has(key)) return;
+    const key = 'markatt-' + staffId + '-' + today;
+    if (__busyKeys.has(key)) return;
     __busyKeys.add(key);
-    try{
-      const existing = cache.attendance.find(a=>a.staff_id===staffId && a.date===today);
-      const data = { status, marked_at: new Date().toISOString(), marked_by: session.staffId };
-      if(existing) await sbCheck(sb.from('attendance').update(data).eq('id', existing.id));
-      await loadData(); renderTabBody();
-    } catch(e){
-      alert('Could not save attendance — please check your connection and try again.\n\n('+(e.message||e)+')');
-    } finally { __busyKeys.delete(key); }
+
+    const nowIso = new Date().toISOString();
+    let existing = cache.attendance.find(a => a.staff_id === staffId && a.date === today);
+    if (existing) {
+      existing.status = status;
+      existing.marked_at = nowIso;
+      existing.marked_by = session.staffId;
+    } else {
+      existing = {
+        id: 'loc_att_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+        business_id: session.businessId,
+        staff_id: staffId,
+        date: today,
+        status: status,
+        marked_at: nowIso,
+        marked_by: session.staffId
+      };
+      cache.attendance.unshift(existing);
+    }
+    if (typeof saveCacheLocally === 'function') saveCacheLocally();
+    renderTabBody();
+    if (typeof showToast === 'function') showToast(`STAFF MARKED: ${status.toUpperCase()}`, status === 'present' ? 'success' : 'warning');
+
+    (async () => {
+      try {
+        const data = { status, marked_at: nowIso, marked_by: session.staffId };
+        if (existing.id && !existing.id.startsWith('loc_')) {
+          await sbCheck(sb.from('attendance').update(data).eq('id', existing.id));
+        } else {
+          const { data: inserted } = await sb.from('attendance').insert({ business_id: session.businessId, staff_id: staffId, date: today, ...data }).select().single();
+          if (inserted && inserted.id) existing.id = inserted.id;
+        }
+        if (typeof saveCacheLocally === 'function') saveCacheLocally();
+      } catch (e) {
+        console.warn('Background staff attendance sync warning:', e.message || e);
+      } finally {
+        __busyKeys.delete(key);
+      }
+    })();
   };
 
   // Sub-Tab Switcher Navigation Header

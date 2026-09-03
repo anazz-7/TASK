@@ -2104,5 +2104,17 @@ function renderTabBody(){
   }, 30);
 }
 
+function isStaffActive(s) {
+  if (!s) return false;
+  if (s.is_active === false || s.active === false) return false;
+  if (s.status && String(s.status).toLowerCase() === 'inactive') return false;
+  return true;
+}
+
+function getActiveStaff() {
+  return (cache.staff || []).filter(s => isStaffActive(s));
+}
+
+
 
 
