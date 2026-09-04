@@ -2184,6 +2184,7 @@ window.__reloadAppData = async function(btn) {
       if (typeof getOfficeLogsData === 'function') syncCustomCloudPayload('[OFFICE_LOGS_DATA]', getOfficeLogsData());
       if (cache.staff && cache.staff.length) syncCustomCloudPayload('[STAFF_DIRECTORY_DATA]', cache.staff);
       if (cache.vendorBills && cache.vendorBills.length) syncCustomCloudPayload('[VENDOR_BILLS_DATA]', cache.vendorBills);
+      if (typeof getProjectsData === 'function') syncCustomCloudPayload('[FUTURE_PROJECTS_DATA]', getProjectsData());
     } catch(e){}
 
     await loadData();

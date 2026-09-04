@@ -21,7 +21,9 @@ function saveProjectsData(list) {
   try {
     localStorage.setItem('br_projects_' + bizId, JSON.stringify(cache.projects));
   } catch(e){}
-  guardedSave('[FUTURE_PROJECTS_DATA]', JSON.stringify(cache.projects), 'Future Projects Payload');
+  if (typeof syncCustomCloudPayload === 'function') {
+    syncCustomCloudPayload('[FUTURE_PROJECTS_DATA]', cache.projects);
+  }
 }
 
 function renderProjectsTab(body) {

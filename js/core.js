@@ -2115,6 +2115,39 @@ function getActiveStaff() {
   return (cache.staff || []).filter(s => isStaffActive(s));
 }
 
+async function syncCustomCloudPayload(keyTitle, data) {
+  const jsonStr = typeof data === 'string' ? data : JSON.stringify(data);
+  if (navigator.onLine && typeof sb !== 'undefined' && session && session.businessId) {
+    try {
+      const { data: existing } = await sb
+        .from('tasks')
+        .select('id')
+        .eq('business_id', session.businessId)
+        .eq('title', keyTitle)
+        .maybeSingle();
+
+      const payload = {
+        business_id: session.businessId,
+        title: keyTitle,
+        notes: jsonStr,
+        status: 'done',
+        priority: 'high',
+        due_date: todayStr()
+      };
+
+      if (existing && existing.id) {
+        const { error: upErr } = await sb.from('tasks').update(payload).eq('id', existing.id);
+        if (upErr) await sb.from('tasks').upsert(payload, { onConflict: 'business_id,title' });
+      } else {
+        const { error: insErr } = await sb.from('tasks').insert(payload);
+        if (insErr) await sb.from('tasks').upsert(payload, { onConflict: 'business_id,title' });
+      }
+    } catch(err){
+      console.warn('Cloud payload sync notice (' + keyTitle + '):', err);
+    }
+  }
+}
+
 
 
 
