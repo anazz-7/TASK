@@ -1052,48 +1052,66 @@ window.__openOfficeLogModal = function(editId) {
 };
 
 window.__saveOfficeLog = async function(editId, form) {
-  const type = form.log_type.value || 'deposit';
-  const amount = Number(form.amount.value || 0);
-  const date = form.date.value || todayStr();
-  const time = form.time.value || new Date().toTimeString().slice(0, 5);
-  const reason = (form.reason.value || '').trim();
-  const checked = !!form.checked.checked;
+  try {
+    const typeInput = form ? form.querySelector('input[name="log_type"]:checked') : null;
+    const type = typeInput ? typeInput.value : 'deposit';
 
-  if (amount <= 0 || !reason) {
-    window.showToast('Please enter a valid amount and reason.', 'warning');
-    return;
-  }
+    const amountInput = form ? form.querySelector('input[name="amount"]') : null;
+    const amount = Number(amountInput ? amountInput.value : 0);
 
-  const logs = getOfficeLogsData();
-  const isEdit = !!editId;
-  if (editId) {
-    const idx = logs.findIndex(i => i.id === editId);
-    if (idx !== -1) {
-      logs[idx].type = type;
-      logs[idx].amount = amount;
-      logs[idx].date = date;
-      logs[idx].time = time;
-      logs[idx].reason = reason;
-      logs[idx].checked = checked;
+    const dateInput = form ? form.querySelector('input[name="date"]') : null;
+    const date = dateInput && dateInput.value ? dateInput.value : todayStr();
+
+    const timeInput = form ? form.querySelector('input[name="time"]') : null;
+    const time = timeInput && timeInput.value ? timeInput.value : new Date().toTimeString().slice(0, 5);
+
+    const reasonInput = form ? (form.querySelector('textarea[name="reason"]') || form.querySelector('input[name="reason"]')) : null;
+    const reason = reasonInput ? (reasonInput.value || '').trim() : '';
+
+    const checkedInput = form ? form.querySelector('input[name="checked"]') : null;
+    const checked = checkedInput ? checkedInput.checked : true;
+
+    if (amount <= 0 || !reason) {
+      if (typeof window.showToast === 'function') window.showToast('Please enter a valid amount and reason.', 'warning');
+      return;
     }
-  } else {
-    logs.unshift({
-      id: 'ofl_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-      type: type,
-      amount: amount,
-      date: date,
-      time: time,
-      reason: reason,
-      checked: checked,
-      logged_by: session ? session.name : 'Office Staff',
-      staff_id: session ? session.staffId : ''
-    });
-  }
 
-  await saveOfficeLogsData(logs);
-  getModalHolder('taskModalHolder').innerHTML = '';
-  window.showToast(isEdit ? 'Office log updated & synced!' : '🏢 Office Cash Log recorded & synced to Cloud!', 'success');
-  renderTabBody();
+    const logs = getOfficeLogsData();
+    const isEdit = !!editId;
+    if (editId) {
+      const idx = logs.findIndex(i => i.id === editId);
+      if (idx !== -1) {
+        logs[idx].type = type;
+        logs[idx].amount = amount;
+        logs[idx].date = date;
+        logs[idx].time = time;
+        logs[idx].reason = reason;
+        logs[idx].checked = checked;
+      }
+    } else {
+      logs.unshift({
+        id: 'ofl_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        type: type,
+        amount: amount,
+        date: date,
+        time: time,
+        reason: reason,
+        checked: checked,
+        logged_by: session ? session.name : 'Office Staff',
+        staff_id: session ? session.staffId : ''
+      });
+    }
+
+    await saveOfficeLogsData(logs);
+    if (typeof getModalHolder === 'function') getModalHolder('taskModalHolder').innerHTML = '';
+    if (typeof window.showToast === 'function') {
+      window.showToast(isEdit ? 'Office log updated & synced!' : '🏢 Office Cash Log recorded & synced to Cloud!', 'success');
+    }
+    if (typeof renderTabBody === 'function') renderTabBody();
+  } catch(err) {
+    console.error('Error saving office log:', err);
+    alert('Error saving office log: ' + (err.message || err));
+  }
 };
 
 window.__deleteOfficeLog = function(id) {
