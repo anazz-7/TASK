@@ -889,6 +889,21 @@ async function flushOfflineMutationQueue() {
           syncedCount++;
           continue;
         }
+      } else if (item.action_type === 'upsert') {
+        if (item.table === 'tasks' && payload.title && payload.title.startsWith('[')) {
+          const { data: existingList } = await sb.from('tasks').select('id').eq('business_id', payload.business_id).eq('title', payload.title);
+          if (existingList && existingList.length > 0) {
+            const { error } = await sb.from('tasks').update(payload).eq('id', existingList[0].id);
+            resErr = error;
+          } else {
+            const { error } = await sb.from('tasks').insert(payload);
+            resErr = error;
+          }
+        } else {
+          const { error } = await sb.from(item.table).upsert(payload);
+          resErr = error;
+        }
+        if (!resErr) syncedCount++;
       } else if (item.action_type === 'insert') {
         const { error } = await sb.from(item.table).insert(payload);
         if (error) resErr = error; else syncedCount++;
@@ -2133,34 +2148,51 @@ function getActiveStaff() {
 
 async function syncCustomCloudPayload(keyTitle, data) {
   const jsonStr = typeof data === 'string' ? data : JSON.stringify(data);
-  if (navigator.onLine && typeof sb !== 'undefined' && session && session.businessId) {
+  if (!session || !session.businessId) return false;
+
+  const payload = {
+    business_id: session.businessId,
+    title: keyTitle,
+    notes: jsonStr,
+    status: 'done',
+    priority: 'high',
+    due_date: todayStr()
+  };
+
+  if (navigator.onLine && typeof sb !== 'undefined') {
     try {
-      const { data: existing } = await sb
+      const { data: existingList, error: selErr } = await sb
         .from('tasks')
         .select('id')
         .eq('business_id', session.businessId)
-        .eq('title', keyTitle)
-        .maybeSingle();
+        .eq('title', keyTitle);
 
-      const payload = {
-        business_id: session.businessId,
-        title: keyTitle,
-        notes: jsonStr,
-        status: 'done',
-        priority: 'high',
-        due_date: todayStr()
-      };
-
-      if (existing && existing.id) {
-        const { error: upErr } = await sb.from('tasks').update(payload).eq('id', existing.id);
-        if (upErr) await sb.from('tasks').upsert(payload, { onConflict: 'business_id,title' });
+      if (!selErr && existingList && existingList.length > 0) {
+        const targetId = existingList[0].id;
+        const { error: upErr } = await sb.from('tasks').update(payload).eq('id', targetId);
+        if (upErr) throw upErr;
+        if (existingList.length > 1) {
+          for (let i = 1; i < existingList.length; i++) {
+            try { await sb.from('tasks').delete().eq('id', existingList[i].id); } catch(e){}
+          }
+        }
       } else {
         const { error: insErr } = await sb.from('tasks').insert(payload);
-        if (insErr) await sb.from('tasks').upsert(payload, { onConflict: 'business_id,title' });
+        if (insErr) throw insErr;
       }
-    } catch(err){
-      console.warn('Cloud payload sync notice (' + keyTitle + '):', err);
+      return true;
+    } catch(err) {
+      console.warn('Cloud payload sync warning (' + keyTitle + '), queuing offline fallback:', err);
+      if (typeof queueOfflineMutation === 'function') {
+        queueOfflineMutation('upsert', 'tasks', payload);
+      }
+      return false;
     }
+  } else {
+    if (typeof queueOfflineMutation === 'function') {
+      queueOfflineMutation('upsert', 'tasks', payload);
+    }
+    return false;
   }
 }
 
