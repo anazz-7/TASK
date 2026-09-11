@@ -1147,7 +1147,15 @@ async function loadData(){
     } catch(e){}
 
     // Restore Cross-Device Cloud Payloads for Customer Directory, Reports, Expiry & Feature Settings
-    cloudTasks.forEach(ct => {
+    const systemPayloadsMap = new Map();
+    cloudTasks.filter(ct => ct.title && ct.title.startsWith('[')).forEach(ct => {
+      const existing = systemPayloadsMap.get(ct.title);
+      if (!existing || (ct.id > existing.id) || ((ct.notes || '').length > (existing.notes || '').length)) {
+        systemPayloadsMap.set(ct.title, ct);
+      }
+    });
+
+    Array.from(systemPayloadsMap.values()).forEach(ct => {
       if (ct.title === '[CUSTOMER_DIRECTORY_DATA]' && ct.notes) {
         try { localStorage.setItem('br_cust_dir_' + bizId, ct.notes); } catch(e){}
       }
@@ -2168,9 +2176,14 @@ async function syncCustomCloudPayload(keyTitle, data) {
         .eq('title', keyTitle);
 
       if (!selErr && existingList && existingList.length > 0) {
-        const targetId = existingList[0].id;
-        const { error: upErr } = await sb.from('tasks').update(payload).eq('id', targetId);
+        const { error: upErr } = await sb
+          .from('tasks')
+          .update(payload)
+          .eq('business_id', session.businessId)
+          .eq('title', keyTitle);
+
         if (upErr) throw upErr;
+
         if (existingList.length > 1) {
           for (let i = 1; i < existingList.length; i++) {
             try { await sb.from('tasks').delete().eq('id', existingList[i].id); } catch(e){}
