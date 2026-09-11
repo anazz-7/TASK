@@ -1187,14 +1187,20 @@ async function loadData(){
       }
       if (ct.title === '[OFFICE_LOGS_DATA]' && ct.notes) {
         try {
-          const parsed = JSON.parse(ct.notes);
-          if (Array.isArray(parsed)) {
+          const cloudLogs = JSON.parse(ct.notes);
+          if (Array.isArray(cloudLogs)) {
             const localRaw = localStorage.getItem('br_office_logs_' + bizId);
-            const localArr = localRaw ? JSON.parse(localRaw) : [];
+            const localLogs = localRaw ? JSON.parse(localRaw) : [];
             const mergedMap = new Map();
-            localArr.forEach(i => { if (i && i.id) mergedMap.set(i.id, i); });
-            parsed.forEach(i => { if (i && i.id) mergedMap.set(i.id, i); });
+            cloudLogs.forEach(i => { if (i && i.id) mergedMap.set(i.id, i); });
+            localLogs.forEach(i => {
+              if (i && i.id) {
+                const cloudItem = mergedMap.get(i.id);
+                mergedMap.set(i.id, Object.assign({}, cloudItem || {}, i));
+              }
+            });
             cache.officeLogs = Array.from(mergedMap.values());
+            cache.officeLogs.sort((a, b) => (b.date + ' ' + (b.time || '')).localeCompare(a.date + ' ' + (b.time || '')));
             localStorage.setItem('br_office_logs_' + bizId, JSON.stringify(cache.officeLogs));
           }
         } catch(e){}
@@ -1213,10 +1219,10 @@ async function loadData(){
 
           if (cloudOpening) {
             cache.pnlOpeningProfit = cloudOpening;
-            localStorage.setItem('br_pnl_opening_' + bizId, JSON.stringify(cloudOpening));
+            try { localStorage.setItem('br_pnl_opening_' + bizId, JSON.stringify(cloudOpening)); } catch(e){}
           }
 
-          const localRaw = localStorage.getItem('br_pnl_records_' + bizId);
+          let localRaw = localStorage.getItem('br_pnl_records_' + bizId);
           let localArr = [];
           if (localRaw) {
             try {
@@ -1242,6 +1248,16 @@ async function loadData(){
         } catch(e){}
       }
     });
+
+    if (!cache.officeLogs || !cache.officeLogs.length) {
+      try {
+        const rawLogs = localStorage.getItem('br_office_logs_' + bizId);
+        if (rawLogs) cache.officeLogs = JSON.parse(rawLogs);
+      } catch(e){}
+    }
+    if (cache.officeLogs && cache.officeLogs.length && typeof syncCustomCloudPayload === 'function') {
+      syncCustomCloudPayload('[OFFICE_LOGS_DATA]', cache.officeLogs);
+    }
 
 
     cache.attendance = attR.data || [];
@@ -2145,6 +2161,30 @@ async function syncCustomCloudPayload(keyTitle, data) {
     } catch(err){
       console.warn('Cloud payload sync notice (' + keyTitle + '):', err);
     }
+  }
+}
+
+function getOfficeLogsData() {
+  const bizId = session ? session.businessId : '';
+  if ((!cache.officeLogs || !Array.isArray(cache.officeLogs)) && bizId) {
+    try {
+      const raw = localStorage.getItem('br_office_logs_' + bizId);
+      cache.officeLogs = raw ? JSON.parse(raw) : [];
+    } catch(e) { cache.officeLogs = []; }
+  }
+  return cache.officeLogs || [];
+}
+
+async function saveOfficeLogsData(data) {
+  cache.officeLogs = data || [];
+  const bizId = session ? session.businessId : '';
+  if (bizId) {
+    try {
+      localStorage.setItem('br_office_logs_' + bizId, JSON.stringify(cache.officeLogs));
+    } catch(e){}
+  }
+  if (typeof syncCustomCloudPayload === 'function') {
+    await syncCustomCloudPayload('[OFFICE_LOGS_DATA]', cache.officeLogs);
   }
 }
 
