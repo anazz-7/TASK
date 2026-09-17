@@ -3705,8 +3705,9 @@ function renderPriceListTab(body) {
       ` : ''}
     </div>
 
-    <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
+    <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
       <span style="display:inline-flex;align-items:center;gap:6px;">${icon('label', 16)} Product Price List &amp; Beat Schemes (${filtered.length} Items)</span>
+      <button class="stamp-btn small ghost" style="padding:4px 10px;font-size:0.75rem;" onclick="window.__exportPriceListPDF()">📄 Export PDF</button>
     </div>
 
     <!-- Mobile Card View (< 640px) -->
@@ -3811,4 +3812,135 @@ function renderPriceListTab(body) {
     <div id="priceListModalHolder"></div>
   `;
 }
+
+/* ---------------- VISUAL PDF REPORT EXPORT FOR PRICE LIST ---------------- */
+window.__exportPriceListPDF = function() {
+  if (!cache.priceList) cache.priceList = getPriceListData();
+  const items = cache.priceList || [];
+  const q = (priceListSearchQuery || '').toLowerCase().trim();
+  const filtered = items.filter(i => {
+    const matchesSearch = !q || (i.product_name || '').toLowerCase().includes(q) || (i.beat_name || '').toLowerCase().includes(q);
+    const matchesBeat = !priceListBeatFilter || i.beat_name === priceListBeatFilter;
+    return matchesSearch && matchesBeat;
+  });
+
+  if (!filtered.length) {
+    if (typeof window.showToast === 'function') window.showToast('No price list items matching filter to export!', 'error');
+    return;
+  }
+
+  const bizName = (session && session.businessName) ? session.businessName : 'BABM TASK';
+  const exportDate = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  const beatTitle = priceListBeatFilter ? `Beat Category: ${priceListBeatFilter}` : 'All Sales Beats';
+
+  const totalMRP = filtered.reduce((s, i) => s + Number(i.mrp_price || 0), 0);
+  const totalScheme = filtered.reduce((s, i) => s + Number(i.scheme_price || 0), 0);
+  const totalSavings = Math.max(0, totalMRP - totalScheme);
+
+  const printHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>Price List Report - ${bizName}</title>
+      <style>
+        body { font-family: 'Roboto Mono', 'Inter', monospace, sans-serif; margin: 20px; color: #0F172A; background: #FFFFFF; }
+        .header { text-align: center; border-bottom: 2px solid #0F172A; padding-bottom: 12px; margin-bottom: 16px; }
+        .header h1 { margin: 0; font-size: 1.4rem; text-transform: uppercase; letter-spacing: 1px; color: #0F172A; }
+        .header p { margin: 4px 0 0; font-size: 0.85rem; color: #475569; }
+        .meta-bar { display: flex; justify-content: space-between; background: #F8FAFC; padding: 10px 14px; border-radius: 8px; border: 1px solid #E2E8F0; margin-bottom: 16px; font-size: 0.8rem; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+        .stat-card { background: #F1F5F9; border: 1px solid #CBD5E1; padding: 10px; border-radius: 8px; text-align: center; }
+        .stat-label { font-size: 0.7rem; color: #64748B; text-transform: uppercase; font-weight: 700; }
+        .stat-val { font-size: 1.2rem; font-weight: 800; color: #0F172A; margin-top: 4px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.8rem; }
+        th, td { border: 1px solid #CBD5E1; padding: 8px 10px; text-align: left; }
+        th { background: #1E293B; color: #FFFFFF; text-transform: uppercase; font-size: 0.72rem; font-weight: 700; }
+        tr:nth-child(even) { background: #F8FAFC; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; background: #DBEAFE; color: #1E40AF; font-size: 0.7rem; font-weight: 700; }
+        .leaf { color: #16A34A; font-weight: 700; }
+        .footer { margin-top: 24px; text-align: center; font-size: 0.72rem; color: #94A3B8; border-top: 1px solid #E2E8F0; padding-top: 8px; }
+        @media print { body { margin: 0; } }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>${bizName}</h1>
+        <p>OFFICIAL PRODUCT PRICE LIST &amp; BEAT SCHEMES REPORT</p>
+      </div>
+
+      <div class="meta-bar">
+        <span><b>Category Filter:</b> ${beatTitle}</span>
+        <span><b>Export Date:</b> ${exportDate}</span>
+        <span><b>Total Items:</b> ${filtered.length} Products</span>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total Catalog Products</div>
+          <div class="stat-val">${filtered.length}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Scheme Savings</div>
+          <div class="stat-val leaf">₹${totalSavings.toLocaleString('en-IN')}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Beat Category Filter</div>
+          <div class="stat-val" style="font-size:0.95rem;">${priceListBeatFilter || 'ALL BEATS'}</div>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 40px;" class="text-center">#</th>
+            <th>Product Name</th>
+            <th>Sales Beat</th>
+            <th class="text-right">MRP (₹)</th>
+            <th class="text-right">Scheme Price (₹)</th>
+            <th class="text-right">Savings (₹)</th>
+            <th class="text-center">Discount</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filtered.map((item, idx) => {
+            const mrp = Number(item.mrp_price || 0);
+            const scheme = Number(item.scheme_price || 0);
+            const sav = Math.max(0, mrp - scheme);
+            const pct = mrp > 0 ? Math.round((sav / mrp) * 100) : 0;
+            return `
+              <tr>
+                <td class="text-center">${idx + 1}</td>
+                <td><b>${esc(item.product_name)}</b></td>
+                <td><span class="badge">${esc(item.beat_name || 'General')}</span></td>
+                <td class="text-right" style="text-decoration:line-through;color:#64748B;">₹${mrp.toLocaleString('en-IN')}</td>
+                <td class="text-right leaf">₹${scheme.toLocaleString('en-IN')}</td>
+                <td class="text-right">₹${sav.toLocaleString('en-IN')}</td>
+                <td class="text-center"><b>${pct}% OFF</b></td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+
+      <div class="footer">
+        Generated automatically by BABM TASK Management System on ${new Date().toLocaleString('en-IN')}
+      </div>
+
+      <script>
+        window.onload = function() { window.print(); };
+      </script>
+    </body>
+    </html>
+  `;
+
+  const win = window.open('', '_blank');
+  if (win) {
+    win.document.write(printHtml);
+    win.document.close();
+  }
+};
+
 
