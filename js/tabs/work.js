@@ -182,47 +182,54 @@ window.__submitQuickModal = async function() {
 
   const payload = {
     business_id: session.businessId,
-    assigned_to: parsed.assignedTo,
+    assigned_to: parsed.assignedTo || session.staffId,
     created_by: session.staffId,
     title: parsed.title,
-    priority: parsed.priority,
-    due_date: parsed.dueDate,
+    priority: parsed.priority || 'medium',
+    due_date: parsed.dueDate || todayStr(),
     status: 'pending'
   };
 
   // 1. Instant local update (0ms) — close modal, show in list NOW
-  payload.id = 'loc_task_' + Date.now();
+  payload.id = 'loc_task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 5);
   payload.created_at = new Date().toISOString();
   cache.tasks.unshift(payload);
   taskFilter = { staffId: '', priority: '', search: '' };
   taskSubTab = 'active';
   try { localStorage.setItem('br_tasks_' + session.businessId, JSON.stringify(cache.tasks)); } catch(e){}
 
-  const holder = document.getElementById('quickModalHolder');
-  if(holder) holder.remove();
+  if (typeof getModalHolder === 'function') getModalHolder('taskModalHolder').innerHTML = '';
 
-  celebrateDone();
+  if (typeof celebrateDone === 'function') celebrateDone();
   if (typeof window.showToast === 'function') {
-    window.showToast('⚡ Task created! Syncing to cloud...', 'success');
+    window.showToast('⚡ Task created & synced!', 'success');
   }
   if (activeTab === 'tasks') renderTabBody(); else { activeTab = 'tasks'; renderShell(); }
 
-  // 2. Background DB sync
+  // 2. Reliable Background DB sync
   const dbPayload = Object.assign({}, payload);
   delete dbPayload.id;
-  if (navigator.onLine && typeof sb !== 'undefined') {
-    sb.from('tasks').insert(dbPayload).select().single().then(r => {
-      if (r && r.data && r.data.id) {
-        const loc = cache.tasks.find(t => t.id === payload.id);
-        if (loc) Object.assign(loc, r.data);
-        try { localStorage.setItem('br_tasks_' + session.businessId, JSON.stringify(cache.tasks)); } catch(e){}
+
+  (async () => {
+    try {
+      if (navigator.onLine && typeof sb !== 'undefined') {
+        const { data: inserted, error: insErr } = await sb.from('tasks').insert(dbPayload).select().single();
+        if (insErr || !inserted) {
+          console.warn('Quick modal cloud insert warning:', insErr);
+          if (typeof queueOfflineMutation === 'function') queueOfflineMutation('insert', 'tasks', dbPayload);
+        } else if (inserted && inserted.id) {
+          const loc = cache.tasks.find(t => t.id === payload.id);
+          if (loc) Object.assign(loc, inserted);
+          try { localStorage.setItem('br_tasks_' + session.businessId, JSON.stringify(cache.tasks)); } catch(e){}
+        }
+      } else if (typeof queueOfflineMutation === 'function') {
+        queueOfflineMutation('insert', 'tasks', dbPayload);
       }
-    }).catch(()=> {
+    } catch(err) {
+      console.warn('Quick modal task sync error:', err);
       if (typeof queueOfflineMutation === 'function') queueOfflineMutation('insert', 'tasks', dbPayload);
-    });
-  } else if (typeof queueOfflineMutation === 'function') {
-    queueOfflineMutation('insert', 'tasks', dbPayload);
-  }
+    }
+  })();
 };
 
 
@@ -237,16 +244,16 @@ window.__quickAddNaturalTask = async function() {
 
   const payload = {
     business_id: session.businessId,
-    assigned_to: parsed.assignedTo,
+    assigned_to: parsed.assignedTo || session.staffId,
     created_by: session.staffId,
     title: parsed.title,
-    priority: parsed.priority,
-    due_date: parsed.dueDate,
+    priority: parsed.priority || 'medium',
+    due_date: parsed.dueDate || todayStr(),
     status: 'pending'
   };
 
   // 1. Instant local update (0ms) — show in list NOW
-  payload.id = 'loc_task_' + Date.now();
+  payload.id = 'loc_task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 5);
   payload.created_at = new Date().toISOString();
   cache.tasks.unshift(payload);
   taskFilter = { staffId: '', priority: '', search: '' };
@@ -254,28 +261,36 @@ window.__quickAddNaturalTask = async function() {
   try { localStorage.setItem('br_tasks_' + session.businessId, JSON.stringify(cache.tasks)); } catch(e){}
 
   inputEl.value = '';
-  celebrateDone();
+  if (typeof celebrateDone === 'function') celebrateDone();
   if (typeof window.showToast === 'function') {
-    window.showToast('⚡ Task created! Syncing to cloud...', 'success');
+    window.showToast('⚡ Task created & synced!', 'success');
   }
   renderTabBody();
 
-  // 2. Background DB sync
+  // 2. Reliable Background DB sync
   const dbPayload = Object.assign({}, payload);
   delete dbPayload.id;
-  if (navigator.onLine && typeof sb !== 'undefined') {
-    sb.from('tasks').insert(dbPayload).select().single().then(r => {
-      if (r && r.data && r.data.id) {
-        const loc = cache.tasks.find(t => t.id === payload.id);
-        if (loc) Object.assign(loc, r.data);
-        try { localStorage.setItem('br_tasks_' + session.businessId, JSON.stringify(cache.tasks)); } catch(e){}
+
+  (async () => {
+    try {
+      if (navigator.onLine && typeof sb !== 'undefined') {
+        const { data: inserted, error: insErr } = await sb.from('tasks').insert(dbPayload).select().single();
+        if (insErr || !inserted) {
+          console.warn('Quick Task cloud insert warning:', insErr);
+          if (typeof queueOfflineMutation === 'function') queueOfflineMutation('insert', 'tasks', dbPayload);
+        } else if (inserted && inserted.id) {
+          const loc = cache.tasks.find(t => t.id === payload.id);
+          if (loc) Object.assign(loc, inserted);
+          try { localStorage.setItem('br_tasks_' + session.businessId, JSON.stringify(cache.tasks)); } catch(e){}
+        }
+      } else if (typeof queueOfflineMutation === 'function') {
+        queueOfflineMutation('insert', 'tasks', dbPayload);
       }
-    }).catch(()=> {
+    } catch(err) {
+      console.warn('Quick task sync error:', err);
       if (typeof queueOfflineMutation === 'function') queueOfflineMutation('insert', 'tasks', dbPayload);
-    });
-  } else if (typeof queueOfflineMutation === 'function') {
-    queueOfflineMutation('insert', 'tasks', dbPayload);
-  }
+    }
+  })();
 };
 
 
