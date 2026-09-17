@@ -30,5 +30,18 @@
   <script src="js/tabs/sales.js"></script>
   <script src="js/tabs/admin.js"></script>
   <script src="js/tabs/projects.js"></script>
+
+  <!-- PWA Service Worker Auto-Registration & Cache Invalidation -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js').then(function(reg) {
+          reg.update();
+        }).catch(function(err) {
+          console.warn('SW registration warning:', err);
+        });
+      });
+    }
+  </script>
 </body>
 </html>
