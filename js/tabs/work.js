@@ -458,10 +458,23 @@ window.__markDone = function(id) {
     renderTabBody();
   }
 
-  // Background DB sync (non-blocking)
-  if (navigator.onLine && typeof sb !== 'undefined' && !String(id).startsWith('loc_task_')) {
-    Promise.resolve(sb.from('tasks').update({ status: 'done' }).eq('id', id)).catch(() => {});
-  }
+  // Background DB sync
+  (async () => {
+    try {
+      if (navigator.onLine && typeof sb !== 'undefined' && !String(id).startsWith('loc_task_')) {
+        const { error: upErr } = await sb.from('tasks').update({ status: 'done', completed_at: t.completed_at }).eq('id', id);
+        if (upErr && typeof queueOfflineMutation === 'function') {
+          queueOfflineMutation('update', 'tasks', { id, status: 'done', completed_at: t.completed_at });
+        }
+      } else if (typeof queueOfflineMutation === 'function' && !String(id).startsWith('loc_task_')) {
+        queueOfflineMutation('update', 'tasks', { id, status: 'done', completed_at: t.completed_at });
+      }
+    } catch(e) {
+      if (typeof queueOfflineMutation === 'function' && !String(id).startsWith('loc_task_')) {
+        queueOfflineMutation('update', 'tasks', { id, status: 'done', completed_at: t.completed_at });
+      }
+    }
+  })();
   try { awardTaskPoint(id, 'task').catch(() => {}); } catch(e){}
   try { notifyCompletion(id, 'task'); } catch(e){}
 };
@@ -526,21 +539,38 @@ function openTaskModal(taskId){
     window.showToast(id ? 'Task updated!' : 'Task created!', 'success');
     _tasksRender();
 
-    // Background DB sync
-    if (navigator.onLine && typeof sb !== 'undefined') {
-      if (id && !String(id).startsWith('loc_task_')) {
-        Promise.resolve(sb.from('tasks').update(data).eq('id', id)).catch(() => {});
-      } else {
-        const db = Object.assign({}, data);
-        delete db.id;
-        sb.from('tasks').insert(db).select().single().then(r => {
-          if (r && r.data && r.data.id) {
-            const loc = cache.tasks.find(t => t.id === locId);
-            if (loc) { Object.assign(loc, r.data); _tasksSave(); }
+    // Reliable Background DB sync
+    const dbPayload = Object.assign({}, data);
+    delete dbPayload.id;
+
+    (async () => {
+      try {
+        if (navigator.onLine && typeof sb !== 'undefined') {
+          if (id && !String(id).startsWith('loc_task_')) {
+            const { error: upErr } = await sb.from('tasks').update(dbPayload).eq('id', id);
+            if (upErr && typeof queueOfflineMutation === 'function') {
+              queueOfflineMutation('update', 'tasks', Object.assign({ id }, dbPayload));
+            }
+          } else {
+            const { data: inserted, error: insErr } = await sb.from('tasks').insert(dbPayload).select().single();
+            if (insErr || !inserted) {
+              console.warn('Main task modal cloud insert warning:', insErr);
+              if (typeof queueOfflineMutation === 'function') queueOfflineMutation('insert', 'tasks', dbPayload);
+            } else if (inserted && inserted.id) {
+              const loc = cache.tasks.find(t => t.id === locId);
+              if (loc) { Object.assign(loc, inserted); _tasksSave(); }
+            }
           }
-        }).catch(() => {});
+        } else if (typeof queueOfflineMutation === 'function') {
+          queueOfflineMutation(id && !String(id).startsWith('loc_task_') ? 'update' : 'insert', 'tasks', id ? Object.assign({ id }, dbPayload) : dbPayload);
+        }
+      } catch(err) {
+        console.warn('Main task modal sync error:', err);
+        if (typeof queueOfflineMutation === 'function') {
+          queueOfflineMutation(id && !String(id).startsWith('loc_task_') ? 'update' : 'insert', 'tasks', id ? Object.assign({ id }, dbPayload) : dbPayload);
+        }
       }
-    }
+    })();
   };
 }
 window.__openTask = () => openTaskModal(null);

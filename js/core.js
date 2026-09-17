@@ -366,16 +366,34 @@ window.__showDeleteConfirm = function({ title, message, onConfirm }) {
 window.__deleteTask = function(id) {
   if (!confirm('Delete this task? This cannot be undone.')) return;
 
-  // 1. Instantly remove from cache & localStorage
+  // 1. Instantly remove from cache & record deletion locally
+  let localSavedTasks = [];
+  try { localSavedTasks = JSON.parse(localStorage.getItem('br_tasks_' + session.businessId) || '[]'); } catch(e){}
+  localSavedTasks.push({ id, is_deleted: true });
+  
   cache.tasks = cache.tasks.filter(t => t.id !== id);
+  try { localStorage.setItem('br_tasks_' + session.businessId, JSON.stringify(localSavedTasks.filter(t => !cache.tasks.some(ct => ct.id === t.id) ? t.is_deleted : true).concat(cache.tasks))); } catch(e){}
   _tasksSave();
   window.showToast('Task deleted!', 'success');
   renderTabBody();
 
   // 2. Background DB delete
-  if (navigator.onLine && typeof sb !== 'undefined' && !String(id).startsWith('loc_task_')) {
-    Promise.resolve(sb.from('tasks').delete().eq('id', id)).catch(() => {});
-  }
+  (async () => {
+    try {
+      if (navigator.onLine && typeof sb !== 'undefined' && !String(id).startsWith('loc_task_')) {
+        const { error: delErr } = await sb.from('tasks').delete().eq('id', id);
+        if (delErr && typeof queueOfflineMutation === 'function') {
+          queueOfflineMutation('delete', 'tasks', { id });
+        }
+      } else if (typeof queueOfflineMutation === 'function' && !String(id).startsWith('loc_task_')) {
+        queueOfflineMutation('delete', 'tasks', { id });
+      }
+    } catch(e) {
+      if (typeof queueOfflineMutation === 'function' && !String(id).startsWith('loc_task_')) {
+        queueOfflineMutation('delete', 'tasks', { id });
+      }
+    }
+  })();
   logAuditEvent('Task Deleted', 'Deleted task ' + id);
 };
 
@@ -1128,20 +1146,39 @@ async function loadData(){
       localSavedTasks = JSON.parse(localStorage.getItem('br_tasks_' + bizId) || '[]');
     } catch(e){}
 
-    const localUnsynced = localSavedTasks.filter(t => t.id && t.id.startsWith('loc_task_'));
-    const deletedIds = new Set(localSavedTasks.filter(t => t.is_deleted).map(t => t.id));
+    const systemPrefixes = ['[CUSTOMER_', '[EDIT_REQ]', '[EXPIRY_', '[EXPENSES_', '[SALARY_', '[FUTURE_', '[FEATURE_', '[VENDOR_', '[SALES_'];
+    const isSystemPayload = (t) => t && t.title && systemPrefixes.some(p => t.title.startsWith(p));
 
-    // Filter out internal system payload tasks from user task list
-    const userCloudTasks = cloudTasks.filter(ct => !ct.title || !ct.title.startsWith('['));
-    const combinedTasks = [...localUnsynced, ...userCloudTasks.filter(ct => !deletedIds.has(ct.id))];
-    
-    // Preserve local status updates if local is newer
-    combinedTasks.forEach(ct => {
-      const loc = localSavedTasks.find(lt => lt.id === ct.id);
-      if (loc && loc.status === 'done') ct.status = 'done';
+    const deletedIds = new Set((localSavedTasks || []).filter(t => t && t.is_deleted).map(t => String(t.id)));
+
+    // Seamless Map-based merging of localSavedTasks and cloudTasks
+    const taskMap = new Map();
+
+    // 1. Load all non-deleted local saved tasks into map
+    (localSavedTasks || []).forEach(t => {
+      if (t && t.id && !isSystemPayload(t) && !deletedIds.has(String(t.id))) {
+        taskMap.set(String(t.id), t);
+      }
     });
 
-    cache.tasks = combinedTasks;
+    // 2. Merge cloud tasks (if cloud fetch returned data)
+    if (cloudTasks && Array.isArray(cloudTasks)) {
+      const userCloudTasks = cloudTasks.filter(ct => !isSystemPayload(ct) && !deletedIds.has(String(ct.id)));
+      userCloudTasks.forEach(ct => {
+        const ctIdStr = String(ct.id);
+        const loc = taskMap.get(ctIdStr);
+        if (loc) {
+          // Cloud data merged, preserving local status if marked done locally
+          const merged = Object.assign({}, ct, loc);
+          if (loc.status === 'done') merged.status = 'done';
+          taskMap.set(ctIdStr, merged);
+        } else {
+          taskMap.set(ctIdStr, ct);
+        }
+      });
+    }
+
+    cache.tasks = Array.from(taskMap.values());
     try {
       localStorage.setItem('br_tasks_' + bizId, JSON.stringify(cache.tasks));
     } catch(e){}
