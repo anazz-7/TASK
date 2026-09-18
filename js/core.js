@@ -188,6 +188,13 @@ async function boot(){
       console.warn('Background loadData notice:', dataErr);
     }
 
+    // Auto-retry any tasks/accounts/etc. still waiting to sync — previously
+    // this only happened if the device went offline->online or someone
+    // tapped "SYNC NOW", so queued items could sit stuck for days.
+    if (navigator.onLine && getOfflineQueue().length) {
+      flushOfflineMutationQueue();
+    }
+
     startReminderLoop();
     startPopupReminders();
     playOpenChime();
@@ -846,6 +853,20 @@ async function ensurePresetAccountsSeeded(bizId){
 
 
 /* ---------------- OFFLINE MUTATION QUEUE MANAGER (Issue 3 Fix) ---------------- */
+// Swaps a temporary local id (loc_..., loc_task_...) for the real cloud id
+// once a queued insert finally makes it to the cloud, and re-saves that
+// table's local cache so other parts of the app pick up the change.
+function reconcileLocalId(table, oldId, freshRow) {
+  const tableToCacheKey = { tasks: 'tasks', daily_accounts: 'dailyAccounts' };
+  const key = tableToCacheKey[table];
+  if (!key || !cache[key]) return;
+  const item = cache[key].find(x => x.id === oldId);
+  if (item) Object.assign(item, freshRow);
+  try {
+    if (key === 'tasks') localStorage.setItem('br_tasks_' + session.businessId, JSON.stringify(cache.tasks));
+  } catch (e) {}
+}
+
 function getOfflineQueue() {
   try {
     return JSON.parse(localStorage.getItem('br_offline_mutation_queue') || '[]');
@@ -923,8 +944,18 @@ async function flushOfflineMutationQueue() {
         }
         if (!resErr) syncedCount++;
       } else if (item.action_type === 'insert') {
-        const { error } = await sb.from(item.table).insert(payload);
-        if (error) resErr = error; else syncedCount++;
+        const { data: insertedRow, error } = await sb.from(item.table).insert(payload).select().single();
+        if (error) {
+          resErr = error;
+        } else {
+          syncedCount++;
+          // Reconcile the temporary local id with the real cloud id so this
+          // record doesn't show up twice (once locally, once from the cloud).
+          const oldId = item.payload && item.payload.id;
+          if (oldId && insertedRow && insertedRow.id && String(oldId).startsWith('loc_')) {
+            reconcileLocalId(item.table, oldId, insertedRow);
+          }
+        }
       } else if (item.action_type === 'update') {
         const { error } = await sb.from(item.table).update(payload).eq('id', item.payload.id);
         if (error) resErr = error; else syncedCount++;
@@ -1069,6 +1100,13 @@ window.__openQueuedMutationsModal = function() {
 
 
 window.addEventListener('online', () => { updateOfflineBadgeBar(); flushOfflineMutationQueue(); });
+
+// Safety net: also retry every 5 minutes while the app is open, in case
+// navigator.onLine says "online" but the connection is actually weak/flaky
+// (common on mobile data) and an earlier sync attempt silently failed.
+setInterval(() => {
+  if (navigator.onLine && getOfflineQueue().length) flushOfflineMutationQueue();
+}, 5 * 60 * 1000);
 window.addEventListener('offline', () => { updateOfflineBadgeBar(); });
 
 
@@ -2269,7 +2307,3 @@ async function saveOfficeLogsData(data) {
     await syncCustomCloudPayload('[OFFICE_LOGS_DATA]', cache.officeLogs);
   }
 }
-
-
-
-
