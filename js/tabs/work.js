@@ -76,7 +76,7 @@ function parseNaturalTaskText(rawText) {
   let text = (rawText || '').trim();
   if(!text) return null;
 
-  let assignedTo = 'all';
+  let assignedTo = session ? session.staffId : null;
   let priority = 'medium';
   let dueDate = todayStr();
   let title = text;
@@ -221,6 +221,8 @@ window.__submitQuickModal = async function() {
           const loc = cache.tasks.find(t => t.id === payload.id);
           if (loc) Object.assign(loc, inserted);
           try { localStorage.setItem('br_tasks_' + session.businessId, JSON.stringify(cache.tasks)); } catch(e){}
+          if (typeof updateOfflineBadgeBar === 'function') updateOfflineBadgeBar();
+          if (typeof renderTabBody === 'function') renderTabBody();
         }
       } else if (typeof queueOfflineMutation === 'function') {
         queueOfflineMutation('insert', 'tasks', dbPayload);
@@ -282,6 +284,8 @@ window.__quickAddNaturalTask = async function() {
           const loc = cache.tasks.find(t => t.id === payload.id);
           if (loc) Object.assign(loc, inserted);
           try { localStorage.setItem('br_tasks_' + session.businessId, JSON.stringify(cache.tasks)); } catch(e){}
+          if (typeof updateOfflineBadgeBar === 'function') updateOfflineBadgeBar();
+          if (typeof renderTabBody === 'function') renderTabBody();
         }
       } else if (typeof queueOfflineMutation === 'function') {
         queueOfflineMutation('insert', 'tasks', dbPayload);

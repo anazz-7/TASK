@@ -1239,18 +1239,16 @@ async function loadData(){
       }
     });
 
-    // 2. Merge cloud tasks (if cloud fetch returned data)
+    // 2. Merge cloud tasks — CLOUD WINS for content; local only wins for 'done' status
     if (cloudTasks && Array.isArray(cloudTasks)) {
-      const userCloudTasks = cloudTasks.filter(ct => !isSystemPayload(ct) && !deletedIds.has(String(ct.id)));
-      userCloudTasks.forEach(ct => {
+      cloudTasks.filter(ct => !isSystemPayload(ct) && !deletedIds.has(String(ct.id))).forEach(ct => {
         const ctIdStr = String(ct.id);
         const loc = taskMap.get(ctIdStr);
-        if (loc) {
-          // Cloud data merged, preserving local status if marked done locally
-          const merged = Object.assign({}, ct, loc);
-          if (loc.status === 'done') merged.status = 'done';
-          taskMap.set(ctIdStr, merged);
+        if (loc && loc.status === 'done') {
+          // Local marked as done — preserve done status, otherwise cloud content wins
+          taskMap.set(ctIdStr, Object.assign({}, ct, { status: 'done', completed_at: loc.completed_at || ct.completed_at }));
         } else {
+          // Cloud wins for all non-done tasks
           taskMap.set(ctIdStr, ct);
         }
       });
@@ -2382,22 +2380,28 @@ function startRealtimeCloudSyncTimer() {
         const systemPrefixes = ['[CUSTOMER_', '[EDIT_REQ]', '[EXPIRY_', '[EXPENSES_', '[SALARY_', '[FUTURE_', '[FEATURE_', '[VENDOR_', '[SALES_'];
         const isSystemPayload = (t) => t && t.title && systemPrefixes.some(p => t.title.startsWith(p));
 
+        // Cloud-first merge: cloud tasks WIN for new content, local wins for status (done=permanent)
         const taskMap = new Map();
-        (localSavedTasks || []).forEach(t => {
-          if (t && t.id && !isSystemPayload(t) && !deletedIds.has(String(t.id))) {
-            taskMap.set(String(t.id), t);
-          }
+
+        // Step 1: Load CLOUD tasks first as source of truth
+        cloudTasks.filter(ct => !isSystemPayload(ct) && !deletedIds.has(String(ct.id))).forEach(ct => {
+          taskMap.set(String(ct.id), ct);
         });
 
-        cloudTasks.filter(ct => !isSystemPayload(ct) && !deletedIds.has(String(ct.id))).forEach(ct => {
-          const ctIdStr = String(ct.id);
-          const loc = taskMap.get(ctIdStr);
-          if (loc) {
-            const merged = Object.assign({}, ct, loc);
-            if (loc.status === 'done') merged.status = 'done';
-            taskMap.set(ctIdStr, merged);
-          } else {
-            taskMap.set(ctIdStr, ct);
+        // Step 2: Keep local-only tasks (loc_ prefix) that haven't synced to cloud yet
+        (localSavedTasks || []).forEach(t => {
+          if (t && t.id && !isSystemPayload(t) && !deletedIds.has(String(t.id))) {
+            const idStr = String(t.id);
+            if (idStr.startsWith('loc_') || idStr.startsWith('preset_')) {
+              taskMap.set(idStr, t);
+            } else if (taskMap.has(idStr)) {
+              // Merge: preserve done status set locally
+              const cloudTask = taskMap.get(idStr);
+              if (t.status === 'done' && cloudTask.status !== 'done') {
+                taskMap.set(idStr, Object.assign({}, cloudTask, { status: 'done', completed_at: t.completed_at || cloudTask.completed_at }));
+              }
+              // else cloud wins
+            }
           }
         });
 
