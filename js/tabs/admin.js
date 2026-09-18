@@ -2170,7 +2170,7 @@ window.__reloadAppData = async function(btn) {
   }
   showLoading();
   try {
-    if (typeof flushOfflineMutations === 'function') await flushOfflineMutations();
+    if (typeof flushOfflineMutationQueue === 'function') await flushOfflineMutationQueue(true);
 
     // Push local payloads first so device A's latest updates reach cloud
     try {
