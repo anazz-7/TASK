@@ -212,7 +212,7 @@ window.__submitQuickModal = async function() {
 
   (async () => {
     try {
-      if (navigator.onLine && typeof sb !== 'undefined') {
+      if (typeof sb !== 'undefined' && sb) {
         const { data: inserted, error: insErr } = await sb.from('tasks').insert(dbPayload).select().single();
         if (insErr || !inserted) {
           console.warn('Quick modal cloud insert warning:', insErr);
@@ -273,7 +273,7 @@ window.__quickAddNaturalTask = async function() {
 
   (async () => {
     try {
-      if (navigator.onLine && typeof sb !== 'undefined') {
+      if (typeof sb !== 'undefined' && sb) {
         const { data: inserted, error: insErr } = await sb.from('tasks').insert(dbPayload).select().single();
         if (insErr || !inserted) {
           console.warn('Quick Task cloud insert warning:', insErr);
@@ -461,7 +461,7 @@ window.__markDone = function(id) {
   // Background DB sync
   (async () => {
     try {
-      if (navigator.onLine && typeof sb !== 'undefined' && !String(id).startsWith('loc_task_')) {
+      if (typeof sb !== 'undefined' && sb && !String(id).startsWith('loc_task_')) {
         const { error: upErr } = await sb.from('tasks').update({ status: 'done', completed_at: t.completed_at }).eq('id', id);
         if (upErr && typeof queueOfflineMutation === 'function') {
           queueOfflineMutation('update', 'tasks', { id, status: 'done', completed_at: t.completed_at });
@@ -545,7 +545,7 @@ function openTaskModal(taskId){
 
     (async () => {
       try {
-        if (navigator.onLine && typeof sb !== 'undefined') {
+        if (typeof sb !== 'undefined' && sb) {
           if (id && !String(id).startsWith('loc_task_')) {
             const { error: upErr } = await sb.from('tasks').update(dbPayload).eq('id', id);
             if (upErr && typeof queueOfflineMutation === 'function') {

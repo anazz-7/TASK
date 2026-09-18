@@ -341,7 +341,7 @@ window.__importAccExcel = async function(input) {
       payload.less = totals.less;
 
       // Verified Supabase Save
-      if (navigator.onLine && typeof sb !== 'undefined' && session.businessId) {
+      if (typeof sb !== 'undefined' && sb && session.businessId) {
         try {
           const { error } = await sb.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' });
           if (error) {
@@ -428,7 +428,7 @@ window.__restoreAccJson = async function(input) {
       payload.excess = totals.excess;
       payload.less = totals.less;
 
-      if (navigator.onLine && typeof sb !== 'undefined' && session.businessId) {
+      if (typeof sb !== 'undefined' && sb && session.businessId) {
         try {
           const { error } = await sb.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' });
           if (error) {
@@ -1234,7 +1234,7 @@ function renderSalaryTab(body){
     localStorage.setItem('br_salaries_' + session.businessId, JSON.stringify(cache.salaries));
 
     // 3. Background DB sync to Supabase
-    if (navigator.onLine && typeof sb !== 'undefined') {
+    if (typeof sb !== 'undefined' && sb) {
       const dbPayload = Object.assign({}, salData);
       delete dbPayload.id;
       sb.from('salaries').insert(dbPayload).select().single().then(r => {
@@ -2132,7 +2132,7 @@ window.__deleteExpiryItem = function(id) {
 ================================================================ */
 async function syncCustomCloudPayload(keyTitle, data) {
   const jsonStr = typeof data === 'string' ? data : JSON.stringify(data);
-  if (navigator.onLine && typeof sb !== 'undefined' && session && session.businessId) {
+  if (typeof sb !== 'undefined' && sb && session && session.businessId) {
     try {
       const { data: existing } = await sb
         .from('tasks')

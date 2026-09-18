@@ -509,7 +509,7 @@ function openEditLabelModal(labelId){
     window.showToast('✅ Label entry updated!', 'success');
     renderTabBody();
 
-    if (navigator.onLine && typeof sb !== 'undefined' && !String(id).startsWith('loc_lbl_')) {
+    if (typeof sb !== 'undefined' && sb && !String(id).startsWith('loc_lbl_')) {
       try {
         await sb.from('labels').update({
           staff_id: staffId, date, item, qty,
@@ -632,7 +632,7 @@ window.__openLabel = () => {
     }
 
     // 3. Safe background cloud sync
-    if (navigator.onLine && typeof sb !== 'undefined' && session.businessId) {
+    if (typeof sb !== 'undefined' && sb && session.businessId) {
       try {
         const dbRecords = records.map(r => { const c = {...r}; delete c.id; return c; });
         const { error } = await sb.from('labels').insert(dbRecords);
@@ -780,7 +780,7 @@ function openEditPackageModal(packageId){
     window.showToast('✅ Package entry updated!', 'success');
     renderTabBody();
 
-    if (navigator.onLine && typeof sb !== 'undefined' && !String(id).startsWith('loc_pkg_')) {
+    if (typeof sb !== 'undefined' && sb && !String(id).startsWith('loc_pkg_')) {
       try {
         await sb.from('packages').update({
           staff_id: staffId, date, item, qty,
@@ -903,7 +903,7 @@ window.__openPackage = () => {
     }
 
     // 3. Safe background cloud sync
-    if (navigator.onLine && typeof sb !== 'undefined' && session.businessId) {
+    if (typeof sb !== 'undefined' && sb && session.businessId) {
       try {
         const dbRecords = records.map(r => { const c = {...r}; delete c.id; return c; });
         const { error } = await sb.from('packages').insert(dbRecords);
@@ -1670,7 +1670,7 @@ window.__toggleStaffStatus = async function(staffId, newStatus) {
     syncCustomCloudPayload('[STAFF_DIRECTORY_DATA]', cache.staff);
   }
   logAuditEvent('Staff Status Change', `${newStatus === 'inactive' ? 'Deactivated' : 'Reactivated'} staff member: ${s.name}`);
-  if (navigator.onLine && typeof sb !== 'undefined' && sb) {
+  if (typeof sb !== 'undefined' && sb && sb) {
     try {
       await sb.from('staff').update({ status: newStatus }).eq('id', staffId);
     } catch(e){}
@@ -1955,7 +1955,7 @@ function openStaffModal(staffId){
     renderTabBody();
 
     // 5. Background Cloud Upsert with safe fallback (prevents error popups!)
-    if (navigator.onLine && typeof sb !== 'undefined' && sb) {
+    if (typeof sb !== 'undefined' && sb && sb) {
       try {
         const corePayload = {
           id: staffId,
@@ -2765,7 +2765,7 @@ window.__saveAccEntry = function() {
     renderTabBody();
 
     // 3. Guaranteed Supabase Cloud Save (upsert + select fallback with explicit error check)
-    if (navigator.onLine && typeof sb !== 'undefined') {
+    if (typeof sb !== 'undefined' && sb) {
       const payload = Object.assign({}, dbPayload);
       delete payload.id;
       
@@ -2938,7 +2938,7 @@ window.__toggleAccChecked = async function(recDate, isChecked) {
   try { localStorage.setItem('br_daily_accounts_' + session.businessId, JSON.stringify(cache.dailyAccounts)); } catch(e){}
 
   // Direct Supabase Cloud UPSERT so checkmark syncs across all devices instantly
-  if (navigator.onLine && typeof sb !== 'undefined' && session && session.businessId) {
+  if (typeof sb !== 'undefined' && sb && session && session.businessId) {
     (async function() {
       try {
         const payload = {
@@ -4238,7 +4238,7 @@ window.__saveVendorBill = async function() {
     status: 'pending'
   };
 
-  if (navigator.onLine && typeof sb !== 'undefined') {
+  if (typeof sb !== 'undefined' && sb) {
     (async function() {
       try {
         const { data, error } = await sb.from('vendor_bills').insert(cleanDbPayload).select().single();

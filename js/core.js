@@ -380,7 +380,7 @@ window.__deleteTask = function(id) {
   // 2. Background DB delete
   (async () => {
     try {
-      if (navigator.onLine && typeof sb !== 'undefined' && !String(id).startsWith('loc_task_')) {
+      if (typeof sb !== 'undefined' && sb && !String(id).startsWith('loc_task_')) {
         const { error: delErr } = await sb.from('tasks').delete().eq('id', id);
         if (delErr && typeof queueOfflineMutation === 'function') {
           queueOfflineMutation('delete', 'tasks', { id });
@@ -438,7 +438,7 @@ window.__deleteStaff = function(staffId) {
         if (typeof syncCustomCloudPayload === 'function') {
           syncCustomCloudPayload('[STAFF_DIRECTORY_DATA]', cache.staff);
         }
-        if (navigator.onLine && typeof sb !== 'undefined' && sb) {
+        if (typeof sb !== 'undefined' && sb) {
           await sb.from('staff').delete().eq('id', staffId);
         }
       } catch(e){}
@@ -864,11 +864,20 @@ function queueOfflineMutation(actionType, table, payload) {
   queue.push(entry);
   localStorage.setItem('br_offline_mutation_queue', JSON.stringify(queue));
   updateOfflineBadgeBar();
+
+  if (typeof window._queueFlushTimer !== 'undefined') clearTimeout(window._queueFlushTimer);
+  window._queueFlushTimer = setTimeout(() => {
+    if (typeof flushOfflineMutationQueue === 'function') {
+      flushOfflineMutationQueue(true);
+    }
+  }, 500);
 }
 
-async function flushOfflineMutationQueue() {
+async function flushOfflineMutationQueue(isSilent = false) {
   if (!navigator.onLine) {
-    alert('Cannot sync: Device is offline. Check your internet connection.');
+    if (!isSilent) {
+      alert('Cannot sync: Device is offline. Check your internet connection.');
+    }
     return;
   }
   const queue = getOfflineQueue();
@@ -877,7 +886,7 @@ async function flushOfflineMutationQueue() {
     return;
   }
 
-  showLoading();
+  if (!isSilent) showLoading();
   let syncedCount = 0;
   const remaining = [];
   let lastErrorMsg = null;
@@ -953,7 +962,7 @@ async function flushOfflineMutationQueue() {
     }
   }
 
-  hideLoading();
+  if (!isSilent) hideLoading();
   localStorage.setItem('br_offline_mutation_queue', JSON.stringify(remaining));
   updateOfflineBadgeBar();
 
@@ -961,7 +970,7 @@ async function flushOfflineMutationQueue() {
     window.showToast(`✅ Synced ${syncedCount} queued action(s) to cloud!`, 'success');
   }
   
-  if (lastErrorMsg && remaining.length > 0) {
+  if (!isSilent && lastErrorMsg && remaining.length > 0) {
     alert('☁️ Cloud Sync Alert: Could not sync ' + remaining.length + ' item(s).\n\nSupabase Error: ' + lastErrorMsg + '\n\nTip: If your API key or database schema changed, tap "Clear Queue" on the status bar to clear stuck items.');
   }
 }
@@ -1105,6 +1114,9 @@ function getVendorPartiesList() {
 
 /* ---------------- data ---------------- */
 async function loadData(){
+  if (typeof flushOfflineMutationQueue === 'function') {
+    try { await flushOfflineMutationQueue(true); } catch(e){}
+  }
   showLoading();
   try {
     const bizId = session.businessId;
