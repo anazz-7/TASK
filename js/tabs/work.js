@@ -76,7 +76,7 @@ function parseNaturalTaskText(rawText) {
   let text = (rawText || '').trim();
   if(!text) return null;
 
-  let assignedTo = session ? session.staffId : null;
+  let assignedTo = 'all';
   let priority = 'medium';
   let dueDate = todayStr();
   let title = text;
@@ -303,7 +303,7 @@ window.__setTaskSubTab = function(t) {
 
 function renderTasksTab(body){
   if(typeof taskSubTab === 'undefined') window.taskSubTab = 'active';
-  let list = isManagerPlus() ? cache.tasks : cache.tasks.filter(t=>t.assigned_to===session.staffId);
+  let list = isManagerPlus() ? cache.tasks : cache.tasks.filter(t => !t.assigned_to || t.assigned_to === 'all' || t.assigned_to === session.staffId || t.created_by === session.staffId);
   if(taskFilter.staffId) list = list.filter(t=>t.assigned_to===taskFilter.staffId);
   if(taskFilter.priority) list = list.filter(t=>t.priority===taskFilter.priority);
   if(taskFilter.search) list = list.filter(t=>t.title.toLowerCase().includes(taskFilter.search.toLowerCase()));

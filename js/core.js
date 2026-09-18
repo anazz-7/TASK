@@ -1531,6 +1531,7 @@ async function loadData(){
       ];
       localStorage.setItem('br_incentive_targets_' + bizId, JSON.stringify(cache.incentiveTargets));
     }
+    if(typeof startRealtimeCloudSyncTimer === 'function') startRealtimeCloudSyncTimer();
 
     const routineIds = cache.routines.map(r=>r.id);
     if(routineIds.length){
@@ -2351,3 +2352,69 @@ async function saveOfficeLogsData(data) {
 
 
 
+
+/* ---------------- REALTIME MULTI-DEVICE CLOUD SYNC ENGINE ---------------- */
+let _cloudSyncInterval = null;
+
+function startRealtimeCloudSyncTimer() {
+  if (_cloudSyncInterval) return;
+  _cloudSyncInterval = setInterval(async () => {
+    if (!navigator.onLine || document.hidden || !session || !session.businessId) return;
+    
+    const activeEl = document.activeElement;
+    if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT')) {
+      return; // Do not interrupt user typing
+    }
+    
+    try {
+      if (typeof flushOfflineMutationQueue === 'function' && typeof getOfflineQueue === 'function' && getOfflineQueue().length > 0) {
+        await flushOfflineMutationQueue(true);
+      }
+
+      const bizId = session.businessId;
+      if (typeof sb === 'undefined' || !sb) return;
+
+      const { data: cloudTasks, error: tErr } = await sb.from('tasks').select('*').eq('business_id', bizId).order('due_date', { ascending: true, nullsFirst: false });
+      
+      if (!tErr && cloudTasks && Array.isArray(cloudTasks)) {
+        const localSavedTasks = JSON.parse(localStorage.getItem('br_tasks_' + bizId) || '[]');
+        const deletedIds = new Set((localSavedTasks || []).filter(t => t && t.is_deleted).map(t => String(t.id)));
+        const systemPrefixes = ['[CUSTOMER_', '[EDIT_REQ]', '[EXPIRY_', '[EXPENSES_', '[SALARY_', '[FUTURE_', '[FEATURE_', '[VENDOR_', '[SALES_'];
+        const isSystemPayload = (t) => t && t.title && systemPrefixes.some(p => t.title.startsWith(p));
+
+        const taskMap = new Map();
+        (localSavedTasks || []).forEach(t => {
+          if (t && t.id && !isSystemPayload(t) && !deletedIds.has(String(t.id))) {
+            taskMap.set(String(t.id), t);
+          }
+        });
+
+        cloudTasks.filter(ct => !isSystemPayload(ct) && !deletedIds.has(String(ct.id))).forEach(ct => {
+          const ctIdStr = String(ct.id);
+          const loc = taskMap.get(ctIdStr);
+          if (loc) {
+            const merged = Object.assign({}, ct, loc);
+            if (loc.status === 'done') merged.status = 'done';
+            taskMap.set(ctIdStr, merged);
+          } else {
+            taskMap.set(ctIdStr, ct);
+          }
+        });
+
+        const newTasks = Array.from(taskMap.values());
+        const oldJson = JSON.stringify(cache.tasks || []);
+        const newJson = JSON.stringify(newTasks);
+
+        if (oldJson !== newJson) {
+          cache.tasks = newTasks;
+          try { localStorage.setItem('br_tasks_' + bizId, JSON.stringify(cache.tasks)); } catch(e){}
+          if (typeof safeBackgroundRenderTabBody === 'function') {
+            safeBackgroundRenderTabBody();
+          } else if (typeof renderTabBody === 'function' && typeof activeTab !== 'undefined' && activeTab === 'tasks') {
+            renderTabBody();
+          }
+        }
+      }
+    } catch(e) {}
+  }, 10000); // 10s multi-device cloud polling heartbeat
+}
