@@ -1125,6 +1125,20 @@ setInterval(async () => {
   } catch (e) { console.warn('Background auto-refresh notice:', e); }
 }, 20000);
 
+// Mobile browsers pause background timers (like the 20s poll above) to save
+// battery once the app is backgrounded or the screen locks. So if Phone B's
+// app was sitting in the background when the task was added, the timer
+// alone wouldn't have caught it. This refreshes immediately the moment the
+// app comes back to the foreground, which is the more reliable trigger.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && navigator.onLine && session && typeof sb !== 'undefined') {
+    loadData().then(() => {
+      const modalOpen = document.querySelector('.overlay.show');
+      if (!modalOpen) renderTabBody();
+    }).catch(e => console.warn('Foreground refresh notice:', e));
+  }
+});
+
 window.addEventListener('offline', () => { updateOfflineBadgeBar(); });
 
 
