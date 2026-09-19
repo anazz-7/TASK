@@ -1039,7 +1039,7 @@ function updateOfflineBadgeBar() {
     bar.innerHTML = `
       <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1;overflow:hidden;">
         <span style="color:#10B981;font-size:0.85rem;">🟢</span>
-        <span style="color:rgba(255,255,255,0.85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><b>CLOUD DATA SYNCED (0 QUEUED)</b> &bull; REALTIME SYNC ACTIVE</span>
+        <span style="color:rgba(255,255,255,0.85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><b>CLOUD DATA SYNCED (0 QUEUED)</b> &bull; AUTO-REFRESH ACTIVE</span>
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0;">
         <button class="stamp-btn small ghost" style="color:#fff;border-color:rgba(255,255,255,0.3);padding:2px 8px;font-size:0.68rem;" onclick="event.stopPropagation();window.__openQueuedMutationsModal()">📜 DETAILS</button>
@@ -1107,6 +1107,24 @@ window.addEventListener('online', () => { updateOfflineBadgeBar(); flushOfflineM
 setInterval(() => {
   if (navigator.onLine && getOfflineQueue().length) flushOfflineMutationQueue();
 }, 5 * 60 * 1000);
+
+// ---------------- CROSS-DEVICE AUTO-REFRESH ----------------
+// The status bar used to say "REALTIME SYNC ACTIVE" but nothing in this file
+// actually opened a live connection — loadData() only ran at login/boot or
+// after specific button taps. So a task added on one phone could sit
+// invisible on another phone that was already open, for as long as that
+// phone's app stayed open. This checks the cloud every 20 seconds instead,
+// and skips redrawing the screen if someone currently has a form/modal open,
+// so it never interrupts mid-entry.
+setInterval(async () => {
+  if (!navigator.onLine || !session || typeof sb === 'undefined') return;
+  try {
+    await loadData();
+    const modalOpen = document.querySelector('.overlay.show');
+    if (!modalOpen) renderTabBody();
+  } catch (e) { console.warn('Background auto-refresh notice:', e); }
+}, 20000);
+
 window.addEventListener('offline', () => { updateOfflineBadgeBar(); });
 
 
