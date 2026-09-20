@@ -188,6 +188,13 @@ async function boot(){
       console.warn('Background loadData notice:', dataErr);
     }
 
+    // Auto-retry any tasks/accounts/etc. still waiting to sync — previously
+    // this only happened if the device went offline->online or someone
+    // tapped "SYNC NOW", so queued items could sit stuck for days.
+    if (navigator.onLine && getOfflineQueue().length) {
+      flushOfflineMutationQueue();
+    }
+
     startReminderLoop();
     startPopupReminders();
     playOpenChime();
@@ -380,7 +387,7 @@ window.__deleteTask = function(id) {
   // 2. Background DB delete
   (async () => {
     try {
-      if (typeof sb !== 'undefined' && sb && !String(id).startsWith('loc_task_')) {
+      if (navigator.onLine && typeof sb !== 'undefined' && !String(id).startsWith('loc_task_')) {
         const { error: delErr } = await sb.from('tasks').delete().eq('id', id);
         if (delErr && typeof queueOfflineMutation === 'function') {
           queueOfflineMutation('delete', 'tasks', { id });
@@ -438,7 +445,7 @@ window.__deleteStaff = function(staffId) {
         if (typeof syncCustomCloudPayload === 'function') {
           syncCustomCloudPayload('[STAFF_DIRECTORY_DATA]', cache.staff);
         }
-        if (typeof sb !== 'undefined' && sb) {
+        if (navigator.onLine && typeof sb !== 'undefined' && sb) {
           await sb.from('staff').delete().eq('id', staffId);
         }
       } catch(e){}
@@ -846,6 +853,20 @@ async function ensurePresetAccountsSeeded(bizId){
 
 
 /* ---------------- OFFLINE MUTATION QUEUE MANAGER (Issue 3 Fix) ---------------- */
+// Swaps a temporary local id (loc_..., loc_task_...) for the real cloud id
+// once a queued insert finally makes it to the cloud, and re-saves that
+// table's local cache so other parts of the app pick up the change.
+function reconcileLocalId(table, oldId, freshRow) {
+  const tableToCacheKey = { tasks: 'tasks', daily_accounts: 'dailyAccounts' };
+  const key = tableToCacheKey[table];
+  if (!key || !cache[key]) return;
+  const item = cache[key].find(x => x.id === oldId);
+  if (item) Object.assign(item, freshRow);
+  try {
+    if (key === 'tasks') localStorage.setItem('br_tasks_' + session.businessId, JSON.stringify(cache.tasks));
+  } catch (e) {}
+}
+
 function getOfflineQueue() {
   try {
     return JSON.parse(localStorage.getItem('br_offline_mutation_queue') || '[]');
@@ -864,20 +885,11 @@ function queueOfflineMutation(actionType, table, payload) {
   queue.push(entry);
   localStorage.setItem('br_offline_mutation_queue', JSON.stringify(queue));
   updateOfflineBadgeBar();
-
-  if (typeof window._queueFlushTimer !== 'undefined') clearTimeout(window._queueFlushTimer);
-  window._queueFlushTimer = setTimeout(() => {
-    if (typeof flushOfflineMutationQueue === 'function') {
-      flushOfflineMutationQueue(true);
-    }
-  }, 500);
 }
 
-async function flushOfflineMutationQueue(isSilent = false) {
+async function flushOfflineMutationQueue() {
   if (!navigator.onLine) {
-    if (!isSilent) {
-      alert('Cannot sync: Device is offline. Check your internet connection.');
-    }
+    alert('Cannot sync: Device is offline. Check your internet connection.');
     return;
   }
   const queue = getOfflineQueue();
@@ -886,80 +898,37 @@ async function flushOfflineMutationQueue(isSilent = false) {
     return;
   }
 
-  if (!isSilent) showLoading();
+  showLoading();
   let syncedCount = 0;
   const remaining = [];
   let lastErrorMsg = null;
 
   for (const item of queue) {
     try {
-      const rawId = item.payload ? String(item.payload.id || '') : '';
-      const isLocalId = rawId.startsWith('loc_') || rawId.startsWith('off_') || rawId.startsWith('preset_');
-
       const payload = Object.assign({}, item.payload || {});
-      delete payload.id; // remove temporary local ID for clean cloud insert/update
+      delete payload.id; // remove local temporary ID for clean cloud insert/update
       let resErr = null;
-      let savedRecord = null;
 
       if (item.table === 'daily_accounts') {
         // Multi-tier robust sync for daily_accounts
         let { data: saved, error } = await sb.from('daily_accounts').upsert(payload, { onConflict: 'business_id,date' }).select().single();
         if (error) resErr = error;
-        savedRecord = saved;
         
         if (error || !saved) {
           const { data: checkData, error: checkErr } = await sb.from('daily_accounts').select('id').eq('business_id', payload.business_id).eq('date', payload.date).maybeSingle();
           if (checkData && checkData.id) {
             const res = await sb.from('daily_accounts').update(payload).eq('id', checkData.id).select().single();
-            savedRecord = res.data; resErr = res.error || checkErr;
+            saved = res.data; resErr = res.error || checkErr;
           } else {
             const res = await sb.from('daily_accounts').insert(payload).select().single();
-            savedRecord = res.data; resErr = res.error || checkErr;
+            saved = res.data; resErr = res.error || checkErr;
           }
         }
-        if (savedRecord && savedRecord.id) {
+        if (saved && saved.id) {
           syncedCount++;
           continue;
         }
-      } else if (item.action_type === 'delete') {
-        if (isLocalId || !rawId) {
-          // Local item deleted offline; nothing to delete in Supabase DB
-          syncedCount++;
-          continue;
-        } else {
-          const { error } = await sb.from(item.table).delete().eq('id', rawId);
-          if (error && (error.code === '22P02' || String(error.message).includes('invalid input syntax for type uuid'))) {
-            // Invalid UUID format — drop stale local item
-            syncedCount++;
-          } else if (error) {
-            resErr = error;
-          } else {
-            syncedCount++;
-          }
-        }
-      } else if (item.action_type === 'update') {
-        if (isLocalId || !rawId) {
-          // Created offline; insert as fresh record into DB
-          const { data: saved, error } = await sb.from(item.table).insert(payload).select().maybeSingle();
-          if (error && (error.code === '22P02' || String(error.message).includes('invalid input syntax for type uuid'))) {
-            syncedCount++;
-          } else if (error) {
-            resErr = error;
-          } else {
-            syncedCount++;
-            savedRecord = saved;
-          }
-        } else {
-          const { error } = await sb.from(item.table).update(payload).eq('id', rawId);
-          if (error && (error.code === '22P02' || String(error.message).includes('invalid input syntax for type uuid'))) {
-            syncedCount++;
-          } else if (error) {
-            resErr = error;
-          } else {
-            syncedCount++;
-          }
-        }
-      } else if (item.action_type === 'insert' || item.action_type === 'upsert') {
+      } else if (item.action_type === 'upsert') {
         if (item.table === 'tasks' && payload.title && payload.title.startsWith('[')) {
           const { data: existingList } = await sb.from('tasks').select('id').eq('business_id', payload.business_id).eq('title', payload.title);
           if (existingList && existingList.length > 0) {
@@ -969,21 +938,30 @@ async function flushOfflineMutationQueue(isSilent = false) {
             const { error } = await sb.from('tasks').insert(payload);
             resErr = error;
           }
-          if (!resErr) syncedCount++;
         } else {
-          const { data: saved, error } = await sb.from(item.table).insert(payload).select().maybeSingle();
-          if (error) {
-            if (!isLocalId && rawId) {
-              const { error: upErr } = await sb.from(item.table).update(payload).eq('id', rawId);
-              resErr = upErr;
-            } else {
-              resErr = error;
-            }
-          } else {
-            syncedCount++;
-            savedRecord = saved;
+          const { error } = await sb.from(item.table).upsert(payload);
+          resErr = error;
+        }
+        if (!resErr) syncedCount++;
+      } else if (item.action_type === 'insert') {
+        const { data: insertedRow, error } = await sb.from(item.table).insert(payload).select().single();
+        if (error) {
+          resErr = error;
+        } else {
+          syncedCount++;
+          // Reconcile the temporary local id with the real cloud id so this
+          // record doesn't show up twice (once locally, once from the cloud).
+          const oldId = item.payload && item.payload.id;
+          if (oldId && insertedRow && insertedRow.id && String(oldId).startsWith('loc_')) {
+            reconcileLocalId(item.table, oldId, insertedRow);
           }
         }
+      } else if (item.action_type === 'update') {
+        const { error } = await sb.from(item.table).update(payload).eq('id', item.payload.id);
+        if (error) resErr = error; else syncedCount++;
+      } else if (item.action_type === 'delete') {
+        const { error } = await sb.from(item.table).delete().eq('id', item.payload.id);
+        if (error) resErr = error; else syncedCount++;
       } else {
         syncedCount++;
         continue;
@@ -993,32 +971,10 @@ async function flushOfflineMutationQueue(isSilent = false) {
         lastErrorMsg = resErr.message || resErr.details || JSON.stringify(resErr);
         console.warn('Queue sync item error:', resErr);
         if (item.retryCount && item.retryCount >= 2) {
-          console.warn('Dropping stale/un-syncable queue item after 2 retries:', item);
-          syncedCount++;
+          console.warn('Dropping stale queue item after retries:', item);
         } else {
           item.retryCount = (item.retryCount || 0) + 1;
           remaining.push(item);
-        }
-      } else if (savedRecord && savedRecord.id && isLocalId && session && session.businessId) {
-        // Link local cache item to newly generated cloud UUID
-        if (item.table === 'tasks' && cache.tasks) {
-          const loc = cache.tasks.find(t => t.id === rawId || (t.title === payload.title && t.created_at === payload.created_at));
-          if (loc) {
-            loc.id = savedRecord.id;
-            try { localStorage.setItem('br_tasks_' + session.businessId, JSON.stringify(cache.tasks)); } catch(e){}
-          }
-        } else if (item.table === 'labels' && cache.labels) {
-          const loc = cache.labels.find(l => l.id === rawId);
-          if (loc) {
-            loc.id = savedRecord.id;
-            try { localStorage.setItem('br_labels_' + session.businessId, JSON.stringify(cache.labels)); } catch(e){}
-          }
-        } else if (item.table === 'packages' && cache.packages) {
-          const loc = cache.packages.find(p => p.id === rawId);
-          if (loc) {
-            loc.id = savedRecord.id;
-            try { localStorage.setItem('br_packages_' + session.businessId, JSON.stringify(cache.packages)); } catch(e){}
-          }
         }
       }
     } catch(err) {
@@ -1028,7 +984,7 @@ async function flushOfflineMutationQueue(isSilent = false) {
     }
   }
 
-  if (!isSilent) hideLoading();
+  hideLoading();
   localStorage.setItem('br_offline_mutation_queue', JSON.stringify(remaining));
   updateOfflineBadgeBar();
 
@@ -1036,8 +992,8 @@ async function flushOfflineMutationQueue(isSilent = false) {
     window.showToast(`✅ Synced ${syncedCount} queued action(s) to cloud!`, 'success');
   }
   
-  if (!isSilent && lastErrorMsg && remaining.length > 0) {
-    alert('☁️ Cloud Sync Alert: Could not sync ' + remaining.length + ' item(s).\n\nSupabase Error: ' + lastErrorMsg + '\n\nTip: Tap "Clear Queue" on details modal to clear stuck items.');
+  if (lastErrorMsg && remaining.length > 0) {
+    alert('☁️ Cloud Sync Alert: Could not sync ' + remaining.length + ' item(s).\n\nSupabase Error: ' + lastErrorMsg + '\n\nTip: If your API key or database schema changed, tap "Clear Queue" on the status bar to clear stuck items.');
   }
 }
 
@@ -1083,7 +1039,7 @@ function updateOfflineBadgeBar() {
     bar.innerHTML = `
       <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1;overflow:hidden;">
         <span style="color:#10B981;font-size:0.85rem;">🟢</span>
-        <span style="color:rgba(255,255,255,0.85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><b>CLOUD DATA SYNCED (0 QUEUED)</b> &bull; REALTIME SYNC ACTIVE</span>
+        <span style="color:rgba(255,255,255,0.85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><b>CLOUD DATA SYNCED (0 QUEUED)</b> &bull; AUTO-REFRESH ACTIVE</span>
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0;">
         <button class="stamp-btn small ghost" style="color:#fff;border-color:rgba(255,255,255,0.3);padding:2px 8px;font-size:0.68rem;" onclick="event.stopPropagation();window.__openQueuedMutationsModal()">📜 DETAILS</button>
@@ -1144,6 +1100,13 @@ window.__openQueuedMutationsModal = function() {
 
 
 window.addEventListener('online', () => { updateOfflineBadgeBar(); flushOfflineMutationQueue(); });
+
+// Safety net: retry flushing offline queue every 5 minutes
+// in case a sync attempt silently failed on weak/flaky connections.
+setInterval(() => {
+  if (navigator.onLine && getOfflineQueue().length) flushOfflineMutationQueue(true);
+}, 5 * 60 * 1000);
+
 window.addEventListener('offline', () => { updateOfflineBadgeBar(); });
 
 
@@ -1180,9 +1143,6 @@ function getVendorPartiesList() {
 
 /* ---------------- data ---------------- */
 async function loadData(){
-  if (typeof flushOfflineMutationQueue === 'function') {
-    try { await flushOfflineMutationQueue(true); } catch(e){}
-  }
   showLoading();
   try {
     const bizId = session.businessId;
@@ -1239,16 +1199,18 @@ async function loadData(){
       }
     });
 
-    // 2. Merge cloud tasks — CLOUD WINS for content; local only wins for 'done' status
+    // 2. Merge cloud tasks (if cloud fetch returned data)
     if (cloudTasks && Array.isArray(cloudTasks)) {
-      cloudTasks.filter(ct => !isSystemPayload(ct) && !deletedIds.has(String(ct.id))).forEach(ct => {
+      const userCloudTasks = cloudTasks.filter(ct => !isSystemPayload(ct) && !deletedIds.has(String(ct.id)));
+      userCloudTasks.forEach(ct => {
         const ctIdStr = String(ct.id);
         const loc = taskMap.get(ctIdStr);
-        if (loc && loc.status === 'done') {
-          // Local marked as done — preserve done status, otherwise cloud content wins
-          taskMap.set(ctIdStr, Object.assign({}, ct, { status: 'done', completed_at: loc.completed_at || ct.completed_at }));
+        if (loc) {
+          // Cloud data merged, preserving local status if marked done locally
+          const merged = Object.assign({}, ct, loc);
+          if (loc.status === 'done') merged.status = 'done';
+          taskMap.set(ctIdStr, merged);
         } else {
-          // Cloud wins for all non-done tasks
           taskMap.set(ctIdStr, ct);
         }
       });
@@ -1529,7 +1491,6 @@ async function loadData(){
       ];
       localStorage.setItem('br_incentive_targets_' + bizId, JSON.stringify(cache.incentiveTargets));
     }
-    if(typeof startRealtimeCloudSyncTimer === 'function') startRealtimeCloudSyncTimer();
 
     const routineIds = cache.routines.map(r=>r.id);
     if(routineIds.length){
@@ -2114,7 +2075,7 @@ function renderShell(){
           ${(() => {
             const qLen = (() => { try { return JSON.parse(localStorage.getItem('br_offline_mutation_queue')||'[]').length; } catch(e){ return 0; } })();
             return qLen > 0
-              ? `<button class="offline-badge pending" title="${qLen} record(s) pending cloud sync. Tap to sync." onclick="if(typeof window.__openQueuedMutationsModal==='function')window.__openQueuedMutationsModal();else if(typeof flushOfflineMutationQueue==='function')flushOfflineMutationQueue();">
+              ? `<button class="offline-badge pending" title="${qLen} record(s) pending cloud sync. Tap to sync." onclick="window.__reloadAppData(document.querySelector('.reload-btn'))">
                   ● ${qLen} PENDING
                 </button>`
               : `<span class="offline-badge synced" title="All data synced to cloud">✓ SYNCED</span>`;
@@ -2345,80 +2306,4 @@ async function saveOfficeLogsData(data) {
   if (typeof syncCustomCloudPayload === 'function') {
     await syncCustomCloudPayload('[OFFICE_LOGS_DATA]', cache.officeLogs);
   }
-}
-
-
-
-
-
-/* ---------------- REALTIME MULTI-DEVICE CLOUD SYNC ENGINE ---------------- */
-let _cloudSyncInterval = null;
-
-function startRealtimeCloudSyncTimer() {
-  if (_cloudSyncInterval) return;
-  _cloudSyncInterval = setInterval(async () => {
-    if (!navigator.onLine || document.hidden || !session || !session.businessId) return;
-    
-    const activeEl = document.activeElement;
-    if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT')) {
-      return; // Do not interrupt user typing
-    }
-    
-    try {
-      if (typeof flushOfflineMutationQueue === 'function' && typeof getOfflineQueue === 'function' && getOfflineQueue().length > 0) {
-        await flushOfflineMutationQueue(true);
-      }
-
-      const bizId = session.businessId;
-      if (typeof sb === 'undefined' || !sb) return;
-
-      const { data: cloudTasks, error: tErr } = await sb.from('tasks').select('*').eq('business_id', bizId).order('due_date', { ascending: true, nullsFirst: false });
-      
-      if (!tErr && cloudTasks && Array.isArray(cloudTasks)) {
-        const localSavedTasks = JSON.parse(localStorage.getItem('br_tasks_' + bizId) || '[]');
-        const deletedIds = new Set((localSavedTasks || []).filter(t => t && t.is_deleted).map(t => String(t.id)));
-        const systemPrefixes = ['[CUSTOMER_', '[EDIT_REQ]', '[EXPIRY_', '[EXPENSES_', '[SALARY_', '[FUTURE_', '[FEATURE_', '[VENDOR_', '[SALES_'];
-        const isSystemPayload = (t) => t && t.title && systemPrefixes.some(p => t.title.startsWith(p));
-
-        // Cloud-first merge: cloud tasks WIN for new content, local wins for status (done=permanent)
-        const taskMap = new Map();
-
-        // Step 1: Load CLOUD tasks first as source of truth
-        cloudTasks.filter(ct => !isSystemPayload(ct) && !deletedIds.has(String(ct.id))).forEach(ct => {
-          taskMap.set(String(ct.id), ct);
-        });
-
-        // Step 2: Keep local-only tasks (loc_ prefix) that haven't synced to cloud yet
-        (localSavedTasks || []).forEach(t => {
-          if (t && t.id && !isSystemPayload(t) && !deletedIds.has(String(t.id))) {
-            const idStr = String(t.id);
-            if (idStr.startsWith('loc_') || idStr.startsWith('preset_')) {
-              taskMap.set(idStr, t);
-            } else if (taskMap.has(idStr)) {
-              // Merge: preserve done status set locally
-              const cloudTask = taskMap.get(idStr);
-              if (t.status === 'done' && cloudTask.status !== 'done') {
-                taskMap.set(idStr, Object.assign({}, cloudTask, { status: 'done', completed_at: t.completed_at || cloudTask.completed_at }));
-              }
-              // else cloud wins
-            }
-          }
-        });
-
-        const newTasks = Array.from(taskMap.values());
-        const oldJson = JSON.stringify(cache.tasks || []);
-        const newJson = JSON.stringify(newTasks);
-
-        if (oldJson !== newJson) {
-          cache.tasks = newTasks;
-          try { localStorage.setItem('br_tasks_' + bizId, JSON.stringify(cache.tasks)); } catch(e){}
-          if (typeof safeBackgroundRenderTabBody === 'function') {
-            safeBackgroundRenderTabBody();
-          } else if (typeof renderTabBody === 'function' && typeof activeTab !== 'undefined' && activeTab === 'tasks') {
-            renderTabBody();
-          }
-        }
-      }
-    } catch(e) {}
-  }, 10000); // 10s multi-device cloud polling heartbeat
 }
