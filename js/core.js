@@ -196,6 +196,7 @@ async function boot(){
     }
 
     startReminderLoop();
+    _startTaskSyncPoller();
     startPopupReminders();
     playOpenChime();
     showChangelogPopup();
@@ -1109,7 +1110,72 @@ setInterval(() => {
 
 window.addEventListener('offline', () => { updateOfflineBadgeBar(); });
 
+// ---------------- LIGHTWEIGHT TASK SYNC POLLER ----------------
+// Fetches ONLY the tasks table every 30 seconds — no full loadData(),
+// no loading spinner, never interrupts modals or typing.
+let _taskSyncInterval = null;
+function _mergePollTasks(cloudTasks, bizId) {
+  const systemPrefixes = ['[CUSTOMER_','[EDIT_REQ]','[EXPIRY_','[EXPENSES_','[SALARY_','[FUTURE_','[FEATURE_','[VENDOR_','[SALES_'];
+  const isSys = (t) => t && t.title && systemPrefixes.some(p => t.title.startsWith(p));
+  let localSaved = [];
+  try { localSaved = JSON.parse(localStorage.getItem('br_tasks_' + bizId) || '[]'); } catch(e){}
+  const deletedIds = new Set(localSaved.filter(t => t && t.is_deleted).map(t => String(t.id)));
+  const taskMap = new Map();
+  // Keep unsynced local-only tasks
+  localSaved.forEach(t => {
+    if (t && t.id && !isSys(t) && !deletedIds.has(String(t.id)) && String(t.id).startsWith('loc_'))
+      taskMap.set(String(t.id), t);
+  });
+  // Cloud is authoritative for all cloud tasks
+  cloudTasks.filter(ct => !isSys(ct) && !deletedIds.has(String(ct.id))).forEach(ct => {
+    const loc = localSaved.find(l => String(l.id) === String(ct.id));
+    if (loc && loc.status === 'done' && ct.status !== 'done') {
+      taskMap.set(String(ct.id), Object.assign({}, ct, { status: 'done', completed_at: loc.completed_at || ct.completed_at }));
+    } else {
+      taskMap.set(String(ct.id), ct);
+    }
+  });
+  return Array.from(taskMap.values());
+}
+function _applyPollResult(newTasks, bizId) {
+  if (JSON.stringify(cache.tasks) === JSON.stringify(newTasks)) return;
+  cache.tasks = newTasks;
+  try { localStorage.setItem('br_tasks_' + bizId, JSON.stringify(cache.tasks)); } catch(e){}
+  if (typeof activeTab !== 'undefined' && activeTab === 'tasks') {
+    if (typeof safeBackgroundRenderTabBody === 'function') safeBackgroundRenderTabBody();
+    else if (typeof renderTabBody === 'function') renderTabBody();
+  }
+  if (typeof updateOfflineBadgeBar === 'function') updateOfflineBadgeBar();
+}
+function _startTaskSyncPoller() {
+  if (_taskSyncInterval) return;
+  _taskSyncInterval = setInterval(async () => {
+    try {
+      if (!navigator.onLine || !session || !session.businessId || typeof sb === 'undefined' || !sb) return;
+      if (document.querySelector('.overlay.show')) return;
+      const el = document.activeElement;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) return;
+      const bizId = session.businessId;
+      const { data: cloudTasks, error } = await sb.from('tasks').select('*').eq('business_id', bizId).order('due_date', { ascending: true, nullsFirst: false });
+      if (error || !cloudTasks) return;
+      _applyPollResult(_mergePollTasks(cloudTasks, bizId), bizId);
+    } catch(e) {}
+  }, 30000);
+}
 
+// Refresh tasks immediately when device comes back to foreground
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !navigator.onLine || !session || typeof sb === 'undefined') return;
+  setTimeout(async () => {
+    try {
+      if (!session || !session.businessId || document.querySelector('.overlay.show')) return;
+      const bizId = session.businessId;
+      const { data: cloudTasks, error } = await sb.from('tasks').select('*').eq('business_id', bizId).order('due_date', { ascending: true, nullsFirst: false });
+      if (error || !cloudTasks) return;
+      _applyPollResult(_mergePollTasks(cloudTasks, bizId), bizId);
+    } catch(e) {}
+  }, 600);
+});
 
 /* ---------------- NETWORK TIMEOUT & RETRY SUPABASE HELPER ---------------- */
 async function safeSupabaseCall(promiseFn, fallbackData = null, timeoutMs = 7000) {
@@ -1199,18 +1265,16 @@ async function loadData(){
       }
     });
 
-    // 2. Merge cloud tasks (if cloud fetch returned data)
+    // 2. Merge cloud tasks — CLOUD WINS for all content; local only preserved for 'done' status
     if (cloudTasks && Array.isArray(cloudTasks)) {
-      const userCloudTasks = cloudTasks.filter(ct => !isSystemPayload(ct) && !deletedIds.has(String(ct.id)));
-      userCloudTasks.forEach(ct => {
+      cloudTasks.filter(ct => !isSystemPayload(ct) && !deletedIds.has(String(ct.id))).forEach(ct => {
         const ctIdStr = String(ct.id);
         const loc = taskMap.get(ctIdStr);
-        if (loc) {
-          // Cloud data merged, preserving local status if marked done locally
-          const merged = Object.assign({}, ct, loc);
-          if (loc.status === 'done') merged.status = 'done';
-          taskMap.set(ctIdStr, merged);
+        if (loc && loc.status === 'done' && ct.status !== 'done') {
+          // Preserve locally-marked done status, cloud wins for everything else
+          taskMap.set(ctIdStr, Object.assign({}, ct, { status: 'done', completed_at: loc.completed_at || ct.completed_at }));
         } else {
+          // Cloud is authoritative source of truth
           taskMap.set(ctIdStr, ct);
         }
       });
