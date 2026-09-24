@@ -1120,21 +1120,28 @@ function _mergePollTasks(cloudTasks, bizId) {
   let localSaved = [];
   try { localSaved = JSON.parse(localStorage.getItem('br_tasks_' + bizId) || '[]'); } catch(e){}
   const deletedIds = new Set(localSaved.filter(t => t && t.is_deleted).map(t => String(t.id)));
+
+  // Start with ALL local tasks as the base — never wipe local tasks
   const taskMap = new Map();
-  // Keep unsynced local-only tasks
   localSaved.forEach(t => {
-    if (t && t.id && !isSys(t) && !deletedIds.has(String(t.id)) && String(t.id).startsWith('loc_'))
+    if (t && t.id && !isSys(t) && !deletedIds.has(String(t.id))) {
       taskMap.set(String(t.id), t);
+    }
   });
-  // Cloud is authoritative for all cloud tasks
+
+  // Only UPDATE or ADD from cloud — do NOT remove local tasks
+  // Cloud tasks update matching local ones, and add brand new ones not seen locally
   cloudTasks.filter(ct => !isSys(ct) && !deletedIds.has(String(ct.id))).forEach(ct => {
-    const loc = localSaved.find(l => String(l.id) === String(ct.id));
-    if (loc && loc.status === 'done' && ct.status !== 'done') {
-      taskMap.set(String(ct.id), Object.assign({}, ct, { status: 'done', completed_at: loc.completed_at || ct.completed_at }));
+    const existing = taskMap.get(String(ct.id));
+    if (existing && existing.status === 'done' && ct.status !== 'done') {
+      // Preserve locally-marked done status
+      taskMap.set(String(ct.id), Object.assign({}, ct, { status: 'done', completed_at: existing.completed_at || ct.completed_at }));
     } else {
+      // Cloud wins for all other cases (including new tasks from other devices)
       taskMap.set(String(ct.id), ct);
     }
   });
+
   return Array.from(taskMap.values());
 }
 function _applyPollResult(newTasks, bizId) {
