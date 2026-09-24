@@ -180,58 +180,27 @@ window.__submitQuickModal = async function() {
   const parsed = parseNaturalTaskText(val);
   if(!parsed || !parsed.title) return;
 
-  const payload = {
-    business_id: session.businessId,
-    assigned_to: parsed.assignedTo || session.staffId,
-    created_by: session.staffId,
-    title: parsed.title,
-    priority: parsed.priority || 'medium',
-    due_date: parsed.dueDate || todayStr(),
-    status: 'pending'
-  };
+  if (typeof window.createTaskLocally === 'function') {
+    window.createTaskLocally({
+      business_id: session.businessId,
+      assigned_to: parsed.assignedTo || session.staffId,
+      created_by: session.staffId,
+      title: parsed.title,
+      priority: parsed.priority || 'medium',
+      due_date: parsed.dueDate || todayStr(),
+      status: 'pending'
+    });
+  }
 
-  // 1. Instant local update (0ms) — close modal, show in list NOW
-  payload.id = 'loc_task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 5);
-  payload.created_at = new Date().toISOString();
-  cache.tasks.unshift(payload);
   taskFilter = { staffId: '', priority: '', search: '' };
   taskSubTab = 'active';
-  try { localStorage.setItem('br_tasks_' + session.businessId, JSON.stringify(cache.tasks)); } catch(e){}
 
   if (typeof getModalHolder === 'function') getModalHolder('taskModalHolder').innerHTML = '';
-
   if (typeof celebrateDone === 'function') celebrateDone();
   if (typeof window.showToast === 'function') {
-    window.showToast('⚡ Task created & synced!', 'success');
+    window.showToast('⚡ Task created & syncing...', 'success');
   }
   if (activeTab === 'tasks') renderTabBody(); else { activeTab = 'tasks'; renderShell(); }
-
-  // 2. Reliable Background DB sync
-  const dbPayload = Object.assign({}, payload);
-  delete dbPayload.id;
-
-  (async () => {
-    try {
-      if (typeof sb !== 'undefined' && sb) {
-        const { data: inserted, error: insErr } = await sb.from('tasks').insert(dbPayload).select().single();
-        if (insErr || !inserted) {
-          console.warn('Quick modal cloud insert warning:', insErr);
-          if (typeof queueOfflineMutation === 'function') queueOfflineMutation('insert', 'tasks', dbPayload);
-        } else if (inserted && inserted.id) {
-          const loc = cache.tasks.find(t => t.id === payload.id);
-          if (loc) Object.assign(loc, inserted);
-          try { localStorage.setItem('br_tasks_' + session.businessId, JSON.stringify(cache.tasks)); } catch(e){}
-          if (typeof updateOfflineBadgeBar === 'function') updateOfflineBadgeBar();
-          if (typeof renderTabBody === 'function') renderTabBody();
-        }
-      } else if (typeof queueOfflineMutation === 'function') {
-        queueOfflineMutation('insert', 'tasks', dbPayload);
-      }
-    } catch(err) {
-      console.warn('Quick modal task sync error:', err);
-      if (typeof queueOfflineMutation === 'function') queueOfflineMutation('insert', 'tasks', dbPayload);
-    }
-  })();
 };
 
 
@@ -244,57 +213,26 @@ window.__quickAddNaturalTask = async function() {
   const parsed = parseNaturalTaskText(val);
   if(!parsed || !parsed.title) return;
 
-  const payload = {
-    business_id: session.businessId,
-    assigned_to: parsed.assignedTo || session.staffId,
-    created_by: session.staffId,
-    title: parsed.title,
-    priority: parsed.priority || 'medium',
-    due_date: parsed.dueDate || todayStr(),
-    status: 'pending'
-  };
+  if (typeof window.createTaskLocally === 'function') {
+    window.createTaskLocally({
+      business_id: session.businessId,
+      assigned_to: parsed.assignedTo || session.staffId,
+      created_by: session.staffId,
+      title: parsed.title,
+      priority: parsed.priority || 'medium',
+      due_date: parsed.dueDate || todayStr(),
+      status: 'pending'
+    });
+  }
 
-  // 1. Instant local update (0ms) — show in list NOW
-  payload.id = 'loc_task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 5);
-  payload.created_at = new Date().toISOString();
-  cache.tasks.unshift(payload);
   taskFilter = { staffId: '', priority: '', search: '' };
   taskSubTab = 'active';
-  try { localStorage.setItem('br_tasks_' + session.businessId, JSON.stringify(cache.tasks)); } catch(e){}
-
   inputEl.value = '';
   if (typeof celebrateDone === 'function') celebrateDone();
   if (typeof window.showToast === 'function') {
-    window.showToast('⚡ Task created & synced!', 'success');
+    window.showToast('⚡ Task created & syncing...', 'success');
   }
   renderTabBody();
-
-  // 2. Reliable Background DB sync
-  const dbPayload = Object.assign({}, payload);
-  delete dbPayload.id;
-
-  (async () => {
-    try {
-      if (typeof sb !== 'undefined' && sb) {
-        const { data: inserted, error: insErr } = await sb.from('tasks').insert(dbPayload).select().single();
-        if (insErr || !inserted) {
-          console.warn('Quick Task cloud insert warning:', insErr);
-          if (typeof queueOfflineMutation === 'function') queueOfflineMutation('insert', 'tasks', dbPayload);
-        } else if (inserted && inserted.id) {
-          const loc = cache.tasks.find(t => t.id === payload.id);
-          if (loc) Object.assign(loc, inserted);
-          try { localStorage.setItem('br_tasks_' + session.businessId, JSON.stringify(cache.tasks)); } catch(e){}
-          if (typeof updateOfflineBadgeBar === 'function') updateOfflineBadgeBar();
-          if (typeof renderTabBody === 'function') renderTabBody();
-        }
-      } else if (typeof queueOfflineMutation === 'function') {
-        queueOfflineMutation('insert', 'tasks', dbPayload);
-      }
-    } catch(err) {
-      console.warn('Quick task sync error:', err);
-      if (typeof queueOfflineMutation === 'function') queueOfflineMutation('insert', 'tasks', dbPayload);
-    }
-  })();
 };
 
 
@@ -308,21 +246,31 @@ window.__setTaskSubTab = function(t) {
 function renderTasksTab(body){
   if(typeof taskSubTab === 'undefined') window.taskSubTab = 'active';
   let list = isManagerPlus() ? cache.tasks : cache.tasks.filter(t => !t.assigned_to || t.assigned_to === 'all' || t.assigned_to === session.staffId || t.created_by === session.staffId);
+  list = list.filter(t => t && !t.is_deleted);
   if(taskFilter.staffId) list = list.filter(t=>t.assigned_to===taskFilter.staffId);
   if(taskFilter.priority) list = list.filter(t=>t.priority===taskFilter.priority);
   if(taskFilter.search) list = list.filter(t=>t.title.toLowerCase().includes(taskFilter.search.toLowerCase()));
   const pending = list.filter(t=>t.status!=='done');
   const done = list.filter(t=>t.status==='done');
-  const row = (t) => `
+  const row = (t) => {
+    const dispNotes = (typeof getDisplayTaskNotes === 'function') ? getDisplayTaskNotes(t.notes) : (t.notes || '');
+    const syncBadge = t.sync_status === 'pending'
+      ? `<span class="stamp pending" style="font-size:0.58rem;background:rgba(245,158,11,0.15);color:#d97706;border:1px solid rgba(245,158,11,0.4);">● SYNCING</span>`
+      : (t.sync_status === 'failed'
+        ? `<span class="stamp danger" style="font-size:0.58rem;background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.4);">⚠ SYNC FAILED</span>`
+        : '');
+
+    return `
     <div class="row-card ${isOverdue(t)?'overdue':''}">
       <div class="row-main">
         <div class="meta"><span>${esc(staffName(t.assigned_to))}</span>${t.due_date?`<span>${fmtDue(t)}</span>`:''}</div>
         <h3><span class="status-dot ${t.status==='done'?'green':'red'}"></span>${esc(t.title)}</h3>
-        ${t.notes?`<div class="notes">${esc(t.notes)}</div>`:''}
-        <div style="margin-top:8px;">
+        ${dispNotes?`<div class="notes">${esc(dispNotes)}</div>`:''}
+        <div style="margin-top:8px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
           <span class="stamp ${t.priority}">${t.priority}</span>
           <span class="stamp ${t.status}">${t.status}</span>
           ${isOverdue(t)?`<span class="stamp overdue-badge">overdue</span>`:''}
+          ${syncBadge}
         </div>
       </div>
       <div class="row-actions" style="display:flex;align-items:center;gap:6px;">
@@ -338,6 +286,7 @@ function renderTasksTab(body){
         </div>
       </div>
     </div>`;
+  };
   const doneRowCollapsed = (t) => `
     <div class="row-card collapse-row compact-done-card" onclick="window.__toggleDone('${t.id}')">
       <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1;overflow:hidden;">
@@ -426,69 +375,70 @@ function renderTasksTab(body){
     const sendable = cache.tasks.filter(t=>t.status!=='done' && staffPhone(t.assigned_to));
     if(!sendable.length){ alert('No pending tasks with a WhatsApp number to send.'); return; }
     if(!confirm(`Open WhatsApp for ${sendable.length} pending task(s)? Allow pop-ups if asked.`)) return;
-    sendable.forEach(async t => { window.open(waLink(t), '_blank'); await sb.from('tasks').update({status:'sent'}).eq('id', t.id); });
-    setTimeout(async ()=>{ await loadData(); renderTabBody(); }, 800);
+    sendable.forEach(t => {
+      window.open(waLink(t), '_blank');
+      if (typeof window.updateTaskLocally === 'function') window.updateTaskLocally(t.id, { status: 'sent' });
+    });
+    renderTabBody();
   };
   window.__sendWa = async (id) => {
     const t = cache.tasks.find(x=>x.id===id);
+    if(!t) return;
     if(!staffPhone(t.assigned_to)){ alert('No WhatsApp number on file for this person. Add one in Staff.'); return; }
     window.open(waLink(t), '_blank');
-    if(t.status!=='done'){ await sb.from('tasks').update({status:'sent'}).eq('id', id); await loadData(); renderTabBody(); }
+    if(t.status!=='done'){
+      if (typeof window.updateTaskLocally === 'function') window.updateTaskLocally(id, { status: 'sent' });
+      renderTabBody();
+    }
   };
   window.__sendSms = async (id) => {
     const t = cache.tasks.find(x=>x.id===id);
+    if(!t) return;
     if(!staffPhone(t.assigned_to)){ alert('No phone number on file for this person. Add one in Staff.'); return; }
     window.location.href = smsLink(t);
-    if(t.status!=='done'){ await sb.from('tasks').update({status:'sent'}).eq('id', id); await loadData(); renderTabBody(); }
+    if(t.status!=='done'){
+      if (typeof window.updateTaskLocally === 'function') window.updateTaskLocally(id, { status: 'sent' });
+      renderTabBody();
+    }
   };
   window.__editTask = (id) => openTaskModal(id);
 }
 
 // __markDone defined GLOBALLY so it always works regardless of active tab
 window.__markDone = function(id) {
-  const t = cache.tasks.find(x => x.id === id);
+  const t = cache.tasks.find(x => x.id === id || (x.local_id && x.local_id === id));
   if (!t) return;
 
-  // Instant local update
-  t.status = 'done';
-  t.completed_at = new Date().toISOString();
-  _tasksSave();
+  if (typeof window.updateTaskLocally === 'function') {
+    window.updateTaskLocally(t.id, {
+      status: 'done',
+      completed_at: new Date().toISOString()
+    });
+  } else {
+    t.status = 'done';
+    t.completed_at = new Date().toISOString();
+    _tasksSave();
+  }
+
   celebrateDone();
   window.showToast('✓ Task done! Moved to Task History.', 'success');
   logAuditEvent('Task Completed', 'Completed: ' + t.title);
 
-  // Re-render immediately — switch to history to show where it went
   if (activeTab === 'tasks') {
     renderTabBody();
   }
 
-  // Background DB sync
-  (async () => {
-    try {
-      if (typeof sb !== 'undefined' && sb && !String(id).startsWith('loc_task_')) {
-        const { error: upErr } = await sb.from('tasks').update({ status: 'done', completed_at: t.completed_at }).eq('id', id);
-        if (upErr && typeof queueOfflineMutation === 'function') {
-          queueOfflineMutation('update', 'tasks', { id, status: 'done', completed_at: t.completed_at });
-        }
-      } else if (typeof queueOfflineMutation === 'function' && !String(id).startsWith('loc_task_')) {
-        queueOfflineMutation('update', 'tasks', { id, status: 'done', completed_at: t.completed_at });
-      }
-    } catch(e) {
-      if (typeof queueOfflineMutation === 'function' && !String(id).startsWith('loc_task_')) {
-        queueOfflineMutation('update', 'tasks', { id, status: 'done', completed_at: t.completed_at });
-      }
-    }
-  })();
-  try { awardTaskPoint(id, 'task').catch(() => {}); } catch(e){}
-  try { notifyCompletion(id, 'task'); } catch(e){}
+  try { awardTaskPoint(t.id, 'task').catch(() => {}); } catch(e){}
+  try { notifyCompletion(t.id, 'task'); } catch(e){}
 };
 
 function openTaskModal(taskId){
-  const t = taskId ? cache.tasks.find(x=>x.id===taskId) : null;
+  const t = taskId ? cache.tasks.find(x=>x.id===taskId || (x.local_id && x.local_id===taskId)) : null;
   const holder = getModalHolder('taskModalHolder');
   const assignField = isManagerPlus()
     ? `<label>Assign to</label><select id="mTaskStaff">${cache.staff.map(s=>`<option value="${s.id}" ${t&&t.assigned_to===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select>`
     : `<label>Assign to</label><input value="${esc(session.name)}" disabled><input type="hidden" id="mTaskStaff" value="${session.staffId}">`;
+  const modalNotes = t ? (typeof getDisplayTaskNotes === 'function' ? getDisplayTaskNotes(t.notes) : (t.notes || '')) : '';
   holder.innerHTML = `
   <div class="overlay show"><div class="modal">
     <h2>${t?'Edit task':'New task'}</h2>
@@ -496,7 +446,7 @@ function openTaskModal(taskId){
     <label>Title</label>
     <input id="mTaskTitle" value="${t?esc(t.title):''}" placeholder="e.g. Restock shelf">
     <label>Details</label>
-    <textarea id="mTaskNotes" placeholder="Optional">${t?esc(t.notes||''):''}</textarea>
+    <textarea id="mTaskNotes" placeholder="Optional">${esc(modalNotes)}</textarea>
     <div class="two-col">
       <div><label>Due date</label><input type="date" id="mTaskDate" value="${t?t.due_date||'':''}"></div>
       <div><label>Due time</label><input type="time" id="mTaskTime" value="${t?t.due_time||'':''}"></div>
@@ -527,54 +477,15 @@ function openTaskModal(taskId){
       priority: document.getElementById('mTaskPriority').value,
     };
 
-    // Instant local update
-    const locId = id || ('loc_task_' + Date.now());
-    if (id) {
-      const ex = cache.tasks.find(x => x.id === id);
-      if (ex) Object.assign(ex, data);
-    } else {
-      data.id = locId;
-      data.status = 'pending';
-      data.created_at = new Date().toISOString();
-      cache.tasks.unshift(data);
+    if (id && typeof window.updateTaskLocally === 'function') {
+      window.updateTaskLocally(id, data);
+    } else if (typeof window.createTaskLocally === 'function') {
+      window.createTaskLocally(data);
     }
-    _tasksSave();
+
     holder.innerHTML = '';
     window.showToast(id ? 'Task updated!' : 'Task created!', 'success');
     _tasksRender();
-
-    // Reliable Background DB sync
-    const dbPayload = Object.assign({}, data);
-    delete dbPayload.id;
-
-    (async () => {
-      try {
-        if (typeof sb !== 'undefined' && sb) {
-          if (id && !String(id).startsWith('loc_task_')) {
-            const { error: upErr } = await sb.from('tasks').update(dbPayload).eq('id', id);
-            if (upErr && typeof queueOfflineMutation === 'function') {
-              queueOfflineMutation('update', 'tasks', Object.assign({ id }, dbPayload));
-            }
-          } else {
-            const { data: inserted, error: insErr } = await sb.from('tasks').insert(dbPayload).select().single();
-            if (insErr || !inserted) {
-              console.warn('Main task modal cloud insert warning:', insErr);
-              if (typeof queueOfflineMutation === 'function') queueOfflineMutation('insert', 'tasks', dbPayload);
-            } else if (inserted && inserted.id) {
-              const loc = cache.tasks.find(t => t.id === locId);
-              if (loc) { Object.assign(loc, inserted); _tasksSave(); }
-            }
-          }
-        } else if (typeof queueOfflineMutation === 'function') {
-          queueOfflineMutation(id && !String(id).startsWith('loc_task_') ? 'update' : 'insert', 'tasks', id ? Object.assign({ id }, dbPayload) : dbPayload);
-        }
-      } catch(err) {
-        console.warn('Main task modal sync error:', err);
-        if (typeof queueOfflineMutation === 'function') {
-          queueOfflineMutation(id && !String(id).startsWith('loc_task_') ? 'update' : 'insert', 'tasks', id ? Object.assign({ id }, dbPayload) : dbPayload);
-        }
-      }
-    })();
   };
 }
 window.__openTask = () => openTaskModal(null);

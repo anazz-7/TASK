@@ -48,8 +48,13 @@ create table if not exists tasks (
   due_date date,
   due_time time,
   status text not null default 'pending' check (status in ('pending','sent','done')),
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  client_task_id text
 );
+alter table tasks add column if not exists client_task_id text;
+create unique index if not exists idx_tasks_client_task_id on tasks (client_task_id) where client_task_id is not null;
+alter table tasks add column if not exists updated_at timestamptz default now();
 
 -- ---------- Attendance ----------
 create table if not exists attendance (
