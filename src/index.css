@@ -1,7 +1,0 @@
-@import './styles/styles.css';
-
-/* React Root Mount styling */
-#root {
-  min-height: 100vh;
-  width: 100%;
-}
