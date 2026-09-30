@@ -142,6 +142,7 @@ function getNextDayOfWeekStr(targetDay) {
   return localDateStr(d);
 }
 
+// Quick Add Task Handler (Accessible to all staff)
 window.__quickAddNaturalTask = async function() {
   const inputEl = document.getElementById('quickTaskInput');
   if (!inputEl) return;
@@ -149,36 +150,50 @@ window.__quickAddNaturalTask = async function() {
   if (!val) return;
 
   const parsed = parseNaturalTaskText(val);
-  if (!parsed || !parsed.title) return;
-
-  const assignedStaff = (parsed.assignedTo && parsed.assignedTo !== 'all') ? parsed.assignedTo : (session ? session.staffId : null);
+  const title = (parsed && parsed.title) ? parsed.title : val;
+  const assignedStaff = (parsed && parsed.assignedTo && parsed.assignedTo !== 'all') ? parsed.assignedTo : null;
+  const priority = (parsed && parsed.priority) ? parsed.priority : 'medium';
+  const dueDate = (parsed && parsed.dueDate) ? parsed.dueDate : todayStr();
+  const bizId = session ? (session.businessId || session.business_id) : '';
 
   const payload = {
-    business_id: session.businessId,
+    business_id: bizId,
     assigned_to: assignedStaff,
     created_by: session ? session.staffId : null,
-    title: parsed.title,
-    priority: parsed.priority || 'medium',
-    due_date: parsed.dueDate || todayStr(),
+    title,
+    priority,
+    due_date: dueDate,
     due_time: null,
     notes: '',
     status: 'pending'
   };
 
-  showLoading('Adding task...');
+  inputEl.value = '';
+  const tempId = generateUUID();
+  const optimisticTask = Object.assign({ id: tempId, created_at: new Date().toISOString() }, payload);
+  if (!Array.isArray(cache.tasks)) cache.tasks = [];
+  cache.tasks.unshift(optimisticTask);
+  saveCacheLocally();
+  renderTabBody();
+  if (typeof celebrateDone === 'function') celebrateDone();
+  if (typeof window.showToast === 'function') window.showToast('⚡ Task added!', 'success');
+
+  const client = window.sb || sb;
   try {
-    const { error } = await sb.from('tasks').insert(payload);
+    const { data: inserted, error } = await client.from('tasks').insert(payload).select().single();
     if (error) throw error;
-    inputEl.value = '';
-    celebrateDone();
-    window.showToast('⚡ Task added!', 'success');
-    await loadData();
-    renderTabBody();
+    if (inserted) {
+      const idx = cache.tasks.findIndex(t => t.id === tempId);
+      if (idx !== -1) cache.tasks[idx] = inserted;
+      else cache.tasks.unshift(inserted);
+      saveCacheLocally();
+      renderTabBody();
+    }
   } catch(err) {
-    console.error(err);
-    alert('Could not save task: ' + (err.message || String(err)));
-  } finally {
-    hideLoading();
+    console.error('Quick add error:', err);
+    if (typeof window.showToast === 'function') {
+      window.showToast('Cloud save error: ' + (err.message || String(err)), 'error');
+    }
   }
 };
 
@@ -190,14 +205,18 @@ window.__setTaskSubTab = function(t) {
 function renderTasksTab(body) {
   if (typeof taskSubTab === 'undefined') window.taskSubTab = 'active';
   const rawTasks = Array.isArray(cache.tasks) ? cache.tasks : [];
-  
-  // Filter by role
-  let list = isManagerPlus() 
-    ? rawTasks 
-    : rawTasks.filter(t => !t.assigned_to || t.assigned_to === 'all' || t.assigned_to === session.staffId || t.created_by === session.staffId);
-  list = list.filter(t => t && (!t.title || !t.title.startsWith('[')));
 
-  if (taskFilter.staffId) list = list.filter(t => t.assigned_to === taskFilter.staffId);
+  // Filter out system payloads
+  let list = rawTasks.filter(t => t && t.title && !t.title.startsWith('['));
+
+  // User filters
+  if (taskFilter.staffId) {
+    if (taskFilter.staffId === '__mine__') {
+      list = list.filter(t => t.assigned_to === (session ? session.staffId : ''));
+    } else {
+      list = list.filter(t => t.assigned_to === taskFilter.staffId);
+    }
+  }
   if (taskFilter.priority) list = list.filter(t => t.priority === taskFilter.priority);
   if (taskFilter.search) {
     const q = taskFilter.search.toLowerCase();
@@ -212,29 +231,30 @@ function renderTasksTab(body) {
     <div class="row-card ${isOverdue(t) ? 'overdue' : ''}">
       <div class="row-main">
         <div class="meta">
-          <span>${esc(staffName(t.assigned_to) || 'Unassigned')}</span>
+          <span>👤 ${esc(staffName(t.assigned_to) || 'Unassigned / All')}</span>
           ${t.due_date ? `<span>📅 ${fmtDue(t)}</span>` : ''}
+          ${t.due_time ? `<span>⏰ ${t.due_time.slice(0,5)}</span>` : ''}
         </div>
-        <h3 style="margin:4px 0 6px;">
+        <h3 style="margin:5px 0 6px;font-size:0.95rem;">
           <span class="status-dot ${t.status === 'done' ? 'green' : 'red'}"></span>
           ${esc(t.title)}
         </h3>
         ${t.notes ? `<div class="notes" style="color:var(--ink-soft);font-size:0.8rem;line-height:1.35;margin-bottom:6px;">${esc(t.notes)}</div>` : ''}
-        <div style="margin-top:6px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+        <div style="margin-top:6px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
           <span class="stamp ${t.priority || 'medium'}">${t.priority || 'medium'}</span>
           <span class="stamp ${t.status || 'pending'}">${t.status || 'pending'}</span>
           ${isOverdue(t) ? `<span class="stamp overdue-badge">overdue</span>` : ''}
         </div>
       </div>
       <div class="row-actions" style="display:flex;align-items:center;gap:6px;">
-        ${t.status !== 'done' ? `<button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border:none;padding:5px 12px;font-weight:700;" onclick="window.__markDone('${t.id}')">✓ Done</button>` : ''}
+        ${t.status !== 'done' ? `<button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border:none;padding:6px 14px;font-weight:700;" onclick="window.__markDone('${t.id}')">✓ Done</button>` : ''}
         <div class="action-dropdown-holder">
           <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${t.id}')">More ▾</button>
           <div class="action-dropdown-menu" id="actionMenu_${t.id}">
-            ${isManagerPlus() ? `<button onclick="window.__editTask('${t.id}')">✎ Edit</button>` : ''}
-            ${isManagerPlus() ? `<button onclick="window.__sendWa('${t.id}')">💬 WhatsApp</button>` : ''}
-            ${isManagerPlus() ? `<button onclick="window.__sendSms('${t.id}')">📲 SMS</button>` : ''}
-            ${isOwner() ? `<button class="danger" onclick="window.__deleteTask('${t.id}')">🗑 Delete</button>` : ''}
+            <button onclick="window.__editTask('${t.id}')">✎ Edit</button>
+            <button onclick="window.__sendWa('${t.id}')">💬 WhatsApp</button>
+            <button onclick="window.__sendSms('${t.id}')">📲 SMS</button>
+            <button class="danger" onclick="window.__deleteTask('${t.id}')">🗑 Delete</button>
           </div>
         </div>
       </div>
@@ -243,39 +263,54 @@ function renderTasksTab(body) {
 
   const historyRow = (t) => {
     return `
-    <div class="row-card" style="opacity:0.9;border-left:3px solid var(--leaf);">
+    <div class="row-card" style="opacity:0.92;border-left:3px solid var(--leaf);">
       <div class="row-main">
         <div class="meta">
-          <span>${esc(staffName(t.assigned_to) || 'Completed')}</span>
+          <span>👤 ${esc(staffName(t.assigned_to) || 'Completed')}</span>
           ${t.due_date ? `<span>Due: ${fmtDue(t)}</span>` : ''}
         </div>
-        <h3 style="margin:4px 0 6px;">
+        <h3 style="margin:5px 0 6px;font-size:0.95rem;">
           <span class="status-dot green"></span>
           <span style="text-decoration:line-through;color:var(--ink-soft);">${esc(t.title)}</span>
         </h3>
         ${t.notes ? `<div class="notes" style="color:var(--ink-soft);font-size:0.78rem;">${esc(t.notes)}</div>` : ''}
-        <div style="margin-top:6px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+        <div style="margin-top:6px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
           <span class="stamp done">✓ Completed</span>
           <span class="stamp ${t.priority || 'medium'}">${t.priority || 'medium'}</span>
         </div>
       </div>
       <div class="row-actions" style="display:flex;align-items:center;gap:6px;">
-        <button class="stamp-btn small ghost" style="padding:4px 8px;font-size:0.7rem;" onclick="window.__reopenTask('${t.id}')" title="Move back to active">↩ Reopen</button>
-        ${isOwner() ? `<button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:4px 8px;font-size:0.7rem;" onclick="window.__deleteTask('${t.id}')">🗑</button>` : ''}
+        <button class="stamp-btn small ghost" style="padding:5px 10px;font-size:0.75rem;" onclick="window.__reopenTask('${t.id}')" title="Move back to active">↩ Reopen</button>
+        <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:5px 10px;font-size:0.75rem;" onclick="window.__deleteTask('${t.id}')">🗑</button>
       </div>
     </div>`;
   };
 
-  const filterBar = isManagerPlus() ? `
+  const quickBar = `
+    <div class="row-card" style="flex-direction:column;align-items:stretch;background:var(--paper);border:1.5px solid var(--turmeric-dark);margin-bottom:14px;padding:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-weight:700;font-size:0.85rem;color:var(--turmeric-dark);">⚡ Quick Add Task</span>
+        <span style="font-size:0.7rem;color:var(--ink-soft);">Try: "Call vendor tomorrow @Staff !high"</span>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <input id="quickTaskInput" placeholder="Type task title, @Staff, !priority, due date..." onkeypress="if(event.key==='Enter') window.__quickAddNaturalTask()" style="flex:1;font-size:0.88rem;">
+        <button class="stamp-btn" style="padding:8px 14px;font-size:0.85rem;background:var(--turmeric);color:#fff;border:none;white-space:nowrap;" onclick="window.__quickAddNaturalTask()">+ Add Task</button>
+      </div>
+    </div>`;
+
+  const filterBar = `
     <div class="row-card" style="flex-direction:column;align-items:stretch;background:transparent;border-style:dashed;margin-bottom:14px;padding:12px;">
       <div class="two-col">
-        <div><label style="margin-top:0;">Staff</label>
+        <div>
+          <label style="margin-top:0;">Filter by Staff</label>
           <select id="filterStaff" onchange="window.__setTaskFilter()">
             <option value="">All staff</option>
+            ${session ? `<option value="__mine__" ${taskFilter.staffId === '__mine__' ? 'selected' : ''}>My Tasks (${esc(session.name)})</option>` : ''}
             ${(cache.staff || []).map(s => `<option value="${s.id}" ${taskFilter.staffId === s.id ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}
           </select>
         </div>
-        <div><label style="margin-top:0;">Priority</label>
+        <div>
+          <label style="margin-top:0;">Filter by Priority</label>
           <select id="filterPriority" onchange="window.__setTaskFilter()">
             <option value="">All priorities</option>
             <option value="high" ${taskFilter.priority === 'high' ? 'selected' : ''}>High</option>
@@ -284,21 +319,9 @@ function renderTasksTab(body) {
           </select>
         </div>
       </div>
-      <label>Search title / notes</label>
+      <label>Search title or notes</label>
       <input id="filterSearch" placeholder="Type to search..." value="${esc(taskFilter.search)}" oninput="window.__setTaskFilter()">
-    </div>` : '';
-
-  const quickBar = isManagerPlus() ? `
-    <div class="row-card" style="flex-direction:column;align-items:stretch;background:var(--paper);border:1.5px solid var(--turmeric-dark);margin-bottom:14px;padding:12px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-        <span style="font-weight:700;font-size:0.85rem;color:var(--turmeric-dark);">⚡ Quick Add Task via Natural Text</span>
-        <span style="font-size:0.7rem;color:var(--ink-soft);">Try: "Restock store tomorrow @Staff !high"</span>
-      </div>
-      <div style="display:flex;gap:6px;">
-        <input id="quickTaskInput" placeholder="Type task title, @Staff, !priority, due date..." onkeypress="if(event.key==='Enter') window.__quickAddNaturalTask()" style="flex:1;font-size:0.88rem;">
-        <button class="stamp-btn" style="padding:8px 14px;font-size:0.85rem;background:var(--turmeric);color:#fff;border:none;" onclick="window.__quickAddNaturalTask()">+ Add</button>
-      </div>
-    </div>` : '';
+    </div>`;
 
   body.innerHTML = `
     <!-- Tasks Sub-Menu Navigation Bar -->
@@ -307,7 +330,7 @@ function renderTasksTab(body) {
         ⚡ Active Tasks (${pending.length})
       </button>
       <button class="stamp-btn small ${taskSubTab === 'history' ? '' : 'ghost'}" style="${taskSubTab === 'history' ? 'background:var(--turmeric);color:#fff;' : ''}" onclick="window.__setTaskSubTab('history')">
-        📜 Task History (${done.length})
+        📜 Completed (${done.length})
       </button>
     </div>
 
@@ -315,14 +338,15 @@ function renderTasksTab(body) {
       ${quickBar}
       ${filterBar}
       <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
-        <span>Open Active Tasks (${pending.length})</span>
+        <span>Active Tasks (${pending.length})</span>
         ${isManagerPlus() && pending.length ? `<a style="cursor:pointer;font-size:0.75rem;color:var(--turmeric);font-weight:700;" onclick="window.__sendAllPending()">Send all pending &rarr;</a>` : ''}
       </div>
-      ${pending.length ? pending.map(row).join('') : `<div class="empty">No open tasks right now. Great job!</div>`}
+      ${pending.length ? pending.map(row).join('') : `<div class="empty">No active tasks right now. Great job!</div>`}
     ` : ''}
 
     ${taskSubTab === 'history' ? `
-      <div class="section-label">Completed Task History (${done.length} tasks)</div>
+      ${filterBar}
+      <div class="section-label">Completed Task History (${done.length})</div>
       ${done.length ? done.map(historyRow).join('') : `<div class="empty">No completed tasks in history yet.</div>`}
     ` : ''}`;
 
@@ -344,9 +368,10 @@ function renderTasksTab(body) {
     const sendable = (cache.tasks || []).filter(t => t.status !== 'done' && staffPhone(t.assigned_to));
     if (!sendable.length) { alert('No pending tasks with a WhatsApp number to send.'); return; }
     if (!confirm(`Open WhatsApp for ${sendable.length} pending task(s)? Allow pop-ups if asked.`)) return;
+    const client = window.sb || sb;
     sendable.forEach(t => {
       window.open(waLink(t), '_blank');
-      sb.from('tasks').update({ status: 'sent' }).eq('id', t.id).catch(()=>{});
+      client.from('tasks').update({ status: 'sent' }).eq('id', t.id).catch(()=>{});
     });
     setTimeout(() => { loadData().then(renderTabBody); }, 500);
   };
@@ -357,7 +382,8 @@ function renderTasksTab(body) {
     if (!staffPhone(t.assigned_to)) { alert('No WhatsApp number on file for this person. Add one in Staff.'); return; }
     window.open(waLink(t), '_blank');
     if (t.status !== 'done') {
-      await sb.from('tasks').update({ status: 'sent' }).eq('id', id);
+      const client = window.sb || sb;
+      await client.from('tasks').update({ status: 'sent' }).eq('id', id);
       await loadData();
       renderTabBody();
     }
@@ -369,7 +395,8 @@ function renderTasksTab(body) {
     if (!staffPhone(t.assigned_to)) { alert('No phone number on file for this person. Add one in Staff.'); return; }
     window.location.href = smsLink(t);
     if (t.status !== 'done') {
-      await sb.from('tasks').update({ status: 'sent' }).eq('id', id);
+      const client = window.sb || sb;
+      await client.from('tasks').update({ status: 'sent' }).eq('id', id);
       await loadData();
       renderTabBody();
     }
@@ -383,58 +410,62 @@ window.__markDone = async function(id) {
   const t = (cache.tasks || []).find(x => x.id === id);
   if (!t) return;
 
-  showLoading('Saving...');
+  // 1. Instant optimistic local update
+  t.status = 'done';
+  saveCacheLocally();
+  renderTabBody();
+  if (typeof celebrateDone === 'function') celebrateDone();
+  if (typeof window.showToast === 'function') window.showToast('✓ Task done! Moved to Completed.', 'success');
+  if (typeof logAuditEvent === 'function') logAuditEvent('Task Completed', 'Completed: ' + t.title);
+  try { if (typeof awardTaskPoint === 'function') awardTaskPoint(t.id, 'task').catch(() => {}); } catch(e){}
+  try { if (typeof notifyCompletion === 'function') notifyCompletion(t.id, 'task'); } catch(e){}
+
+  // 2. Direct Supabase Cloud update
+  const client = window.sb || sb;
   try {
-    const { error } = await sb.from('tasks').update({ status: 'done' }).eq('id', id);
+    const { error } = await client.from('tasks').update({ status: 'done' }).eq('id', id);
     if (error) throw error;
-    celebrateDone();
-    window.showToast('✓ Task done! Moved to History.', 'success');
-    logAuditEvent('Task Completed', 'Completed: ' + t.title);
-    try { awardTaskPoint(t.id, 'task').catch(() => {}); } catch (e) {}
-    try { notifyCompletion(t.id, 'task'); } catch (e) {}
-    await loadData();
-    renderTabBody();
   } catch(err) {
-    console.error(err);
-    alert('Could not update task: ' + (err.message || String(err)));
-  } finally {
-    hideLoading();
+    console.error('Mark done cloud error:', err);
+    if (typeof window.showToast === 'function') window.showToast('Cloud sync notice: ' + (err.message || err), 'info');
   }
 };
 
 // Reopen Task Handler
 window.__reopenTask = async function(id) {
-  showLoading('Reopening task...');
-  try {
-    const { error } = await sb.from('tasks').update({ status: 'pending' }).eq('id', id);
-    if (error) throw error;
-    window.showToast('↩ Task re-opened! Moved to Active.', 'info');
-    await loadData();
+  const t = (cache.tasks || []).find(x => x.id === id);
+  if (t) {
+    t.status = 'pending';
+    saveCacheLocally();
     renderTabBody();
+    if (typeof window.showToast === 'function') window.showToast('↩ Task re-opened! Moved to Active.', 'info');
+  }
+
+  const client = window.sb || sb;
+  try {
+    const { error } = await client.from('tasks').update({ status: 'pending' }).eq('id', id);
+    if (error) throw error;
   } catch(err) {
-    console.error(err);
-    alert('Could not reopen task: ' + (err.message || String(err)));
-  } finally {
-    hideLoading();
+    console.error('Reopen task cloud error:', err);
   }
 };
 
 // Delete Task Handler
 window.__deleteTask = async function(id) {
   if (!confirm('Delete this task? This cannot be undone.')) return;
-  showLoading('Deleting...');
+  cache.tasks = (cache.tasks || []).filter(x => x.id !== id);
+  saveCacheLocally();
+  renderTabBody();
+  if (typeof window.showToast === 'function') window.showToast('🗑 Task deleted!', 'success');
+  if (typeof logAuditEvent === 'function') logAuditEvent('Task Deleted', 'Deleted task ' + id);
+
+  const client = window.sb || sb;
   try {
-    const { error } = await sb.from('tasks').delete().eq('id', id);
+    const { error } = await client.from('tasks').delete().eq('id', id);
     if (error) throw error;
-    window.showToast('Task deleted!', 'success');
-    logAuditEvent('Task Deleted', 'Deleted task ' + id);
-    await loadData();
-    renderTabBody();
   } catch(err) {
-    console.error(err);
-    alert('Could not delete task: ' + (err.message || String(err)));
-  } finally {
-    hideLoading();
+    console.error('Delete task cloud error:', err);
+    if (typeof window.showToast === 'function') window.showToast('Cloud delete error: ' + (err.message || err), 'error');
   }
 };
 
@@ -446,13 +477,12 @@ function openTaskModal(taskId) {
     `<option value="${s.id}" ${t && t.assigned_to === s.id ? 'selected' : ''}>${esc(s.name)}</option>`
   ).join('');
 
-  const assignField = isManagerPlus()
-    ? `<label>Assign to</label>
-       <select id="mTaskStaff">
-         <option value="">Unassigned / All Staff</option>
-         ${staffOptions}
-       </select>`
-    : `<label>Assign to</label><input value="${esc(session.name)}" disabled><input type="hidden" id="mTaskStaff" value="${session.staffId}">`;
+  const assignField = `
+    <label>Assign to</label>
+    <select id="mTaskStaff">
+      <option value="">Unassigned / All Staff</option>
+      ${staffOptions}
+    </select>`;
 
   holder.innerHTML = `
   <div class="overlay show"><div class="modal">
@@ -484,35 +514,46 @@ function openTaskModal(taskId) {
 
     const rawStaff = document.getElementById('mTaskStaff') ? document.getElementById('mTaskStaff').value : '';
     const assignedTo = (rawStaff && rawStaff !== 'all') ? rawStaff : null;
+    const bizId = session ? (session.businessId || session.business_id) : '';
 
     const data = {
-      business_id: session.businessId,
+      business_id: bizId,
       assigned_to: assignedTo,
       created_by: session ? session.staffId : null,
       title,
       notes: (document.getElementById('mTaskNotes').value || '').trim(),
-      due_date: document.getElementById('mTaskDate').value || null,
+      due_date: document.getElementById('mTaskDate').value || todayStr(),
       due_time: document.getElementById('mTaskTime').value || null,
       priority: document.getElementById('mTaskPriority').value || 'medium',
     };
 
+    const client = window.sb || sb;
     showLoading('Saving task...');
     try {
       if (id) {
-        const { error } = await sb.from('tasks').update(data).eq('id', id);
+        const { error } = await client.from('tasks').update(data).eq('id', id);
         if (error) throw error;
-        window.showToast('✓ Task updated!', 'success');
+        const idx = (cache.tasks || []).findIndex(x => x.id === id);
+        if (idx !== -1) cache.tasks[idx] = Object.assign({}, cache.tasks[idx], data);
+        if (typeof window.showToast === 'function') window.showToast('✓ Task updated!', 'success');
       } else {
         data.status = 'pending';
-        const { error } = await sb.from('tasks').insert(data);
+        const { data: inserted, error } = await client.from('tasks').insert(data).select().single();
         if (error) throw error;
-        window.showToast('✓ Task created!', 'success');
+        if (inserted) {
+          if (!Array.isArray(cache.tasks)) cache.tasks = [];
+          cache.tasks.unshift(inserted);
+        }
+        if (typeof celebrateDone === 'function') celebrateDone();
+        if (typeof window.showToast === 'function') window.showToast('✓ Task created!', 'success');
       }
+      saveCacheLocally();
       holder.innerHTML = '';
+      renderTabBody();
       await loadData();
       renderTabBody();
     } catch(err) {
-      console.error(err);
+      console.error('Save task error:', err);
       alert('Could not save task: ' + (err.message || String(err)));
     } finally {
       hideLoading();

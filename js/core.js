@@ -192,10 +192,19 @@ async function boot(){
     if(!cfg){ renderSetup(); return; }
     if(typeof createClient === 'function') {
       sb = createClient(cfg.url, cfg.key);
+      window.sb = sb;
     }
     if(!session){ renderLogin(); return; }
 
     // Instant UI Render from local cache (0ms delay — eliminates white screen)
+    const bizId = session.businessId || session.business_id;
+    try {
+      const localTasks = JSON.parse(localStorage.getItem('br_tasks_' + bizId) || '[]');
+      if (Array.isArray(localTasks) && localTasks.length > 0) {
+        cache.tasks = localTasks.filter(t => t && t.title && !t.title.startsWith('['));
+      }
+    } catch(e){}
+
     activeTab = (typeof currentTabs === 'function' && currentTabs()[0]) ? currentTabs()[0] : (isManagerPlus() ? 'dashboard' : 'tasks');
     renderShell();
 
@@ -1181,14 +1190,17 @@ function _startTaskSyncPoller() {
   if (_taskSyncInterval) return;
   _taskSyncInterval = setInterval(async () => {
     try {
-      if (!navigator.onLine || !session || !session.businessId || !sb) return;
+      const client = window.sb || sb;
+      if (!navigator.onLine || !session || !client) return;
+      const bizId = session.businessId || session.business_id;
+      if (!bizId) return;
       if (document.querySelector('.overlay.show') || document.querySelector('.modal')) return;
       const el = document.activeElement;
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) return;
-      const { data: freshTasks, error } = await sb.from('tasks').select('*').eq('business_id', session.businessId).order('due_date', { ascending: true, nullsFirst: false });
+      const { data: freshTasks, error } = await client.from('tasks').select('*').eq('business_id', bizId).not('title', 'like', '[%').order('created_at', { ascending: false });
       if (!error && freshTasks) {
-        const sys = ['[CUSTOMER_', '[EDIT_REQ]', '[EXPIRY_', '[EXPENSES_', '[SALARY_', '[FUTURE_', '[FEATURE_', '[VENDOR_', '[SALES_', '[STAFF_', '[OFFICE_', '[PRICE_'];
-        cache.tasks = freshTasks.filter(t => t && t.title && !sys.some(p => t.title.startsWith(p)));
+        cache.tasks = freshTasks.filter(t => t && t.title && !t.title.startsWith('['));
+        saveCacheLocally();
         if (activeTab === 'tasks') renderTabBody();
       }
     } catch(e) {}
@@ -1197,14 +1209,17 @@ function _startTaskSyncPoller() {
 _startTaskSyncPoller();
 
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState !== 'visible' || !navigator.onLine || !session || !session.businessId || !sb) return;
+  const client = window.sb || sb;
+  if (document.visibilityState !== 'visible' || !navigator.onLine || !session || !client) return;
+  const bizId = session.businessId || session.business_id;
+  if (!bizId) return;
   setTimeout(async () => {
     try {
       if (document.querySelector('.overlay.show') || document.querySelector('.modal')) return;
-      const { data: freshTasks, error } = await sb.from('tasks').select('*').eq('business_id', session.businessId).order('due_date', { ascending: true, nullsFirst: false });
+      const { data: freshTasks, error } = await client.from('tasks').select('*').eq('business_id', bizId).not('title', 'like', '[%').order('created_at', { ascending: false });
       if (!error && freshTasks) {
-        const sys = ['[CUSTOMER_', '[EDIT_REQ]', '[EXPIRY_', '[EXPENSES_', '[SALARY_', '[FUTURE_', '[FEATURE_', '[VENDOR_', '[SALES_', '[STAFF_', '[OFFICE_', '[PRICE_'];
-        cache.tasks = freshTasks.filter(t => t && t.title && !sys.some(p => t.title.startsWith(p)));
+        cache.tasks = freshTasks.filter(t => t && t.title && !t.title.startsWith('['));
+        saveCacheLocally();
         if (activeTab === 'tasks') renderTabBody();
       }
     } catch(e) {}
@@ -1214,10 +1229,13 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('online', async () => {
   updateOfflineBadgeBar();
   try {
-    const { data: freshTasks } = await sb.from('tasks').select('*').eq('business_id', session.businessId).order('due_date', { ascending: true, nullsFirst: false });
+    const client = window.sb || sb;
+    const bizId = session ? (session.businessId || session.business_id) : '';
+    if (!bizId || !client) return;
+    const { data: freshTasks } = await client.from('tasks').select('*').eq('business_id', bizId).not('title', 'like', '[%').order('created_at', { ascending: false });
     if (freshTasks) {
-      const sys = ['[CUSTOMER_', '[EDIT_REQ]', '[EXPIRY_', '[EXPENSES_', '[SALARY_', '[FUTURE_', '[FEATURE_', '[VENDOR_', '[SALES_', '[STAFF_', '[OFFICE_', '[PRICE_'];
-      cache.tasks = freshTasks.filter(t => t && t.title && !sys.some(p => t.title.startsWith(p)));
+      cache.tasks = freshTasks.filter(t => t && t.title && !t.title.startsWith('['));
+      saveCacheLocally();
       if (activeTab === 'tasks') renderTabBody();
     }
   } catch(e) {}
@@ -1263,23 +1281,26 @@ function getVendorPartiesList() {
 async function loadData(){
   showLoading();
   try {
-    const bizId = session.businessId;
-    const [staffR, tasksR, attR, salesR, routinesR, pointsR, labelsR, weeklyR, packagesR, locR, salariesR, targetsR, trophiesR, stockR, auditR] = await Promise.all([
-      sb.from('staff').select('*').eq('business_id', bizId).order('name'),
-      sb.from('tasks').select('*').eq('business_id', bizId).order('due_date', {ascending:true, nullsFirst:false}),
-      sb.from('attendance').select('*').eq('business_id', bizId).order('date', {ascending:false}),
-      sb.from('sales').select('*').eq('business_id', bizId).order('date', {ascending:false}),
-      sb.from('routines').select('*').eq('business_id', bizId).order('title'),
-      sb.from('points_log').select('*').eq('business_id', bizId).order('date', {ascending:false}),
-      sb.from('labels').select('*').eq('business_id', bizId).order('date', {ascending:false}),
-      sb.from('weekly_tasks').select('*').eq('business_id', bizId).order('title'),
-      sb.from('packages').select('*').eq('business_id', bizId).order('date', {ascending:false}),
-      sb.from('salesman_locations').select('*').eq('business_id', bizId),
-      sb.from('salaries').select('*').eq('business_id', bizId).order('paid_date', {ascending:false}),
-      sb.from('sales_targets').select('*').eq('business_id', bizId),
-      sb.from('trophies').select('*').eq('business_id', bizId),
-      sb.from('stock_checks').select('*').eq('business_id', bizId).order('date', {ascending:false}),
-      sb.from('audit_logs').select('*').eq('business_id', bizId).order('timestamp', {ascending:false}).limit(300),
+    const bizId = session ? (session.businessId || session.business_id) : '';
+    if (!bizId) return;
+    const client = window.sb || sb;
+    const [staffR, tasksR, attR, salesR, routinesR, pointsR, labelsR, weeklyR, packagesR, locR, salariesR, targetsR, trophiesR, stockR, auditR, sysTasksR] = await Promise.all([
+      client.from('staff').select('*').eq('business_id', bizId).order('name'),
+      client.from('tasks').select('*').eq('business_id', bizId).not('title', 'like', '[%').order('created_at', {ascending:false}),
+      client.from('attendance').select('*').eq('business_id', bizId).order('date', {ascending:false}),
+      client.from('sales').select('*').eq('business_id', bizId).order('date', {ascending:false}),
+      client.from('routines').select('*').eq('business_id', bizId).order('title'),
+      client.from('points_log').select('*').eq('business_id', bizId).order('date', {ascending:false}),
+      client.from('labels').select('*').eq('business_id', bizId).order('date', {ascending:false}),
+      client.from('weekly_tasks').select('*').eq('business_id', bizId).order('title'),
+      client.from('packages').select('*').eq('business_id', bizId).order('date', {ascending:false}),
+      client.from('salesman_locations').select('*').eq('business_id', bizId),
+      client.from('salaries').select('*').eq('business_id', bizId).order('paid_date', {ascending:false}),
+      client.from('sales_targets').select('*').eq('business_id', bizId),
+      client.from('trophies').select('*').eq('business_id', bizId),
+      client.from('stock_checks').select('*').eq('business_id', bizId).order('date', {ascending:false}),
+      client.from('audit_logs').select('*').eq('business_id', bizId).order('timestamp', {ascending:false}).limit(300),
+      client.from('tasks').select('*').eq('business_id', bizId).like('title', '[%').order('created_at', {ascending:false}).limit(50),
     ]);
     cache.staff = staffR.data || [];
     let localSavedStaff = [];
@@ -1297,14 +1318,14 @@ async function loadData(){
       cache.staff = Array.from(staffMap.values());
     }
     const cloudTasks = tasksR.data || [];
-    const systemPrefixes = ['[CUSTOMER_', '[EDIT_REQ]', '[EXPIRY_', '[EXPENSES_', '[SALARY_', '[FUTURE_', '[FEATURE_', '[VENDOR_', '[SALES_', '[STAFF_', '[OFFICE_', '[PRICE_'];
-    cache.tasks = cloudTasks.filter(t => t && t.title && !systemPrefixes.some(p => t.title.startsWith(p)));
+    cache.tasks = cloudTasks.filter(t => t && t.title && !t.title.startsWith('['));
+    saveCacheLocally();
 
-    // Restore Cross-Device Cloud Payloads for Customer Directory, Reports, Expiry & Feature Settings
+    // Restore Cross-Device Cloud Payloads for Expiry, Expenses, Features, etc.
+    const sysCloudTasks = sysTasksR.data || [];
     const systemPayloadsMap = new Map();
-    cloudTasks.filter(ct => ct.title && ct.title.startsWith('[')).forEach(ct => {
-      const existing = systemPayloadsMap.get(ct.title);
-      if (!existing || (ct.id > existing.id) || ((ct.notes || '').length > (existing.notes || '').length)) {
+    sysCloudTasks.filter(ct => ct.title && ct.title.startsWith('[')).forEach(ct => {
+      if (!systemPayloadsMap.has(ct.title)) {
         systemPayloadsMap.set(ct.title, ct);
       }
     });
