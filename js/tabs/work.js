@@ -1,4 +1,4 @@
-/* ---------------- FRESH NEW TASK TAB SYSTEM (Reliable & Multi-Device) ---------------- */
+/* ---------------- SIMPLE TASK TAB (Direct Cloud Sync) ---------------- */
 function fmtDue(t){
   if(!t.due_date) return '';
   const d = new Date(t.due_date + 'T' + (t.due_time || '00:00'));
@@ -142,60 +142,6 @@ function getNextDayOfWeekStr(targetDay) {
   return localDateStr(d);
 }
 
-window.__openQuickTaskModal = function() {
-  const holder = getModalHolder('taskModalHolder');
-  holder.innerHTML = `
-  <div class="overlay show"><div class="modal">
-    <h2>⚡ Quick Create Task (Natural Text)</h2>
-    <p style="font-size:0.8rem;color:var(--ink-soft);margin-bottom:12px;">Type naturally with <b>@StaffName</b>, <b>!high/!low</b>, and <b>tomorrow/friday/today</b>.</p>
-    <label>Task Input Command</label>
-    <input id="quickModalInput" placeholder="e.g. Clean warehouse tomorrow @Anas !high" style="font-size:0.95rem;padding:12px;margin-bottom:14px;" onkeypress="if(event.key==='Enter') window.__submitQuickModal()">
-    <div style="background:var(--blue-soft);padding:10px;border-radius:8px;border:1px solid var(--turmeric);font-size:0.75rem;color:var(--turmeric-dark);margin-bottom:14px;">
-      💡 <b>Examples:</b><br>
-      • "Send invoice Friday @Ramesh"<br>
-      • "Check stock balance today !urgent @Anas"
-    </div>
-    <div class="modal-actions">
-      <button class="stamp-btn ghost" onclick="getModalHolder('taskModalHolder').innerHTML=''">Cancel</button>
-      <button class="stamp-btn" style="background:var(--turmeric);color:#fff;" onclick="window.__submitQuickModal()">⚡ Create Task</button>
-    </div>
-  </div></div>`;
-  setTimeout(()=> { const el = document.getElementById('quickModalInput'); if(el) el.focus(); }, 100);
-};
-
-window.__submitQuickModal = async function() {
-  const inputEl = document.getElementById('quickModalInput');
-  if (!inputEl) return;
-  const val = inputEl.value.trim();
-  if (!val) return;
-  const parsed = parseNaturalTaskText(val);
-  if (!parsed || !parsed.title) return;
-
-  const assignedStaff = (parsed.assignedTo && parsed.assignedTo !== 'all') ? parsed.assignedTo : (session ? session.staffId : null);
-
-  if (typeof window.createTaskLocally === 'function') {
-    window.createTaskLocally({
-      business_id: session ? session.businessId : null,
-      assigned_to: assignedStaff,
-      created_by: session ? session.staffId : null,
-      title: parsed.title,
-      priority: parsed.priority || 'medium',
-      due_date: parsed.dueDate || todayStr(),
-      status: 'pending'
-    });
-  }
-
-  taskFilter = { staffId: '', priority: '', search: '' };
-  taskSubTab = 'active';
-
-  if (typeof getModalHolder === 'function') getModalHolder('taskModalHolder').innerHTML = '';
-  if (typeof celebrateDone === 'function') celebrateDone();
-  if (typeof window.showToast === 'function') {
-    window.showToast('⚡ Task created!', 'success');
-  }
-  if (activeTab === 'tasks') renderTabBody(); else { activeTab = 'tasks'; renderShell(); }
-};
-
 window.__quickAddNaturalTask = async function() {
   const inputEl = document.getElementById('quickTaskInput');
   if (!inputEl) return;
@@ -207,26 +153,33 @@ window.__quickAddNaturalTask = async function() {
 
   const assignedStaff = (parsed.assignedTo && parsed.assignedTo !== 'all') ? parsed.assignedTo : (session ? session.staffId : null);
 
-  if (typeof window.createTaskLocally === 'function') {
-    window.createTaskLocally({
-      business_id: session ? session.businessId : null,
-      assigned_to: assignedStaff,
-      created_by: session ? session.staffId : null,
-      title: parsed.title,
-      priority: parsed.priority || 'medium',
-      due_date: parsed.dueDate || todayStr(),
-      status: 'pending'
-    });
-  }
+  const payload = {
+    business_id: session.businessId,
+    assigned_to: assignedStaff,
+    created_by: session ? session.staffId : null,
+    title: parsed.title,
+    priority: parsed.priority || 'medium',
+    due_date: parsed.dueDate || todayStr(),
+    due_time: null,
+    notes: '',
+    status: 'pending'
+  };
 
-  taskFilter = { staffId: '', priority: '', search: '' };
-  taskSubTab = 'active';
-  inputEl.value = '';
-  if (typeof celebrateDone === 'function') celebrateDone();
-  if (typeof window.showToast === 'function') {
-    window.showToast('⚡ Task created!', 'success');
+  showLoading('Adding task...');
+  try {
+    const { error } = await sb.from('tasks').insert(payload);
+    if (error) throw error;
+    inputEl.value = '';
+    celebrateDone();
+    window.showToast('⚡ Task added!', 'success');
+    await loadData();
+    renderTabBody();
+  } catch(err) {
+    console.error(err);
+    alert('Could not save task: ' + (err.message || String(err)));
+  } finally {
+    hideLoading();
   }
-  renderTabBody();
 };
 
 window.__setTaskSubTab = function(t) {
@@ -238,11 +191,11 @@ function renderTasksTab(body) {
   if (typeof taskSubTab === 'undefined') window.taskSubTab = 'active';
   const rawTasks = Array.isArray(cache.tasks) ? cache.tasks : [];
   
-  // Filter by role & exclude deleted / system payloads
+  // Filter by role
   let list = isManagerPlus() 
     ? rawTasks 
     : rawTasks.filter(t => !t.assigned_to || t.assigned_to === 'all' || t.assigned_to === session.staffId || t.created_by === session.staffId);
-  list = list.filter(t => t && !t.is_deleted && (!t.title || !t.title.startsWith('[')));
+  list = list.filter(t => t && (!t.title || !t.title.startsWith('[')));
 
   if (taskFilter.staffId) list = list.filter(t => t.assigned_to === taskFilter.staffId);
   if (taskFilter.priority) list = list.filter(t => t.priority === taskFilter.priority);
@@ -255,13 +208,6 @@ function renderTasksTab(body) {
   const done = list.filter(t => t.status === 'done');
 
   const row = (t) => {
-    const dispNotes = (typeof getDisplayTaskNotes === 'function') ? getDisplayTaskNotes(t.notes) : (t.notes || '');
-    const syncBadge = t.sync_status === 'pending'
-      ? `<span class="stamp pending" style="font-size:0.58rem;background:rgba(245,158,11,0.15);color:#d97706;border:1px solid rgba(245,158,11,0.4);">● SYNCING</span>`
-      : (t.sync_status === 'failed'
-        ? `<span class="stamp danger" style="font-size:0.58rem;background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.4);">⚠ SYNC FAILED</span>`
-        : '');
-
     return `
     <div class="row-card ${isOverdue(t) ? 'overdue' : ''}">
       <div class="row-main">
@@ -273,12 +219,11 @@ function renderTasksTab(body) {
           <span class="status-dot ${t.status === 'done' ? 'green' : 'red'}"></span>
           ${esc(t.title)}
         </h3>
-        ${dispNotes ? `<div class="notes" style="color:var(--ink-soft);font-size:0.8rem;line-height:1.35;margin-bottom:6px;">${esc(dispNotes)}</div>` : ''}
+        ${t.notes ? `<div class="notes" style="color:var(--ink-soft);font-size:0.8rem;line-height:1.35;margin-bottom:6px;">${esc(t.notes)}</div>` : ''}
         <div style="margin-top:6px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
           <span class="stamp ${t.priority || 'medium'}">${t.priority || 'medium'}</span>
           <span class="stamp ${t.status || 'pending'}">${t.status || 'pending'}</span>
           ${isOverdue(t) ? `<span class="stamp overdue-badge">overdue</span>` : ''}
-          ${syncBadge}
         </div>
       </div>
       <div class="row-actions" style="display:flex;align-items:center;gap:6px;">
@@ -297,7 +242,6 @@ function renderTasksTab(body) {
   };
 
   const historyRow = (t) => {
-    const dispNotes = (typeof getDisplayTaskNotes === 'function') ? getDisplayTaskNotes(t.notes) : (t.notes || '');
     return `
     <div class="row-card" style="opacity:0.9;border-left:3px solid var(--leaf);">
       <div class="row-main">
@@ -309,7 +253,7 @@ function renderTasksTab(body) {
           <span class="status-dot green"></span>
           <span style="text-decoration:line-through;color:var(--ink-soft);">${esc(t.title)}</span>
         </h3>
-        ${dispNotes ? `<div class="notes" style="color:var(--ink-soft);font-size:0.78rem;">${esc(dispNotes)}</div>` : ''}
+        ${t.notes ? `<div class="notes" style="color:var(--ink-soft);font-size:0.78rem;">${esc(t.notes)}</div>` : ''}
         <div style="margin-top:6px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
           <span class="stamp done">✓ Completed</span>
           <span class="stamp ${t.priority || 'medium'}">${t.priority || 'medium'}</span>
@@ -402,9 +346,9 @@ function renderTasksTab(body) {
     if (!confirm(`Open WhatsApp for ${sendable.length} pending task(s)? Allow pop-ups if asked.`)) return;
     sendable.forEach(t => {
       window.open(waLink(t), '_blank');
-      if (typeof window.updateTaskLocally === 'function') window.updateTaskLocally(t.id, { status: 'sent' });
+      sb.from('tasks').update({ status: 'sent' }).eq('id', t.id).catch(()=>{});
     });
-    renderTabBody();
+    setTimeout(() => { loadData().then(renderTabBody); }, 500);
   };
 
   window.__sendWa = async (id) => {
@@ -413,7 +357,8 @@ function renderTasksTab(body) {
     if (!staffPhone(t.assigned_to)) { alert('No WhatsApp number on file for this person. Add one in Staff.'); return; }
     window.open(waLink(t), '_blank');
     if (t.status !== 'done') {
-      if (typeof window.updateTaskLocally === 'function') window.updateTaskLocally(id, { status: 'sent' });
+      await sb.from('tasks').update({ status: 'sent' }).eq('id', id);
+      await loadData();
       renderTabBody();
     }
   };
@@ -424,7 +369,8 @@ function renderTasksTab(body) {
     if (!staffPhone(t.assigned_to)) { alert('No phone number on file for this person. Add one in Staff.'); return; }
     window.location.href = smsLink(t);
     if (t.status !== 'done') {
-      if (typeof window.updateTaskLocally === 'function') window.updateTaskLocally(id, { status: 'sent' });
+      await sb.from('tasks').update({ status: 'sent' }).eq('id', id);
+      await loadData();
       renderTabBody();
     }
   };
@@ -434,56 +380,66 @@ function renderTasksTab(body) {
 
 // Mark Done Handler
 window.__markDone = async function(id) {
-  const t = (cache.tasks || []).find(x => x.id === id || (x.local_id && x.local_id === id));
+  const t = (cache.tasks || []).find(x => x.id === id);
   if (!t) return;
 
-  if (typeof window.updateTaskLocally === 'function') {
-    window.updateTaskLocally(t.id, {
-      status: 'done',
-      completed_at: new Date().toISOString()
-    });
-  } else {
-    t.status = 'done';
-    t.completed_at = new Date().toISOString();
-    _tasksSave();
-  }
-
-  celebrateDone();
-  window.showToast('✓ Task done! Moved to History.', 'success');
-  logAuditEvent('Task Completed', 'Completed: ' + t.title);
-
-  if (activeTab === 'tasks') {
+  showLoading('Saving...');
+  try {
+    const { error } = await sb.from('tasks').update({ status: 'done' }).eq('id', id);
+    if (error) throw error;
+    celebrateDone();
+    window.showToast('✓ Task done! Moved to History.', 'success');
+    logAuditEvent('Task Completed', 'Completed: ' + t.title);
+    try { awardTaskPoint(t.id, 'task').catch(() => {}); } catch (e) {}
+    try { notifyCompletion(t.id, 'task'); } catch (e) {}
+    await loadData();
     renderTabBody();
+  } catch(err) {
+    console.error(err);
+    alert('Could not update task: ' + (err.message || String(err)));
+  } finally {
+    hideLoading();
   }
-
-  try { awardTaskPoint(t.id, 'task').catch(() => {}); } catch (e) {}
-  try { notifyCompletion(t.id, 'task'); } catch (e) {}
 };
 
 // Reopen Task Handler
 window.__reopenTask = async function(id) {
-  const t = (cache.tasks || []).find(x => x.id === id || (x.local_id && x.local_id === id));
-  if (!t) return;
-
-  if (typeof window.updateTaskLocally === 'function') {
-    window.updateTaskLocally(t.id, {
-      status: 'pending',
-      completed_at: null
-    });
-  } else {
-    t.status = 'pending';
-    t.completed_at = null;
-    _tasksSave();
-  }
-
-  window.showToast('↩ Task re-opened! Moved to Active.', 'info');
-  if (activeTab === 'tasks') {
+  showLoading('Reopening task...');
+  try {
+    const { error } = await sb.from('tasks').update({ status: 'pending' }).eq('id', id);
+    if (error) throw error;
+    window.showToast('↩ Task re-opened! Moved to Active.', 'info');
+    await loadData();
     renderTabBody();
+  } catch(err) {
+    console.error(err);
+    alert('Could not reopen task: ' + (err.message || String(err)));
+  } finally {
+    hideLoading();
+  }
+};
+
+// Delete Task Handler
+window.__deleteTask = async function(id) {
+  if (!confirm('Delete this task? This cannot be undone.')) return;
+  showLoading('Deleting...');
+  try {
+    const { error } = await sb.from('tasks').delete().eq('id', id);
+    if (error) throw error;
+    window.showToast('Task deleted!', 'success');
+    logAuditEvent('Task Deleted', 'Deleted task ' + id);
+    await loadData();
+    renderTabBody();
+  } catch(err) {
+    console.error(err);
+    alert('Could not delete task: ' + (err.message || String(err)));
+  } finally {
+    hideLoading();
   }
 };
 
 function openTaskModal(taskId) {
-  const t = taskId ? (cache.tasks || []).find(x => x.id === taskId || (x.local_id && x.local_id === taskId)) : null;
+  const t = taskId ? (cache.tasks || []).find(x => x.id === taskId) : null;
   const holder = getModalHolder('taskModalHolder');
 
   const staffOptions = (cache.staff || []).map(s => 
@@ -498,8 +454,6 @@ function openTaskModal(taskId) {
        </select>`
     : `<label>Assign to</label><input value="${esc(session.name)}" disabled><input type="hidden" id="mTaskStaff" value="${session.staffId}">`;
 
-  const modalNotes = t ? (typeof getDisplayTaskNotes === 'function' ? getDisplayTaskNotes(t.notes) : (t.notes || '')) : '';
-
   holder.innerHTML = `
   <div class="overlay show"><div class="modal">
     <h2>${t ? '✎ Edit Task' : '⚡ New Task'}</h2>
@@ -507,7 +461,7 @@ function openTaskModal(taskId) {
     <label>Title *</label>
     <input id="mTaskTitle" value="${t ? esc(t.title) : ''}" placeholder="e.g. Restock shelf, Call vendor">
     <label>Details / Notes</label>
-    <textarea id="mTaskNotes" placeholder="Optional task instructions...">${esc(modalNotes)}</textarea>
+    <textarea id="mTaskNotes" placeholder="Optional task instructions...">${esc(t ? t.notes || '' : '')}</textarea>
     <div class="two-col">
       <div><label>Due Date</label><input type="date" id="mTaskDate" value="${t ? (t.due_date || '') : todayStr()}"></div>
       <div><label>Due Time</label><input type="time" id="mTaskTime" value="${t ? (t.due_time || '') : ''}"></div>
@@ -519,12 +473,10 @@ function openTaskModal(taskId) {
       <option value="high" ${t && t.priority === 'high' ? 'selected' : ''}>High</option>
     </select>
     <div class="modal-actions">
-      <button class="stamp-btn ghost" onclick="window.__closeModal()">Cancel</button>
+      <button class="stamp-btn ghost" onclick="getModalHolder('taskModalHolder').innerHTML=''">Cancel</button>
       <button class="stamp-btn" style="background:var(--turmeric);color:#fff;" onclick="window.__saveTask('${taskId || ''}')">Save Task</button>
     </div>
   </div></div>`;
-
-  window.__closeModal = () => { holder.innerHTML = ''; };
 
   window.__saveTask = async (id) => {
     const title = (document.getElementById('mTaskTitle').value || '').trim();
@@ -534,7 +486,7 @@ function openTaskModal(taskId) {
     const assignedTo = (rawStaff && rawStaff !== 'all') ? rawStaff : null;
 
     const data = {
-      business_id: session ? session.businessId : null,
+      business_id: session.businessId,
       assigned_to: assignedTo,
       created_by: session ? session.staffId : null,
       title,
@@ -544,15 +496,27 @@ function openTaskModal(taskId) {
       priority: document.getElementById('mTaskPriority').value || 'medium',
     };
 
-    if (id && typeof window.updateTaskLocally === 'function') {
-      window.updateTaskLocally(id, data);
-    } else if (typeof window.createTaskLocally === 'function') {
-      window.createTaskLocally(data);
+    showLoading('Saving task...');
+    try {
+      if (id) {
+        const { error } = await sb.from('tasks').update(data).eq('id', id);
+        if (error) throw error;
+        window.showToast('✓ Task updated!', 'success');
+      } else {
+        data.status = 'pending';
+        const { error } = await sb.from('tasks').insert(data);
+        if (error) throw error;
+        window.showToast('✓ Task created!', 'success');
+      }
+      holder.innerHTML = '';
+      await loadData();
+      renderTabBody();
+    } catch(err) {
+      console.error(err);
+      alert('Could not save task: ' + (err.message || String(err)));
+    } finally {
+      hideLoading();
     }
-
-    holder.innerHTML = '';
-    window.showToast(id ? '✓ Task updated!' : '✓ Task created!', 'success');
-    _tasksRender();
   };
 }
 

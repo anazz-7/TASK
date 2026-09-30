@@ -1164,7 +1164,7 @@ window.__openQueuedMutationsModal = function() {
 
 
 /* ==========================================================================
-   ROBUST TASK SYNCHRONIZATION ENGINE (Direct UUIDs & Multi-Device Supabase Sync)
+   SIMPLE TASK SYNCHRONIZATION ENGINE (Direct Supabase Sync)
    ========================================================================== */
 
 function getDisplayTaskNotes(notes) {
@@ -1176,369 +1176,51 @@ function getDisplayTaskNotes(notes) {
 }
 window.getDisplayTaskNotes = getDisplayTaskNotes;
 
-function parseTaskNotesMeta(rawNotes) {
-  return {
-    client_task_id: null,
-    updated_at: null,
-    displayNotes: getDisplayTaskNotes(rawNotes)
-  };
-}
-window.parseTaskNotesMeta = parseTaskNotesMeta;
-
-function packTaskNotes(displayNotes) {
-  return getDisplayTaskNotes(displayNotes);
-}
-window.packTaskNotes = packTaskNotes;
-
-function getPendingTaskMutations() {
-  try {
-    return JSON.parse(localStorage.getItem('br_task_mutations_queue') || '[]');
-  } catch(e) {
-    return [];
-  }
-}
-
-function _savePendingTaskMutations(queue) {
-  try {
-    localStorage.setItem('br_task_mutations_queue', JSON.stringify(queue || []));
-  } catch(e){}
-}
-
-function _enqueueTaskMutation(action, payload) {
-  const queue = getPendingTaskMutations();
-  queue.push({
-    action: action,
-    id: payload.id,
-    payload: payload,
-    timestamp: new Date().toISOString()
-  });
-  _savePendingTaskMutations(queue);
-  if (typeof updateOfflineBadgeBar === 'function') updateOfflineBadgeBar();
-}
-window._enqueueTaskMutation = _enqueueTaskMutation;
-
-function _removePendingTaskMutations(id) {
-  const queue = getPendingTaskMutations().filter(m => m.id !== id && (!m.payload || m.payload.id !== id));
-  _savePendingTaskMutations(queue);
-  if (typeof updateOfflineBadgeBar === 'function') updateOfflineBadgeBar();
-}
-window._removePendingTaskMutations = _removePendingTaskMutations;
-
-function sanitizeTaskForSupabase(raw) {
-  const p = Object.assign({}, raw || {});
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-  const sanitized = {
-    title: String(p.title || 'Untitled Task').trim()
-  };
-
-  // Explicit ID: must be valid UUID
-  if (p.id && uuidRegex.test(String(p.id).trim())) {
-    sanitized.id = String(p.id).trim();
-  }
-
-  // Business ID: must be valid UUID
-  if (p.business_id && uuidRegex.test(String(p.business_id).trim())) {
-    sanitized.business_id = String(p.business_id).trim();
-  } else if (session && session.businessId && uuidRegex.test(String(session.businessId).trim())) {
-    sanitized.business_id = session.businessId.trim();
-  }
-
-  // Assigned To: valid UUID or null
-  if (p.assigned_to && uuidRegex.test(String(p.assigned_to).trim())) {
-    sanitized.assigned_to = String(p.assigned_to).trim();
-  } else {
-    sanitized.assigned_to = null;
-  }
-
-  // Created By: valid UUID or null
-  if (p.created_by && uuidRegex.test(String(p.created_by).trim())) {
-    sanitized.created_by = String(p.created_by).trim();
-  } else {
-    sanitized.created_by = null;
-  }
-
-  // Notes: clean text
-  sanitized.notes = (p.notes !== undefined && p.notes !== null) ? String(p.notes).trim() : '';
-
-  // Priority: check constraint (low, medium, high)
-  const pri = String(p.priority || 'medium').toLowerCase().trim();
-  sanitized.priority = (pri === 'high' || pri === 'urgent') ? 'high' : (pri === 'low' ? 'low' : 'medium');
-
-  // Status: check constraint (pending, sent, done)
-  const st = String(p.status || 'pending').toLowerCase().trim();
-  sanitized.status = (st === 'done' || st === 'completed') ? 'done' : (st === 'sent' ? 'sent' : 'pending');
-
-  // Due Date: YYYY-MM-DD or null
-  if (p.due_date && /^\d{4}-\d{2}-\d{2}$/.test(String(p.due_date).trim())) {
-    sanitized.due_date = String(p.due_date).trim();
-  } else {
-    sanitized.due_date = null;
-  }
-
-  // Due Time: HH:MM or HH:MM:SS or null
-  if (p.due_time && /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(String(p.due_time).trim())) {
-    sanitized.due_time = String(p.due_time).trim();
-  } else {
-    sanitized.due_time = null;
-  }
-
-  return sanitized;
-}
-window.sanitizeTaskForSupabase = sanitizeTaskForSupabase;
-
-window.createTaskLocally = function(data) {
-  const id = (typeof generateUUID === 'function') ? generateUUID() : (
-    (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() :
-    'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-      const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-    })
-  );
-  const nowIso = new Date().toISOString();
-  const bizId = (session && session.businessId) ? session.businessId : null;
-
-  const task = {
-    id: id,
-    business_id: bizId,
-    assigned_to: (data.assigned_to && data.assigned_to !== 'all') ? data.assigned_to : null,
-    created_by: data.created_by || (session ? session.staffId : null),
-    title: String(data.title || 'Untitled Task').trim(),
-    notes: String(data.notes || '').trim(),
-    priority: data.priority || 'medium',
-    due_date: data.due_date || todayStr(),
-    due_time: data.due_time || null,
-    status: data.status || 'pending',
-    created_at: nowIso,
-    sync_status: 'pending'
-  };
-
-  if (!Array.isArray(cache.tasks)) cache.tasks = [];
-  cache.tasks.unshift(task);
-  _tasksSave();
-
-  // Instant direct save to Supabase
-  if (_isOnline() && sb) {
-    const payload = sanitizeTaskForSupabase(task);
-    sb.from('tasks').insert(payload).select().single().then(({ data: ins, error: err }) => {
-      if (!err && ins) {
-        task.sync_status = 'synced';
-        _tasksSave();
-      } else {
-        console.warn('[TASK INSERT FAILED]', err);
-        task.sync_status = 'failed';
-        _tasksSave();
-        _enqueueTaskMutation('insert', payload);
-      }
-    }).catch(e => {
-      console.warn('[TASK INSERT ERROR]', e);
-      _enqueueTaskMutation('insert', payload);
-    });
-  } else {
-    _enqueueTaskMutation('insert', sanitizeTaskForSupabase(task));
-  }
-
-  return task;
-};
-
-window.updateTaskLocally = function(id, updates) {
-  if (!Array.isArray(cache.tasks)) return null;
-  const t = cache.tasks.find(x => x.id === id);
-  if (!t) return null;
-
-  Object.assign(t, updates);
-  t.sync_status = 'pending';
-  _tasksSave();
-
-  const payload = sanitizeTaskForSupabase(updates);
-  if (_isOnline() && sb) {
-    sb.from('tasks').update(payload).eq('id', id).then(({ error }) => {
-      if (!error) {
-        t.sync_status = 'synced';
-        _tasksSave();
-      } else {
-        console.warn('[TASK UPDATE FAILED]', error);
-        _enqueueTaskMutation('update', { id, ...payload });
-      }
-    }).catch(e => {
-      console.warn('[TASK UPDATE ERROR]', e);
-      _enqueueTaskMutation('update', { id, ...payload });
-    });
-  } else {
-    _enqueueTaskMutation('update', { id, ...payload });
-  }
-
-  return t;
-};
-
-function _deterministicTaskMerge(localTasks, cloudTasks, specificBizId) {
-  const bizId = specificBizId || (session ? session.businessId : null);
-  const systemPrefixes = ['[CUSTOMER_', '[EDIT_REQ]', '[EXPIRY_', '[EXPENSES_', '[SALARY_', '[FUTURE_', '[FEATURE_', '[VENDOR_', '[SALES_', '[STAFF_', '[OFFICE_', '[PRICE_'];
-  const isSys = (t) => t && t.title && systemPrefixes.some(p => t.title.startsWith(p));
-
-  const deletedIds = (typeof _getDeletedTaskIds === 'function') ? _getDeletedTaskIds(bizId) : new Set();
-  const userCloudTasks = (cloudTasks || []).filter(ct => ct && !isSys(ct));
-  const userLocalTasks = (localTasks || []).filter(lt => lt && !isSys(lt));
-
-  const localMap = new Map();
-  userLocalTasks.forEach(lt => {
-    if (lt && lt.id) localMap.set(String(lt.id), lt);
-  });
-
-  const merged = [];
-  const handledIds = new Set();
-
-  // 1. Process cloud tasks
-  userCloudTasks.forEach(ct => {
-    const cloudId = String(ct.id);
-    handledIds.add(cloudId);
-
-    // If deleted locally, delete from cloud and skip
-    if (deletedIds.has(cloudId)) {
-      if (sb && _isOnline()) {
-        sb.from('tasks').delete().eq('id', ct.id).catch(() => {});
-      }
-      return;
-    }
-
-    const local = localMap.get(cloudId);
-    if (!local) {
-      // New task from another device
-      merged.push(Object.assign({}, ct, { sync_status: 'synced' }));
-    } else {
-      // If local task has pending unpushed changes, keep local version
-      if (local.sync_status === 'pending' || local.sync_status === 'failed') {
-        merged.push(local);
-      } else {
-        // Cloud is authoritative for synced tasks
-        merged.push(Object.assign({}, local, ct, { sync_status: 'synced' }));
-      }
-    }
-  });
-
-  // 2. Process local tasks not in cloud
-  userLocalTasks.forEach(lt => {
-    const localId = String(lt.id);
-    if (handledIds.has(localId)) return;
-    if (deletedIds.has(localId)) return;
-
-    // If local task is pending or failed to sync, ALWAYS keep it
-    if (lt.sync_status === 'pending' || lt.sync_status === 'failed') {
-      merged.push(lt);
-    }
-  });
-
-  return merged;
-}
-window._deterministicTaskMerge = _deterministicTaskMerge;
-
-let _isSyncingTasks = false;
-async function syncTasks(options = {}) {
-  const clientSb = sb || (typeof window !== 'undefined' && window.sb);
-  if (!_isOnline() || !session || !session.businessId || !clientSb) {
-    return { success: false, reason: 'offline_or_uninitialized' };
-  }
-  if (_isSyncingTasks) return { success: false, reason: 'already_syncing' };
-  _isSyncingTasks = true;
-
-  try {
-    const bizId = session.businessId;
-
-    // 1. Flush pending task mutations queue
-    const queue = getPendingTaskMutations();
-    if (queue.length > 0) {
-      const remaining = [];
-      for (const item of queue) {
-        try {
-          if (item.action === 'insert') {
-            const { error: insErr } = await clientSb.from('tasks').upsert(item.payload);
-            if (insErr) remaining.push(item);
-          } else if (item.action === 'update') {
-            const { error: upErr } = await clientSb.from('tasks').update(item.payload).eq('id', item.id);
-            if (upErr) remaining.push(item);
-          } else if (item.action === 'delete') {
-            const { error: delErr } = await clientSb.from('tasks').delete().eq('id', item.id);
-            if (delErr) remaining.push(item);
-          }
-        } catch(e) {
-          remaining.push(item);
-        }
-      }
-      _savePendingTaskMutations(remaining);
-    }
-
-    // 2. Fetch fresh tasks from Supabase
-    const { data: cloudTasks, error: fetchErr } = await clientSb
-      .from('tasks')
-      .select('*')
-      .eq('business_id', bizId)
-      .order('due_date', { ascending: true, nullsFirst: false });
-
-    if (fetchErr) throw fetchErr;
-
-    const oldJson = JSON.stringify(cache.tasks || []);
-    const merged = _deterministicTaskMerge(cache.tasks || [], cloudTasks || [], bizId);
-    cache.tasks = merged;
-    _tasksSave();
-
-    const newJson = JSON.stringify(cache.tasks);
-    if (oldJson !== newJson || options.forceRender) {
-      if (typeof safeBackgroundRenderTabBody === 'function') {
-        safeBackgroundRenderTabBody();
-      } else if (typeof renderTabBody === 'function' && activeTab === 'tasks') {
-        renderTabBody();
-      }
-    }
-
-    return { success: true, count: merged.length };
-  } catch(err) {
-    console.warn('[TASK SYNC ERROR]', err);
-    return { success: false, error: err };
-  } finally {
-    _isSyncingTasks = false;
-  }
-}
-window.syncTasks = syncTasks;
-
 let _taskSyncInterval = null;
 function _startTaskSyncPoller() {
   if (_taskSyncInterval) return;
   _taskSyncInterval = setInterval(async () => {
     try {
-      if (!navigator.onLine || !session || !session.businessId || typeof sb === 'undefined' || !sb) return;
-      if (document.querySelector('.overlay.show')) return;
+      if (!navigator.onLine || !session || !session.businessId || !sb) return;
+      if (document.querySelector('.overlay.show') || document.querySelector('.modal')) return;
       const el = document.activeElement;
-      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) return;
-      await syncTasks();
-    } catch(e) {
-      console.warn('[TASK SYNC]', e);
-    }
-  }, 30000);
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) return;
+      const { data: freshTasks, error } = await sb.from('tasks').select('*').eq('business_id', session.businessId).order('due_date', { ascending: true, nullsFirst: false });
+      if (!error && freshTasks) {
+        const sys = ['[CUSTOMER_', '[EDIT_REQ]', '[EXPIRY_', '[EXPENSES_', '[SALARY_', '[FUTURE_', '[FEATURE_', '[VENDOR_', '[SALES_', '[STAFF_', '[OFFICE_', '[PRICE_'];
+        cache.tasks = freshTasks.filter(t => t && t.title && !sys.some(p => t.title.startsWith(p)));
+        if (activeTab === 'tasks') renderTabBody();
+      }
+    } catch(e) {}
+  }, 15000);
 }
+_startTaskSyncPoller();
 
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState !== 'visible' || !navigator.onLine || !session || typeof sb === 'undefined' || !sb) return;
+  if (document.visibilityState !== 'visible' || !navigator.onLine || !session || !session.businessId || !sb) return;
   setTimeout(async () => {
     try {
-      if (!session || !session.businessId || document.querySelector('.overlay.show')) return;
-      await syncTasks();
-    } catch(e) {
-      console.warn('[TASK SYNC]', e);
-    }
+      if (document.querySelector('.overlay.show') || document.querySelector('.modal')) return;
+      const { data: freshTasks, error } = await sb.from('tasks').select('*').eq('business_id', session.businessId).order('due_date', { ascending: true, nullsFirst: false });
+      if (!error && freshTasks) {
+        const sys = ['[CUSTOMER_', '[EDIT_REQ]', '[EXPIRY_', '[EXPENSES_', '[SALARY_', '[FUTURE_', '[FEATURE_', '[VENDOR_', '[SALES_', '[STAFF_', '[OFFICE_', '[PRICE_'];
+        cache.tasks = freshTasks.filter(t => t && t.title && !sys.some(p => t.title.startsWith(p)));
+        if (activeTab === 'tasks') renderTabBody();
+      }
+    } catch(e) {}
   }, 300);
 });
 
 window.addEventListener('online', async () => {
   updateOfflineBadgeBar();
   try {
-    await syncTasks();
-  } catch(e) {
-    console.warn('[TASK SYNC]', e);
-  }
-  try {
-    await flushOfflineMutationQueue(true);
-  } catch(e) {
-    console.warn('[QUEUE SYNC]', e);
-  }
+    const { data: freshTasks } = await sb.from('tasks').select('*').eq('business_id', session.businessId).order('due_date', { ascending: true, nullsFirst: false });
+    if (freshTasks) {
+      const sys = ['[CUSTOMER_', '[EDIT_REQ]', '[EXPIRY_', '[EXPENSES_', '[SALARY_', '[FUTURE_', '[FEATURE_', '[VENDOR_', '[SALES_', '[STAFF_', '[OFFICE_', '[PRICE_'];
+      cache.tasks = freshTasks.filter(t => t && t.title && !sys.some(p => t.title.startsWith(p)));
+      if (activeTab === 'tasks') renderTabBody();
+    }
+  } catch(e) {}
 });
 
 setInterval(() => {
@@ -1615,19 +1297,8 @@ async function loadData(){
       cache.staff = Array.from(staffMap.values());
     }
     const cloudTasks = tasksR.data || [];
-    let localSavedTasks = [];
-    try {
-      localSavedTasks = JSON.parse(localStorage.getItem('br_tasks_' + bizId) || '[]');
-    } catch(e){}
-
-    const systemPrefixes = ['[CUSTOMER_', '[EDIT_REQ]', '[EXPIRY_', '[EXPENSES_', '[SALARY_', '[FUTURE_', '[FEATURE_', '[VENDOR_', '[SALES_'];
-    const isSystemPayload = (t) => t && t.title && systemPrefixes.some(p => t.title.startsWith(p));
-
-    // Deterministic Map-based merging of localSavedTasks and cloudTasks
-    cache.tasks = _deterministicTaskMerge(localSavedTasks, cloudTasks, bizId);
-    try {
-      localStorage.setItem('br_tasks_' + bizId, JSON.stringify(cache.tasks));
-    } catch(e){}
+    const systemPrefixes = ['[CUSTOMER_', '[EDIT_REQ]', '[EXPIRY_', '[EXPENSES_', '[SALARY_', '[FUTURE_', '[FEATURE_', '[VENDOR_', '[SALES_', '[STAFF_', '[OFFICE_', '[PRICE_'];
+    cache.tasks = cloudTasks.filter(t => t && t.title && !systemPrefixes.some(p => t.title.startsWith(p)));
 
     // Restore Cross-Device Cloud Payloads for Customer Directory, Reports, Expiry & Feature Settings
     const systemPayloadsMap = new Map();
