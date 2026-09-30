@@ -1,4 +1,4 @@
-/* ---------------- TASKS ---------------- */
+/* ---------------- FRESH NEW TASK TAB SYSTEM (Reliable & Multi-Device) ---------------- */
 function fmtDue(t){
   if(!t.due_date) return '';
   const d = new Date(t.due_date + 'T' + (t.due_time || '00:00'));
@@ -10,24 +10,22 @@ function isOverdue(t){ return t.due_date && t.status!=='done' && t.due_date < to
 function formatPhoneIntl(phone){
   let digits = (phone||'').replace(/\D/g,'');
   if(!digits) return '';
-  if(digits.length === 10) digits = '91' + digits; // bare 10-digit Indian number
-  if(digits.length === 11 && digits.startsWith('0')) digits = '91' + digits.slice(1); // leading 0 typo
+  if(digits.length === 10) digits = '91' + digits;
+  if(digits.length === 11 && digits.startsWith('0')) digits = '91' + digits.slice(1);
   return digits;
 }
 function isIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent); }
 
-// Owner's number for automatic check-in/out alerts.
 function getOwnerNotifyNumber(){
   return localStorage.getItem('br_owner_phone') || '+916379849947';
 }
 function sendSmsTo(number, msg){
   const sep = isIOS() ? '&' : '?';
   const link = `sms:${number}${sep}body=${encodeURIComponent(msg)}`;
-  // Give the UI a moment to update before handing off to the SMS app.
   setTimeout(() => { window.location.href = link; }, 400);
 }
 function notifyOwnerOfAttendance(kind, loc){
-  if(isOwner()) return; // no need to text yourself
+  if(isOwner()) return;
   const time = new Date().toLocaleTimeString('en-IN', {hour:'numeric', minute:'2-digit'});
   const msg = [
     `${session.name} ${kind} at ${time} (${session.businessName})`,
@@ -35,9 +33,6 @@ function notifyOwnerOfAttendance(kind, loc){
   ].filter(Boolean).join(' — ');
   sendSmsTo(getOwnerNotifyNumber(), msg);
 }
-// Fires whenever someone other than the owner completes a task or everyday task.
-// No site can send an SMS with truly zero taps (a phone-level restriction, not a
-// choice made here) — this opens the message pre-filled so it's still just one tap.
 function notifyCompletion(itemId, kind){
   if(isOwner()) return;
   let title;
@@ -52,7 +47,7 @@ function waLink(t){
   const phone = formatPhoneIntl(staffPhone(t.assigned_to));
   const lines = [
     `*Task — ${session.businessName}*`, ``,
-    `*${t.title}*  [${t.priority.toUpperCase()} priority]`,
+    `*${t.title}*  [${(t.priority || 'medium').toUpperCase()} priority]`,
     t.notes || null,
     t.due_date ? `Due: ${fmtDue(t)}` : null,
   ].filter(Boolean).join('\n');
@@ -62,12 +57,10 @@ function smsLink(t){
   const digits = formatPhoneIntl(staffPhone(t.assigned_to));
   const phone = digits ? '+' + digits : '';
   const lines = [
-    `Task (${session.businessName}): ${t.title} [${t.priority.toUpperCase()}]`,
+    `Task (${session.businessName}): ${t.title} [${(t.priority || 'medium').toUpperCase()}]`,
     t.notes || null,
     t.due_date ? `Due: ${fmtDue(t)}` : null,
   ].filter(Boolean).join(' — ');
-  // iOS uses "&" before body, Android/most others use "?" — using the wrong one
-  // silently fails to prefill the message on that platform.
   const sep = isIOS() ? '&' : '?';
   return `sms:${phone}${sep}body=${encodeURIComponent(lines)}`;
 }
@@ -134,7 +127,6 @@ function parseNaturalTaskText(rawText) {
     title = title.replace(/\b(sunday|sun)\b/i, '');
   }
 
-  // Clean up title whitespace
   title = title.replace(/\s+/g, ' ').trim();
   if(!title) title = rawText.trim();
 
@@ -149,7 +141,6 @@ function getNextDayOfWeekStr(targetDay) {
   d.setDate(d.getDate() + distance);
   return localDateStr(d);
 }
-
 
 window.__openQuickTaskModal = function() {
   const holder = getModalHolder('taskModalHolder');
@@ -166,7 +157,7 @@ window.__openQuickTaskModal = function() {
     </div>
     <div class="modal-actions">
       <button class="stamp-btn ghost" onclick="getModalHolder('taskModalHolder').innerHTML=''">Cancel</button>
-      <button class="stamp-btn" onclick="window.__submitQuickModal()">⚡ Create Task</button>
+      <button class="stamp-btn" style="background:var(--turmeric);color:#fff;" onclick="window.__submitQuickModal()">⚡ Create Task</button>
     </div>
   </div></div>`;
   setTimeout(()=> { const el = document.getElementById('quickModalInput'); if(el) el.focus(); }, 100);
@@ -247,7 +238,7 @@ function renderTasksTab(body) {
   if (typeof taskSubTab === 'undefined') window.taskSubTab = 'active';
   const rawTasks = Array.isArray(cache.tasks) ? cache.tasks : [];
   
-  // Filter by role & exclude deleted tombstones
+  // Filter by role & exclude deleted / system payloads
   let list = isManagerPlus() 
     ? rawTasks 
     : rawTasks.filter(t => !t.assigned_to || t.assigned_to === 'all' || t.assigned_to === session.staffId || t.created_by === session.staffId);

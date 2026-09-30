@@ -98,6 +98,17 @@ function hideLoading(successMsg) {
 }
 
 
+function generateUUID() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    try { return crypto.randomUUID(); } catch(e){}
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+window.generateUUID = generateUUID;
+
 /* ---- Task local persistence helper ---- */
 function _tasksSave() {
   if (!session || !session.businessId) return;
@@ -379,79 +390,68 @@ window.__showDeleteConfirm = function({ title, message, onConfirm }) {
   };
 };
 
-function _getTaskTombstones(specificBizId) {
+function _getDeletedTaskIds(specificBizId) {
   const bizId = specificBizId || (session ? session.businessId : null);
-  if (!bizId) return new Map();
+  if (!bizId) return new Set();
   try {
-    const raw = JSON.parse(localStorage.getItem('br_tasks_tombstones_' + bizId) || '[]');
-    const map = new Map();
-    raw.forEach(item => {
-      if (item && (item.id || item.client_task_id)) {
-        if (item.id) map.set(String(item.id), item);
-        if (item.client_task_id) map.set(String(item.client_task_id), item);
-      }
-    });
-    return map;
+    const raw = JSON.parse(localStorage.getItem('br_deleted_tasks_' + bizId) || '[]');
+    return new Set(raw);
   } catch(e) {
-    return new Map();
+    return new Set();
   }
 }
 
-function _recordTaskTombstone(id, clientTaskId) {
-  if (!session || !session.businessId) return;
-  const bizId = session.businessId;
+function _recordDeletedTaskId(id, specificBizId) {
+  const bizId = specificBizId || (session ? session.businessId : null);
+  if (!bizId || !id) return;
   try {
-    const raw = JSON.parse(localStorage.getItem('br_tasks_tombstones_' + bizId) || '[]');
-    const now = new Date().toISOString();
-    raw.push({ id: String(id), client_task_id: clientTaskId || null, deleted_at: now, sync_status: 'pending' });
-    if (raw.length > 200) raw.splice(0, raw.length - 200);
-    localStorage.setItem('br_tasks_tombstones_' + bizId, JSON.stringify(raw));
-  } catch(e) {}
+    const raw = JSON.parse(localStorage.getItem('br_deleted_tasks_' + bizId) || '[]');
+    if (!raw.includes(String(id))) {
+      raw.push(String(id));
+      if (raw.length > 300) raw.splice(0, raw.length - 300);
+      localStorage.setItem('br_deleted_tasks_' + bizId, JSON.stringify(raw));
+    }
+  } catch(e){}
 }
 
-function _removeTaskTombstone(id, clientTaskId) {
-  if (!session || !session.businessId) return;
-  const bizId = session.businessId;
+function _removeDeletedTaskId(id, specificBizId) {
+  const bizId = specificBizId || (session ? session.businessId : null);
+  if (!bizId || !id) return;
   try {
-    let raw = JSON.parse(localStorage.getItem('br_tasks_tombstones_' + bizId) || '[]');
-    raw = raw.filter(item => item.id !== String(id) && (!clientTaskId || item.client_task_id !== String(clientTaskId)));
-    localStorage.setItem('br_tasks_tombstones_' + bizId, JSON.stringify(raw));
-  } catch(e) {}
+    let raw = JSON.parse(localStorage.getItem('br_deleted_tasks_' + bizId) || '[]');
+    raw = raw.filter(x => x !== String(id));
+    localStorage.setItem('br_deleted_tasks_' + bizId, JSON.stringify(raw));
+  } catch(e){}
 }
 
 window.deleteTaskLocally = function(id) {
-  if (!session || !session.businessId) return;
-  const t = (cache.tasks || []).find(x => x.id === id || (x.local_id && x.local_id === id));
-  const clientTaskId = t ? t.client_task_id : null;
-  const isLocalOnly = String(id).startsWith('loc_task_');
+  if (!id) return;
+  const bizId = session ? session.businessId : null;
+  if (!Array.isArray(cache.tasks)) cache.tasks = [];
 
-  // 1. Remove from local memory cache
-  cache.tasks = (cache.tasks || []).filter(x => x.id !== id && (!x.local_id || x.local_id !== id));
+  // 1. Remove from local memory cache immediately
+  cache.tasks = cache.tasks.filter(x => x.id !== id && (!x.local_id || x.local_id !== id));
   _tasksSave();
+  _recordDeletedTaskId(id, bizId);
 
-  // 2. If it was local-only and has pending insert in queue, remove the insert
-  if (isLocalOnly) {
-    const queue = (typeof getOfflineQueue === 'function') ? getOfflineQueue() : [];
-    const filteredQueue = queue.filter(item => 
-      !(item.table === 'tasks' && (item.local_id === id || item.target_id === id || (clientTaskId && item.client_task_id === clientTaskId)))
-    );
-    localStorage.setItem('br_offline_mutation_queue', JSON.stringify(filteredQueue));
-    if (typeof updateOfflineBadgeBar === 'function') updateOfflineBadgeBar();
-    return;
+  // 2. Remove any pending queue items for this task
+  if (typeof _removePendingTaskMutations === 'function') {
+    _removePendingTaskMutations(id);
   }
 
-  // 3. For cloud-persisted tasks, record tombstone & queue deletion
-  _recordTaskTombstone(id, clientTaskId);
-  if (typeof queueOfflineMutation === 'function') {
-    queueOfflineMutation('delete', 'tasks', { id }, {
-      target_id: id,
-      client_task_id: clientTaskId
+  // 3. Immediately delete from Supabase if online
+  if (_isOnline() && sb) {
+    sb.from('tasks').delete().eq('id', id).then(({ error }) => {
+      if (error) {
+        console.warn('[TASK DELETE ERROR]', error);
+        if (typeof _enqueueTaskMutation === 'function') _enqueueTaskMutation('delete', { id });
+      }
+    }).catch(err => {
+      console.warn('[TASK DELETE EXCEPTION]', err);
+      if (typeof _enqueueTaskMutation === 'function') _enqueueTaskMutation('delete', { id });
     });
-  }
-
-  // 4. Trigger sync
-  if (typeof syncTasks === 'function') {
-    syncTasks().catch(e => console.warn('[TASK SYNC]', e));
+  } else {
+    if (typeof _enqueueTaskMutation === 'function') _enqueueTaskMutation('delete', { id });
   }
 };
 
@@ -1164,32 +1164,8 @@ window.__openQueuedMutationsModal = function() {
 
 
 /* ==========================================================================
-   ROBUST TASK SYNCHRONIZATION ENGINE (Multi-Device & Supabase Reconciliation)
+   ROBUST TASK SYNCHRONIZATION ENGINE (Direct UUIDs & Multi-Device Supabase Sync)
    ========================================================================== */
-
-let _dbSupportsClientTaskId = null;
-let _dbSupportsUpdatedAt = null;
-let _isSyncingTasks = false;
-let _lastTaskSyncAt = null;
-let _lastTaskSyncError = null;
-
-async function _detectTaskSchemaFeatures() {
-  if (_dbSupportsClientTaskId !== null && _dbSupportsUpdatedAt !== null) return;
-  const clientSb = sb || (typeof window !== 'undefined' && window.sb);
-  if (!clientSb || !_isOnline()) return;
-  try {
-    const { error: cidErr } = await clientSb.from('tasks').select('client_task_id').limit(1);
-    _dbSupportsClientTaskId = !cidErr || cidErr.code !== '42703';
-  } catch(e) {
-    _dbSupportsClientTaskId = false;
-  }
-  try {
-    const { error: updErr } = await clientSb.from('tasks').select('updated_at').limit(1);
-    _dbSupportsUpdatedAt = !updErr || updErr.code !== '42703';
-  } catch(e) {
-    _dbSupportsUpdatedAt = false;
-  }
-}
 
 function getDisplayTaskNotes(notes) {
   if (!notes) return '';
@@ -1201,369 +1177,296 @@ function getDisplayTaskNotes(notes) {
 window.getDisplayTaskNotes = getDisplayTaskNotes;
 
 function parseTaskNotesMeta(rawNotes) {
-  const str = String(rawNotes || '');
-  const cidMatch = str.match(/\[cid:([^\]]+)\]/);
-  const updMatch = str.match(/\[upd:([^\]]+)\]/);
   return {
-    client_task_id: cidMatch ? cidMatch[1] : null,
-    updated_at: updMatch ? updMatch[1] : null,
-    displayNotes: getDisplayTaskNotes(str)
+    client_task_id: null,
+    updated_at: null,
+    displayNotes: getDisplayTaskNotes(rawNotes)
   };
 }
 window.parseTaskNotesMeta = parseTaskNotesMeta;
 
-function packTaskNotes(displayNotes, clientTaskId, updatedAt) {
-  let clean = getDisplayTaskNotes(displayNotes);
-  if (!_dbSupportsClientTaskId && clientTaskId) {
-    clean += (clean ? '\n' : '') + '[cid:' + clientTaskId + ']';
-  }
-  if (!_dbSupportsUpdatedAt && updatedAt) {
-    clean += (clean ? '\n' : '') + '[upd:' + updatedAt + ']';
-  }
-  return clean;
+function packTaskNotes(displayNotes) {
+  return getDisplayTaskNotes(displayNotes);
 }
 window.packTaskNotes = packTaskNotes;
 
-function _reconcileLocalTaskId(oldId, clientTaskId, freshRow) {
-  if (!Array.isArray(cache.tasks)) return;
-  const parsed = parseTaskNotesMeta(freshRow.notes);
-  const target = cache.tasks.find(t => 
-    (oldId && (t.id === oldId || t.local_id === oldId)) ||
-    (clientTaskId && t.client_task_id === clientTaskId)
-  );
-
-  if (target) {
-    target.id = freshRow.id;
-    target.local_id = target.local_id || oldId;
-    target.client_task_id = freshRow.client_task_id || clientTaskId || target.client_task_id;
-    target.updated_at = freshRow.updated_at || parsed.updated_at || freshRow.created_at || new Date().toISOString();
-    target.sync_status = 'synced';
-    if (parsed.displayNotes) target.notes = parsed.displayNotes;
-    _tasksSave();
+function getPendingTaskMutations() {
+  try {
+    return JSON.parse(localStorage.getItem('br_task_mutations_queue') || '[]');
+  } catch(e) {
+    return [];
   }
 }
 
-function _reconcileQueueTargetId(queue, oldId, newId) {
-  if (!queue || !oldId || !newId) return;
-  queue.forEach(item => {
-    if (item.table === 'tasks') {
-      if (item.target_id === oldId) item.target_id = newId;
-      if (item.local_id === oldId) item.local_id = newId;
-      if (item.payload && item.payload.id === oldId) item.payload.id = newId;
-    }
+function _savePendingTaskMutations(queue) {
+  try {
+    localStorage.setItem('br_task_mutations_queue', JSON.stringify(queue || []));
+  } catch(e){}
+}
+
+function _enqueueTaskMutation(action, payload) {
+  const queue = getPendingTaskMutations();
+  queue.push({
+    action: action,
+    id: payload.id,
+    payload: payload,
+    timestamp: new Date().toISOString()
   });
+  _savePendingTaskMutations(queue);
+  if (typeof updateOfflineBadgeBar === 'function') updateOfflineBadgeBar();
 }
+window._enqueueTaskMutation = _enqueueTaskMutation;
 
-function _markLocalTaskSyncStatus(idOrLocalId, clientTaskId, status) {
-  if (!Array.isArray(cache.tasks)) return;
-  const target = cache.tasks.find(t => 
-    (idOrLocalId && (t.id === idOrLocalId || t.local_id === idOrLocalId)) ||
-    (clientTaskId && t.client_task_id === clientTaskId)
-  );
-  if (target) {
-    target.sync_status = status;
-    _tasksSave();
-  }
+function _removePendingTaskMutations(id) {
+  const queue = getPendingTaskMutations().filter(m => m.id !== id && (!m.payload || m.payload.id !== id));
+  _savePendingTaskMutations(queue);
+  if (typeof updateOfflineBadgeBar === 'function') updateOfflineBadgeBar();
 }
+window._removePendingTaskMutations = _removePendingTaskMutations;
 
 function sanitizeTaskForSupabase(raw) {
   const p = Object.assign({}, raw || {});
-  delete p.id;
-  delete p.local_id;
-  delete p.sync_status;
-  delete p.is_deleted;
-  delete p._sync_state;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-  // Title: required string
-  p.title = String(p.title || 'Untitled Task').trim();
+  const sanitized = {
+    title: String(p.title || 'Untitled Task').trim()
+  };
+
+  // Explicit ID: must be valid UUID
+  if (p.id && uuidRegex.test(String(p.id).trim())) {
+    sanitized.id = String(p.id).trim();
+  }
 
   // Business ID: must be valid UUID
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  if (!p.business_id || !uuidRegex.test(String(p.business_id).trim())) {
-    if (session && session.businessId && uuidRegex.test(String(session.businessId).trim())) {
-      p.business_id = session.businessId.trim();
-    }
+  if (p.business_id && uuidRegex.test(String(p.business_id).trim())) {
+    sanitized.business_id = String(p.business_id).trim();
+  } else if (session && session.businessId && uuidRegex.test(String(session.businessId).trim())) {
+    sanitized.business_id = session.businessId.trim();
   }
 
-  // Assigned To: must be valid UUID or null (NEVER empty string or invalid string)
+  // Assigned To: valid UUID or null
   if (p.assigned_to && uuidRegex.test(String(p.assigned_to).trim())) {
-    p.assigned_to = String(p.assigned_to).trim();
+    sanitized.assigned_to = String(p.assigned_to).trim();
   } else {
-    p.assigned_to = null;
+    sanitized.assigned_to = null;
   }
 
-  // Created By: must be valid UUID or null
+  // Created By: valid UUID or null
   if (p.created_by && uuidRegex.test(String(p.created_by).trim())) {
-    p.created_by = String(p.created_by).trim();
+    sanitized.created_by = String(p.created_by).trim();
   } else {
-    p.created_by = null;
+    sanitized.created_by = null;
   }
 
-  // Priority: check constraint check (priority in ('low','medium','high'))
+  // Notes: clean text
+  sanitized.notes = (p.notes !== undefined && p.notes !== null) ? String(p.notes).trim() : '';
+
+  // Priority: check constraint (low, medium, high)
   const pri = String(p.priority || 'medium').toLowerCase().trim();
-  p.priority = (pri === 'high' || pri === 'urgent') ? 'high' : (pri === 'low' ? 'low' : 'medium');
+  sanitized.priority = (pri === 'high' || pri === 'urgent') ? 'high' : (pri === 'low' ? 'low' : 'medium');
 
-  // Status: check constraint check (status in ('pending','sent','done'))
+  // Status: check constraint (pending, sent, done)
   const st = String(p.status || 'pending').toLowerCase().trim();
-  p.status = (st === 'done' || st === 'completed') ? 'done' : (st === 'sent' ? 'sent' : 'pending');
+  sanitized.status = (st === 'done' || st === 'completed') ? 'done' : (st === 'sent' ? 'sent' : 'pending');
 
-  // Due Date: must be YYYY-MM-DD or null (NEVER empty string)
+  // Due Date: YYYY-MM-DD or null
   if (p.due_date && /^\d{4}-\d{2}-\d{2}$/.test(String(p.due_date).trim())) {
-    p.due_date = String(p.due_date).trim();
+    sanitized.due_date = String(p.due_date).trim();
   } else {
-    p.due_date = null;
+    sanitized.due_date = null;
   }
 
-  // Due Time: must be HH:MM or HH:MM:SS or null (NEVER empty string)
+  // Due Time: HH:MM or HH:MM:SS or null
   if (p.due_time && /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(String(p.due_time).trim())) {
-    p.due_time = String(p.due_time).trim();
+    sanitized.due_time = String(p.due_time).trim();
   } else {
-    p.due_time = null;
+    sanitized.due_time = null;
   }
 
-  return p;
+  return sanitized;
 }
 window.sanitizeTaskForSupabase = sanitizeTaskForSupabase;
 
-async function _processTaskMutationQueue() {
-  const clientSb = sb || (typeof window !== 'undefined' && window.sb);
-  if (!_isOnline() || !session || !session.businessId || !clientSb) return;
-  const bizId = session.businessId;
-  const queue = getOfflineQueue();
-  if (!queue.length) return;
+window.createTaskLocally = function(data) {
+  const id = (typeof generateUUID === 'function') ? generateUUID() : (
+    (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() :
+    'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    })
+  );
+  const nowIso = new Date().toISOString();
+  const bizId = (session && session.businessId) ? session.businessId : null;
 
-  const remaining = [];
-  const taskItems = queue.filter(q => q.table === 'tasks');
-  const otherItems = queue.filter(q => q.table !== 'tasks');
+  const task = {
+    id: id,
+    business_id: bizId,
+    assigned_to: (data.assigned_to && data.assigned_to !== 'all') ? data.assigned_to : null,
+    created_by: data.created_by || (session ? session.staffId : null),
+    title: String(data.title || 'Untitled Task').trim(),
+    notes: String(data.notes || '').trim(),
+    priority: data.priority || 'medium',
+    due_date: data.due_date || todayStr(),
+    due_time: data.due_time || null,
+    status: data.status || 'pending',
+    created_at: nowIso,
+    sync_status: 'pending'
+  };
 
-  for (const item of taskItems) {
-    try {
-      if (item.action_type === 'insert') {
-        const payload = Object.assign({}, item.payload || {});
-        const localId = item.local_id || payload.local_id || (payload.id && String(payload.id).startsWith('loc_') ? payload.id : null);
-        const clientTaskId = item.client_task_id || payload.client_task_id;
+  if (!Array.isArray(cache.tasks)) cache.tasks = [];
+  cache.tasks.unshift(task);
+  _tasksSave();
 
-        // Idempotency check: Does task already exist in Supabase?
-        let existingRow = null;
-        if (_dbSupportsClientTaskId && clientTaskId) {
-          const { data: found } = await sb.from('tasks').select('*').eq('business_id', bizId).eq('client_task_id', clientTaskId).maybeSingle();
-          if (found && found.id) existingRow = found;
-        }
-        if (!existingRow && clientTaskId) {
-          const { data: foundList } = await sb.from('tasks').select('*').eq('business_id', bizId).ilike('notes', '%[cid:' + clientTaskId + ']%').limit(1);
-          if (foundList && foundList.length > 0) existingRow = foundList[0];
-        }
-
-        if (existingRow && existingRow.id) {
-          _reconcileLocalTaskId(localId, clientTaskId, existingRow);
-          _reconcileQueueTargetId(queue, localId, existingRow.id);
-          continue; // Already in cloud, reconciled without duplicate insert
-        }
-
-        const dbPayload = sanitizeTaskForSupabase(payload);
-        if (!_dbSupportsClientTaskId) delete dbPayload.client_task_id;
-        else if (clientTaskId) dbPayload.client_task_id = clientTaskId;
-        if (!_dbSupportsUpdatedAt) delete dbPayload.updated_at;
-        dbPayload.notes = packTaskNotes(payload.notes, clientTaskId, payload.updated_at || payload.created_at);
-
-        const { data: inserted, error: insErr } = await sb.from('tasks').insert(dbPayload).select().single();
-        if (insErr || !inserted) {
-          console.warn('[TASK SYNC] Insert failed:', insErr);
-          _markLocalTaskSyncStatus(localId, clientTaskId, 'failed');
-          item.retryCount = (item.retryCount || 0) + 1;
-          remaining.push(item);
-        } else {
-          _reconcileLocalTaskId(localId, clientTaskId, inserted);
-          _reconcileQueueTargetId(queue, localId, inserted.id);
-        }
-      } else if (item.action_type === 'update') {
-        let targetId = item.target_id || (item.payload && item.payload.id);
-        const localId = item.local_id || (targetId && String(targetId).startsWith('loc_') ? targetId : null);
-        const clientTaskId = item.client_task_id || (item.payload && item.payload.client_task_id);
-
-        if (targetId && String(targetId).startsWith('loc_')) {
-          const matching = cache.tasks.find(t => t.id === targetId || t.local_id === targetId || (clientTaskId && t.client_task_id === clientTaskId));
-          if (matching && matching.id && !String(matching.id).startsWith('loc_')) {
-            targetId = matching.id;
-            item.target_id = targetId;
-          } else {
-            remaining.push(item);
-            continue;
-          }
-        }
-
-        const dbPayload = sanitizeTaskForSupabase(item.payload || {});
-        if (!_dbSupportsClientTaskId) delete dbPayload.client_task_id;
-        else if (clientTaskId) dbPayload.client_task_id = clientTaskId;
-        if (!_dbSupportsUpdatedAt) delete dbPayload.updated_at;
-        if (typeof item.payload.notes !== 'undefined') {
-          dbPayload.notes = packTaskNotes(item.payload.notes, clientTaskId, dbPayload.updated_at || new Date().toISOString());
-        }
-
-        const { error: upErr } = await sb.from('tasks').update(dbPayload).eq('id', targetId);
-        if (upErr) {
-          console.warn('[TASK SYNC] Update failed:', upErr);
-          _markLocalTaskSyncStatus(targetId, clientTaskId, 'failed');
-          item.retryCount = (item.retryCount || 0) + 1;
-          remaining.push(item);
-        } else {
-          _markLocalTaskSyncStatus(targetId, clientTaskId, 'synced');
-        }
-      } else if (item.action_type === 'delete') {
-        let targetId = item.target_id || (item.payload && item.payload.id);
-        const clientTaskId = item.client_task_id;
-
-        if (targetId && String(targetId).startsWith('loc_')) {
-          _removeTaskTombstone(targetId, clientTaskId);
-          continue;
-        }
-
-        const { error: delErr } = await sb.from('tasks').delete().eq('id', targetId);
-        if (delErr) {
-          console.warn('[TASK SYNC] Delete failed:', delErr);
-          item.retryCount = (item.retryCount || 0) + 1;
-          remaining.push(item);
-        } else {
-          _removeTaskTombstone(targetId, clientTaskId);
-        }
+  // Instant direct save to Supabase
+  if (_isOnline() && sb) {
+    const payload = sanitizeTaskForSupabase(task);
+    sb.from('tasks').insert(payload).select().single().then(({ data: ins, error: err }) => {
+      if (!err && ins) {
+        task.sync_status = 'synced';
+        _tasksSave();
       } else {
-        remaining.push(item);
+        console.warn('[TASK INSERT FAILED]', err);
+        task.sync_status = 'failed';
+        _tasksSave();
+        _enqueueTaskMutation('insert', payload);
       }
-    } catch(e) {
-      console.warn('[TASK SYNC] Exception processing mutation:', e);
-      item.retryCount = (item.retryCount || 0) + 1;
-      remaining.push(item);
-    }
+    }).catch(e => {
+      console.warn('[TASK INSERT ERROR]', e);
+      _enqueueTaskMutation('insert', payload);
+    });
+  } else {
+    _enqueueTaskMutation('insert', sanitizeTaskForSupabase(task));
   }
 
-  const newQueue = remaining.concat(otherItems);
-  localStorage.setItem('br_offline_mutation_queue', JSON.stringify(newQueue));
-  updateOfflineBadgeBar();
-}
+  return task;
+};
+
+window.updateTaskLocally = function(id, updates) {
+  if (!Array.isArray(cache.tasks)) return null;
+  const t = cache.tasks.find(x => x.id === id);
+  if (!t) return null;
+
+  Object.assign(t, updates);
+  t.sync_status = 'pending';
+  _tasksSave();
+
+  const payload = sanitizeTaskForSupabase(updates);
+  if (_isOnline() && sb) {
+    sb.from('tasks').update(payload).eq('id', id).then(({ error }) => {
+      if (!error) {
+        t.sync_status = 'synced';
+        _tasksSave();
+      } else {
+        console.warn('[TASK UPDATE FAILED]', error);
+        _enqueueTaskMutation('update', { id, ...payload });
+      }
+    }).catch(e => {
+      console.warn('[TASK UPDATE ERROR]', e);
+      _enqueueTaskMutation('update', { id, ...payload });
+    });
+  } else {
+    _enqueueTaskMutation('update', { id, ...payload });
+  }
+
+  return t;
+};
 
 function _deterministicTaskMerge(localTasks, cloudTasks, specificBizId) {
   const bizId = specificBizId || (session ? session.businessId : null);
-  const systemPrefixes = ['[CUSTOMER_', '[EDIT_REQ]', '[EXPIRY_', '[EXPENSES_', '[SALARY_', '[FUTURE_', '[FEATURE_', '[VENDOR_', '[SALES_'];
+  const systemPrefixes = ['[CUSTOMER_', '[EDIT_REQ]', '[EXPIRY_', '[EXPENSES_', '[SALARY_', '[FUTURE_', '[FEATURE_', '[VENDOR_', '[SALES_', '[STAFF_', '[OFFICE_', '[PRICE_'];
   const isSys = (t) => t && t.title && systemPrefixes.some(p => t.title.startsWith(p));
 
-  const tombstones = _getTaskTombstones(bizId);
+  const deletedIds = (typeof _getDeletedTaskIds === 'function') ? _getDeletedTaskIds(bizId) : new Set();
   const userCloudTasks = (cloudTasks || []).filter(ct => ct && !isSys(ct));
   const userLocalTasks = (localTasks || []).filter(lt => lt && !isSys(lt));
 
-  const localById = new Map();
-  const localByClientTaskId = new Map();
-
+  const localMap = new Map();
   userLocalTasks.forEach(lt => {
-    if (lt.id) localById.set(String(lt.id), lt);
-    if (lt.client_task_id) localByClientTaskId.set(String(lt.client_task_id), lt);
-    if (lt.local_id) localById.set(String(lt.local_id), lt);
+    if (lt && lt.id) localMap.set(String(lt.id), lt);
   });
 
-  const mergedMap = new Map();
+  const merged = [];
+  const handledIds = new Set();
 
   // 1. Process cloud tasks
   userCloudTasks.forEach(ct => {
     const cloudId = String(ct.id);
-    const parsed = parseTaskNotesMeta(ct.notes);
-    const cloudClientTaskId = ct.client_task_id || parsed.client_task_id;
-    const cloudUpdatedAt = ct.updated_at || parsed.updated_at || ct.created_at || new Date().toISOString();
+    handledIds.add(cloudId);
 
-    // Check if deleted locally (tombstone)
-    if (tombstones.has(cloudId) || (cloudClientTaskId && tombstones.has(cloudClientTaskId))) {
-      if (sb && navigator.onLine) {
-        sb.from('tasks').delete().eq('id', ct.id).catch(e => console.warn('[TASK SYNC] Cleanup tombstone error:', e));
+    // If deleted locally, delete from cloud and skip
+    if (deletedIds.has(cloudId)) {
+      if (sb && _isOnline()) {
+        sb.from('tasks').delete().eq('id', ct.id).catch(() => {});
       }
       return;
     }
 
-    let local = localById.get(cloudId);
-    if (!local && cloudClientTaskId) {
-      local = localByClientTaskId.get(cloudClientTaskId);
-    }
-
+    const local = localMap.get(cloudId);
     if (!local) {
-      // Cloud task not found locally -> New task from another device!
-      const newTask = Object.assign({}, ct, {
-        notes: parsed.displayNotes,
-        client_task_id: cloudClientTaskId || ('cid_' + ct.id),
-        updated_at: cloudUpdatedAt,
-        sync_status: 'synced'
-      });
-      mergedMap.set(cloudId, newTask);
+      // New task from another device
+      merged.push(Object.assign({}, ct, { sync_status: 'synced' }));
     } else {
-      if (local.is_deleted) {
-        if (sb && navigator.onLine) {
-          sb.from('tasks').delete().eq('id', ct.id).catch(e => console.warn('[TASK SYNC]', e));
-        }
-        return;
-      }
-
-      const localUpdatedAt = local.updated_at || local.created_at || '';
-      const localTime = new Date(localUpdatedAt).getTime() || 0;
-      const cloudTime = new Date(cloudUpdatedAt).getTime() || 0;
-
-      if ((local.sync_status === 'pending' || local.sync_status === 'failed') && localTime > cloudTime) {
-        // Local has unsynced newer changes
-        local.id = ct.id;
-        local.client_task_id = local.client_task_id || cloudClientTaskId;
-        mergedMap.set(cloudId, local);
+      // If local task has pending unpushed changes, keep local version
+      if (local.sync_status === 'pending' || local.sync_status === 'failed') {
+        merged.push(local);
       } else {
-        // Cloud is newer or synced
-        const mergedTask = Object.assign({}, local, ct, {
-          id: ct.id,
-          notes: parsed.displayNotes,
-          client_task_id: cloudClientTaskId || local.client_task_id,
-          updated_at: cloudUpdatedAt,
-          sync_status: 'synced'
-        });
-        if (local.status === 'done' && ct.status !== 'done' && (local.completed_at || local.updated_at)) {
-          mergedTask.status = 'done';
-          mergedTask.completed_at = local.completed_at || local.updated_at;
-          mergedTask.sync_status = 'pending';
-        }
-        mergedMap.set(cloudId, mergedTask);
+        // Cloud is authoritative for synced tasks
+        merged.push(Object.assign({}, local, ct, { sync_status: 'synced' }));
       }
     }
   });
 
-  // 2. Check local tasks that were not in cloud response
+  // 2. Process local tasks not in cloud
   userLocalTasks.forEach(lt => {
     const localId = String(lt.id);
-    const clientTaskId = lt.client_task_id;
+    if (handledIds.has(localId)) return;
+    if (deletedIds.has(localId)) return;
 
-    if (mergedMap.has(localId) || (clientTaskId && Array.from(mergedMap.values()).some(m => m.client_task_id === clientTaskId))) {
-      return;
+    // If local task is pending or failed to sync, ALWAYS keep it
+    if (lt.sync_status === 'pending' || lt.sync_status === 'failed') {
+      merged.push(lt);
     }
-    if (lt.is_deleted || tombstones.has(localId) || (clientTaskId && tombstones.has(clientTaskId))) {
-      return;
-    }
-
-    if (lt.sync_status === 'pending' || lt.sync_status === 'failed' || localId.startsWith('loc_')) {
-      // Local pending/failed task not yet on cloud -> keep and retry sync!
-      mergedMap.set(localId, lt);
-    }
-    // If previously 'synced' and missing from cloud -> deleted on another device!
   });
 
-  return Array.from(mergedMap.values());
+  return merged;
 }
 window._deterministicTaskMerge = _deterministicTaskMerge;
 
+let _isSyncingTasks = false;
 async function syncTasks(options = {}) {
   const clientSb = sb || (typeof window !== 'undefined' && window.sb);
   if (!_isOnline() || !session || !session.businessId || !clientSb) {
     return { success: false, reason: 'offline_or_uninitialized' };
   }
-  if (_isSyncingTasks) {
-    return { success: false, reason: 'already_syncing' };
-  }
+  if (_isSyncingTasks) return { success: false, reason: 'already_syncing' };
   _isSyncingTasks = true;
 
   try {
     const bizId = session.businessId;
-    await _detectTaskSchemaFeatures();
-    await _processTaskMutationQueue();
 
+    // 1. Flush pending task mutations queue
+    const queue = getPendingTaskMutations();
+    if (queue.length > 0) {
+      const remaining = [];
+      for (const item of queue) {
+        try {
+          if (item.action === 'insert') {
+            const { error: insErr } = await clientSb.from('tasks').upsert(item.payload);
+            if (insErr) remaining.push(item);
+          } else if (item.action === 'update') {
+            const { error: upErr } = await clientSb.from('tasks').update(item.payload).eq('id', item.id);
+            if (upErr) remaining.push(item);
+          } else if (item.action === 'delete') {
+            const { error: delErr } = await clientSb.from('tasks').delete().eq('id', item.id);
+            if (delErr) remaining.push(item);
+          }
+        } catch(e) {
+          remaining.push(item);
+        }
+      }
+      _savePendingTaskMutations(remaining);
+    }
+
+    // 2. Fetch fresh tasks from Supabase
     const { data: cloudTasks, error: fetchErr } = await clientSb
       .from('tasks')
       .select('*')
@@ -1574,176 +1477,27 @@ async function syncTasks(options = {}) {
 
     const oldJson = JSON.stringify(cache.tasks || []);
     const merged = _deterministicTaskMerge(cache.tasks || [], cloudTasks || [], bizId);
-
     cache.tasks = merged;
     _tasksSave();
 
     const newJson = JSON.stringify(cache.tasks);
     if (oldJson !== newJson || options.forceRender) {
-      try {
-        if (typeof safeBackgroundRenderTabBody === 'function') {
-          safeBackgroundRenderTabBody();
-        } else if (typeof renderTabBody === 'function' && typeof activeTab !== 'undefined' && activeTab === 'tasks') {
-          renderTabBody();
-        }
-      } catch(uiErr) {
-        console.warn('[TASK SYNC] UI render warning:', uiErr);
+      if (typeof safeBackgroundRenderTabBody === 'function') {
+        safeBackgroundRenderTabBody();
+      } else if (typeof renderTabBody === 'function' && activeTab === 'tasks') {
+        renderTabBody();
       }
     }
 
-    _lastTaskSyncAt = new Date().toISOString();
-    _lastTaskSyncError = null;
-    updateOfflineBadgeBar();
     return { success: true, count: merged.length };
   } catch(err) {
-    _lastTaskSyncError = err.message || String(err);
-    console.warn('[TASK SYNC]', err);
-    updateOfflineBadgeBar();
+    console.warn('[TASK SYNC ERROR]', err);
     return { success: false, error: err };
   } finally {
     _isSyncingTasks = false;
   }
 }
 window.syncTasks = syncTasks;
-
-window.__taskSyncDiagnostics = function() {
-  const queue = (typeof getOfflineQueue === 'function') ? getOfflineQueue() : [];
-  const tasksQueue = queue.filter(q => q.table === 'tasks');
-  const allTasks = (typeof cache !== 'undefined' && Array.isArray(cache.tasks)) ? cache.tasks : [];
-  return {
-    online: navigator.onLine,
-    queuedMutations: tasksQueue.length,
-    pendingTasks: allTasks.filter(t => t && t.sync_status === 'pending').length,
-    failedTasks: allTasks.filter(t => t && t.sync_status === 'failed').length,
-    localTasks: allTasks.length,
-    lastSyncAt: _lastTaskSyncAt,
-    lastSyncError: _lastTaskSyncError
-  };
-};
-
-window.createTaskLocally = function(data) {
-  if (!session || !session.businessId) return null;
-  const clientTaskId = 'cid_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
-  const localId = 'loc_task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
-  const nowIso = new Date().toISOString();
-
-  const task = {
-    id: localId,
-    local_id: localId,
-    client_task_id: clientTaskId,
-    business_id: session.businessId,
-    assigned_to: (data.assigned_to && data.assigned_to !== 'all') ? data.assigned_to : null,
-    created_by: session.staffId || null,
-    title: (data.title || '').trim(),
-    notes: (data.notes || '').trim(),
-    priority: data.priority || 'medium',
-    due_date: data.due_date || todayStr(),
-    due_time: data.due_time || null,
-    status: data.status || 'pending',
-    created_at: nowIso,
-    updated_at: nowIso,
-    sync_status: 'pending'
-  };
-
-  if (!Array.isArray(cache.tasks)) cache.tasks = [];
-  cache.tasks.unshift(task);
-  _tasksSave();
-
-  // Direct asynchronous cloud save if online
-  if (_isOnline() && sb) {
-    (async () => {
-      try {
-        await _detectTaskSchemaFeatures();
-        const dbPayload = sanitizeTaskForSupabase(task);
-        if (_dbSupportsClientTaskId) dbPayload.client_task_id = clientTaskId;
-        else dbPayload.notes = packTaskNotes(dbPayload.notes, clientTaskId, nowIso);
-        if (_dbSupportsUpdatedAt) dbPayload.updated_at = nowIso;
-
-        const { data: inserted, error: insErr } = await sb.from('tasks').insert(dbPayload).select().single();
-        if (!insErr && inserted && inserted.id) {
-          task.id = inserted.id;
-          task.sync_status = 'synced';
-          task.updated_at = inserted.updated_at || nowIso;
-          _tasksSave();
-          if (typeof renderTabBody === 'function' && activeTab === 'tasks') renderTabBody();
-          return;
-        }
-      } catch (err) {
-        console.warn('[TASK DIRECT INSERT] Cloud failed, queueing:', err);
-      }
-
-      // If direct insert failed, queue offline mutation
-      queueOfflineMutation('insert', 'tasks', Object.assign({}, task), {
-        local_id: localId,
-        client_task_id: clientTaskId,
-        timestamp: nowIso
-      });
-      syncTasks().catch(e => console.warn('[TASK SYNC]', e));
-    })();
-  } else {
-    queueOfflineMutation('insert', 'tasks', Object.assign({}, task), {
-      local_id: localId,
-      client_task_id: clientTaskId,
-      timestamp: nowIso
-    });
-    syncTasks().catch(e => console.warn('[TASK SYNC]', e));
-  }
-
-  return task;
-};
-
-window.updateTaskLocally = function(id, updates) {
-  if (!Array.isArray(cache.tasks)) return null;
-  const t = cache.tasks.find(x => x.id === id || (x.local_id && x.local_id === id));
-  if (!t) return null;
-
-  const nowIso = new Date().toISOString();
-  Object.assign(t, updates);
-  t.updated_at = nowIso;
-  t.sync_status = 'pending';
-  _tasksSave();
-
-  const isCloudId = t.id && !String(t.id).startsWith('loc_');
-  if (_isOnline() && sb && isCloudId) {
-    (async () => {
-      try {
-        await _detectTaskSchemaFeatures();
-        const dbPayload = sanitizeTaskForSupabase(Object.assign({}, t, updates));
-        if (_dbSupportsClientTaskId && t.client_task_id) dbPayload.client_task_id = t.client_task_id;
-        else if (t.client_task_id) dbPayload.notes = packTaskNotes(dbPayload.notes, t.client_task_id, nowIso);
-        if (_dbSupportsUpdatedAt) dbPayload.updated_at = nowIso;
-
-        const { error: upErr } = await sb.from('tasks').update(dbPayload).eq('id', t.id);
-        if (!upErr) {
-          t.sync_status = 'synced';
-          _tasksSave();
-          if (typeof renderTabBody === 'function' && activeTab === 'tasks') renderTabBody();
-          return;
-        }
-      } catch (err) {
-        console.warn('[TASK DIRECT UPDATE] Cloud failed, queueing:', err);
-      }
-
-      queueOfflineMutation('update', 'tasks', Object.assign({ id: t.id }, updates, { updated_at: nowIso }), {
-        target_id: t.id,
-        local_id: t.local_id || null,
-        client_task_id: t.client_task_id || null,
-        timestamp: nowIso
-      });
-      syncTasks().catch(e => console.warn('[TASK SYNC]', e));
-    })();
-  } else {
-    queueOfflineMutation('update', 'tasks', Object.assign({ id: t.id }, updates, { updated_at: nowIso }), {
-      target_id: t.id,
-      local_id: t.local_id || null,
-      client_task_id: t.client_task_id || null,
-      timestamp: nowIso
-    });
-    syncTasks().catch(e => console.warn('[TASK SYNC]', e));
-  }
-
-  return t;
-};
 
 let _taskSyncInterval = null;
 function _startTaskSyncPoller() {

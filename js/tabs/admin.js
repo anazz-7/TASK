@@ -2175,7 +2175,6 @@ window.__reloadAppData = async function(btn) {
     // Push local payloads first so device A's latest updates reach cloud
     try {
       if (typeof getCustomerDirectory === 'function') syncCustomCloudPayload('[CUSTOMER_DIRECTORY_DATA]', getCustomerDirectory());
-      if (typeof getCustomerReportsData === 'function') syncCustomCloudPayload('[CUSTOMER_REPORTS_DATA]', getCustomerReportsData());
       if (typeof getExpiryItems === 'function') syncCustomCloudPayload('[EXPIRY_ITEMS_DATA]', getExpiryItems());
       if (typeof getExpensesList === 'function') syncCustomCloudPayload('[EXPENSES_TRACKER_DATA]', getExpensesList());
       if (typeof getSalaryAdvances === 'function') syncCustomCloudPayload('[SALARY_ADVANCES_DATA]', getSalaryAdvances());
@@ -2347,8 +2346,6 @@ function saveCustomerReportsData() {
     localStorage.setItem('br_cust_dir_' + session.businessId, JSON.stringify(dir));
     syncCustomCloudPayload('[CUSTOMER_DIRECTORY_DATA]', dir);
   } catch(e){}
-
-  syncCustomCloudPayload('[CUSTOMER_REPORTS_DATA]', cache.customerReports);
 }
 
 
