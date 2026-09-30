@@ -174,17 +174,19 @@ window.__openQuickTaskModal = function() {
 
 window.__submitQuickModal = async function() {
   const inputEl = document.getElementById('quickModalInput');
-  if(!inputEl) return;
+  if (!inputEl) return;
   const val = inputEl.value.trim();
-  if(!val) return;
+  if (!val) return;
   const parsed = parseNaturalTaskText(val);
-  if(!parsed || !parsed.title) return;
+  if (!parsed || !parsed.title) return;
+
+  const assignedStaff = (parsed.assignedTo && parsed.assignedTo !== 'all') ? parsed.assignedTo : (session ? session.staffId : null);
 
   if (typeof window.createTaskLocally === 'function') {
     window.createTaskLocally({
-      business_id: session.businessId,
-      assigned_to: parsed.assignedTo || session.staffId,
-      created_by: session.staffId,
+      business_id: session ? session.businessId : null,
+      assigned_to: assignedStaff,
+      created_by: session ? session.staffId : null,
       title: parsed.title,
       priority: parsed.priority || 'medium',
       due_date: parsed.dueDate || todayStr(),
@@ -198,26 +200,27 @@ window.__submitQuickModal = async function() {
   if (typeof getModalHolder === 'function') getModalHolder('taskModalHolder').innerHTML = '';
   if (typeof celebrateDone === 'function') celebrateDone();
   if (typeof window.showToast === 'function') {
-    window.showToast('⚡ Task created & syncing...', 'success');
+    window.showToast('⚡ Task created!', 'success');
   }
   if (activeTab === 'tasks') renderTabBody(); else { activeTab = 'tasks'; renderShell(); }
 };
 
-
 window.__quickAddNaturalTask = async function() {
   const inputEl = document.getElementById('quickTaskInput');
-  if(!inputEl) return;
+  if (!inputEl) return;
   const val = inputEl.value.trim();
-  if(!val) return;
+  if (!val) return;
 
   const parsed = parseNaturalTaskText(val);
-  if(!parsed || !parsed.title) return;
+  if (!parsed || !parsed.title) return;
+
+  const assignedStaff = (parsed.assignedTo && parsed.assignedTo !== 'all') ? parsed.assignedTo : (session ? session.staffId : null);
 
   if (typeof window.createTaskLocally === 'function') {
     window.createTaskLocally({
-      business_id: session.businessId,
-      assigned_to: parsed.assignedTo || session.staffId,
-      created_by: session.staffId,
+      business_id: session ? session.businessId : null,
+      assigned_to: assignedStaff,
+      created_by: session ? session.staffId : null,
       title: parsed.title,
       priority: parsed.priority || 'medium',
       due_date: parsed.dueDate || todayStr(),
@@ -230,28 +233,36 @@ window.__quickAddNaturalTask = async function() {
   inputEl.value = '';
   if (typeof celebrateDone === 'function') celebrateDone();
   if (typeof window.showToast === 'function') {
-    window.showToast('⚡ Task created & syncing...', 'success');
+    window.showToast('⚡ Task created!', 'success');
   }
   renderTabBody();
 };
-
-
 
 window.__setTaskSubTab = function(t) {
   taskSubTab = t;
   renderTabBody();
 };
 
+function renderTasksTab(body) {
+  if (typeof taskSubTab === 'undefined') window.taskSubTab = 'active';
+  const rawTasks = Array.isArray(cache.tasks) ? cache.tasks : [];
+  
+  // Filter by role & exclude deleted tombstones
+  let list = isManagerPlus() 
+    ? rawTasks 
+    : rawTasks.filter(t => !t.assigned_to || t.assigned_to === 'all' || t.assigned_to === session.staffId || t.created_by === session.staffId);
+  list = list.filter(t => t && !t.is_deleted && (!t.title || !t.title.startsWith('[')));
 
-function renderTasksTab(body){
-  if(typeof taskSubTab === 'undefined') window.taskSubTab = 'active';
-  let list = isManagerPlus() ? cache.tasks : cache.tasks.filter(t => !t.assigned_to || t.assigned_to === 'all' || t.assigned_to === session.staffId || t.created_by === session.staffId);
-  list = list.filter(t => t && !t.is_deleted);
-  if(taskFilter.staffId) list = list.filter(t=>t.assigned_to===taskFilter.staffId);
-  if(taskFilter.priority) list = list.filter(t=>t.priority===taskFilter.priority);
-  if(taskFilter.search) list = list.filter(t=>t.title.toLowerCase().includes(taskFilter.search.toLowerCase()));
-  const pending = list.filter(t=>t.status!=='done');
-  const done = list.filter(t=>t.status==='done');
+  if (taskFilter.staffId) list = list.filter(t => t.assigned_to === taskFilter.staffId);
+  if (taskFilter.priority) list = list.filter(t => t.priority === taskFilter.priority);
+  if (taskFilter.search) {
+    const q = taskFilter.search.toLowerCase();
+    list = list.filter(t => (t.title && t.title.toLowerCase().includes(q)) || (t.notes && t.notes.toLowerCase().includes(q)));
+  }
+
+  const pending = list.filter(t => t.status !== 'done');
+  const done = list.filter(t => t.status === 'done');
+
   const row = (t) => {
     const dispNotes = (typeof getDisplayTaskNotes === 'function') ? getDisplayTaskNotes(t.notes) : (t.notes || '');
     const syncBadge = t.sync_status === 'pending'
@@ -261,105 +272,124 @@ function renderTasksTab(body){
         : '');
 
     return `
-    <div class="row-card ${isOverdue(t)?'overdue':''}">
+    <div class="row-card ${isOverdue(t) ? 'overdue' : ''}">
       <div class="row-main">
-        <div class="meta"><span>${esc(staffName(t.assigned_to))}</span>${t.due_date?`<span>${fmtDue(t)}</span>`:''}</div>
-        <h3><span class="status-dot ${t.status==='done'?'green':'red'}"></span>${esc(t.title)}</h3>
-        ${dispNotes?`<div class="notes">${esc(dispNotes)}</div>`:''}
-        <div style="margin-top:8px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
-          <span class="stamp ${t.priority}">${t.priority}</span>
-          <span class="stamp ${t.status}">${t.status}</span>
-          ${isOverdue(t)?`<span class="stamp overdue-badge">overdue</span>`:''}
+        <div class="meta">
+          <span>${esc(staffName(t.assigned_to) || 'Unassigned')}</span>
+          ${t.due_date ? `<span>📅 ${fmtDue(t)}</span>` : ''}
+        </div>
+        <h3 style="margin:4px 0 6px;">
+          <span class="status-dot ${t.status === 'done' ? 'green' : 'red'}"></span>
+          ${esc(t.title)}
+        </h3>
+        ${dispNotes ? `<div class="notes" style="color:var(--ink-soft);font-size:0.8rem;line-height:1.35;margin-bottom:6px;">${esc(dispNotes)}</div>` : ''}
+        <div style="margin-top:6px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+          <span class="stamp ${t.priority || 'medium'}">${t.priority || 'medium'}</span>
+          <span class="stamp ${t.status || 'pending'}">${t.status || 'pending'}</span>
+          ${isOverdue(t) ? `<span class="stamp overdue-badge">overdue</span>` : ''}
           ${syncBadge}
         </div>
       </div>
       <div class="row-actions" style="display:flex;align-items:center;gap:6px;">
-        ${t.status!=='done'?`<button class="icon-btn" style="font-weight:600;color:var(--turmeric);" onclick="window.__markDone('${t.id}')">${icon('check',14)} Done</button>`:''}
+        ${t.status !== 'done' ? `<button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border:none;padding:5px 12px;font-weight:700;" onclick="window.__markDone('${t.id}')">✓ Done</button>` : ''}
         <div class="action-dropdown-holder">
           <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${t.id}')">More ▾</button>
           <div class="action-dropdown-menu" id="actionMenu_${t.id}">
-            ${isManagerPlus()?`<button onclick="window.__editTask('${t.id}')">✎ Edit</button>`:''}
-            ${isManagerPlus()?`<button onclick="window.__sendWa('${t.id}')">💬 WhatsApp</button>`:''}
-            ${isManagerPlus()?`<button onclick="window.__sendSms('${t.id}')">📲 SMS</button>`:''}
-            ${isOwner()?`<button class="danger" onclick="window.__deleteTask('${t.id}')">🗑 Delete</button>`:''}
+            ${isManagerPlus() ? `<button onclick="window.__editTask('${t.id}')">✎ Edit</button>` : ''}
+            ${isManagerPlus() ? `<button onclick="window.__sendWa('${t.id}')">💬 WhatsApp</button>` : ''}
+            ${isManagerPlus() ? `<button onclick="window.__sendSms('${t.id}')">📲 SMS</button>` : ''}
+            ${isOwner() ? `<button class="danger" onclick="window.__deleteTask('${t.id}')">🗑 Delete</button>` : ''}
           </div>
         </div>
       </div>
     </div>`;
   };
-  const doneRowCollapsed = (t) => `
-    <div class="row-card collapse-row compact-done-card" onclick="window.__toggleDone('${t.id}')">
-      <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1;overflow:hidden;">
-        <span class="collapse-arrow" style="font-size:0.75rem;color:var(--ink-soft);flex-shrink:0;">▸</span>
-        <span class="status-dot green" style="flex-shrink:0;"></span>
-        <span style="font-size:0.78rem;font-weight:600;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;">${esc(t.title)}</span>
-      </div>
-      <span class="stamp done" style="font-size:0.58rem;padding:1px 6px;border-radius:999px;flex-shrink:0;margin-left:8px;">✓ Done</span>
-    </div>`;
 
-  const doneRow = (t) => expandedDoneIds.has(t.id)
-    ? `<div class="row-card collapse-row" style="padding:8px 14px;" onclick="window.__toggleDone('${t.id}')">
-         <span class="collapse-arrow open">▸</span><span style="font-size:0.75rem;color:var(--ink-soft);">Tap to collapse</span>
-       </div>
-       ${row(t)}`
-    : doneRowCollapsed(t);
+  const historyRow = (t) => {
+    const dispNotes = (typeof getDisplayTaskNotes === 'function') ? getDisplayTaskNotes(t.notes) : (t.notes || '');
+    return `
+    <div class="row-card" style="opacity:0.9;border-left:3px solid var(--leaf);">
+      <div class="row-main">
+        <div class="meta">
+          <span>${esc(staffName(t.assigned_to) || 'Completed')}</span>
+          ${t.due_date ? `<span>Due: ${fmtDue(t)}</span>` : ''}
+        </div>
+        <h3 style="margin:4px 0 6px;">
+          <span class="status-dot green"></span>
+          <span style="text-decoration:line-through;color:var(--ink-soft);">${esc(t.title)}</span>
+        </h3>
+        ${dispNotes ? `<div class="notes" style="color:var(--ink-soft);font-size:0.78rem;">${esc(dispNotes)}</div>` : ''}
+        <div style="margin-top:6px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+          <span class="stamp done">✓ Completed</span>
+          <span class="stamp ${t.priority || 'medium'}">${t.priority || 'medium'}</span>
+        </div>
+      </div>
+      <div class="row-actions" style="display:flex;align-items:center;gap:6px;">
+        <button class="stamp-btn small ghost" style="padding:4px 8px;font-size:0.7rem;" onclick="window.__reopenTask('${t.id}')" title="Move back to active">↩ Reopen</button>
+        ${isOwner() ? `<button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:4px 8px;font-size:0.7rem;" onclick="window.__deleteTask('${t.id}')">🗑</button>` : ''}
+      </div>
+    </div>`;
+  };
+
   const filterBar = isManagerPlus() ? `
-    <div class="row-card" style="flex-direction:column;align-items:stretch;background:transparent;border-style:dashed;">
+    <div class="row-card" style="flex-direction:column;align-items:stretch;background:transparent;border-style:dashed;margin-bottom:14px;padding:12px;">
       <div class="two-col">
         <div><label style="margin-top:0;">Staff</label>
           <select id="filterStaff" onchange="window.__setTaskFilter()">
             <option value="">All staff</option>
-            ${cache.staff.map(s=>`<option value="${s.id}" ${taskFilter.staffId===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}
+            ${(cache.staff || []).map(s => `<option value="${s.id}" ${taskFilter.staffId === s.id ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}
           </select>
         </div>
         <div><label style="margin-top:0;">Priority</label>
           <select id="filterPriority" onchange="window.__setTaskFilter()">
             <option value="">All priorities</option>
-            <option value="high" ${taskFilter.priority==='high'?'selected':''}>High</option>
-            <option value="medium" ${taskFilter.priority==='medium'?'selected':''}>Medium</option>
-            <option value="low" ${taskFilter.priority==='low'?'selected':''}>Low</option>
+            <option value="high" ${taskFilter.priority === 'high' ? 'selected' : ''}>High</option>
+            <option value="medium" ${taskFilter.priority === 'medium' ? 'selected' : ''}>Medium</option>
+            <option value="low" ${taskFilter.priority === 'low' ? 'selected' : ''}>Low</option>
           </select>
         </div>
       </div>
-      <label>Search title</label>
+      <label>Search title / notes</label>
       <input id="filterSearch" placeholder="Type to search..." value="${esc(taskFilter.search)}" oninput="window.__setTaskFilter()">
     </div>` : '';
+
   const quickBar = isManagerPlus() ? `
     <div class="row-card" style="flex-direction:column;align-items:stretch;background:var(--paper);border:1.5px solid var(--turmeric-dark);margin-bottom:14px;padding:12px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
         <span style="font-weight:700;font-size:0.85rem;color:var(--turmeric-dark);">⚡ Quick Add Task via Natural Text</span>
-        <span style="font-size:0.7rem;color:var(--ink-soft);">Try: "Clean store tomorrow @Anas !high"</span>
+        <span style="font-size:0.7rem;color:var(--ink-soft);">Try: "Restock store tomorrow @Staff !high"</span>
       </div>
       <div style="display:flex;gap:6px;">
         <input id="quickTaskInput" placeholder="Type task title, @Staff, !priority, due date..." onkeypress="if(event.key==='Enter') window.__quickAddNaturalTask()" style="flex:1;font-size:0.88rem;">
-        <button class="stamp-btn" style="padding:8px 14px;font-size:0.85rem;" onclick="window.__quickAddNaturalTask()">+ Add</button>
+        <button class="stamp-btn" style="padding:8px 14px;font-size:0.85rem;background:var(--turmeric);color:#fff;border:none;" onclick="window.__quickAddNaturalTask()">+ Add</button>
       </div>
-    </div>
-  ` : '';
+    </div>` : '';
 
   body.innerHTML = `
     <!-- Tasks Sub-Menu Navigation Bar -->
-    <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;">
-      <button class="stamp-btn small ${taskSubTab==='active'?'':'ghost'}" onclick="window.__setTaskSubTab('active')">⚡ Active Tasks (${pending.length})</button>
-      <button class="stamp-btn small ${taskSubTab==='history'?'':'ghost'}" onclick="window.__setTaskSubTab('history')">📜 Task History (${done.length})</button>
+    <div style="display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;">
+      <button class="stamp-btn small ${taskSubTab === 'active' ? '' : 'ghost'}" style="${taskSubTab === 'active' ? 'background:var(--turmeric);color:#fff;' : ''}" onclick="window.__setTaskSubTab('active')">
+        ⚡ Active Tasks (${pending.length})
+      </button>
+      <button class="stamp-btn small ${taskSubTab === 'history' ? '' : 'ghost'}" style="${taskSubTab === 'history' ? 'background:var(--turmeric);color:#fff;' : ''}" onclick="window.__setTaskSubTab('history')">
+        📜 Task History (${done.length})
+      </button>
     </div>
 
     ${taskSubTab === 'active' ? `
       ${quickBar}
       ${filterBar}
-      <div class="section-label">Open Active Tasks ${isManagerPlus()?`<a onclick="window.__sendAllPending()">Send all pending &rarr;</a>`:''}</div>
+      <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Open Active Tasks (${pending.length})</span>
+        ${isManagerPlus() && pending.length ? `<a style="cursor:pointer;font-size:0.75rem;color:var(--turmeric);font-weight:700;" onclick="window.__sendAllPending()">Send all pending &rarr;</a>` : ''}
+      </div>
       ${pending.length ? pending.map(row).join('') : `<div class="empty">No open tasks right now. Great job!</div>`}
     ` : ''}
 
     ${taskSubTab === 'history' ? `
       <div class="section-label">Completed Task History (${done.length} tasks)</div>
-      ${done.length ? done.map(row).join('') : `<div class="empty">No completed tasks in history yet.</div>`}
+      ${done.length ? done.map(historyRow).join('') : `<div class="empty">No completed tasks in history yet.</div>`}
     ` : ''}`;
-
-  window.__toggleDone = (id) => {
-    if(expandedDoneIds.has(id)) expandedDoneIds.delete(id); else expandedDoneIds.add(id);
-    renderTabBody();
-  };
 
   window.__setTaskFilter = () => {
     const searchEl = document.getElementById('filterSearch');
@@ -369,44 +399,51 @@ function renderTasksTab(body){
     taskFilter.priority = document.getElementById('filterPriority').value;
     taskFilter.search = searchEl.value;
     renderTabBody();
-    if(hadFocus){ const n=document.getElementById('filterSearch'); if(n){ n.focus(); n.setSelectionRange(cursorPos,cursorPos); } }
+    if (hadFocus) {
+      const n = document.getElementById('filterSearch');
+      if (n) { n.focus(); n.setSelectionRange(cursorPos, cursorPos); }
+    }
   };
+
   window.__sendAllPending = () => {
-    const sendable = cache.tasks.filter(t=>t.status!=='done' && staffPhone(t.assigned_to));
-    if(!sendable.length){ alert('No pending tasks with a WhatsApp number to send.'); return; }
-    if(!confirm(`Open WhatsApp for ${sendable.length} pending task(s)? Allow pop-ups if asked.`)) return;
+    const sendable = (cache.tasks || []).filter(t => t.status !== 'done' && staffPhone(t.assigned_to));
+    if (!sendable.length) { alert('No pending tasks with a WhatsApp number to send.'); return; }
+    if (!confirm(`Open WhatsApp for ${sendable.length} pending task(s)? Allow pop-ups if asked.`)) return;
     sendable.forEach(t => {
       window.open(waLink(t), '_blank');
       if (typeof window.updateTaskLocally === 'function') window.updateTaskLocally(t.id, { status: 'sent' });
     });
     renderTabBody();
   };
+
   window.__sendWa = async (id) => {
-    const t = cache.tasks.find(x=>x.id===id);
-    if(!t) return;
-    if(!staffPhone(t.assigned_to)){ alert('No WhatsApp number on file for this person. Add one in Staff.'); return; }
+    const t = (cache.tasks || []).find(x => x.id === id);
+    if (!t) return;
+    if (!staffPhone(t.assigned_to)) { alert('No WhatsApp number on file for this person. Add one in Staff.'); return; }
     window.open(waLink(t), '_blank');
-    if(t.status!=='done'){
+    if (t.status !== 'done') {
       if (typeof window.updateTaskLocally === 'function') window.updateTaskLocally(id, { status: 'sent' });
       renderTabBody();
     }
   };
+
   window.__sendSms = async (id) => {
-    const t = cache.tasks.find(x=>x.id===id);
-    if(!t) return;
-    if(!staffPhone(t.assigned_to)){ alert('No phone number on file for this person. Add one in Staff.'); return; }
+    const t = (cache.tasks || []).find(x => x.id === id);
+    if (!t) return;
+    if (!staffPhone(t.assigned_to)) { alert('No phone number on file for this person. Add one in Staff.'); return; }
     window.location.href = smsLink(t);
-    if(t.status!=='done'){
+    if (t.status !== 'done') {
       if (typeof window.updateTaskLocally === 'function') window.updateTaskLocally(id, { status: 'sent' });
       renderTabBody();
     }
   };
+
   window.__editTask = (id) => openTaskModal(id);
 }
 
-// __markDone defined GLOBALLY so it always works regardless of active tab
-window.__markDone = function(id) {
-  const t = cache.tasks.find(x => x.id === id || (x.local_id && x.local_id === id));
+// Mark Done Handler
+window.__markDone = async function(id) {
+  const t = (cache.tasks || []).find(x => x.id === id || (x.local_id && x.local_id === id));
   if (!t) return;
 
   if (typeof window.updateTaskLocally === 'function') {
@@ -421,60 +458,99 @@ window.__markDone = function(id) {
   }
 
   celebrateDone();
-  window.showToast('✓ Task done! Moved to Task History.', 'success');
+  window.showToast('✓ Task done! Moved to History.', 'success');
   logAuditEvent('Task Completed', 'Completed: ' + t.title);
 
   if (activeTab === 'tasks') {
     renderTabBody();
   }
 
-  try { awardTaskPoint(t.id, 'task').catch(() => {}); } catch(e){}
-  try { notifyCompletion(t.id, 'task'); } catch(e){}
+  try { awardTaskPoint(t.id, 'task').catch(() => {}); } catch (e) {}
+  try { notifyCompletion(t.id, 'task'); } catch (e) {}
 };
 
-function openTaskModal(taskId){
-  const t = taskId ? cache.tasks.find(x=>x.id===taskId || (x.local_id && x.local_id===taskId)) : null;
+// Reopen Task Handler
+window.__reopenTask = async function(id) {
+  const t = (cache.tasks || []).find(x => x.id === id || (x.local_id && x.local_id === id));
+  if (!t) return;
+
+  if (typeof window.updateTaskLocally === 'function') {
+    window.updateTaskLocally(t.id, {
+      status: 'pending',
+      completed_at: null
+    });
+  } else {
+    t.status = 'pending';
+    t.completed_at = null;
+    _tasksSave();
+  }
+
+  window.showToast('↩ Task re-opened! Moved to Active.', 'info');
+  if (activeTab === 'tasks') {
+    renderTabBody();
+  }
+};
+
+function openTaskModal(taskId) {
+  const t = taskId ? (cache.tasks || []).find(x => x.id === taskId || (x.local_id && x.local_id === taskId)) : null;
   const holder = getModalHolder('taskModalHolder');
+
+  const staffOptions = (cache.staff || []).map(s => 
+    `<option value="${s.id}" ${t && t.assigned_to === s.id ? 'selected' : ''}>${esc(s.name)}</option>`
+  ).join('');
+
   const assignField = isManagerPlus()
-    ? `<label>Assign to</label><select id="mTaskStaff">${cache.staff.map(s=>`<option value="${s.id}" ${t&&t.assigned_to===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select>`
+    ? `<label>Assign to</label>
+       <select id="mTaskStaff">
+         <option value="">Unassigned / All Staff</option>
+         ${staffOptions}
+       </select>`
     : `<label>Assign to</label><input value="${esc(session.name)}" disabled><input type="hidden" id="mTaskStaff" value="${session.staffId}">`;
+
   const modalNotes = t ? (typeof getDisplayTaskNotes === 'function' ? getDisplayTaskNotes(t.notes) : (t.notes || '')) : '';
+
   holder.innerHTML = `
   <div class="overlay show"><div class="modal">
-    <h2>${t?'Edit task':'New task'}</h2>
+    <h2>${t ? '✎ Edit Task' : '⚡ New Task'}</h2>
     ${assignField}
-    <label>Title</label>
-    <input id="mTaskTitle" value="${t?esc(t.title):''}" placeholder="e.g. Restock shelf">
-    <label>Details</label>
-    <textarea id="mTaskNotes" placeholder="Optional">${esc(modalNotes)}</textarea>
+    <label>Title *</label>
+    <input id="mTaskTitle" value="${t ? esc(t.title) : ''}" placeholder="e.g. Restock shelf, Call vendor">
+    <label>Details / Notes</label>
+    <textarea id="mTaskNotes" placeholder="Optional task instructions...">${esc(modalNotes)}</textarea>
     <div class="two-col">
-      <div><label>Due date</label><input type="date" id="mTaskDate" value="${t?t.due_date||'':''}"></div>
-      <div><label>Due time</label><input type="time" id="mTaskTime" value="${t?t.due_time||'':''}"></div>
+      <div><label>Due Date</label><input type="date" id="mTaskDate" value="${t ? (t.due_date || '') : todayStr()}"></div>
+      <div><label>Due Time</label><input type="time" id="mTaskTime" value="${t ? (t.due_time || '') : ''}"></div>
     </div>
     <label>Priority</label>
     <select id="mTaskPriority">
-      <option value="low" ${t&&t.priority==='low'?'selected':''}>Low</option>
-      <option value="medium" ${!t||t.priority==='medium'?'selected':''}>Medium</option>
-      <option value="high" ${t&&t.priority==='high'?'selected':''}>High</option>
+      <option value="low" ${t && t.priority === 'low' ? 'selected' : ''}>Low</option>
+      <option value="medium" ${!t || t.priority === 'medium' ? 'selected' : ''}>Medium</option>
+      <option value="high" ${t && t.priority === 'high' ? 'selected' : ''}>High</option>
     </select>
     <div class="modal-actions">
       <button class="stamp-btn ghost" onclick="window.__closeModal()">Cancel</button>
-      <button class="stamp-btn" onclick="window.__saveTask('${taskId||''}')">Save</button>
+      <button class="stamp-btn" style="background:var(--turmeric);color:#fff;" onclick="window.__saveTask('${taskId || ''}')">Save Task</button>
     </div>
   </div></div>`;
-  window.__closeModal = () => { holder.innerHTML=''; };
-  window.__saveTask = (id) => {
-    const title = document.getElementById('mTaskTitle').value.trim();
+
+  window.__closeModal = () => { holder.innerHTML = ''; };
+
+  window.__saveTask = async (id) => {
+    const title = (document.getElementById('mTaskTitle').value || '').trim();
     if (!title) { alert('Give the task a title.'); return; }
+
+    const rawStaff = document.getElementById('mTaskStaff') ? document.getElementById('mTaskStaff').value : '';
+    const assignedTo = (rawStaff && rawStaff !== 'all') ? rawStaff : null;
+
     const data = {
-      business_id: session.businessId,
-      assigned_to: document.getElementById('mTaskStaff').value,
-      created_by: session.staffId,
+      business_id: session ? session.businessId : null,
+      assigned_to: assignedTo,
+      created_by: session ? session.staffId : null,
       title,
-      notes: document.getElementById('mTaskNotes').value.trim(),
+      notes: (document.getElementById('mTaskNotes').value || '').trim(),
       due_date: document.getElementById('mTaskDate').value || null,
       due_time: document.getElementById('mTaskTime').value || null,
-      priority: document.getElementById('mTaskPriority').value,
+      priority: document.getElementById('mTaskPriority').value || 'medium',
     };
 
     if (id && typeof window.updateTaskLocally === 'function') {
@@ -484,10 +560,11 @@ function openTaskModal(taskId){
     }
 
     holder.innerHTML = '';
-    window.showToast(id ? 'Task updated!' : 'Task created!', 'success');
+    window.showToast(id ? '✓ Task updated!' : '✓ Task created!', 'success');
     _tasksRender();
   };
 }
+
 window.__openTask = () => openTaskModal(null);
 
 /* ---------------- DAILY (recurring routine tasks) ---------------- */

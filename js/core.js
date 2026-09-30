@@ -1266,6 +1266,65 @@ function _markLocalTaskSyncStatus(idOrLocalId, clientTaskId, status) {
   }
 }
 
+function sanitizeTaskForSupabase(raw) {
+  const p = Object.assign({}, raw || {});
+  delete p.id;
+  delete p.local_id;
+  delete p.sync_status;
+  delete p.is_deleted;
+  delete p._sync_state;
+
+  // Title: required string
+  p.title = String(p.title || 'Untitled Task').trim();
+
+  // Business ID: must be valid UUID
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!p.business_id || !uuidRegex.test(String(p.business_id).trim())) {
+    if (session && session.businessId && uuidRegex.test(String(session.businessId).trim())) {
+      p.business_id = session.businessId.trim();
+    }
+  }
+
+  // Assigned To: must be valid UUID or null (NEVER empty string or invalid string)
+  if (p.assigned_to && uuidRegex.test(String(p.assigned_to).trim())) {
+    p.assigned_to = String(p.assigned_to).trim();
+  } else {
+    p.assigned_to = null;
+  }
+
+  // Created By: must be valid UUID or null
+  if (p.created_by && uuidRegex.test(String(p.created_by).trim())) {
+    p.created_by = String(p.created_by).trim();
+  } else {
+    p.created_by = null;
+  }
+
+  // Priority: check constraint check (priority in ('low','medium','high'))
+  const pri = String(p.priority || 'medium').toLowerCase().trim();
+  p.priority = (pri === 'high' || pri === 'urgent') ? 'high' : (pri === 'low' ? 'low' : 'medium');
+
+  // Status: check constraint check (status in ('pending','sent','done'))
+  const st = String(p.status || 'pending').toLowerCase().trim();
+  p.status = (st === 'done' || st === 'completed') ? 'done' : (st === 'sent' ? 'sent' : 'pending');
+
+  // Due Date: must be YYYY-MM-DD or null (NEVER empty string)
+  if (p.due_date && /^\d{4}-\d{2}-\d{2}$/.test(String(p.due_date).trim())) {
+    p.due_date = String(p.due_date).trim();
+  } else {
+    p.due_date = null;
+  }
+
+  // Due Time: must be HH:MM or HH:MM:SS or null (NEVER empty string)
+  if (p.due_time && /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(String(p.due_time).trim())) {
+    p.due_time = String(p.due_time).trim();
+  } else {
+    p.due_time = null;
+  }
+
+  return p;
+}
+window.sanitizeTaskForSupabase = sanitizeTaskForSupabase;
+
 async function _processTaskMutationQueue() {
   const clientSb = sb || (typeof window !== 'undefined' && window.sb);
   if (!_isOnline() || !session || !session.businessId || !clientSb) return;
@@ -1301,12 +1360,9 @@ async function _processTaskMutationQueue() {
           continue; // Already in cloud, reconciled without duplicate insert
         }
 
-        const dbPayload = Object.assign({}, payload);
-        delete dbPayload.id;
-        delete dbPayload.local_id;
-        delete dbPayload.sync_status;
-        delete dbPayload.is_deleted;
+        const dbPayload = sanitizeTaskForSupabase(payload);
         if (!_dbSupportsClientTaskId) delete dbPayload.client_task_id;
+        else if (clientTaskId) dbPayload.client_task_id = clientTaskId;
         if (!_dbSupportsUpdatedAt) delete dbPayload.updated_at;
         dbPayload.notes = packTaskNotes(payload.notes, clientTaskId, payload.updated_at || payload.created_at);
 
@@ -1336,15 +1392,12 @@ async function _processTaskMutationQueue() {
           }
         }
 
-        const dbPayload = Object.assign({}, item.payload || {});
-        delete dbPayload.id;
-        delete dbPayload.local_id;
-        delete dbPayload.sync_status;
-        delete dbPayload.is_deleted;
+        const dbPayload = sanitizeTaskForSupabase(item.payload || {});
         if (!_dbSupportsClientTaskId) delete dbPayload.client_task_id;
+        else if (clientTaskId) dbPayload.client_task_id = clientTaskId;
         if (!_dbSupportsUpdatedAt) delete dbPayload.updated_at;
-        if (typeof dbPayload.notes !== 'undefined') {
-          dbPayload.notes = packTaskNotes(dbPayload.notes, clientTaskId, dbPayload.updated_at || new Date().toISOString());
+        if (typeof item.payload.notes !== 'undefined') {
+          dbPayload.notes = packTaskNotes(item.payload.notes, clientTaskId, dbPayload.updated_at || new Date().toISOString());
         }
 
         const { error: upErr } = await sb.from('tasks').update(dbPayload).eq('id', targetId);
@@ -1579,8 +1632,8 @@ window.createTaskLocally = function(data) {
     local_id: localId,
     client_task_id: clientTaskId,
     business_id: session.businessId,
-    assigned_to: data.assigned_to || session.staffId,
-    created_by: session.staffId,
+    assigned_to: (data.assigned_to && data.assigned_to !== 'all') ? data.assigned_to : null,
+    created_by: session.staffId || null,
     title: (data.title || '').trim(),
     notes: (data.notes || '').trim(),
     priority: data.priority || 'medium',
@@ -1596,13 +1649,46 @@ window.createTaskLocally = function(data) {
   cache.tasks.unshift(task);
   _tasksSave();
 
-  queueOfflineMutation('insert', 'tasks', Object.assign({}, task), {
-    local_id: localId,
-    client_task_id: clientTaskId,
-    timestamp: nowIso
-  });
+  // Direct asynchronous cloud save if online
+  if (_isOnline() && sb) {
+    (async () => {
+      try {
+        await _detectTaskSchemaFeatures();
+        const dbPayload = sanitizeTaskForSupabase(task);
+        if (_dbSupportsClientTaskId) dbPayload.client_task_id = clientTaskId;
+        else dbPayload.notes = packTaskNotes(dbPayload.notes, clientTaskId, nowIso);
+        if (_dbSupportsUpdatedAt) dbPayload.updated_at = nowIso;
 
-  syncTasks().catch(e => console.warn('[TASK SYNC]', e));
+        const { data: inserted, error: insErr } = await sb.from('tasks').insert(dbPayload).select().single();
+        if (!insErr && inserted && inserted.id) {
+          task.id = inserted.id;
+          task.sync_status = 'synced';
+          task.updated_at = inserted.updated_at || nowIso;
+          _tasksSave();
+          if (typeof renderTabBody === 'function' && activeTab === 'tasks') renderTabBody();
+          return;
+        }
+      } catch (err) {
+        console.warn('[TASK DIRECT INSERT] Cloud failed, queueing:', err);
+      }
+
+      // If direct insert failed, queue offline mutation
+      queueOfflineMutation('insert', 'tasks', Object.assign({}, task), {
+        local_id: localId,
+        client_task_id: clientTaskId,
+        timestamp: nowIso
+      });
+      syncTasks().catch(e => console.warn('[TASK SYNC]', e));
+    })();
+  } else {
+    queueOfflineMutation('insert', 'tasks', Object.assign({}, task), {
+      local_id: localId,
+      client_task_id: clientTaskId,
+      timestamp: nowIso
+    });
+    syncTasks().catch(e => console.warn('[TASK SYNC]', e));
+  }
+
   return task;
 };
 
@@ -1617,14 +1703,45 @@ window.updateTaskLocally = function(id, updates) {
   t.sync_status = 'pending';
   _tasksSave();
 
-  queueOfflineMutation('update', 'tasks', Object.assign({ id: t.id }, updates, { updated_at: nowIso }), {
-    target_id: t.id,
-    local_id: t.local_id || null,
-    client_task_id: t.client_task_id || null,
-    timestamp: nowIso
-  });
+  const isCloudId = t.id && !String(t.id).startsWith('loc_');
+  if (_isOnline() && sb && isCloudId) {
+    (async () => {
+      try {
+        await _detectTaskSchemaFeatures();
+        const dbPayload = sanitizeTaskForSupabase(Object.assign({}, t, updates));
+        if (_dbSupportsClientTaskId && t.client_task_id) dbPayload.client_task_id = t.client_task_id;
+        else if (t.client_task_id) dbPayload.notes = packTaskNotes(dbPayload.notes, t.client_task_id, nowIso);
+        if (_dbSupportsUpdatedAt) dbPayload.updated_at = nowIso;
 
-  syncTasks().catch(e => console.warn('[TASK SYNC]', e));
+        const { error: upErr } = await sb.from('tasks').update(dbPayload).eq('id', t.id);
+        if (!upErr) {
+          t.sync_status = 'synced';
+          _tasksSave();
+          if (typeof renderTabBody === 'function' && activeTab === 'tasks') renderTabBody();
+          return;
+        }
+      } catch (err) {
+        console.warn('[TASK DIRECT UPDATE] Cloud failed, queueing:', err);
+      }
+
+      queueOfflineMutation('update', 'tasks', Object.assign({ id: t.id }, updates, { updated_at: nowIso }), {
+        target_id: t.id,
+        local_id: t.local_id || null,
+        client_task_id: t.client_task_id || null,
+        timestamp: nowIso
+      });
+      syncTasks().catch(e => console.warn('[TASK SYNC]', e));
+    })();
+  } else {
+    queueOfflineMutation('update', 'tasks', Object.assign({ id: t.id }, updates, { updated_at: nowIso }), {
+      target_id: t.id,
+      local_id: t.local_id || null,
+      client_task_id: t.client_task_id || null,
+      timestamp: nowIso
+    });
+    syncTasks().catch(e => console.warn('[TASK SYNC]', e));
+  }
+
   return t;
 };
 
@@ -1770,12 +1887,6 @@ async function loadData(){
     Array.from(systemPayloadsMap.values()).forEach(ct => {
       if (ct.title === '[CUSTOMER_DIRECTORY_DATA]' && ct.notes) {
         try { localStorage.setItem('br_cust_dir_' + bizId, ct.notes); } catch(e){}
-      }
-      if (ct.title === '[CUSTOMER_REPORTS_DATA]' && ct.notes) {
-        try {
-          cache.customerReports = JSON.parse(ct.notes);
-          localStorage.setItem('br_customer_reports_' + bizId, ct.notes);
-        } catch(e){}
       }
       if (ct.title === '[EXPIRY_ITEMS_DATA]' && ct.notes) {
         try { localStorage.setItem('br_expiry_' + bizId, ct.notes); } catch(e){}
@@ -2519,7 +2630,6 @@ const TAB_META = {
   settings: {icon:'settings', label:'Settings'},
   stockkeeper: {icon:'clipboard', label:'Stockkeeper'},
   accounts: {icon:'save', label:'Accounts'},
-  customer_report: {icon:'user', label:'Customer Report'},
   audit: {icon:'clipboard', label:'Audit Log'},
   low_stock: {icon:'low_stock', label:'Low Stock'},
   projects: {icon:'project', label:'Projects'},
@@ -2527,7 +2637,7 @@ const TAB_META = {
 function currentTabs(){
   if(session.role === 'sales' || session.role === 'salesman') return ['pricelist', 'sales', 'tasks', 'accounts', 'low_stock'];
   return isManagerPlus()
-    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','office_logs','pnl','sales','pricelist','label','package','stockkeeper','points','salary','accounts','customer_report','low_stock','reports','audit','projects','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','sales','pricelist','label','package','stockkeeper','points','accounts','customer_report','low_stock','reports','audit'])
+    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','office_logs','pnl','sales','pricelist','label','package','stockkeeper','points','salary','accounts','low_stock','reports','audit','projects','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','sales','pricelist','label','package','stockkeeper','points','accounts','low_stock','reports','audit'])
     : ['pricelist', 'tasks','daily','weekly','attendance','sales','label','package','stockkeeper','points','accounts','low_stock'];
 }
 function quickTabs(){
@@ -2548,7 +2658,6 @@ function getPrimaryActionBtn(t){
   if(t==='salary' && (isOwner() || isManager())) return `<button class="stamp-btn compact-mobile" onclick="window.__openSalaryLogModal()"><span class="btn-text">📜 Salary Log</span><span class="btn-short">📜</span></button>${isOwner() ? `<button class="stamp-btn compact-mobile" style="margin-left:6px;" onclick="window.__openSalary()"><span class="btn-text">+ Record Salary</span><span class="btn-short">+</span></button>` : ''}`;
   if(t==='points' && isManagerPlus()) return `<button class="stamp-btn compact-mobile" onclick="window.__openPoints()"><span class="btn-text">+ Award Points</span><span class="btn-short">+</span></button>`;
   if(t==='low_stock') return `<button class="stamp-btn compact-mobile" onclick="window.__openLowStockModal()"><span class="btn-text">+ Report Low Stock</span><span class="btn-short">+</span></button>`;
-  if(t==='customer_report') return `<button class="stamp-btn compact-mobile" onclick="window.__openImportCustomerJsonModal()"><span class="btn-text">📥 Import</span><span class="btn-short">📥</span></button><button class="stamp-btn compact-mobile" style="margin-left:6px;" onclick="window.__openAddCustomerReportModal()"><span class="btn-text">+ Add Customer</span><span class="btn-short">+</span></button>`;
   if(t==='projects' && isOwner()) return `<button class="stamp-btn compact-mobile" onclick="window.__openAddProjectModal()"><span class="btn-text">+ New Project</span><span class="btn-short">+</span></button>`;
   return '';
 }
@@ -2646,7 +2755,7 @@ function renderShell(){
           { section: 'Overview', keys: ['dashboard','reports','projects'] },
           { section: 'Work', keys: ['tasks','daily','weekly','attendance'] },
           { section: 'Sales', keys: ['sales'] },
-          { section: 'Money', keys: ['accounts','office_logs','pnl','customer_report','vendors','salary'] },
+          { section: 'Money', keys: ['accounts','office_logs','pnl','vendors','salary'] },
           { section: 'Admin', keys: ['staff','audit','settings'] }
         ].map(grp => {
           const validKeys = grp.keys.filter(k => tabs.includes(k));
@@ -2739,7 +2848,6 @@ function renderTabBody(){
   else if(activeTab==='accounts') renderAccountsTab(body);
   else if(activeTab==='office_logs' && isOwner()) renderOfficeLogsTab(body);
   else if(activeTab==='pnl' && isOwner()) renderPnLTab(body);
-  else if(activeTab==='customer_report') renderCustomerReportTab(body);
   else if(activeTab==='low_stock') renderLowStockTab(body);
   else if(activeTab==='audit' && isManagerPlus()) renderAuditTab(body);
   else if(activeTab==='salary' && (isOwner() || (isManager() && getFeatureConfig().allowManagerSalary))) renderSalaryTab(body);

@@ -2934,6 +2934,14 @@ function renderPaymentReportHtml(reports) {
 
 
 function renderCustomerReportTab(body) {
+  if (body) {
+    body.innerHTML = `
+      <div class="empty" style="padding:40px 16px;text-align:center;">
+        <h3>Customer Report tab has been removed</h3>
+        <p style="color:var(--ink-soft);font-size:0.85rem;margin-top:8px;">This module has been deprecated per your request.</p>
+      </div>`;
+  }
+  return;
   const reports = getCustomerReportsData();
   const totalSpent = reports.reduce((sum, r) => sum + Number(r.total_spent || 0), 0);
   const totalCount = reports.length;
