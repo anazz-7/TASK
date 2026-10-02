@@ -412,7 +412,7 @@ function buildDashboardActivityGraphHtml() {
 
   const maxVal = Math.max(1, ...buckets.map(b => b.val));
   const n = buckets.length;
-  const W = 600, H = 125, pL = 16, pR = 16, pT = 20, pB = 26;
+  const W = 600, H = 95, pL = 14, pR = 14, pT = 14, pB = 22;
   const cW = W - pL - pR, cH = H - pT - pB;
   const baseY = pT + cH;
 
@@ -455,17 +455,17 @@ function buildDashboardActivityGraphHtml() {
     const isLatest = (i === n - 1);
     if (isLatest) {
       return `
-        <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="6" fill="none" stroke="#2563EB" stroke-width="2" class="trend-pulse-ring"/>
-        <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4.5" fill="#2563EB" stroke="#FFFFFF" stroke-width="2" data-tip="${esc(p.label)}: ${p.val} activities" onmouseenter="window.__showTrendTip(event,this)" onmouseleave="window.__hideTrendTip()" ontouchstart="window.__showTrendTip(event,this)"/>
+        <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="5.5" fill="none" stroke="#1E3A6E" stroke-width="2" class="trend-pulse-ring"/>
+        <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="#1E3A6E" stroke="#FFFFFF" stroke-width="2" data-tip="${esc(p.label)}: ${p.val} activities" onmouseenter="window.__showTrendTip(event,this)" onmouseleave="window.__hideTrendTip()" ontouchstart="window.__showTrendTip(event,this)"/>
       `;
     }
     return `
-      <circle class="trend-chart-dot" style="--dot-idx:${i};" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3.2" fill="#FFFFFF" stroke="#2563EB" stroke-width="2" data-tip="${esc(p.label)}: ${p.val} activities" onmouseenter="window.__showTrendTip(event,this)" onmouseleave="window.__hideTrendTip()" ontouchstart="window.__showTrendTip(event,this)"/>
+      <circle class="trend-chart-dot" style="--dot-idx:${i};" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.8" fill="#FFFFFF" stroke="#1E3A6E" stroke-width="1.8" data-tip="${esc(p.label)}: ${p.val} activities" onmouseenter="window.__showTrendTip(event,this)" onmouseleave="window.__hideTrendTip()" ontouchstart="window.__showTrendTip(event,this)"/>
     `;
   }).join('');
 
   const xlabels = pts.map((p, i) => showSet.has(i) ? `
-    <text x="${p.x.toFixed(1)}" y="${baseY + 16}" text-anchor="middle" font-size="8.5" font-weight="600" fill="#64748B" font-family="'Plus Jakarta Sans', sans-serif">${esc(p.label)}</text>
+    <text x="${p.x.toFixed(1)}" y="${baseY + 14}" text-anchor="middle" font-size="8" font-weight="600" fill="#64748B" font-family="'Plus Jakarta Sans', sans-serif">${esc(p.label)}</text>
   ` : '').join('');
 
   return `
@@ -473,7 +473,7 @@ function buildDashboardActivityGraphHtml() {
       <div class="dash-activity-header">
         <div class="dash-dropdown-wrap" style="position:relative;display:inline-block;">
           <button class="dash-pill-btn" onclick="window.__toggleDashChartDropdown(event)">
-            <span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#2563EB;color:#FFFFFF;font-size:9px;font-weight:800;line-height:1;">✓</span>
+            <span style="display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:50%;background:#1E3A6E;color:#FFFFFF;font-size:8.5px;font-weight:800;line-height:1;">✓</span>
             <span id="dashChartPeriodLabel">${dashActivityPeriod === 'daily' ? 'Last 30 days' : (dashActivityPeriod === 'weekly' ? 'Last 12 weeks' : 'Last 12 months')}</span>
             <span style="font-size:7px;color:#94A3B8;margin-left:2px;">▼</span>
           </button>
@@ -483,7 +483,7 @@ function buildDashboardActivityGraphHtml() {
             <div class="dash-dd-item" onclick="window.__setDashActivityPeriod('monthly')">Last 12 months</div>
           </div>
         </div>
-        <div style="display:inline-flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:#64748B;">
+        <div style="display:inline-flex;align-items:center;gap:5px;font-size:0.75rem;font-weight:600;color:#64748B;">
           ${icon('chartMini', 14)} Total Activity
         </div>
       </div>
@@ -491,12 +491,12 @@ function buildDashboardActivityGraphHtml() {
         <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;overflow:visible;">
           <defs>
             <linearGradient id="dashActGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#2563EB" stop-opacity="0.20"/>
-              <stop offset="100%" stop-color="#2563EB" stop-opacity="0.0"/>
+              <stop offset="0%" stop-color="#1E3A6E" stop-opacity="0.22"/>
+              <stop offset="100%" stop-color="#1E3A6E" stop-opacity="0.0"/>
             </linearGradient>
           </defs>
           <path class="trend-chart-area" d="${areaD}" fill="url(#dashActGrad)"/>
-          <path class="trend-chart-line" d="${pathD}" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path class="trend-chart-line" d="${pathD}" fill="none" stroke="#1E3A6E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
           ${dots}
           ${xlabels}
         </svg>
@@ -567,18 +567,18 @@ function renderDashboardTab(body){
     <div class="dash-cards-grid-2">
       <!-- Card 1: Total Tasks -->
       <div class="dash-card" style="--c-idx:1;" onclick="window.__setTab('tasks')">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
           <div class="dash-squircle">
-            ${icon('checkDouble', 18)}
+            ${icon('checkDouble', 16)}
           </div>
           <div style="color:#94A3B8;">
-            ${icon('chartMini', 18)}
+            ${icon('chartMini', 15)}
           </div>
         </div>
         <div>
           <div class="dash-stat-num">${total}</div>
           <div class="dash-stat-label">Total Tasks</div>
-          <div style="margin-top:6px;">
+          <div style="margin-top:4px;">
             <span class="dash-trend-up">↑ +${taskTrendPct}%</span> <span class="dash-trend-sub">vs last month</span>
           </div>
         </div>
@@ -586,17 +586,17 @@ function renderDashboardTab(body){
 
       <!-- Card 2: Completion Rate with Radial Progress -->
       <div class="dash-card" style="--c-idx:2;" onclick="window.__setTab('tasks')">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
           <div class="dash-radial-wrap" style="flex-shrink:0;">
-            <svg width="48" height="48" viewBox="0 0 48 48">
-              <circle cx="24" cy="24" r="18" fill="none" stroke="#E2E8F0" stroke-width="4.5"/>
-              <circle class="dash-radial-circle" cx="24" cy="24" r="18" fill="none" stroke="#2563EB" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="113.1" stroke-dashoffset="${(113.1 * (1 - rate / 100)).toFixed(1)}" transform="rotate(-90 24 24)"/>
-              <text x="24" y="27.5" text-anchor="middle" font-size="11" font-weight="800" fill="#0F172A" font-family="'Plus Jakarta Sans',sans-serif">${rate}%</text>
+            <svg width="38" height="38" viewBox="0 0 38 38">
+              <circle cx="19" cy="19" r="14.5" fill="none" stroke="#E2E8F0" stroke-width="3.5"/>
+              <circle class="dash-radial-circle" cx="19" cy="19" r="14.5" fill="none" stroke="#1E3A6E" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="91.1" stroke-dashoffset="${(91.1 * (1 - rate / 100)).toFixed(1)}" transform="rotate(-90 19 19)"/>
+              <text x="19" y="22.5" text-anchor="middle" font-size="9.5" font-weight="800" fill="#0F172A" font-family="'Plus Jakarta Sans',sans-serif">${rate}%</text>
             </svg>
           </div>
           <div style="min-width:0;">
-            <b style="font-size:0.86rem;color:#0F172A;display:block;">Completion Rate</b>
-            <span style="font-size:0.72rem;color:#64748B;display:block;margin-top:2px;">${done} of ${total} completed</span>
+            <b style="font-size:0.82rem;color:#0F172A;display:block;">Completion Rate</b>
+            <span style="font-size:0.68rem;color:#64748B;display:block;margin-top:1px;">${done} of ${total} completed</span>
           </div>
         </div>
         <div style="margin-top:auto;">
@@ -606,16 +606,16 @@ function renderDashboardTab(body){
 
       <!-- Card 3: Overdue Tasks -->
       <div class="dash-card" style="--c-idx:3;" onclick="window.__setTab('tasks')">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
           <div class="dash-squircle">
-            ${icon('clock', 18)}
+            ${icon('clock', 15)}
           </div>
           <div class="dash-card-chevron">›</div>
         </div>
         <div>
           <div class="dash-stat-num">${overdue}</div>
           <div class="dash-stat-label">Overdue Tasks</div>
-          <div style="margin-top:6px;">
+          <div style="margin-top:4px;">
             <span class="dash-trend-up">↑ +1</span> <span class="dash-trend-sub">vs yesterday</span>
           </div>
         </div>
@@ -623,16 +623,16 @@ function renderDashboardTab(body){
 
       <!-- Card 4: Top Performer -->
       <div class="dash-card" style="--c-idx:4;" onclick="window.__setTab('tasks')">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
           <div class="dash-squircle">
-            ${icon('trophy', 18)}
+            ${icon('trophy', 15)}
           </div>
           <div class="dash-card-chevron">›</div>
         </div>
         <div>
-          <b style="font-size:0.9rem;color:#0F172A;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(topStaffNameOnly)}</b>
-          <span style="font-size:0.72rem;color:#64748B;display:block;margin-top:2px;">${topStaffDoneCount} tasks completed</span>
-          <div style="margin-top:6px;font-size:0.72rem;font-weight:600;color:#64748B;">Top Performer</div>
+          <b style="font-size:0.86rem;color:#0F172A;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(topStaffNameOnly)}</b>
+          <span style="font-size:0.68rem;color:#64748B;display:block;margin-top:1px;">${topStaffDoneCount} tasks completed</span>
+          <div style="margin-top:4px;font-size:0.68rem;font-weight:600;color:#64748B;">Top Performer</div>
         </div>
       </div>
     </div>
@@ -645,14 +645,14 @@ function renderDashboardTab(body){
     <div class="dash-cards-grid-2">
       <!-- Card 1: Present Rate -->
       <div class="dash-card" style="--c-idx:5;" onclick="window.__setTab('attendance')">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
-          <div class="dash-squircle">${icon('users', 18)}</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+          <div class="dash-squircle">${icon('users', 15)}</div>
           <div>
             <div class="dash-stat-num">${attPct}%</div>
             <div class="dash-stat-label">Present Rate (All Staff)</div>
           </div>
         </div>
-        <div style="font-size:0.72rem;color:#64748B;margin-top:4px;">${todayCheckedIn} / ${cache.staff.length} staff present</div>
+        <div style="font-size:0.68rem;color:#64748B;margin-top:3px;">${todayCheckedIn} / ${cache.staff.length} staff present</div>
         <div class="dash-progress-track">
           <div class="dash-progress-fill" style="width:${attPct}%;"></div>
         </div>
@@ -660,14 +660,14 @@ function renderDashboardTab(body){
 
       <!-- Card 2: Checked In Today -->
       <div class="dash-card" style="--c-idx:6;" onclick="window.__setTab('attendance')">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
-          <div class="dash-squircle">${icon('calendar', 18)}</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+          <div class="dash-squircle">${icon('calendar', 15)}</div>
           <div>
             <div class="dash-stat-num">${todayCheckedIn} / ${cache.staff.length}</div>
             <div class="dash-stat-label">Checked In Today</div>
           </div>
         </div>
-        <div style="font-size:0.72rem;color:#64748B;margin-top:4px;">${Math.max(0, cache.staff.length - todayCheckedIn)} staff remaining</div>
+        <div style="font-size:0.68rem;color:#64748B;margin-top:3px;">${Math.max(0, cache.staff.length - todayCheckedIn)} staff remaining</div>
         <div class="dash-progress-track">
           <div class="dash-progress-fill" style="width:${cache.staff.length ? Math.round((todayCheckedIn / cache.staff.length)*100) : 0}%;"></div>
         </div>
@@ -675,12 +675,12 @@ function renderDashboardTab(body){
 
       <!-- Card 3: Best Attendance -->
       <div class="dash-card" style="--c-idx:7;" onclick="window.__setTab('attendance')">
-        <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:6px;">
-          <div class="dash-squircle">${icon('star', 18)}</div>
+        <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:4px;">
+          <div class="dash-squircle">${icon('star', 15)}</div>
           <div style="min-width:0;">
-            <b style="font-size:0.88rem;color:#0F172A;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(bestStaffNameOnly)}</b>
+            <b style="font-size:0.84rem;color:#0F172A;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(bestStaffNameOnly)}</b>
             <div class="dash-stat-label">Best Attendance This Month</div>
-            <div style="font-size:0.72rem;color:#64748B;margin-top:4px;">100% present rate</div>
+            <div style="font-size:0.68rem;color:#64748B;margin-top:2px;">100% present rate</div>
           </div>
         </div>
       </div>
@@ -688,12 +688,12 @@ function renderDashboardTab(body){
       <!-- Card 4: Staff On Roll -->
       <div class="dash-card" style="--c-idx:8;" onclick="window.__setTab('attendance')">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-          <div style="display:flex;align-items:center;gap:12px;">
-            <div class="dash-squircle">${icon('users', 18)}</div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="dash-squircle">${icon('users', 15)}</div>
             <div>
               <div class="dash-stat-num">${cache.staff.length}</div>
               <div class="dash-stat-label">Staff On Roll</div>
-              <div style="font-size:0.72rem;color:#64748B;margin-top:2px;">Active staff members</div>
+              <div style="font-size:0.68rem;color:#64748B;margin-top:1px;">Active staff members</div>
             </div>
           </div>
           <div class="dash-card-chevron">›</div>
@@ -708,38 +708,38 @@ function renderDashboardTab(body){
     </div>
     <div class="dash-cards-grid-3">
       <!-- Card 1: Everyday Tasks Done -->
-      <div class="dash-card" style="--c-idx:9;padding:12px;" onclick="window.__setTab('daily')">
-        <div class="dash-squircle" style="width:34px;height:34px;margin-bottom:6px;">
-          ${icon('checkSquare', 16)}
+      <div class="dash-card" style="--c-idx:9;padding:9px 10px;" onclick="window.__setTab('daily')">
+        <div class="dash-squircle" style="width:28px;height:28px;border-radius:8px;margin-bottom:4px;">
+          ${icon('checkSquare', 14)}
         </div>
-        <div class="dash-stat-num" style="font-size:1.15rem;">${routineDoneToday} / ${routineTotal}</div>
-        <div class="dash-stat-label" style="font-size:0.7rem;">Everyday Tasks Done</div>
-        <div class="dash-progress-track" style="margin:6px 0 4px 0;">
+        <div class="dash-stat-num" style="font-size:1.05rem;">${routineDoneToday} / ${routineTotal}</div>
+        <div class="dash-stat-label" style="font-size:0.66rem;">Everyday Tasks Done</div>
+        <div class="dash-progress-track" style="margin:5px 0 3px 0;">
           <div class="dash-progress-fill" style="width:${routinePct}%;"></div>
         </div>
-        <div style="font-size:0.68rem;color:#64748B;">${routinePct}% completed</div>
+        <div style="font-size:0.65rem;color:#64748B;">${routinePct}% completed</div>
       </div>
 
       <!-- Card 2: Items Labelled Today -->
-      <div class="dash-card" style="--c-idx:10;padding:12px;" onclick="window.__setTab('label')">
-        <div class="dash-squircle" style="width:34px;height:34px;margin-bottom:6px;">
-          ${icon('tagDiamond', 16)}
+      <div class="dash-card" style="--c-idx:10;padding:9px 10px;" onclick="window.__setTab('label')">
+        <div class="dash-squircle" style="width:28px;height:28px;border-radius:8px;margin-bottom:4px;">
+          ${icon('tagDiamond', 14)}
         </div>
-        <div class="dash-stat-num" style="font-size:1.15rem;">${labelsToday}</div>
-        <div class="dash-stat-label" style="font-size:0.7rem;">Items Labelled Today</div>
-        <div style="margin-top:6px;">
+        <div class="dash-stat-num" style="font-size:1.05rem;">${labelsToday}</div>
+        <div class="dash-stat-label" style="font-size:0.66rem;">Items Labelled Today</div>
+        <div style="margin-top:4px;">
           <span class="dash-trend-up">↑ +12%</span> <span class="dash-trend-sub">vs yesterday</span>
         </div>
       </div>
 
       <!-- Card 3: Items Packaged Today -->
-      <div class="dash-card" style="--c-idx:11;padding:12px;" onclick="window.__setTab('package')">
-        <div class="dash-squircle" style="width:34px;height:34px;margin-bottom:6px;">
-          ${icon('package', 16)}
+      <div class="dash-card" style="--c-idx:11;padding:9px 10px;" onclick="window.__setTab('package')">
+        <div class="dash-squircle" style="width:28px;height:28px;border-radius:8px;margin-bottom:4px;">
+          ${icon('package', 14)}
         </div>
-        <div class="dash-stat-num" style="font-size:1.15rem;">${packagesToday}</div>
-        <div class="dash-stat-label" style="font-size:0.7rem;">Items Packaged Today</div>
-        <div style="margin-top:6px;">
+        <div class="dash-stat-num" style="font-size:1.05rem;">${packagesToday}</div>
+        <div class="dash-stat-label" style="font-size:0.66rem;">Items Packaged Today</div>
+        <div style="margin-top:4px;">
           <span class="dash-trend-up">↑ +18%</span> <span class="dash-trend-sub">vs yesterday</span>
         </div>
       </div>
@@ -753,8 +753,8 @@ function renderDashboardTab(body){
     <div class="dash-cards-grid-2">
       <!-- Card 1: Today's Sales -->
       <div class="dash-card" style="--c-idx:12;" onclick="window.__setTab('sales')">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
-          <div class="dash-squircle">${icon('cart', 18)}</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+          <div class="dash-squircle">${icon('cart', 16)}</div>
           <div>
             <div class="dash-stat-num">₹${todaySalesTotal.toLocaleString('en-IN')}</div>
             <div class="dash-stat-label">Today's Sales</div>
@@ -763,7 +763,7 @@ function renderDashboardTab(body){
         <div class="dash-progress-track">
           <div class="dash-progress-fill" style="width:${todayAchievedPct}%;"></div>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.7rem;color:#64748B;">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.66rem;color:#64748B;">
           <span>${todayAchievedPct}% achieved</span>
           <span>Target: ₹${dailyTargetVal.toLocaleString('en-IN')}</span>
         </div>
@@ -771,8 +771,8 @@ function renderDashboardTab(body){
 
       <!-- Card 2: This Month -->
       <div class="dash-card" style="--c-idx:13;" onclick="window.__setTab('sales')">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
-          <div class="dash-squircle">${icon('sales', 18)}</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+          <div class="dash-squircle">${icon('sales', 16)}</div>
           <div>
             <div class="dash-stat-num">₹${monthSalesTotal.toLocaleString('en-IN')}</div>
             <div class="dash-stat-label">This Month</div>
@@ -781,7 +781,7 @@ function renderDashboardTab(body){
         <div class="dash-progress-track">
           <div class="dash-progress-fill" style="width:${bizPct}%;"></div>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.7rem;color:#64748B;">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.66rem;color:#64748B;">
           <span>${bizPct}% achieved</span>
           <span>Target: ₹${businessTargetVal.toLocaleString('en-IN')}</span>
         </div>
@@ -791,22 +791,22 @@ function renderDashboardTab(body){
     <!-- 6. TARGET PROGRESS & SALES PERFORMANCE Section -->
     <div class="dash-section-header">
       <div class="dash-section-title">Target Progress & Sales Performance ${curMonth}</div>
-      ${isManagerPlus() ? `<button class="stamp-btn small ghost" onclick="window.__openSetTargetsModal()" style="display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 10px;font-size:0.72rem;color:#334155;border:1px solid #CBD5E1;background:#FFFFFF;">${icon('edit', 12)} Set Target</button>` : ''}
+      ${isManagerPlus() ? `<button class="stamp-btn small ghost" onclick="window.__openSetTargetsModal()" style="display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 8px;font-size:0.7rem;color:#334155;border:1px solid #CBD5E1;background:#FFFFFF;">${icon('edit', 11)} Set Target</button>` : ''}
     </div>
     <div class="dash-card dash-target-goal-card" style="--c-idx:14;" onclick="window.__setTab('sales')">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:nowrap;">
-        <div style="display:flex;align-items:center;gap:12px;min-width:0;">
-          <div class="dash-squircle" style="border-radius:50%;background:#EFF6FF;color:#2563EB;">
-            ${icon('target', 20)}
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;flex-wrap:nowrap;">
+        <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+          <div class="dash-squircle" style="border-radius:50%;background:#F0F4FA;color:#1E3A6E;">
+            ${icon('target', 17)}
           </div>
           <div style="min-width:0;">
-            <b style="font-size:0.92rem;color:#0F172A;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Business Monthly Target Goal (${curMonth})</b>
-            <span style="font-size:0.72rem;color:#64748B;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Based on ${prevInfo.prevMonthTitle} Total Sales Baseline: ₹${prevInfo.total.toLocaleString('en-IN')}</span>
+            <b style="font-size:0.88rem;color:#0F172A;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Business Monthly Target Goal (${curMonth})</b>
+            <span style="font-size:0.68rem;color:#64748B;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Based on ${prevInfo.prevMonthTitle} Total Sales Baseline: ₹${prevInfo.total.toLocaleString('en-IN')}</span>
           </div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
-          <b style="font-family:'Roboto Mono',monospace;font-size:0.92rem;color:#0F172A;">₹${monthSalesTotal.toLocaleString('en-IN')} / ₹${businessTargetVal.toLocaleString('en-IN')}</b>
-          <span style="display:block;font-size:0.72rem;font-weight:700;color:#64748B;margin-top:2px;">${bizPct}%</span>
+          <b style="font-family:'Roboto Mono',monospace;font-size:0.88rem;color:#0F172A;">₹${monthSalesTotal.toLocaleString('en-IN')} / ₹${businessTargetVal.toLocaleString('en-IN')}</b>
+          <span style="display:block;font-size:0.68rem;font-weight:700;color:#64748B;margin-top:1px;">${bizPct}%</span>
         </div>
       </div>
       <div class="dash-progress-track" style="margin:0;">
@@ -821,8 +821,8 @@ function renderDashboardTab(body){
     </div>
     <div class="dash-cards-grid-2">
       <div class="dash-card" style="--c-idx:15;" onclick="window.__setTab('salary')">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <div class="dash-squircle">${icon('salary', 18)}</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="dash-squircle">${icon('salary', 15)}</div>
           <div>
             <div class="dash-stat-num">₹${monthSalaryTotal.toLocaleString('en-IN')}</div>
             <div class="dash-stat-label">Salary paid this month</div>
