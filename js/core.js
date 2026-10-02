@@ -49,11 +49,11 @@ window.__reloadAppData = async function(btn) {
   try {
     await loadData();
     renderTabBody();
-    if (typeof window.showToast === 'function') window.showToast('🔄 Data refreshed!', 'success');
+    if (typeof window.showToast === 'function') window.showToast('Data refreshed!', 'success');
   } catch(e) {
     console.warn('Reload exception:', e);
   } finally {
-    hideLoading('✓ Refreshed');
+    hideLoading('Refreshed');
     if (btn) setTimeout(() => btn.classList.remove('spinning'), 500);
   }
 };
@@ -82,7 +82,7 @@ window.__toggleCompactView = function() {
   window.__vibrate(20);
   renderTabBody();
   if (typeof window.showToast === 'function') {
-    window.showToast(isCompactView ? '📄 Compact View Enabled (8-10 items/screen)' : '📋 Detailed View Enabled', 'info');
+    window.showToast(isCompactView ? 'Compact View Enabled' : 'Detailed View Enabled', 'info');
   }
 };
 
@@ -94,7 +94,7 @@ function showLoading(msg) {
   if (typeof window.__showSyncProgress === 'function') window.__showSyncProgress(msg || 'Syncing to Cloud...');
 }
 function hideLoading(successMsg) {
-  if (typeof window.__hideSyncProgress === 'function') window.__hideSyncProgress(successMsg || '✓ Cloud Synced');
+  if (typeof window.__hideSyncProgress === 'function') window.__hideSyncProgress(successMsg || 'Cloud Synced');
 }
 
 
@@ -161,11 +161,11 @@ function renderBootErrorUI(err) {
   appEl.innerHTML = `
     <div class="center-screen" style="padding:20px;">
       <div class="auth-card" style="text-align:center;max-width:420px;margin:auto;">
-        <h2 style="color:var(--turmeric);margin:0 0 10px;font-size:1.2rem;">⚠️ App Launch Notice</h2>
+        <h2 style="color:var(--turmeric);margin:0 0 10px;font-size:1.2rem;display:flex;align-items:center;justify-content:center;gap:6px;">${icon('alert', 18)} App Launch Notice</h2>
         <p style="color:var(--ink-soft);font-size:0.85rem;line-height:1.4;margin:0 0 18px;">${esc(msg)}</p>
         <div class="modal-actions" style="display:flex;gap:10px;flex-direction:column;">
-          <button class="stamp-btn" style="width:100%;" onclick="localStorage.removeItem('br_session'); location.reload();">🔄 Re-login &amp; Reload</button>
-          <button class="stamp-btn ghost" style="width:100%;" onclick="localStorage.clear(); location.reload();">🗑 Reset App Data &amp; Reload</button>
+          <button class="stamp-btn" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="localStorage.removeItem('br_session'); location.reload();">${icon('rotate', 14)} Re-login &amp; Reload</button>
+          <button class="stamp-btn ghost" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="localStorage.clear(); location.reload();">${icon('trash', 14)} Reset App Data &amp; Reload</button>
         </div>
       </div>
     </div>
@@ -351,9 +351,9 @@ window.__showAppAlert = function({ title, message, type = 'info', buttonText = '
   if(old) old.remove();
 
   const typeIcons = {
-    error: `<div style="width:48px;height:48px;border-radius:50%;background:#FEF2F2;color:#DC2626;border:1px solid #FCA5A5;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:1.3rem;font-weight:700;">⚠️</div>`,
-    success: `<div style="width:48px;height:48px;border-radius:50%;background:#F0FDF4;color:#16A34A;border:1px solid #86EFAC;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:1.3rem;font-weight:700;">✓</div>`,
-    info: `<div style="width:48px;height:48px;border-radius:50%;background:#EFF6FF;color:#2563EB;border:1px solid #93C5FD;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:1.3rem;font-weight:700;">ℹ</div>`
+    error: `<div style="width:48px;height:48px;border-radius:50%;background:#FEF2F2;color:#DC2626;border:1px solid #FCA5A5;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">${icon('alert', 24)}</div>`,
+    success: `<div style="width:48px;height:48px;border-radius:50%;background:#F0FDF4;color:#16A34A;border:1px solid #86EFAC;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">${icon('check', 24)}</div>`,
+    info: `<div style="width:48px;height:48px;border-radius:50%;background:#EFF6FF;color:#2563EB;border:1px solid #93C5FD;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">${icon('tasks', 24)}</div>`
   };
 
   const html = `
@@ -609,7 +609,7 @@ window.__setButtonState = function(btn, state = 'loading', labelText = '') {
   } else if (state === 'success') {
     btn.classList.remove('is-loading');
     btn.classList.add('is-success');
-    btn.innerHTML = labelText || '✓ Saved!';
+    btn.innerHTML = labelText || `<span style="display:inline-flex;align-items:center;gap:4px;">${icon('check', 14)} Saved!</span>`;
     setTimeout(() => {
       btn.classList.remove('is-success');
       btn.disabled = false;
@@ -618,7 +618,7 @@ window.__setButtonState = function(btn, state = 'loading', labelText = '') {
   } else if (state === 'error') {
     btn.classList.remove('is-loading');
     btn.classList.add('is-error');
-    btn.innerHTML = labelText || '⚠️ Failed!';
+    btn.innerHTML = labelText || `<span style="display:inline-flex;align-items:center;gap:4px;">${icon('alert', 14)} Failed!</span>`;
     setTimeout(() => {
       btn.classList.remove('is-error');
       btn.disabled = false;
@@ -641,12 +641,17 @@ window.showToast = function(msg, type = 'success', duration = 4000, actionText =
     document.body.appendChild(container);
   }
 
-  const icons = { success: '✓', error: '⚠️', info: 'ℹ️', warning: '⚡' };
+  const icons = {
+    success: icon('check', 16),
+    error: icon('alert', 16),
+    info: icon('clipboard', 16),
+    warning: icon('alert', 16)
+  };
   const toast = document.createElement('div');
   toast.className = 'toast-banner toast-' + (type || 'success');
 
   toast.innerHTML = `
-    <span style="font-size:0.9rem;">${icons[type] || '✓'}</span>
+    <span style="display:inline-flex;align-items:center;">${icons[type] || icons.success}</span>
     <span style="flex:1;">${esc(msg)}</span>
     ${actionText ? `<button class="toast-undo-btn" id="toastActionBtn">${esc(actionText)}</button>` : ''}
     <div class="toast-progress" style="transition-duration:${duration}ms;"></div>
@@ -678,14 +683,15 @@ window.showToast = function(msg, type = 'success', duration = 4000, actionText =
 };
 
 window.__showUndoToast = function(msg, undoCallback, duration = 5000) {
-  window.showToast(msg, 'info', duration, '↩ UNDO', undoCallback);
+  window.showToast(msg, 'info', duration, 'UNDO', undoCallback);
 };
 
 // 7. Smart empty states
-window.__renderEmptyStateHtml = function({ icon = '📋', title = 'No Records Found', desc = 'Nothing to show here yet.', actionLabel = '', onAction = '' }) {
+window.__renderEmptyStateHtml = function({ icon: iconName = 'clipboard', title = 'No Records Found', desc = 'Nothing to show here yet.', actionLabel = '', onAction = '' }) {
+  const renderedIcon = typeof ICONS !== 'undefined' && ICONS[iconName] ? icon(iconName, 36) : icon('clipboard', 36);
   return `
     <div class="empty-state-card">
-      <div class="empty-icon">${icon}</div>
+      <div class="empty-icon" style="display:flex;align-items:center;justify-content:center;margin-bottom:8px;color:var(--ink-soft);">${renderedIcon}</div>
       <div class="empty-title">${esc(title)}</div>
       <div class="empty-desc">${esc(desc)}</div>
       ${actionLabel ? `<button class="stamp-btn small" style="margin-top:8px;" onclick="${esc(onAction)}">${esc(actionLabel)}</button>` : ''}
@@ -791,10 +797,10 @@ window.__setSaveState = function(state) {
   const badge = document.getElementById('globalSaveStateBadge');
   if (!badge) return;
   badge.className = `save-state-badge ${state}`;
-  if (state === 'saving') badge.innerHTML = `⚡ Saving...`;
-  else if (state === 'saved') badge.innerHTML = `🟢 Saved`;
-  else if (state === 'unsaved') badge.innerHTML = `⚠️ Unsaved Draft`;
-  else if (state === 'error') badge.innerHTML = `🔴 Save Failed`;
+  if (state === 'saving') badge.innerHTML = `<span style="display:inline-flex;align-items:center;gap:4px;">${icon('zap', 12)} Saving...</span>`;
+  else if (state === 'saved') badge.innerHTML = `<span style="display:inline-flex;align-items:center;gap:4px;">${icon('check', 12)} Saved</span>`;
+  else if (state === 'unsaved') badge.innerHTML = `<span style="display:inline-flex;align-items:center;gap:4px;">${icon('alert', 12)} Unsaved Draft</span>`;
+  else if (state === 'error') badge.innerHTML = `<span style="display:inline-flex;align-items:center;gap:4px;">${icon('close', 12)} Save Failed</span>`;
 };
 
 let __autosaveTimers = {};
@@ -1062,11 +1068,11 @@ async function flushOfflineMutationQueue(isSilent) {
   updateOfflineBadgeBar();
 
   if (!isSilent && syncedCount > 0 && typeof window.showToast === 'function') {
-    window.showToast(`✅ Synced ${syncedCount} queued action(s) to cloud!`, 'success');
+    window.showToast(`Synced ${syncedCount} queued action(s) to cloud!`, 'success');
   }
   
   if (!isSilent && lastErrorMsg && remaining.length > 0) {
-    alert('☁️ Cloud Sync Alert: Could not sync ' + remaining.length + ' item(s).\n\nSupabase Error: ' + lastErrorMsg);
+    alert('Cloud Sync Alert: Could not sync ' + remaining.length + ' item(s).\n\nSupabase Error: ' + lastErrorMsg);
   }
 }
 
@@ -1100,22 +1106,22 @@ function updateOfflineBadgeBar() {
   if (queue.length > 0) {
     bar.innerHTML = `
       <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1;overflow:hidden;">
-        <span style="color:#F59E0B;font-size:0.9rem;">⚡</span>
+        <span style="color:#F59E0B;display:inline-flex;align-items:center;">${icon('alert', 15)}</span>
         <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><b>${queue.length} ITEM(S) QUEUED FOR CLOUD SYNC</b> ${isOffline ? '(OFFLINE)' : ''}</span>
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0;">
-        ${navigator.onLine ? `<button class="stamp-btn small" style="background:#F59E0B;color:#000;padding:2px 8px;font-size:0.68rem;font-weight:700;border:none;" onclick="event.stopPropagation();flushOfflineMutationQueue()">⚡ SYNC NOW</button>` : ''}
-        <button class="stamp-btn small ghost" style="color:#fff;border-color:rgba(255,255,255,0.3);padding:2px 8px;font-size:0.68rem;" onclick="event.stopPropagation();window.__openQueuedMutationsModal()">📜 DETAILS</button>
+        ${navigator.onLine ? `<button class="stamp-btn small" style="background:#F59E0B;color:#000;padding:2px 8px;font-size:0.68rem;font-weight:700;border:none;" onclick="event.stopPropagation();flushOfflineMutationQueue()">SYNC NOW</button>` : ''}
+        <button class="stamp-btn small ghost" style="color:#fff;border-color:rgba(255,255,255,0.3);padding:2px 8px;font-size:0.68rem;" onclick="event.stopPropagation();window.__openQueuedMutationsModal()">DETAILS</button>
       </div>
     `;
   } else {
     bar.innerHTML = `
       <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1;overflow:hidden;">
-        <span style="color:#10B981;font-size:0.85rem;">🟢</span>
+        <span style="color:#10B981;display:inline-flex;align-items:center;">${icon('check', 15)}</span>
         <span style="color:rgba(255,255,255,0.85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><b>CLOUD DATA SYNCED (0 QUEUED)</b> &bull; AUTO-REFRESH ACTIVE</span>
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0;">
-        <button class="stamp-btn small ghost" style="color:#fff;border-color:rgba(255,255,255,0.3);padding:2px 8px;font-size:0.68rem;" onclick="event.stopPropagation();window.__openQueuedMutationsModal()">📜 DETAILS</button>
+        <button class="stamp-btn small ghost" style="color:#fff;border-color:rgba(255,255,255,0.3);padding:2px 8px;font-size:0.68rem;" onclick="event.stopPropagation();window.__openQueuedMutationsModal()">DETAILS</button>
       </div>
     `;
   }
@@ -1130,12 +1136,12 @@ window.__openQueuedMutationsModal = function() {
   <div class="overlay show" onclick="if(event.target===this) this.remove()"><div class="modal" style="max-width:520px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--paper-line);">
       <div>
-        <h2 style="margin:0;font-size:1.05rem;">☁️ Queued Cloud Sync Details</h2>
+        <h2 style="margin:0;font-size:1.05rem;">Queued Cloud Sync Details</h2>
         <div style="font-size:0.72rem;color:var(--ink-soft);margin-top:2px;">
-          ${isOffline ? '⚡ Device Status: Offline' : '🟢 Device Status: Online & Connected'} &bull; ${queue.length} Queued Action(s)
+          ${isOffline ? 'Device Status: Offline' : 'Device Status: Online & Connected'} &bull; ${queue.length} Queued Action(s)
         </div>
       </div>
-      <button class="stamp-btn ghost small" onclick="this.closest('.overlay').remove()">✕</button>
+      <button class="stamp-btn ghost small" onclick="this.closest('.overlay').remove()" style="display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;">${icon('close', 14)}</button>
     </div>
 
     ${queue.length ? `
@@ -1160,12 +1166,12 @@ window.__openQueuedMutationsModal = function() {
       </div>
 
       <div class="modal-actions" style="flex-wrap:wrap;gap:8px;">
-        <button class="stamp-btn ghost" style="flex:1;" onclick="clearOfflineQueue();this.closest('.overlay').remove();">🗑 Clear Queue</button>
-        ${navigator.onLine ? `<button class="stamp-btn" style="flex:1.4;background:var(--turmeric);color:white;" onclick="flushOfflineMutationQueue();this.closest('.overlay').remove();">⚡ Sync All Queued Now</button>` : ''}
+        <button class="stamp-btn ghost" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:5px;" onclick="clearOfflineQueue();this.closest('.overlay').remove();">${icon('trash', 14)} Clear Queue</button>
+        ${navigator.onLine ? `<button class="stamp-btn" style="flex:1.4;background:var(--turmeric);color:white;display:inline-flex;align-items:center;justify-content:center;gap:5px;" onclick="flushOfflineMutationQueue();this.closest('.overlay').remove();">${icon('rotate', 14)} Sync All Queued Now</button>` : ''}
       </div>
     ` : `
       <div class="empty" style="padding:24px 12px;">
-        🟢 All offline and online data mutations are 100% synced to the cloud database! Zero items queued.
+        All offline and online data mutations are 100% synced to the cloud database! Zero items queued.
       </div>
     `}
   </div></div>`;
@@ -1749,7 +1755,7 @@ window.__triggerPwaInstall = async () => {
       <div class="overlay show"><div class="modal">
         <h2>Install App Instructions</h2>
         <div style="font-size:0.88rem;color:var(--ink);line-height:1.5;margin:12px 0;">
-          <b>Android (Chrome):</b> Tap the 3 dots menu ➔ "Add to Home screen" or "Install app".<br><br>
+          <b>Android (Chrome):</b> Tap the 3 dots menu &rarr; "Add to Home screen" or "Install app".<br><br>
           <b>Desktop (Chrome/Edge):</b> Click the Install icon in your browser address bar.
         </div>
         <div class="modal-actions">
@@ -1852,7 +1858,7 @@ function requestNotifications(){
           }
         } catch(e){}
       }
-      if(typeof window.showToast==='function') window.showToast('🔔 Web Push Notifications Enabled!', 'success');
+      if(typeof window.showToast==='function') window.showToast('Web Push Notifications Enabled!', 'success');
       startReminderLoop();
     } else if(p==='denied'){
       alert('Notifications were blocked. To turn them on, check your browser/site settings for this page and allow notifications.');
@@ -1939,11 +1945,11 @@ window.showToast = function(message, type = 'info', duration = 3200) {
 
   const toast = document.createElement('div');
   toast.className = `glass-toast glass-toast-${type}`;
-  const iconSymbol = type === 'success' ? '✅' : type === 'warning' ? '⚠️' : type === 'error' ? '❌' : 'ℹ️';
+  const iconSymbol = type === 'success' ? icon('check', 16) : type === 'warning' ? icon('alert', 16) : type === 'error' ? icon('close', 16) : icon('bell', 16);
 
   toast.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;">
-      <span style="font-size:1.1rem;flex-shrink:0;">${iconSymbol}</span>
+      <span style="display:inline-flex;align-items:center;flex-shrink:0;">${iconSymbol}</span>
       <div style="flex:1;font-size:0.82rem;font-weight:700;line-height:1.3;color:#fff;">${message}</div>
     </div>
     <div class="glass-toast-timer" style="animation-duration:${duration}ms;"></div>
@@ -2052,6 +2058,15 @@ const ICONS = {
   alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" fill="none" stroke-width="2" stroke-linejoin="round"/><line x1="12" y1="9" x2="12" y2="13" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12.01" y2="17" stroke-width="2" stroke-linecap="round"/>',
   stockkeeper: '<ellipse cx="12" cy="5" rx="9" ry="3" fill="none" stroke-width="2"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3M21 5v14c0 1.66-4 3-9 3s-9-1.34-9-3V5" fill="none" stroke-width="2"/>',
   project: '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" fill="none" stroke-width="2" stroke-linejoin="round"/><path d="M12 11v6M9 14h6" stroke-width="2" stroke-linecap="round"/>',
+  calendar: '<rect x="3" y="4" width="18" height="18" rx="2" fill="none" stroke-width="2"/><line x1="16" y1="2" x2="16" y2="6" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="2" x2="8" y2="6" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="10" x2="21" y2="10" stroke-width="2"/>',
+  clock: '<circle cx="12" cy="12" r="9" fill="none" stroke-width="2"/><polyline points="12 7 12 12 15 15" fill="none" stroke-width="2" stroke-linecap="round"/>',
+  message: '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  rotate: '<polyline points="1 4 1 10 7 10" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  close: '<line x1="18" y1="6" x2="6" y2="18" stroke-width="2" stroke-linecap="round"/><line x1="6" y1="6" x2="18" y2="18" stroke-width="2" stroke-linecap="round"/>',
+  zap: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  lock: '<rect x="3" y="11" width="18" height="11" rx="2" ry="2" fill="none" stroke-width="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4" fill="none" stroke-width="2"/>',
+  eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" fill="none" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="none" stroke-width="2"/>',
 };
 function icon(name, size){
   size = size || 18;
@@ -2101,7 +2116,7 @@ function getPrimaryActionBtn(t){
   if(t==='pricelist' && isManagerPlus()) return `<button class="stamp-btn compact-mobile" onclick="window.__openAddPriceListItemModal()"><span class="btn-text">+ Add Product</span><span class="btn-short">+</span></button>`;
   if(t==='label') return `<button class="stamp-btn compact-mobile" onclick="window.__openLabel()"><span class="btn-text">+ Log Label</span><span class="btn-short">+</span></button>`;
   if(t==='package') return `<button class="stamp-btn compact-mobile" onclick="window.__openPackage()"><span class="btn-text">+ Log Package</span><span class="btn-short">+</span></button>`;
-  if(t==='salary' && (isOwner() || isManager())) return `<button class="stamp-btn compact-mobile" onclick="window.__openSalaryLogModal()"><span class="btn-text">📜 Salary Log</span><span class="btn-short">📜</span></button>${isOwner() ? `<button class="stamp-btn compact-mobile" style="margin-left:6px;" onclick="window.__openSalary()"><span class="btn-text">+ Record Salary</span><span class="btn-short">+</span></button>` : ''}`;
+  if(t==='salary' && (isOwner() || isManager())) return `<button class="stamp-btn compact-mobile" onclick="window.__openSalaryLogModal()"><span class="btn-text" style="display:inline-flex;align-items:center;gap:4px;">${icon('salary', 14)} Salary Log</span><span class="btn-short" style="display:inline-flex;align-items:center;justify-content:center;">${icon('salary', 14)}</span></button>${isOwner() ? `<button class="stamp-btn compact-mobile" style="margin-left:6px;" onclick="window.__openSalary()"><span class="btn-text">+ Record Salary</span><span class="btn-short">+</span></button>` : ''}`;
   if(t==='points' && isManagerPlus()) return `<button class="stamp-btn compact-mobile" onclick="window.__openPoints()"><span class="btn-text">+ Award Points</span><span class="btn-short">+</span></button>`;
   if(t==='low_stock') return `<button class="stamp-btn compact-mobile" onclick="window.__openLowStockModal()"><span class="btn-text">+ Report Low Stock</span><span class="btn-short">+</span></button>`;
   if(t==='projects' && isOwner()) return `<button class="stamp-btn compact-mobile" onclick="window.__openAddProjectModal()"><span class="btn-text">+ New Project</span><span class="btn-short">+</span></button>`;
@@ -2170,12 +2185,12 @@ function renderShell(){
               ? `<button class="offline-badge pending" title="${qLen} record(s) pending cloud sync. Tap to sync." onclick="window.__reloadAppData(document.querySelector('.reload-btn'))">
                   ● ${qLen} PENDING
                 </button>`
-              : `<span class="offline-badge synced" title="All data synced to cloud">✓ SYNCED</span>`;
+              : `<span class="offline-badge synced" title="All data synced to cloud" style="display:inline-flex;align-items:center;gap:4px;">${icon('check', 12)} SYNCED</span>`;
           })()}
           <button class="reload-btn" title="Refresh App Data" onclick="window.__reloadAppData(this)">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3L21.5 8M22 12.5a10 10 0 0 1-18.8 4.3L2.5 16"/></svg>
           </button>
-          ${isManagerPlus() ? `<button class="stamp-btn compact-mobile" style="background:var(--turmeric-dark);color:#fff;border-color:var(--turmeric-dark);" onclick="window.__openQuickTaskModal()"><span class="btn-short">⚡</span><span class="btn-text">⚡ Quick Add</span></button>` : ''}
+          ${isManagerPlus() ? `<button class="stamp-btn compact-mobile" style="background:var(--turmeric-dark);color:#fff;border-color:var(--turmeric-dark);" onclick="window.__openQuickTaskModal()"><span class="btn-short" style="display:inline-flex;align-items:center;justify-content:center;">${icon('zap', 14)}</span><span class="btn-text" style="display:inline-flex;align-items:center;gap:4px;">${icon('zap', 14)} Quick Add</span></button>` : ''}
           ${getPrimaryActionBtn(activeTab)}
           <button class="avatar-circle mobile-only" style="width:34px;height:34px;font-size:0.75rem;border:none;cursor:pointer;" onclick="window.__openAccount()">${initials(session.name)}</button>
         </div>
@@ -2232,13 +2247,13 @@ function renderShell(){
   ${(activeTab === 'dashboard' && isOwner()) ? `
     <div class="owner-fab-overlay" id="ownerFabOverlay" onclick="window.__toggleOwnerFab()"></div>
     <div class="owner-fab-menu" id="ownerFabMenu">
-      <div class="owner-fab-item" onclick="window.__setTab('accounts');window.__toggleOwnerFab();">📝 Accounts Entry</div>
-      <div class="owner-fab-item" onclick="window.__openSalaryAdvanceModal();window.__toggleOwnerFab();">💸 Record Salary Advance</div>
-      <div class="owner-fab-item" onclick="window.__openQuickTaskModal();window.__toggleOwnerFab();">⚡ Add Quick Task</div>
-      <div class="owner-fab-item" onclick="window.__openSale();window.__toggleOwnerFab();">🛒 Log Sale</div>
-      <div class="owner-fab-item" onclick="window.__setTab('audit');window.__toggleOwnerFab();">📜 Activity Audit Log</div>
+      <div class="owner-fab-item" onclick="window.__setTab('accounts');window.__toggleOwnerFab();" style="display:flex;align-items:center;gap:8px;">${icon('clipboard', 16)} Accounts Entry</div>
+      <div class="owner-fab-item" onclick="window.__openSalaryAdvanceModal();window.__toggleOwnerFab();" style="display:flex;align-items:center;gap:8px;">${icon('salary', 16)} Record Salary Advance</div>
+      <div class="owner-fab-item" onclick="window.__openQuickTaskModal();window.__toggleOwnerFab();" style="display:flex;align-items:center;gap:8px;">${icon('plus', 16)} Add Quick Task</div>
+      <div class="owner-fab-item" onclick="window.__openSale();window.__toggleOwnerFab();" style="display:flex;align-items:center;gap:8px;">${icon('sales', 16)} Log Sale</div>
+      <div class="owner-fab-item" onclick="window.__setTab('audit');window.__toggleOwnerFab();" style="display:flex;align-items:center;gap:8px;">${icon('reports', 16)} Activity Audit Log</div>
     </div>
-    <button class="owner-fab-btn" id="ownerFabBtn" onclick="window.__toggleOwnerFab()" title="Owner Quick Actions">⚡ Quick Access</button>
+    <button class="owner-fab-btn" id="ownerFabBtn" onclick="window.__toggleOwnerFab()" title="Owner Quick Actions" style="display:inline-flex;align-items:center;gap:6px;">${icon('zap', 16)} Quick Access</button>
   ` : `
     <!-- Mobile Floating Action Buttons for Non-Owner Roles -->
     ${activeTab==='tasks' ? '<button class="fab mobile-only" onclick="window.__openTask()">+</button>' : ''}

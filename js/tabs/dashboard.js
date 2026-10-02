@@ -194,7 +194,7 @@ window.__openSetTargetsModal = function() {
   <div class="overlay show" onclick="if(event.target===this) getModalHolder('taskModalHolder').innerHTML=''"><div class="modal" style="max-width:520px;width:92%;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
       <h3 style="margin:0;display:inline-flex;align-items:center;gap:6px;">${icon('settings', 16)} Assign Custom Targets & Incentive Bonuses (${curMonth})</h3>
-      <button class="stamp-btn small ghost" onclick="getModalHolder('taskModalHolder').innerHTML=''">✕</button>
+      <button class="stamp-btn small ghost" onclick="getModalHolder('taskModalHolder').innerHTML=''" style="display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;">${icon('close', 14)}</button>
     </div>
     <p style="font-size:0.8rem;color:var(--ink-soft);margin-bottom:14px;">Set custom monthly target sales amounts and incentive bonus rewards for staff members and managers.</p>
 
@@ -226,7 +226,7 @@ window.__openSetTargetsModal = function() {
 
     <div class="modal-actions" style="display:flex;justify-content:flex-end;gap:8px;">
       <button class="stamp-btn ghost" onclick="getModalHolder('taskModalHolder').innerHTML=''">Cancel</button>
-      <button class="stamp-btn" style="background:var(--turmeric);color:white;" onclick="window.__saveStaffTargets('${curMonth}')">💾 Save Custom Targets</button>
+      <button class="stamp-btn" style="background:var(--turmeric);color:white;display:inline-flex;align-items:center;gap:6px;" onclick="window.__saveStaffTargets('${curMonth}')">${icon('save', 14)} Save Custom Targets</button>
     </div>
   </div></div>`;
 };
@@ -268,7 +268,7 @@ window.__saveStaffTargets = async function(curMonth) {
 
   cache.salesTargets = targets;
   getModalHolder('taskModalHolder').innerHTML = '';
-  window.showToast('🎯 Custom Sales Targets & Incentive Bonuses updated!', 'success');
+  window.showToast('Custom Sales Targets & Incentive Bonuses updated!', 'success');
   renderTabBody();
 };
 
@@ -305,13 +305,13 @@ function buildDashboardActivityFeedHtml() {
   const recent = auditLogs.slice(0, 5);
 
   return `
-    <div class="section-label">📜 Real-Time Activity Feed <a onclick="window.__setTab('audit')">View All &rarr;</a></div>
+    <div class="section-label" style="display:flex;align-items:center;gap:6px;">${icon('reports', 14)} Real-Time Activity Feed <a onclick="window.__setTab('audit')">View All &rarr;</a></div>
     <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px;margin-bottom:16px;">
       <div style="display:flex;flex-direction:column;gap:10px;">
         ${recent.map(item => `
           <div style="display:flex;align-items:flex-start;gap:10px;padding-bottom:8px;border-bottom:1px dashed var(--paper-line);">
-            <div style="width:28px;height:28px;border-radius:50%;background:var(--blue-soft);color:var(--turmeric-dark);display:flex;align-items:center;justify-content:center;font-size:0.75rem;flex-shrink:0;font-weight:700;">
-              ⚡
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--blue-soft);color:var(--turmeric-dark);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              ${icon('zap', 14)}
             </div>
             <div style="flex:1;">
               <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -379,10 +379,10 @@ function renderDashboardTab(body){
   const unpaidVendorTotal = unpaidVendorBills.reduce((sum, b) => sum + getBillAmount(b), 0);
 
   body.innerHTML = `
-    <!-- 🎯 PINNED INCENTIVE TARGET CARD (FIRST ON DASHBOARD) -->
+    <!-- PINNED INCENTIVE TARGET CARD (FIRST ON DASHBOARD) -->
     ${buildPinnedIncentiveTargetWidgetHtml(curMonth, monthSales)}
 
-    <!-- 📈 Sales Trend Interactive Chart (OWNER ONLY SECURITY) -->
+    <!-- Sales Trend Interactive Chart (OWNER ONLY SECURITY) -->
     ${isOwner() ? buildSalesTrendChartHtml() : ''}
 
     <!-- Vendor Bills Payable Widget (OWNER ONLY SECURITY) -->
@@ -495,7 +495,7 @@ function buildDashboardPnLLineGraphHtml() {
 
   const chartEntries = [];
   if (openingAmt > 0) {
-    chartEntries.push({ month: '🏁 Opening', net_profit: openingAmt, isOpening: true });
+    chartEntries.push({ month: 'Opening', net_profit: openingAmt, isOpening: true });
   }
   const pastMonths = records.slice(0, 8).reverse();
   chartEntries.push(...pastMonths);
@@ -540,7 +540,7 @@ function buildDashboardPnLLineGraphHtml() {
 
   return `
     <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;margin-top:18px;">
-      <span>📈 Net Profit &amp; Loss (P&amp;L) Trend</span>
+      <span style="display:inline-flex;align-items:center;gap:6px;">${icon('sales', 14)} Net Profit &amp; Loss (P&amp;L) Trend</span>
       <a onclick="window.__setTab('pnl')" style="font-size:0.75rem;color:var(--turmeric-dark);font-weight:700;cursor:pointer;">View P&amp;L Analytics &rarr;</a>
     </div>
 
@@ -548,7 +548,7 @@ function buildDashboardPnLLineGraphHtml() {
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
         <div style="display:flex;align-items:center;gap:12px;font-size:0.82rem;flex-wrap:wrap;">
           <span>Cumulative Net Profit: <b style="color:${totalCumulativeNet>=0?'var(--leaf)':'var(--brick)'};font-family:'Roboto Mono',monospace;">₹${totalCumulativeNet.toLocaleString('en-IN')}</b></span>
-          ${openingAmt > 0 ? `<span style="color:var(--turmeric-dark);font-weight:600;">🏁 Opening: ₹${openingAmt.toLocaleString('en-IN')}</span>` : ''}
+          ${openingAmt > 0 ? `<span style="color:var(--turmeric-dark);font-weight:600;">Opening: ₹${openingAmt.toLocaleString('en-IN')}</span>` : ''}
           <span style="color:var(--leaf);font-weight:600;">Latest: ${thisNet>=0?'+':''}₹${thisNet.toLocaleString('en-IN')}</span>
         </div>
       </div>

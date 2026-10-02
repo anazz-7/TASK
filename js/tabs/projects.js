@@ -30,7 +30,7 @@ function renderProjectsTab(body) {
   if (!isOwner()) {
     body.innerHTML = `
       <div class="row-card" style="text-align:center;padding:36px 20px;flex-direction:column;align-items:center;margin-top:20px;">
-        <div style="font-size:3rem;margin-bottom:12px;">🔒</div>
+        <div style="margin-bottom:12px;display:flex;justify-content:center;color:var(--turmeric);">${icon('lock', 40)}</div>
         <h3 style="margin:0;color:var(--ink);font-size:1.1rem;">Owner Access Only</h3>
         <p style="font-size:0.82rem;color:var(--ink-soft);max-width:340px;margin:8px 0 16px;line-height:1.4;">The Future Projects Hub is private and strictly restricted to the Business Owner.</p>
         <button class="stamp-btn" onclick="window.__setTab('dashboard')">Return to Dashboard</button>
@@ -93,10 +93,10 @@ function renderProjectsTab(body) {
     <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:14px;scrollbar-width:none;">
       ${[
         { key: 'all', label: `All (${totalCount})` },
-        { key: 'planning', label: `📌 Planning (${planningCount})` },
-        { key: 'in_progress', label: `🚀 In Progress (${inProgressCount})` },
-        { key: 'completed', label: `✅ Completed (${completedCount})` },
-        { key: 'on_hold', label: `⏸ On Hold (${onHoldCount})` }
+        { key: 'planning', label: `Planning (${planningCount})` },
+        { key: 'in_progress', label: `In Progress (${inProgressCount})` },
+        { key: 'completed', label: `Completed (${completedCount})` },
+        { key: 'on_hold', label: `On Hold (${onHoldCount})` }
       ].map(tab => `
         <button class="stamp-btn small ${projectsStatusFilter===tab.key ? '' : 'ghost'}" style="white-space:nowrap;padding:4px 10px;font-size:0.75rem;" onclick="projectsStatusFilter='${tab.key}';renderProjectsTab(document.getElementById('tabBody'));">
           ${tab.label}
@@ -113,17 +113,17 @@ function renderProjectsTab(body) {
       const reminders = proj.reminders || [];
 
       const statusBadge = proj.status === 'completed'
-        ? '<span style="background:var(--leaf-soft);color:var(--leaf);border:1px solid var(--leaf);font-size:0.68rem;font-weight:800;padding:2px 8px;border-radius:999px;">✅ Completed</span>'
+        ? '<span style="background:var(--leaf-soft);color:var(--leaf);border:1px solid var(--leaf);font-size:0.68rem;font-weight:800;padding:2px 8px;border-radius:999px;">Completed</span>'
         : (proj.status === 'in_progress'
-          ? '<span style="background:var(--blue-soft);color:var(--blue);border:1px solid var(--blue);font-size:0.68rem;font-weight:800;padding:2px 8px;border-radius:999px;">🚀 In Progress</span>'
+          ? '<span style="background:var(--blue-soft);color:var(--blue);border:1px solid var(--blue);font-size:0.68rem;font-weight:800;padding:2px 8px;border-radius:999px;">In Progress</span>'
           : (proj.status === 'on_hold'
-            ? '<span style="background:var(--brick-soft);color:var(--brick);border:1px solid var(--brick);font-size:0.68rem;font-weight:800;padding:2px 8px;border-radius:999px;">⏸ On Hold</span>'
-            : '<span style="background:var(--turmeric-soft);color:var(--turmeric-dark);border:1px solid var(--turmeric);font-size:0.68rem;font-weight:800;padding:2px 8px;border-radius:999px;">📌 Planning</span>'));
+            ? '<span style="background:var(--brick-soft);color:var(--brick);border:1px solid var(--brick);font-size:0.68rem;font-weight:800;padding:2px 8px;border-radius:999px;">On Hold</span>'
+            : '<span style="background:var(--turmeric-soft);color:var(--turmeric-dark);border:1px solid var(--turmeric);font-size:0.68rem;font-weight:800;padding:2px 8px;border-radius:999px;">Planning</span>'));
 
       const priorityBadge = proj.priority === 'high'
-        ? '<span style="color:var(--brick);font-weight:800;font-size:0.68rem;background:rgba(239,68,68,0.1);padding:1px 6px;border-radius:4px;">🔥 High Priority</span>'
+        ? '<span style="color:var(--brick);font-weight:800;font-size:0.68rem;background:rgba(239,68,68,0.1);padding:1px 6px;border-radius:4px;">High Priority</span>'
         : (proj.priority === 'medium'
-          ? '<span style="color:var(--turmeric-dark);font-weight:700;font-size:0.68rem;background:rgba(245,158,11,0.1);padding:1px 6px;border-radius:4px;">⚡ Medium</span>'
+          ? '<span style="color:var(--turmeric-dark);font-weight:700;font-size:0.68rem;background:rgba(245,158,11,0.1);padding:1px 6px;border-radius:4px;">Medium</span>'
           : '<span style="color:var(--ink-soft);font-size:0.68rem;background:var(--paper-line);padding:1px 6px;border-radius:4px;">Low</span>');
 
       return `
@@ -141,7 +141,7 @@ function renderProjectsTab(body) {
             </div>
             <div style="text-align:right;white-space:nowrap;font-family:'Roboto Mono',monospace;font-size:0.78rem;">
               ${proj.estimated_budget ? `<div style="color:var(--leaf);font-weight:800;font-size:0.88rem;">Est. Budget: ₹${Number(proj.estimated_budget).toLocaleString('en-IN')}</div>` : ''}
-              ${proj.target_date ? `<div style="color:var(--ink-soft);font-size:0.72rem;margin-top:2px;">📅 Target: ${proj.target_date}</div>` : ''}
+              ${proj.target_date ? `<div style="color:var(--ink-soft);font-size:0.72rem;margin-top:2px;">${icon('calendar', 12)} Target: ${proj.target_date}</div>` : ''}
             </div>
           </div>
 
@@ -166,7 +166,7 @@ function renderProjectsTab(body) {
                       <span style="${t.done ? 'text-decoration:line-through;color:var(--ink-soft);' : 'color:var(--ink);font-weight:600;'}">${esc(t.title)}</span>
                       ${t.due_date ? `<span style="font-size:0.68rem;color:var(--ink-soft);font-family:'Roboto Mono',monospace;">(Due: ${t.due_date})</span>` : ''}
                     </label>
-                    <button style="background:none;border:none;color:var(--brick);cursor:pointer;padding:2px 4px;font-size:0.72rem;" onclick="window.__deleteProjectTask('${proj.id}', '${t.id}')" title="Delete Task">✕</button>
+                    <button style="background:none;border:none;color:var(--brick);cursor:pointer;padding:2px 4px;font-size:0.72rem;" onclick="window.__deleteProjectTask('${proj.id}', '${t.id}')" title="Delete Task" style="display:inline-flex;align-items:center;">${icon('close', 11)}</button>
                   </div>
                 `).join('')}
               </div>
@@ -191,8 +191,8 @@ function renderProjectsTab(body) {
                       <span style="${r.done ? 'text-decoration:line-through;color:var(--ink-soft);' : 'color:var(--ink);font-weight:600;'}">${esc(r.title)}</span>
                     </label>
                     <div style="display:flex;align-items:center;gap:6px;">
-                      <span style="font-size:0.68rem;color:var(--turmeric-dark);font-weight:700;font-family:'Roboto Mono',monospace;">🔔 ${r.reminder_date}</span>
-                      <button style="background:none;border:none;color:var(--brick);cursor:pointer;padding:2px 4px;font-size:0.72rem;" onclick="window.__deleteProjectReminder('${proj.id}', '${r.id}')" title="Delete Reminder">✕</button>
+                      <span style="font-size:0.68rem;color:var(--turmeric-dark);font-weight:700;font-family:'Roboto Mono',monospace;">${icon('bell', 12)} ${r.reminder_date}</span>
+                      <button style="background:none;border:none;color:var(--brick);cursor:pointer;padding:2px 4px;font-size:0.72rem;" onclick="window.__deleteProjectReminder('${proj.id}', '${r.id}')" title="Delete Reminder" style="display:inline-flex;align-items:center;">${icon('close', 11)}</button>
                     </div>
                   </div>
                 `).join('')}
@@ -202,14 +202,14 @@ function renderProjectsTab(body) {
 
           <!-- Bottom Action Buttons -->
           <div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;padding-top:6px;border-top:1px solid var(--paper-line);">
-            <button class="stamp-btn small ghost" style="font-size:0.72rem;padding:3px 8px;" onclick="window.__openAddProjectModal('${proj.id}')">✎ Edit Project</button>
-            <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);font-size:0.72rem;padding:3px 8px;" onclick="window.__deleteProject('${proj.id}')">🗑 Delete</button>
+            <button class="stamp-btn small ghost" style="font-size:0.72rem;padding:3px 8px;" onclick="window.__openAddProjectModal('${proj.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon('edit', 12)} Edit Project</button>
+            <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);font-size:0.72rem;padding:3px 8px;" onclick="window.__deleteProject('${proj.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon('trash', 12)} Delete</button>
           </div>
         </div>
       `;
     }).join('') : `
       <div class="empty" style="padding:32px 16px;text-align:center;background:var(--paper);border:1px solid var(--paper-line);border-radius:12px;">
-        <div style="font-size:2rem;margin-bottom:8px;">📁</div>
+        <div style="margin-bottom:8px;display:flex;justify-content:center;color:var(--ink-soft);">${icon('project', 36)}</div>
         <b style="color:var(--ink);display:block;margin-bottom:4px;">No Future Projects Found</b>
         <p style="font-size:0.8rem;color:var(--ink-soft);margin-bottom:12px;">Plan and store your future business goals, milestones, and task checklists privately.</p>
         <button class="stamp-btn" onclick="window.__openAddProjectModal()">+ Create Your First Project</button>
@@ -228,7 +228,7 @@ window.__openAddProjectModal = function(editId = null) {
     <div class="overlay show" id="projectModalOverlay">
       <div class="modal" style="max-width:480px;width:92%;">
         <h2 style="margin:0 0 12px;display:flex;align-items:center;gap:6px;">
-          ${icon('project', 20)} ${existing ? '✎ Edit Future Project' : '➕ Create New Future Project'}
+          ${icon('project', 20)} ${existing ? 'Edit Future Project' : 'Create New Future Project'}
         </h2>
         <input type="hidden" id="projEditId" value="${existing ? existing.id : ''}">
 
@@ -252,8 +252,8 @@ window.__openAddProjectModal = function(editId = null) {
             <div>
               <label style="font-size:0.75rem;font-weight:700;color:var(--ink);display:block;margin-bottom:4px;">Priority</label>
               <select id="projPriority" class="search-input" style="width:100%;box-sizing:border-box;">
-                <option value="high" ${existing && existing.priority==='high'?'selected':''}>🔥 High Priority</option>
-                <option value="medium" ${!existing || existing.priority==='medium'?'selected':''}>⚡ Medium Priority</option>
+                <option value="high" ${existing && existing.priority==='high'?'selected':''}>High Priority</option>
+                <option value="medium" ${!existing || existing.priority==='medium'?'selected':''}>Medium Priority</option>
                 <option value="low" ${existing && existing.priority==='low'?'selected':''}>Low Priority</option>
               </select>
             </div>
@@ -263,10 +263,10 @@ window.__openAddProjectModal = function(editId = null) {
             <div>
               <label style="font-size:0.75rem;font-weight:700;color:var(--ink);display:block;margin-bottom:4px;">Status</label>
               <select id="projStatus" class="search-input" style="width:100%;box-sizing:border-box;">
-                <option value="planning" ${!existing || existing.status==='planning'?'selected':''}>📌 Planning</option>
-                <option value="in_progress" ${existing && existing.status==='in_progress'?'selected':''}>🚀 In Progress</option>
-                <option value="completed" ${existing && existing.status==='completed'?'selected':''}>✅ Completed</option>
-                <option value="on_hold" ${existing && existing.status==='on_hold'?'selected':''}>⏸ On Hold</option>
+                <option value="planning" ${!existing || existing.status==='planning'?'selected':''}>Planning</option>
+                <option value="in_progress" ${existing && existing.status==='in_progress'?'selected':''}>In Progress</option>
+                <option value="completed" ${existing && existing.status==='completed'?'selected':''}>Completed</option>
+                <option value="on_hold" ${existing && existing.status==='on_hold'?'selected':''}>On Hold</option>
               </select>
             </div>
             <div>
@@ -521,7 +521,7 @@ window.__openAddPriceListItemModal = function(editId = null) {
   holder.innerHTML = `
     <div class="overlay show" id="addPriceListItemModal">
       <div class="modal" style="max-width:440px;">
-        <h2>${existing ? '✎ Edit Product Price & Scheme' : '➕ Add Product Price Item'}</h2>
+        <h2>${existing ? 'Edit Product Price & Scheme' : 'Add Product Price Item'}</h2>
         <input type="hidden" id="plEditId" value="${existing ? existing.id : ''}">
         
         <label>Product Name *</label>
@@ -588,7 +588,7 @@ window.__savePriceListItem = function() {
   cache.priceList = list;
   savePriceListData(list);
   document.getElementById('addPriceListItemModal').classList.remove('show');
-  window.showToast('✅ Price list updated successfully!', 'success');
+  window.showToast('Price list updated successfully!', 'success');
   renderTabBody();
 };
 
@@ -597,7 +597,7 @@ window.__deletePriceListItem = function(id) {
   const list = getPriceListData().filter(i => i.id !== id);
   cache.priceList = list;
   savePriceListData(list);
-  window.showToast('🗑 Product removed from price list.', 'info');
+  window.showToast('Product removed from price list.', 'info');
   renderTabBody();
 };
 
@@ -699,7 +699,7 @@ function buildSalesTrendChartHtml() {
   <div class="trend-chart-wrap">
     <div class="trend-chart-header">
       <div>
-        <div class="trend-chart-title">📈 Sales Trend</div>
+        <div class="trend-chart-title" style="display:inline-flex;align-items:center;gap:6px;">${icon('sales', 14)} Sales Trend</div>
         <div style="display:flex;align-items:center;gap:4px;margin-top:2px;">
           <span style="font-size:0.95rem;font-weight:800;color:var(--ink);font-family:'Roboto Mono',monospace;">${fmtVal(totalPeriod)}</span>
           <span style="font-size:0.68rem;font-weight:600;color:var(--ink-soft);font-family:'Roboto Mono',monospace;">${fmtVal(avgPeriod)} avg</span>
@@ -909,11 +909,11 @@ ${new Date().toLocaleString('en-IN')}`;
   const wMon = new Date(todayD2); wMon.setDate(todayD2.getDate() - ((todayD2.getDay()||7)-1));
   localStorage.setItem(`br_weekly_email_${session.businessId}`, localDateStr(wMon));
   setTimeout(() => renderTabBody(), 800);
-  window.showToast('📧 Opening email with weekly report…', 'success');
+  window.showToast('Opening email with weekly report…', 'success');
 };
 
 
-/* ---------------- 🏢 OFFICE LOGS (CASH ENTRY & WITHDRAWAL HISTORY) ---------------- */
+/* ---------------- OFFICE LOGS (CASH ENTRY & WITHDRAWAL HISTORY) ---------------- */
 let officeLogsSearchQuery = '';
 let officeLogsTypeFilter = 'all';
 let isOfficeLogsHistoryCollapsed = false;
@@ -984,7 +984,7 @@ window.__toggleOfficeLogCheck = function(id) {
   if (!item) return;
   item.checked = !item.checked;
   saveOfficeLogsData(logs);
-  window.showToast(item.checked ? '☑️ Entry marked as Verified!' : '☐ Entry marked as Unchecked', item.checked ? 'success' : 'info');
+  window.showToast(item.checked ? 'Entry marked as Verified!' : 'Entry marked as Unchecked', item.checked ? 'success' : 'info');
   renderTabBody();
 };
 
@@ -1000,7 +1000,7 @@ window.__openOfficeLogModal = function(editId) {
       <div class="modal" style="max-width:440px;width:90%;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
           <h3 style="margin:0;display:inline-flex;align-items:center;gap:6px;">${icon('building', 18)} ${isEdit ? 'Edit Office Cash Log' : 'Record Office Cash Entry'}</h3>
-          <button class="stamp-btn small ghost" onclick="window.__closeCurrentModal(this)">✕</button>
+          <button class="stamp-btn small ghost" onclick="window.__closeCurrentModal(this)" style="display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;">${icon('close', 14)}</button>
         </div>
         <form onsubmit="event.preventDefault(); window.__saveOfficeLog('${editId || ''}', this);">
           <div style="margin-bottom:12px;">
@@ -1042,7 +1042,7 @@ window.__openOfficeLogModal = function(editId) {
           </div>
           <div style="display:flex;justify-content:flex-end;gap:8px;">
             <button type="button" class="stamp-btn ghost" onclick="window.__closeCurrentModal(this)">Cancel</button>
-            <button type="submit" class="stamp-btn">💾 Save Office Log</button>
+            <button type="submit" class="stamp-btn" style="display:inline-flex;align-items:center;gap:6px;">${icon('save', 14)} Save Office Log</button>
           </div>
         </form>
       </div>
@@ -1105,7 +1105,7 @@ window.__saveOfficeLog = async function(editId, form) {
     await saveOfficeLogsData(logs);
     if (typeof getModalHolder === 'function') getModalHolder('taskModalHolder').innerHTML = '';
     if (typeof window.showToast === 'function') {
-      window.showToast(isEdit ? 'Office log updated & synced!' : '🏢 Office Cash Log recorded & synced to Cloud!', 'success');
+      window.showToast(isEdit ? 'Office log updated & synced!' : 'Office Cash Log recorded & synced to Cloud!', 'success');
     }
     if (typeof renderTabBody === 'function') renderTabBody();
   } catch(err) {
@@ -1218,7 +1218,7 @@ function renderOfficeLogsTab(body) {
                 <div style="display:flex;align-items:center;gap:6px;overflow:hidden;flex:1;">
                   <span style="font-size:0.72rem;color:var(--ink-soft);">${isExpanded ? '⯆' : '⯈'}</span>
                   <div>
-                    <span style="font-size:0.72rem;font-weight:700;color:var(--ink-soft);font-family:'Roboto Mono',monospace;">📅 ${item.date}</span>
+                    <span style="font-size:0.72rem;font-weight:700;color:var(--ink-soft);font-family:'Roboto Mono',monospace;">${icon('calendar', 12)} ${item.date}</span>
                     <b style="color:var(--ink);font-size:0.85rem;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;">${esc(item.reason)}</b>
                   </div>
                 </div>
@@ -1232,11 +1232,11 @@ function renderOfficeLogsTab(body) {
                   <span style="font-size:0.75rem;color:var(--ink-soft);">Logged by: <b>${esc(item.logged_by || 'Staff')}</b> ${item.time ? '· ' + item.time : ''}</span>
                   <div style="display:flex;align-items:center;gap:6px;">
                     <button class="stamp-btn small ${item.checked?'':'ghost'}" style="padding:2px 6px;font-size:0.72rem;${item.checked?'background:var(--leaf-soft);color:var(--leaf);border-color:var(--leaf);':''}" onclick="window.__toggleOfficeLogCheck('${item.id}')">
-                      ${item.checked ? '☑ Verified' : '☐ Check'}
+                      ${item.checked ? icon('check', 12) + ' Verified' : 'Check'}
                     </button>
                     ${isManagerPlus() ? `
-                      <button class="stamp-btn small ghost" style="padding:2px 5px;font-size:0.72rem;" onclick="window.__openOfficeLogModal('${item.id}')">✎</button>
-                      <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:2px 5px;font-size:0.72rem;" onclick="window.__deleteOfficeLog('${item.id}')">🗑</button>
+                      <button class="stamp-btn small ghost" style="padding:2px 5px;font-size:0.72rem;" onclick="window.__openOfficeLogModal('${item.id}')" style="display:inline-flex;align-items:center;">${icon('edit', 12)}</button>
+                      <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:2px 5px;font-size:0.72rem;" onclick="window.__deleteOfficeLog('${item.id}')" style="display:inline-flex;align-items:center;">${icon('trash', 12)}</button>
                     ` : ''}
                   </div>
                 </div>
@@ -1275,7 +1275,7 @@ function renderOfficeLogsTab(body) {
                     </td>
                     <td style="padding:12px 14px;">
                       <button class="stamp-btn small ${item.checked?'':'ghost'}" style="padding:3px 8px;font-size:0.78rem;${item.checked?'background:var(--leaf-soft);color:var(--leaf);border-color:var(--leaf);':''}" onclick="window.__toggleOfficeLogCheck('${item.id}')">
-                        ${item.checked ? '☑ Verified' : '☐ Check'}
+                        ${item.checked ? icon('check', 12) + ' Verified' : 'Check'}
                       </button>
                     </td>
                     <td style="padding:12px 14px;font-family:'Roboto Mono',monospace;color:var(--ink-soft);font-size:0.82rem;white-space:nowrap;">
@@ -1283,7 +1283,7 @@ function renderOfficeLogsTab(body) {
                     </td>
                     <td style="padding:12px 14px;">
                       <span style="display:inline-flex;align-items:center;gap:4px;background:${isDep?'var(--leaf-soft)':'var(--brick-soft)'};color:${isDep?'var(--leaf)':'var(--brick)'};border:1px solid ${isDep?'var(--leaf)':'var(--brick)'};border-radius:6px;font-size:0.78rem;font-weight:700;padding:3px 8px;">
-                        ${isDep ? '📥 Cash Added' : '📤 Cash Out'}
+                        ${isDep ? icon('inbox', 14) + ' Cash Added' : icon('outbox', 14) + ' Cash Out'}
                       </span>
                     </td>
                     <td style="padding:12px 14px;">
@@ -1297,8 +1297,8 @@ function renderOfficeLogsTab(body) {
                     </td>
                     <td style="padding:12px 14px;text-align:right;white-space:nowrap;">
                       ${isManagerPlus() ? `
-                        <button class="stamp-btn small ghost" style="padding:3px 7px;font-size:0.78rem;margin-right:4px;" onclick="window.__openOfficeLogModal('${item.id}')">✎ Edit</button>
-                        <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:3px 7px;font-size:0.78rem;" onclick="window.__deleteOfficeLog('${item.id}')">🗑 Delete</button>
+                        <button class="stamp-btn small ghost" style="padding:3px 7px;font-size:0.78rem;margin-right:4px;" onclick="window.__openOfficeLogModal('${item.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon('edit', 12)} Edit</button>
+                        <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:3px 7px;font-size:0.78rem;" onclick="window.__deleteOfficeLog('${item.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon('trash', 12)} Delete</button>
                       ` : ''}
                     </td>
                   </tr>
@@ -1360,9 +1360,9 @@ window.__openPnLOpeningModal = function() {
       <div class="modal" style="max-width:420px;width:94%;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
           <h3 style="margin:0;display:inline-flex;align-items:center;gap:6px;">
-            🏁 Set Opening Profit (Prior Profits)
+            Set Opening Profit (Prior Profits)
           </h3>
-          <button class="stamp-btn small ghost" onclick="window.__closeCurrentModal(this)">✕</button>
+          <button class="stamp-btn small ghost" onclick="window.__closeCurrentModal(this)" style="display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;">${icon('close', 14)}</button>
         </div>
 
         <form onsubmit="event.preventDefault(); window.__savePnLOpeningAction(this.opening_amount.value, this.notes.value);">
@@ -1379,7 +1379,7 @@ window.__openPnLOpeningModal = function() {
 
           <div style="display:flex;justify-content:flex-end;gap:8px;">
             <button type="button" class="stamp-btn ghost" onclick="window.__closeCurrentModal(this)">Cancel</button>
-            <button type="submit" class="stamp-btn">💾 Save Opening Profit</button>
+            <button type="submit" class="stamp-btn" style="display:inline-flex;align-items:center;gap:6px;">${icon('save', 14)} Save Opening Profit</button>
           </div>
         </form>
       </div>
@@ -1391,7 +1391,7 @@ window.__openPnLOpeningModal = function() {
 window.__savePnLOpeningAction = async function(amount, notes) {
   await savePnLOpeningProfit(amount, notes);
   getModalHolder('taskModalHolder').innerHTML = '';
-  window.showToast('🏁 Opening Profit updated & synced!', 'success');
+  window.showToast('Opening Profit updated & synced!', 'success');
   renderTabBody();
 };
 
@@ -1450,7 +1450,7 @@ window.__openPnLModal = function(editId) {
           <h3 style="margin:0;display:inline-flex;align-items:center;gap:6px;">
             ${icon('reports', 18)} ${isEdit ? 'Edit Monthly Net Profit' : 'Log Monthly Net Profit'}
           </h3>
-          <button class="stamp-btn small ghost" onclick="window.__closeCurrentModal(this)">✕</button>
+          <button class="stamp-btn small ghost" onclick="window.__closeCurrentModal(this)" style="display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;">${icon('close', 14)}</button>
         </div>
 
         <form onsubmit="event.preventDefault(); window.__savePnLRecord('${editId || ''}', this);">
@@ -1478,7 +1478,7 @@ window.__openPnLModal = function(editId) {
 
           <div style="display:flex;justify-content:flex-end;gap:8px;">
             <button type="button" class="stamp-btn ghost" onclick="window.__closeCurrentModal(this)">Cancel</button>
-            <button type="submit" class="stamp-btn">💾 Log Month Profit</button>
+            <button type="submit" class="stamp-btn" style="display:inline-flex;align-items:center;gap:6px;">${icon('save', 14)} Log Month Profit</button>
           </div>
         </form>
       </div>
@@ -1530,7 +1530,7 @@ window.__savePnLRecord = async function(editId, form) {
 
   await savePnLData(records);
   getModalHolder('taskModalHolder').innerHTML = '';
-  window.showToast(isEdit ? 'P&L profit updated!' : '📈 Monthly Net Profit recorded & synced!', 'success');
+  window.showToast(isEdit ? 'P&L profit updated!' : 'Monthly Net Profit recorded & synced!', 'success');
   renderTabBody();
 };
 
@@ -1545,7 +1545,7 @@ window.__deletePnLRecord = async function(id) {
 
 function renderPnLTab(body) {
   if (!isOwner()) {
-    body.innerHTML = `<div class="empty" style="padding:40px;text-align:center;color:var(--brick);font-weight:700;">⚠️ Access Restricted. Only business owners can view P&L Analytics.</div>`;
+    body.innerHTML = `<div class="empty" style="padding:40px;text-align:center;color:var(--brick);font-weight:700;">Access Restricted. Only business owners can view P&L Analytics.</div>`;
     return;
   }
 
@@ -1570,7 +1570,7 @@ function renderPnLTab(body) {
   const monthlyChartEntries = records.slice(0, 9).reverse();
   const chartEntries = [];
   if (openingAmt > 0) {
-    chartEntries.push({ month: '🏁 Opening', net_profit: openingAmt, isOpening: true });
+    chartEntries.push({ month: 'Opening', net_profit: openingAmt, isOpening: true });
   }
   chartEntries.push(...monthlyChartEntries);
 
@@ -1634,11 +1634,11 @@ function renderPnLTab(body) {
       </div>
 
       <div class="stat-card" style="border-left:4px solid var(--turmeric);position:relative;">
-        <button class="stamp-btn small ghost" style="position:absolute;top:8px;right:8px;padding:2px 5px;font-size:0.68rem;" onclick="window.__openPnLOpeningModal()" title="Edit Opening Profit">✎ Edit</button>
+        <button class="stamp-btn small ghost" style="position:absolute;top:8px;right:8px;padding:2px 5px;font-size:0.68rem;" onclick="window.__openPnLOpeningModal()" title="Edit Opening Profit" style="display:inline-flex;align-items:center;gap:4px;">${icon('edit', 12)} Edit</button>
         <div class="num" style="color:var(--turmeric-dark);">
           ₹${openingAmt.toLocaleString('en-IN')}
         </div>
-        <div class="label">🏁 Opening Profit (Prior)</div>
+        <div class="label">Opening Profit (Prior)</div>
       </div>
 
       <div class="stat-card" style="border-left:4px solid ${thisNet>=0?'var(--leaf)':'var(--brick)'};">
@@ -1681,24 +1681,24 @@ function renderPnLTab(body) {
         <input type="text" placeholder="Search month (e.g. 2026-08) or notes..." value="${esc(pnlSearchQuery)}" oninput="window.__onPnLSearch(this.value)" style="width:100%;box-sizing:border-box;font-size:0.82rem;">
       </div>
       <div style="display:flex;align-items:center;gap:6px;">
-        <button class="stamp-btn small ghost" style="color:var(--turmeric-dark);border-color:var(--turmeric-dark);" onclick="window.__openPnLOpeningModal()">🏁 Set Opening Profit</button>
+        <button class="stamp-btn small ghost" style="color:var(--turmeric-dark);border-color:var(--turmeric-dark);" onclick="window.__openPnLOpeningModal()">Set Opening Profit</button>
         <button class="stamp-btn small" onclick="window.__openPnLModal()">${icon('plus', 14)} Log Month Profit</button>
       </div>
     </div>
 
     <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
-      <span style="display:inline-flex;align-items:center;gap:6px;">📊 Logged Net Profit Statements (${filtered.length} Months)</span>
+      <span style="display:inline-flex;align-items:center;gap:6px;">Logged Net Profit Statements (${filtered.length} Months)</span>
     </div>
 
     ${openingAmt > 0 ? `
       <div class="row-card" style="padding:12px;margin-bottom:10px;background:var(--paper-line);border-left:4px solid var(--turmeric-dark);display:flex;justify-content:space-between;align-items:center;">
         <div>
-          <b style="font-size:0.88rem;color:var(--ink);">🏁 Opening Profit (Prior Accumulated)</b>
+          <b style="font-size:0.88rem;color:var(--ink);">Opening Profit (Prior Accumulated)</b>
           <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">${esc(opening.notes || 'Prior profits accumulated before monthly tracking')}</div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
           <b style="font-family:'Roboto Mono',monospace;font-size:1rem;color:var(--turmeric-dark);">+ ₹${openingAmt.toLocaleString('en-IN')}</b>
-          <button class="stamp-btn small ghost" style="padding:3px 7px;font-size:0.75rem;" onclick="window.__openPnLOpeningModal()">✎ Edit</button>
+          <button class="stamp-btn small ghost" style="padding:3px 7px;font-size:0.75rem;" onclick="window.__openPnLOpeningModal()" style="display:inline-flex;align-items:center;gap:4px;">${icon('edit', 12)} Edit</button>
         </div>
       </div>
     ` : ''}
@@ -1719,8 +1719,8 @@ function renderPnLTab(body) {
             ${rev > 0 ? `<div style="font-size:0.75rem;color:var(--ink-soft);margin-bottom:4px;">Gross Revenue: <b>₹${rev.toLocaleString('en-IN')}</b></div>` : ''}
             ${item.notes ? `<div style="font-size:0.75rem;color:var(--ink);font-style:italic;margin-top:2px;">"${esc(item.notes)}"</div>` : ''}
             <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px;padding-top:6px;border-top:1px solid var(--paper-line);">
-              <button class="stamp-btn small ghost" style="padding:3px 8px;font-size:0.75rem;" onclick="window.__openPnLModal('${item.id}')">✎ Edit</button>
-              <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:3px 8px;font-size:0.75rem;" onclick="window.__deletePnLRecord('${item.id}')">🗑 Delete</button>
+              <button class="stamp-btn small ghost" style="padding:3px 8px;font-size:0.75rem;" onclick="window.__openPnLModal('${item.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon('edit', 12)} Edit</button>
+              <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:3px 8px;font-size:0.75rem;" onclick="window.__deletePnLRecord('${item.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon('trash', 12)} Delete</button>
             </div>
           </div>
         `;
@@ -1755,8 +1755,8 @@ function renderPnLTab(body) {
                   <td style="padding:10px 14px;font-family:'Roboto Mono',monospace;">${rev > 0 ? '₹' + rev.toLocaleString('en-IN') : '—'}</td>
                   <td style="padding:10px 14px;color:var(--ink-soft);">${esc(item.notes || '—')}</td>
                   <td style="padding:10px 14px;text-align:right;">
-                    <button class="stamp-btn small ghost" style="padding:3px 8px;font-size:0.75rem;" onclick="window.__openPnLModal('${item.id}')">✎ Edit</button>
-                    <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:3px 8px;font-size:0.75rem;margin-left:4px;" onclick="window.__deletePnLRecord('${item.id}')">🗑 Delete</button>
+                    <button class="stamp-btn small ghost" style="padding:3px 8px;font-size:0.75rem;" onclick="window.__openPnLModal('${item.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon('edit', 12)} Edit</button>
+                    <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:3px 8px;font-size:0.75rem;margin-left:4px;" onclick="window.__deletePnLRecord('${item.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon('trash', 12)} Delete</button>
                   </td>
                 </tr>
               `;

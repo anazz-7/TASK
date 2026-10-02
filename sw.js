@@ -1,5 +1,5 @@
 // Service Worker for BABM TASK / B-INDUSTRIES (PWA Cache & Web Push Notifications)
-const CACHE_VERSION = 'v6.1.0';
+const CACHE_VERSION = 'v6.2.0';
 const CACHE_NAME = `babm-task-app-${CACHE_VERSION}`;
 const ASSETS_TO_CACHE = [
   './',

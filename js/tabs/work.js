@@ -176,7 +176,7 @@ window.__quickAddNaturalTask = async function() {
   saveCacheLocally();
   renderTabBody();
   if (typeof celebrateDone === 'function') celebrateDone();
-  if (typeof window.showToast === 'function') window.showToast('⚡ Task added!', 'success');
+  if (typeof window.showToast === 'function') window.showToast('Task added!', 'success');
 
   const client = window.sb || sb;
   try {
@@ -231,9 +231,9 @@ function renderTasksTab(body) {
     <div class="row-card ${isOverdue(t) ? 'overdue' : ''}">
       <div class="row-main">
         <div class="meta">
-          <span>👤 ${esc(staffName(t.assigned_to) || 'Unassigned / All')}</span>
-          ${t.due_date ? `<span>📅 ${fmtDue(t)}</span>` : ''}
-          ${t.due_time ? `<span>⏰ ${t.due_time.slice(0,5)}</span>` : ''}
+          <span>${icon('user', 13)} ${esc(staffName(t.assigned_to) || 'Unassigned / All')}</span>
+          ${t.due_date ? `<span>${icon('calendar', 13)} ${fmtDue(t)}</span>` : ''}
+          ${t.due_time ? `<span>${icon('clock', 13)} ${t.due_time.slice(0,5)}</span>` : ''}
         </div>
         <h3 style="margin:5px 0 6px;font-size:0.95rem;">
           <span class="status-dot ${t.status === 'done' ? 'green' : 'red'}"></span>
@@ -247,14 +247,14 @@ function renderTasksTab(body) {
         </div>
       </div>
       <div class="row-actions" style="display:flex;align-items:center;gap:6px;">
-        ${t.status !== 'done' ? `<button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border:none;padding:6px 14px;font-weight:700;" onclick="window.__markDone('${t.id}')">✓ Done</button>` : ''}
+        ${t.status !== 'done' ? `<button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border:none;padding:6px 14px;font-weight:700;" onclick="window.__markDone('${t.id}')">${icon('check', 13)} Done</button>` : ''}
         <div class="action-dropdown-holder">
           <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${t.id}')">More ▾</button>
           <div class="action-dropdown-menu" id="actionMenu_${t.id}">
-            <button onclick="window.__editTask('${t.id}')">✎ Edit</button>
-            <button onclick="window.__sendWa('${t.id}')">💬 WhatsApp</button>
-            <button onclick="window.__sendSms('${t.id}')">📲 SMS</button>
-            <button class="danger" onclick="window.__deleteTask('${t.id}')">🗑 Delete</button>
+            <button onclick="window.__editTask('${t.id}')">${icon('edit', 14)} Edit</button>
+            <button onclick="window.__sendWa('${t.id}')">${icon('message', 14)} WhatsApp</button>
+            <button onclick="window.__sendSms('${t.id}')">${icon('phone', 14)} SMS</button>
+            <button class="danger" onclick="window.__deleteTask('${t.id}')">${icon('trash', 14)} Delete</button>
           </div>
         </div>
       </div>
@@ -266,8 +266,8 @@ function renderTasksTab(body) {
     <div class="row-card" style="opacity:0.92;border-left:3px solid var(--leaf);">
       <div class="row-main">
         <div class="meta">
-          <span>👤 ${esc(staffName(t.assigned_to) || 'Completed')}</span>
-          ${t.due_date ? `<span>Due: ${fmtDue(t)}</span>` : ''}
+          <span>${icon('user', 13)} ${esc(staffName(t.assigned_to) || 'Completed')}</span>
+          ${t.due_date ? `<span>${icon('calendar', 13)} Due: ${fmtDue(t)}</span>` : ''}
         </div>
         <h3 style="margin:5px 0 6px;font-size:0.95rem;">
           <span class="status-dot green"></span>
@@ -275,13 +275,13 @@ function renderTasksTab(body) {
         </h3>
         ${t.notes ? `<div class="notes" style="color:var(--ink-soft);font-size:0.78rem;">${esc(t.notes)}</div>` : ''}
         <div style="margin-top:6px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
-          <span class="stamp done">✓ Completed</span>
+          <span class="stamp done">${icon('check', 12)} Completed</span>
           <span class="stamp ${t.priority || 'medium'}">${t.priority || 'medium'}</span>
         </div>
       </div>
       <div class="row-actions" style="display:flex;align-items:center;gap:6px;">
-        <button class="stamp-btn small ghost" style="padding:5px 10px;font-size:0.75rem;" onclick="window.__reopenTask('${t.id}')" title="Move back to active">↩ Reopen</button>
-        <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:5px 10px;font-size:0.75rem;" onclick="window.__deleteTask('${t.id}')">🗑</button>
+        <button class="stamp-btn small ghost" style="padding:5px 10px;font-size:0.75rem;" onclick="window.__reopenTask('${t.id}')" title="Move back to active">${icon('rotate', 12)} Reopen</button>
+        <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:5px 10px;font-size:0.75rem;" onclick="window.__deleteTask('${t.id}')">${icon('trash', 14)}</button>
       </div>
     </div>`;
   };
@@ -289,12 +289,12 @@ function renderTasksTab(body) {
   const quickBar = `
     <div class="row-card" style="flex-direction:column;align-items:stretch;background:var(--paper);border:1.5px solid var(--turmeric-dark);margin-bottom:14px;padding:12px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-        <span style="font-weight:700;font-size:0.85rem;color:var(--turmeric-dark);">⚡ Quick Add Task</span>
+        <span style="font-weight:700;font-size:0.85rem;color:var(--turmeric-dark);display:inline-flex;align-items:center;gap:5px;">${icon('plus', 14)} Quick Add Task</span>
         <span style="font-size:0.7rem;color:var(--ink-soft);">Try: "Call vendor tomorrow @Staff !high"</span>
       </div>
       <div style="display:flex;gap:6px;">
         <input id="quickTaskInput" placeholder="Type task title, @Staff, !priority, due date..." onkeypress="if(event.key==='Enter') window.__quickAddNaturalTask()" style="flex:1;font-size:0.88rem;">
-        <button class="stamp-btn" style="padding:8px 14px;font-size:0.85rem;background:var(--turmeric);color:#fff;border:none;white-space:nowrap;" onclick="window.__quickAddNaturalTask()">+ Add Task</button>
+        <button class="stamp-btn" style="padding:8px 14px;font-size:0.85rem;background:var(--turmeric);color:#fff;border:none;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;" onclick="window.__quickAddNaturalTask()">${icon('plus', 13)} Add Task</button>
       </div>
     </div>`;
 
@@ -326,11 +326,11 @@ function renderTasksTab(body) {
   body.innerHTML = `
     <!-- Tasks Sub-Menu Navigation Bar -->
     <div style="display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;">
-      <button class="stamp-btn small ${taskSubTab === 'active' ? '' : 'ghost'}" style="${taskSubTab === 'active' ? 'background:var(--turmeric);color:#fff;' : ''}" onclick="window.__setTaskSubTab('active')">
-        ⚡ Active Tasks (${pending.length})
+      <button class="stamp-btn small ${taskSubTab === 'active' ? '' : 'ghost'}" style="${taskSubTab === 'active' ? 'background:var(--turmeric);color:#fff;' : ''}display:inline-flex;align-items:center;gap:5px;" onclick="window.__setTaskSubTab('active')">
+        ${icon('tasks', 14)} Active Tasks (${pending.length})
       </button>
-      <button class="stamp-btn small ${taskSubTab === 'history' ? '' : 'ghost'}" style="${taskSubTab === 'history' ? 'background:var(--turmeric);color:#fff;' : ''}" onclick="window.__setTaskSubTab('history')">
-        📜 Completed (${done.length})
+      <button class="stamp-btn small ${taskSubTab === 'history' ? '' : 'ghost'}" style="${taskSubTab === 'history' ? 'background:var(--turmeric);color:#fff;' : ''}display:inline-flex;align-items:center;gap:5px;" onclick="window.__setTaskSubTab('history')">
+        ${icon('check', 14)} Completed (${done.length})
       </button>
     </div>
 
@@ -415,7 +415,7 @@ window.__markDone = async function(id) {
   saveCacheLocally();
   renderTabBody();
   if (typeof celebrateDone === 'function') celebrateDone();
-  if (typeof window.showToast === 'function') window.showToast('✓ Task done! Moved to Completed.', 'success');
+  if (typeof window.showToast === 'function') window.showToast('Task completed! Moved to Completed.', 'success');
   if (typeof logAuditEvent === 'function') logAuditEvent('Task Completed', 'Completed: ' + t.title);
   try { if (typeof awardTaskPoint === 'function') awardTaskPoint(t.id, 'task').catch(() => {}); } catch(e){}
   try { if (typeof notifyCompletion === 'function') notifyCompletion(t.id, 'task'); } catch(e){}
@@ -438,7 +438,7 @@ window.__reopenTask = async function(id) {
     t.status = 'pending';
     saveCacheLocally();
     renderTabBody();
-    if (typeof window.showToast === 'function') window.showToast('↩ Task re-opened! Moved to Active.', 'info');
+    if (typeof window.showToast === 'function') window.showToast('Task re-opened! Moved to Active.', 'info');
   }
 
   const client = window.sb || sb;
@@ -456,7 +456,7 @@ window.__deleteTask = async function(id) {
   cache.tasks = (cache.tasks || []).filter(x => x.id !== id);
   saveCacheLocally();
   renderTabBody();
-  if (typeof window.showToast === 'function') window.showToast('🗑 Task deleted!', 'success');
+  if (typeof window.showToast === 'function') window.showToast('Task deleted!', 'success');
   if (typeof logAuditEvent === 'function') logAuditEvent('Task Deleted', 'Deleted task ' + id);
 
   const client = window.sb || sb;
@@ -486,7 +486,7 @@ function openTaskModal(taskId) {
 
   holder.innerHTML = `
   <div class="overlay show"><div class="modal">
-    <h2>${t ? '✎ Edit Task' : '⚡ New Task'}</h2>
+    <h2>${t ? 'Edit Task' : 'New Task'}</h2>
     ${assignField}
     <label>Title *</label>
     <input id="mTaskTitle" value="${t ? esc(t.title) : ''}" placeholder="e.g. Restock shelf, Call vendor">
@@ -535,7 +535,7 @@ function openTaskModal(taskId) {
         if (error) throw error;
         const idx = (cache.tasks || []).findIndex(x => x.id === id);
         if (idx !== -1) cache.tasks[idx] = Object.assign({}, cache.tasks[idx], data);
-        if (typeof window.showToast === 'function') window.showToast('✓ Task updated!', 'success');
+        if (typeof window.showToast === 'function') window.showToast('Task updated!', 'success');
       } else {
         data.status = 'pending';
         const { data: inserted, error } = await client.from('tasks').insert(data).select().single();
@@ -545,7 +545,7 @@ function openTaskModal(taskId) {
           cache.tasks.unshift(inserted);
         }
         if (typeof celebrateDone === 'function') celebrateDone();
-        if (typeof window.showToast === 'function') window.showToast('✓ Task created!', 'success');
+        if (typeof window.showToast === 'function') window.showToast('Task created!', 'success');
       }
       saveCacheLocally();
       holder.innerHTML = '';
@@ -588,8 +588,8 @@ function renderDailyTab(body){
         <div class="action-dropdown-holder">
     <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${r.id}')">More ▾</button>
     <div class="action-dropdown-menu" id="actionMenu_${r.id}">
-      ${isManagerPlus() ? `<button onclick="window.__editRoutine('${r.id}')">✎ Edit</button>` : ''}
-      ${isOwner() ? `<button class="danger" onclick="window.__deleteRoutine('${r.id}')">🗑 Delete</button>` : ''}
+      ${isManagerPlus() ? `<button onclick="window.__editRoutine('${r.id}')">${icon('edit', 14)} Edit</button>` : ''}
+      ${isOwner() ? `<button class="danger" onclick="window.__deleteRoutine('${r.id}')">${icon('trash', 14)} Delete</button>` : ''}
     </div>
   </div>
       </div>
@@ -602,7 +602,7 @@ function renderDailyTab(body){
         <span class="status-dot green" style="flex-shrink:0;"></span>
         <span style="font-size:0.78rem;font-weight:600;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;">${esc(r.title)}</span>
       </div>
-      <span class="stamp done" style="font-size:0.58rem;padding:1px 6px;border-radius:999px;flex-shrink:0;margin-left:8px;">✓ Done</span>
+      <span class="stamp done" style="font-size:0.58rem;padding:1px 6px;border-radius:999px;flex-shrink:0;margin-left:8px;display:inline-flex;align-items:center;gap:3px;">${icon('check', 11)} Done</span>
     </div>`;
 
   const doneWrap = (r) => expandedRoutineIds.has(r.id)
@@ -752,8 +752,8 @@ function renderWeeklyTab(body){
         <div class="action-dropdown-holder">
     <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${w.id}')">More ▾</button>
     <div class="action-dropdown-menu" id="actionMenu_${w.id}">
-      ${isManagerPlus() ? `<button onclick="window.__editWeekly('${w.id}')">✎ Edit</button>` : ''}
-      ${isOwner() ? `<button class="danger" onclick="window.__deleteWeekly('${w.id}')">🗑 Delete</button>` : ''}
+      ${isManagerPlus() ? `<button onclick="window.__editWeekly('${w.id}')">${icon('edit', 14)} Edit</button>` : ''}
+      ${isOwner() ? `<button class="danger" onclick="window.__deleteWeekly('${w.id}')">${icon('trash', 14)} Delete</button>` : ''}
     </div>
   </div>
       </div>
@@ -1054,18 +1054,18 @@ window.__openCalendarDayDetailModal = function(dateStr, staffId) {
             </h3>
             <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;font-weight:600;">${prettyDate}</div>
           </div>
-          <button class="stamp-btn small ghost" onclick="getModalHolder('taskModalHolder').innerHTML=''">✕</button>
+          <button class="stamp-btn small ghost" onclick="getModalHolder('taskModalHolder').innerHTML=''" style="display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;">${icon('close', 14)}</button>
         </div>
 
         <!-- Quick Summary Bar inside modal -->
         <div style="display:flex;gap:6px;margin-bottom:12px;background:var(--paper-line);padding:6px;border-radius:8px;">
           <div style="flex:1;background:var(--paper);padding:6px;border-radius:6px;text-align:center;">
             <div style="font-size:0.9rem;font-weight:700;color:var(--leaf);">${pCount}</div>
-            <div style="font-size:0.58rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">✓ Present</div>
+            <div style="font-size:0.58rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;display:inline-flex;align-items:center;gap:3px;justify-content:center;">${icon('check', 11)} Present</div>
           </div>
           <div style="flex:1;background:var(--paper);padding:6px;border-radius:6px;text-align:center;">
             <div style="font-size:0.9rem;font-weight:700;color:var(--brick);">${aCount}</div>
-            <div style="font-size:0.58rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">× Absent</div>
+            <div style="font-size:0.58rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;display:inline-flex;align-items:center;gap:3px;justify-content:center;">Absent</div>
           </div>
           <div style="flex:1;background:var(--paper);padding:6px;border-radius:6px;text-align:center;">
             <div style="font-size:0.9rem;font-weight:700;color:var(--turmeric-dark);">${attPct}%</div>
@@ -1224,12 +1224,12 @@ function renderAttendanceCalendarViewReport() {
 
         cellContent = `
           <div style="display:flex;flex-direction:column;gap:2px;align-items:flex-start;">
-            <span class="att-cal-badge" style="background:${badgeBg};color:${badgeColor};">
-              <span class="desktop-only">${isP ? '✓ Present' : '× Absent'}</span>
-              <span class="mobile-only">${isP ? '✓P' : '×A'}</span>
+            <span class="att-cal-badge" style="background:${badgeBg};color:${badgeColor};display:inline-flex;align-items:center;gap:3px;">
+              <span class="desktop-only">${isP ? `${icon('check', 11)} Present` : 'Absent'}</span>
+              <span class="mobile-only">${isP ? 'P' : 'A'}</span>
             </span>
             ${timeVal ? `<div class="desktop-only" style="font-size:0.68rem;color:var(--ink-soft);margin-top:2px;font-family:'Roboto Mono',monospace;">${timeVal}</div>` : ''}
-            ${hasLoc ? `<div class="desktop-only" style="font-size:0.65rem;color:var(--leaf);margin-top:1px;">📍 Mapped</div>` : ''}
+            ${hasLoc ? `<div class="desktop-only" style="font-size:0.65rem;color:var(--leaf);margin-top:1px;display:inline-flex;align-items:center;gap:2px;">${icon('salesman', 11)} Mapped</div>` : ''}
           </div>
         `;
       } else if (isSunday) {
@@ -1248,8 +1248,8 @@ function renderAttendanceCalendarViewReport() {
 
         cellContent = `
           <div style="display:flex;flex-wrap:wrap;gap:2px;align-items:center;">
-            ${pCount > 0 ? `<span class="att-cal-badge" style="background:var(--leaf-soft);color:var(--leaf);"><span class="desktop-only">✓ ${pCount} Present</span><span class="mobile-only">✓${pCount}</span></span>` : ''}
-            ${aCount > 0 ? `<span class="att-cal-badge" style="background:#FEE2E2;color:var(--brick);"><span class="desktop-only">× ${aCount} Absent</span><span class="mobile-only">×${aCount}</span></span>` : ''}
+            ${pCount > 0 ? `<span class="att-cal-badge" style="background:var(--leaf-soft);color:var(--leaf);display:inline-flex;align-items:center;gap:2px;"><span class="desktop-only">${icon('check', 11)} ${pCount} Present</span><span class="mobile-only">${pCount}P</span></span>` : ''}
+            ${aCount > 0 ? `<span class="att-cal-badge" style="background:#FEE2E2;color:var(--brick);"><span class="desktop-only">${aCount} Absent</span><span class="mobile-only">${aCount}A</span></span>` : ''}
           </div>
         `;
       } else if (isSunday) {
@@ -1269,7 +1269,7 @@ function renderAttendanceCalendarViewReport() {
     const hoverTitle = `${monthTitlePretty} ${d}: ${pCount} Present, ${aCount} Absent`;
 
     cellsHtml += `
-      <div onclick="window.__openCalendarDayDetailModal('${dateStr}', '${selectedStaffId}')" 
+      <div onclick="window.__openCalendarDayDayDetailModal ? window.__openCalendarDayDayDetailModal('${dateStr}', '${selectedStaffId}') : window.__openCalendarDayDetailModal('${dateStr}', '${selectedStaffId}')" 
            title="${hoverTitle}"
            class="att-cal-cell ${isToday ? 'is-today' : ''}"
            style="${weekendBg} ${dimStyle}">
@@ -1308,7 +1308,7 @@ function renderAttendanceCalendarViewReport() {
           <input type="month" value="${attendanceCalendarMonth}" onchange="window.__setCalendarReportMonth(this.value)" style="font-size:0.78rem;padding:4px 8px;border-radius:6px;border:1px solid var(--paper-line);">
           ${isManagerPlus() ? `
             <select onchange="window.__setCalendarReportStaff(this.value)" style="font-size:0.78rem;padding:4px 8px;border-radius:6px;border:1px solid var(--paper-line);">
-              <option value="all" ${selectedStaffId==='all'?'selected':''}>👥 All Staff Members</option>
+              <option value="all" ${selectedStaffId==='all'?'selected':''}>All Staff Members</option>
               ${staffOptions}
             </select>
           ` : ''}
@@ -1320,8 +1320,8 @@ function renderAttendanceCalendarViewReport() {
         <div style="display:flex;align-items:center;gap:4px;">
           <span style="font-size:0.65rem;font-weight:700;color:var(--ink-soft);margin-right:4px;">FILTER:</span>
           <button class="stamp-btn small ${attendanceCalendarStatusFilter==='all'?'':'ghost'}" style="padding:2px 8px;font-size:0.65rem;" onclick="window.__setCalendarStatusFilter('all')">All</button>
-          <button class="stamp-btn small ${attendanceCalendarStatusFilter==='present'?'':'ghost'}" style="padding:2px 8px;font-size:0.65rem;${attendanceCalendarStatusFilter==='present'?'background:var(--leaf);border-color:var(--leaf);color:#FFF;':''}" onclick="window.__setCalendarStatusFilter('present')">✓ Present</button>
-          <button class="stamp-btn small ${attendanceCalendarStatusFilter==='absent'?'':'ghost'}" style="padding:2px 8px;font-size:0.65rem;${attendanceCalendarStatusFilter==='absent'?'background:var(--brick);border-color:var(--brick);color:#FFF;':''}" onclick="window.__setCalendarStatusFilter('absent')">× Absent</button>
+          <button class="stamp-btn small ${attendanceCalendarStatusFilter==='present'?'':'ghost'}" style="padding:2px 8px;font-size:0.65rem;${attendanceCalendarStatusFilter==='present'?'background:var(--leaf);border-color:var(--leaf);color:#FFF;':''}display:inline-flex;align-items:center;gap:3px;" onclick="window.__setCalendarStatusFilter('present')">${icon('check', 11)} Present</button>
+          <button class="stamp-btn small ${attendanceCalendarStatusFilter==='absent'?'':'ghost'}" style="padding:2px 8px;font-size:0.65rem;${attendanceCalendarStatusFilter==='absent'?'background:var(--brick);border-color:var(--brick);color:#FFF;':''}" onclick="window.__setCalendarStatusFilter('absent')">Absent</button>
         </div>
 
         <div style="display:flex;align-items:center;gap:10px;font-size:0.65rem;color:var(--ink-soft);font-weight:600;">

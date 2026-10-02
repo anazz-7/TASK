@@ -81,8 +81,8 @@ function renderSalesTab(body){
           <div class="action-dropdown-holder">
     <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${e.id}')">More ▾</button>
     <div class="action-dropdown-menu" id="actionMenu_${e.id}">
-      ${isManagerPlus() ? `<button onclick="window.__editSale('${e.id}')">✎ Edit</button>` : ''}
-      ${isOwner() ? `<button class="danger" onclick="window.__deleteSale('${e.id}')">🗑 Delete</button>` : ''}
+      ${isManagerPlus() ? `<button onclick="window.__editSale('${e.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon("edit", 14)} Edit</button>` : ''}
+      ${isOwner() ? `<button class="danger" onclick="window.__deleteSale('${e.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon("trash", 14)} Delete</button>` : ''}
     </div>
   </div>
         </div>`).join('')}`;
@@ -395,7 +395,7 @@ function renderLabelTab(body){
     ${isManagerPlus() ? buildQtyGraphHtml(cache.labels, labelReportMode, '__setLabelReportMode', 'qty') : ''}
     <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
       <span>Labelling log, day by day</span>
-      <button class="stamp-btn small ghost" style="padding:4px 10px;font-size:0.75rem;" onclick="window.__exportLabelReportPDF()">📄 Visual Export PDF</button>
+      <button class="stamp-btn small ghost" style="padding:4px 10px;font-size:0.75rem;" onclick="window.__exportLabelReportPDF()">Visual Export PDF</button>
     </div>
     ${dates.length ? dates.map(d=>{
       const entries = byDate[d];
@@ -419,8 +419,8 @@ function renderLabelTab(body){
           <div class="action-dropdown-holder">
     <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${e.id}')">More ▾</button>
     <div class="action-dropdown-menu" id="actionMenu_${e.id}">
-      ${isManagerPlus() ? `<button onclick="window.__editLabel('${e.id}')">✎ Edit</button>` : ''}
-      ${isOwner() ? `<button class="danger" onclick="window.__deleteLabel('${e.id}')">🗑 Delete</button>` : ''}
+      ${isManagerPlus() ? `<button onclick="window.__editLabel('${e.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon("edit", 14)} Edit</button>` : ''}
+      ${isOwner() ? `<button class="danger" onclick="window.__deleteLabel('${e.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon("trash", 14)} Delete</button>` : ''}
     </div>
   </div>
         </div>`).join('') : ''}`;
@@ -506,7 +506,7 @@ function openEditLabelModal(labelId){
     }
 
     holder.innerHTML = '';
-    window.showToast('✅ Label entry updated!', 'success');
+    window.showToast('Label entry updated!', 'success');
     renderTabBody();
 
     if (typeof sb !== 'undefined' && sb && !String(id).startsWith('loc_lbl_')) {
@@ -531,7 +531,7 @@ function renderLabelItemRows(){
         ${i===0?'<label style="margin-top:0;">Qty</label>':''}
         <input type="number" step="1" placeholder="Qty" value="${row.qty}" oninput="window.__updateLabelRow(${i},'qty',this.value)">
       </div>
-      ${labelItemRows.length>1?`<button class="icon-btn" style="color:var(--turmeric);flex-shrink:0;" onclick="window.__removeLabelRow(${i})">✕</button>`:''}
+      ${labelItemRows.length>1?`<button class="icon-btn" style="color:var(--turmeric);flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;" onclick="window.__removeLabelRow(${i})">${icon("close", 14)}</button>`:''}
     </div>
   `).join('');
 }
@@ -561,8 +561,8 @@ window.__openLabel = () => {
 
       <div class="modal-actions" style="margin-top:20px;flex-wrap:wrap;gap:8px;">
         <button class="stamp-btn ghost" style="flex:1;" onclick="window.__closeLabelModal()">Cancel</button>
-        <button class="stamp-btn ghost" style="flex:1.2;background:var(--blue-soft);color:var(--blue);border-color:var(--blue);" onclick="window.__saveLabel(true)">➕ Save &amp; Add More</button>
-        <button class="stamp-btn" style="flex:1.2;" onclick="window.__saveLabel(false)">✓ Save &amp; Done</button>
+        <button class="stamp-btn ghost" style="flex:1.2;background:var(--blue-soft);color:var(--blue);border-color:var(--blue);" onclick="window.__saveLabel(true)">Save &amp; Add More</button>
+        <button class="stamp-btn" style="flex:1.2;" onclick="window.__saveLabel(false)">Save &amp; Done</button>
       </div>
     </div></div>`;
   };
@@ -622,12 +622,12 @@ window.__openLabel = () => {
       if (wrap) wrap.innerHTML = renderLabelItemRows();
       if (document.getElementById('mLabelBatchCode')) document.getElementById('mLabelBatchCode').value = '';
       if (document.getElementById('mLabelNotes')) document.getElementById('mLabelNotes').value = '';
-      window.showToast('✅ Saved! Log another item.', 'success');
+      window.showToast('Saved! Log another item.', 'success');
       renderTabBody();
     } else {
       // Close modal and return to log history page
       holder.innerHTML = '';
-      window.showToast('✅ Labeling logged successfully!', 'success');
+      window.showToast('Labeling logged successfully!', 'success');
       renderTabBody();
     }
 
@@ -666,7 +666,7 @@ function renderPackageTab(body){
     ${isManagerPlus() ? buildQtyGraphHtml(cache.packages, packageReportMode, '__setPackageReportMode', 'qty') : ''}
     <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
       <span>Packaging log, day by day</span>
-      <button class="stamp-btn small ghost" style="padding:4px 10px;font-size:0.75rem;" onclick="window.__exportPackageReportPDF()">📄 Visual Export PDF</button>
+      <button class="stamp-btn small ghost" style="padding:4px 10px;font-size:0.75rem;" onclick="window.__exportPackageReportPDF()">Visual Export PDF</button>
     </div>
     ${dates.length ? dates.map(d=>{
       const entries = byDate[d];
@@ -690,8 +690,8 @@ function renderPackageTab(body){
           <div class="action-dropdown-holder">
     <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${e.id}')">More ▾</button>
     <div class="action-dropdown-menu" id="actionMenu_${e.id}">
-      ${isManagerPlus() ? `<button onclick="window.__editPackage('${e.id}')">✎ Edit</button>` : ''}
-      ${isOwner() ? `<button class="danger" onclick="window.__deletePackage('${e.id}')">🗑 Delete</button>` : ''}
+      ${isManagerPlus() ? `<button onclick="window.__editPackage('${e.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon("edit", 14)} Edit</button>` : ''}
+      ${isOwner() ? `<button class="danger" onclick="window.__deletePackage('${e.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon("trash", 14)} Delete</button>` : ''}
     </div>
   </div>
         </div>`).join('') : ''}`;
@@ -777,7 +777,7 @@ function openEditPackageModal(packageId){
     }
 
     holder.innerHTML = '';
-    window.showToast('✅ Package entry updated!', 'success');
+    window.showToast('Package entry updated!', 'success');
     renderTabBody();
 
     if (typeof sb !== 'undefined' && sb && !String(id).startsWith('loc_pkg_')) {
@@ -802,7 +802,7 @@ function renderPackageItemRows(){
         ${i===0?'<label style="margin-top:0;">Qty</label>':''}
         <input type="number" step="1" placeholder="Qty" value="${row.qty}" oninput="window.__updatePackageRow(${i},'qty',this.value)">
       </div>
-      ${packageItemRows.length>1?`<button class="icon-btn" style="color:var(--turmeric);flex-shrink:0;" onclick="window.__removePackageRow(${i})">✕</button>`:''}
+      ${packageItemRows.length>1?`<button class="icon-btn" style="color:var(--turmeric);flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;" onclick="window.__removePackageRow(${i})">${icon("close", 14)}</button>`:''}
     </div>
   `).join('');
 }
@@ -832,8 +832,8 @@ window.__openPackage = () => {
 
       <div class="modal-actions" style="margin-top:20px;flex-wrap:wrap;gap:8px;">
         <button class="stamp-btn ghost" style="flex:1;" onclick="window.__closePackageModal()">Cancel</button>
-        <button class="stamp-btn ghost" style="flex:1.2;background:var(--blue-soft);color:var(--blue);border-color:var(--blue);" onclick="window.__savePackage(true)">➕ Save &amp; Add More</button>
-        <button class="stamp-btn" style="flex:1.2;" onclick="window.__savePackage(false)">✓ Save &amp; Done</button>
+        <button class="stamp-btn ghost" style="flex:1.2;background:var(--blue-soft);color:var(--blue);border-color:var(--blue);" onclick="window.__savePackage(true)">Save &amp; Add More</button>
+        <button class="stamp-btn" style="flex:1.2;" onclick="window.__savePackage(false)">Save &amp; Done</button>
       </div>
     </div></div>`;
   };
@@ -893,12 +893,12 @@ window.__openPackage = () => {
       if (wrap) wrap.innerHTML = renderPackageItemRows();
       if (document.getElementById('mPackageBatchCode')) document.getElementById('mPackageBatchCode').value = '';
       if (document.getElementById('mPackageNotes')) document.getElementById('mPackageNotes').value = '';
-      window.showToast('✅ Saved! Log another item.', 'success');
+      window.showToast('Saved! Log another item.', 'success');
       renderTabBody();
     } else {
       // Close modal and return to log history page
       holder.innerHTML = '';
-      window.showToast('✅ Packaging logged successfully!', 'success');
+      window.showToast('Packaging logged successfully!', 'success');
       renderTabBody();
     }
 
@@ -1157,7 +1157,7 @@ function renderPointsTab(body){
           <div class="action-dropdown-holder">
     <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${p.id}')">More ▾</button>
     <div class="action-dropdown-menu" id="actionMenu_${p.id}">
-      ${isOwner() ? `<button class="danger" onclick="window.__deletePoints('${p.id}')">🗑 Delete</button>` : ''}
+      ${isOwner() ? `<button class="danger" onclick="window.__deletePoints('${p.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon("trash", 14)} Delete</button>` : ''}
     </div>
   </div>
         </div>`).join('')}</div>` : `<div class="empty">No points history recorded yet.</div>`}
@@ -1234,7 +1234,7 @@ function renderPointsTab(body){
                     </div>
                     ${prog.isDone ? `
                       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
-                        <span style="color:var(--turmeric);font-size:0.75rem;font-weight:700;">🎉 Target Achieved!</span>
+                        <span style="color:var(--turmeric);font-size:0.75rem;font-weight:700;">Target Achieved!</span>
                         ${isOwner() ? `<button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border-color:var(--turmeric);padding:3px 8px;font-size:0.7rem;" onclick="window.__awardTargetBonus('${s.id}', '${esc(t.title)}', ${t.reward_pts})">Award +${t.reward_pts} Pts Bonus</button>` : ''}
                       </div>
                     ` : ''}
@@ -1527,7 +1527,7 @@ function renderSalesmanTab(body){
     mapHtml = `
       <div class="row-card" style="flex-direction:column;align-items:stretch;padding:10px;margin-bottom:14px;border:1.5px solid var(--turmeric);">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-          <h3 style="margin:0;font-size:0.95rem;color:var(--turmeric-dark);">🗺 Live Team Location Map (${activeLocations.length} Active)</h3>
+          <h3 style="margin:0;font-size:0.95rem;color:var(--turmeric-dark);">Live Team Location Map (${activeLocations.length} Active)</h3>
           <span class="stamp done">Sharing Live</span>
         </div>
         <iframe width="100%" height="220" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="${mapUrl}" style="border:1px solid var(--paper-line);border-radius:8px;"></iframe>
@@ -1554,7 +1554,7 @@ function renderSalesmanTab(body){
       </div>
       ${myLoc && myLoc.lat ? `
         <div style="font-size:0.8rem;color:var(--ink-soft);margin-top:4px;">
-          Last recorded position: <a class="link" href="${mapLink(myLoc.lat, myLoc.lng)}" target="_blank">${icon('pin',14)} View on Google Maps ↗</a>
+          Last recorded position: <a class="link" href="${mapLink(myLoc.lat, myLoc.lng)}" target="_blank">${icon('pin',14)} View on Google Maps &rarr;</a>
           ${myLoc.updated_at ? ` · ${timeStr(myLoc.updated_at)}` : ''}
         </div>
       ` : ''}
@@ -1577,7 +1577,7 @@ function renderSalesmanTab(body){
             </div>
           </div>
           ${loc && loc.lat != null ? `
-            <a class="stamp-btn small ghost" href="${mapLink(loc.lat, loc.lng)}" target="_blank" style="text-decoration:none;">${icon('pin',14)} Maps ↗</a>
+            <a class="stamp-btn small ghost" href="${mapLink(loc.lat, loc.lng)}" target="_blank" style="text-decoration:none;">${icon('pin',14)} Maps &rarr;</a>
           ` : ''}
         </div>
       `;
@@ -1683,7 +1683,7 @@ function renderStaffTab(body){
   if (!isOwner()) {
     body.innerHTML = `
       <div class="empty" style="padding:40px 20px;text-align:center;">
-        <div style="font-size:2.5rem;margin-bottom:12px;">🔒</div>
+        <div style="margin-bottom:12px;display:flex;justify-content:center;color:var(--turmeric);">${icon("lock", 36)}</div>
         <h3>Access Restricted</h3>
         <p style="font-size:0.85rem;color:var(--ink-soft);max-width:360px;margin:0 auto 16px;">
           The Staff Directory & Team Management tab is strictly restricted to Business Owner access only.
@@ -1782,8 +1782,8 @@ function renderStaffTab(body){
                     <b style="color:var(--ink);font-family:'Roboto Mono',monospace;font-size:0.75rem;">${s.phone ? esc(s.phone) : 'Not provided'}</b>
                     ${cleanPhone ? `
                       <div style="display:flex;gap:4px;margin-top:4px;">
-                        <a href="tel:${cleanPhone}" class="stamp-btn small ghost" style="padding:1px 4px;font-size:0.62rem;text-decoration:none;">📞 Call</a>
-                        <a href="https://wa.me/91${cleanPhone}" target="_blank" class="stamp-btn small" style="background:#25D366;color:#fff;border-color:#25D366;padding:1px 4px;font-size:0.62rem;text-decoration:none;">💬 WhatsApp</a>
+                        <a href="tel:${cleanPhone}" class="stamp-btn small ghost" style="padding:1px 4px;font-size:0.62rem;text-decoration:none;display:inline-flex;align-items:center;gap:3px;">${icon('phone', 11)} Call</a>
+                        <a href="https://wa.me/91${cleanPhone}" target="_blank" class="stamp-btn small" style="background:#25D366;color:#fff;border-color:#25D366;padding:1px 4px;font-size:0.62rem;text-decoration:none;display:inline-flex;align-items:center;gap:3px;">${icon('message', 11)} WhatsApp</a>
                       </div>
                     ` : ''}
                   </div>
@@ -1980,7 +1980,7 @@ function openStaffModal(staffId){
     }
 
     if (typeof window.showToast === 'function') {
-      window.showToast(id ? '✏️ Staff member updated!' : '✅ New staff member added!', 'success');
+      window.showToast(id ? 'Staff member updated!' : 'New staff member added!', 'success');
     }
   };
 }
@@ -2118,7 +2118,7 @@ function renderAuditTab(body) {
   body.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
       <div class="section-label" style="margin:0;">All Staff Activity Audit Log (${logs.length} Total Logs)</div>
-      <button class="stamp-btn ghost small" style="font-size:0.75rem;" onclick="loadData().then(()=>renderTabBody())">🔄 Refresh Logs</button>
+      <button class="stamp-btn ghost small" style="font-size:0.75rem;" onclick="loadData().then(()=>renderTabBody())">Refresh Logs</button>
     </div>
 
     ${dates.length ? `
@@ -2235,7 +2235,7 @@ window.__requestAccEditPermission = async function(date) {
     const smsMsg = `EDIT REQUEST from ${session.name} for Accounts on ${date}: "${reason.trim()}" — Open app to Approve.`;
     sendSmsTo(OWNER_NOTIFY_NUMBER, smsMsg);
 
-    window.showToast(`📩 Approval Request sent to Owner for ${date}!`, 'success');
+    window.showToast(`Approval Request sent to Owner for ${date}!`, 'success');
     logAuditEvent('Edit Request', `Requested edit access for ${date}: "${reason.trim()}"`);
     triggerAppNotification('Edit Request Sent', `Request for ${date} sent to Owner`);
   } catch(e) {
@@ -2253,13 +2253,13 @@ window.__respondAccEditRequest = async function(taskId, status) {
       await sbCheck(sb.from('tasks').update({ status: 'done' }).eq('id', taskId));
       const t = cache.tasks.find(x => x.id === taskId);
       if (t) t.status = 'done';
-      window.showToast(`✓ Approved edit request!`, 'success');
+      window.showToast(`Approved edit request!`, 'success');
       logAuditEvent('Approval Response', `Approved edit request for ${t ? t.title.replace('[EDIT_REQ] ','') : ''}`);
       triggerAppNotification('Edit Approved', `Past date edit access granted`);
     } else {
       await sbCheck(sb.from('tasks').delete().eq('id', taskId));
       cache.tasks = cache.tasks.filter(x => x.id !== taskId);
-      window.showToast(`✕ Rejected edit request.`, 'info');
+      window.showToast(`Rejected edit request.`, 'info');
     }
   } catch(e) {
     alert('Could not update request — ' + (e.message||e));
@@ -2276,7 +2276,7 @@ window.__unlockWithOwnerPin = function(date) {
   const match = ownerStaff.some(s => s.pin === pinInput.trim()) || pinInput.trim() === '1977';
   if (match) {
     window.__sessionUnlockedDates.add(date);
-    window.showToast(`🔓 Accounts for ${date} unlocked for this session!`, 'success');
+    window.showToast(`Accounts for ${date} unlocked for this session!`, 'success');
     logAuditEvent('PIN Unlock', `Unlocked Accounts for ${date} via Owner PIN`);
     renderTabBody();
   } else {
@@ -2299,7 +2299,7 @@ window.__toggleOwnerManualUnlock = async function(date) {
       };
       const { data: newRow } = await sb.from('tasks').insert(payload).select().single();
       if (newRow) cache.tasks.push(newRow);
-      window.showToast(`🔓 Unlocked ${date} for Staff Edit`, 'success');
+      window.showToast(`Unlocked ${date} for Staff Edit`, 'success');
     } else {
       const tasksToDelete = cache.tasks.filter(t => t.title === '[EDIT_REQ] ' + date);
       for(const t of tasksToDelete){
@@ -2307,7 +2307,7 @@ window.__toggleOwnerManualUnlock = async function(date) {
       }
       cache.tasks = cache.tasks.filter(t => t.title !== '[EDIT_REQ] ' + date);
       window.__sessionUnlockedDates.delete(date);
-      window.showToast(`🔒 Locked ${date} for Staff Edit`, 'info');
+      window.showToast(`Locked ${date} for Staff Edit`, 'info');
     }
   } catch(e) {
     alert('Could not update permission status.');
@@ -2324,7 +2324,7 @@ function renderPendingBannerHtml(pendingReqs) {
   return `
     <div style="background:var(--blue-soft);border:1.5px solid var(--turmeric);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
       <div style="font-weight:700;font-size:0.92rem;color:var(--turmeric-dark);margin-bottom:8px;">
-        📩 Pending Past Date Edit Requests (${pendingReqs.length})
+        Pending Past Date Edit Requests (${pendingReqs.length})
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;">
         ${pendingReqs.map(req => `
@@ -2334,8 +2334,8 @@ function renderPendingBannerHtml(pendingReqs) {
               <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">"${esc(req.notes||'')}"</div>
             </div>
             <div style="display:flex;gap:6px;">
-              <button class="stamp-btn small" style="background:var(--turmeric);color:white;" onclick="window.__respondAccEditRequest('${req.id}', 'approved')">✓ Approve</button>
-              <button class="stamp-btn small ghost" style="color:var(--turmeric);border-color:var(--turmeric);" onclick="window.__respondAccEditRequest('${req.id}', 'rejected')">✕ Reject</button>
+              <button class="stamp-btn small" style="background:var(--turmeric);color:white;" onclick="window.__respondAccEditRequest('${req.id}', 'approved')" style="display:inline-flex;align-items:center;gap:4px;background:var(--turmeric);color:white;">${icon("check", 12)} Approve</button>
+              <button class="stamp-btn small ghost" style="color:var(--turmeric);border-color:var(--turmeric);" onclick="window.__respondAccEditRequest('${req.id}', 'rejected')" style="display:inline-flex;align-items:center;gap:4px;color:var(--turmeric);border-color:var(--turmeric);">${icon("close", 12)} Reject</button>
             </div>
           </div>
         `).join('')}
@@ -2377,13 +2377,13 @@ function renderAccountsTab(body){
     <div id="accPendingBannerHolder">${renderPendingBannerHtml(pendingReqs)}</div>
     ${isOwner() ? `
     <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;">
-      <button class="stamp-btn small ${accountsSubTab==='entry'?'':'ghost'}" onclick="window.__setAccSubTab('entry')">📝 Entry</button>
-      <button class="stamp-btn small ${accountsSubTab==='history'?'':'ghost'}" onclick="window.__setAccSubTab('history')">📜 History (${cache.dailyAccounts.length})</button>
-      <button class="stamp-btn small ${accountsSubTab==='calendar'?'':'ghost'}" onclick="window.__setAccSubTab('calendar')">📅 Calendar</button>
-      <button class="stamp-btn small ${accountsSubTab==='reports'?'':'ghost'}" onclick="window.__setAccSubTab('reports')">📊 Reports & AI Insights</button>
-      <button class="stamp-btn small ${accountsSubTab==='backup'?'':'ghost'}" onclick="window.__setAccSubTab('backup')">💾 Backup & Restore</button>
+      <button class="stamp-btn small ${accountsSubTab==='entry'?'':'ghost'}" onclick="window.__setAccSubTab('entry')" style="display:inline-flex;align-items:center;gap:4px;">${icon("clipboard", 13)} Entry</button>
+      <button class="stamp-btn small ${accountsSubTab==='history'?'':'ghost'}" onclick="window.__setAccSubTab('history')" style="display:inline-flex;align-items:center;gap:4px;">${icon("reports", 13)} History (${cache.dailyAccounts.length})</button>
+      <button class="stamp-btn small ${accountsSubTab==='calendar'?'':'ghost'}" onclick="window.__setAccSubTab('calendar')" style="display:inline-flex;align-items:center;gap:4px;">${icon("calendar", 13)} Calendar</button>
+      <button class="stamp-btn small ${accountsSubTab==='reports'?'':'ghost'}" onclick="window.__setAccSubTab('reports')" style="display:inline-flex;align-items:center;gap:4px;">${icon("sales", 13)} Reports & AI Insights</button>
+      <button class="stamp-btn small ${accountsSubTab==='backup'?'':'ghost'}" onclick="window.__setAccSubTab('backup')" style="display:inline-flex;align-items:center;gap:4px;">${icon("save", 13)} Backup & Restore</button>
     </div>` : `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"><div class="section-label" style="margin:0;">Daily Accounts Entry</div>${isManagerPlus() ? `<button class="stamp-btn small ghost" onclick="window.__setTab('audit')">📜 View Audit Log</button>` : ''}</div>`}
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"><div class="section-label" style="margin:0;">Daily Accounts Entry</div>${isManagerPlus() ? `<button class="stamp-btn small ghost" onclick="window.__setTab('audit')">View Audit Log</button>` : ''}</div>`}
 
     ${accountsSubTab === 'entry' ? renderAccEntryHtml(existing) : ''}
     ${isOwner() && accountsSubTab === 'history' ? renderAccHistoryHtml() : ''}
@@ -2410,26 +2410,26 @@ function renderAccEntryHtml(existing){
   if(isLockedForNonOwner){
     if(unlockStatus.isExpired){
       statusBanner = `<div style="background:var(--blue-soft);color:var(--turmeric);font-size:0.82rem;font-weight:600;padding:10px 14px;border-radius:8px;margin-bottom:14px;border:1px solid var(--turmeric);">
-        🔒 30-Minute Edit Access Expired for ${accountsDate}. Tap below to request a new edit window.
+        30-Minute Edit Access Expired for ${accountsDate}. Tap below to request a new edit window.
       </div>`;
     } else if(pendingReq){
       statusBanner = `<div style="background:var(--blue-soft);color:var(--turmeric);font-size:0.82rem;font-weight:600;padding:10px 14px;border-radius:8px;margin-bottom:14px;border:1px solid var(--turmeric);">
-        ⏳ Edit Request Pending Approval by Owner for ${accountsDate}. ("${esc(pendingReq.notes||'')}")
+        Edit Request Pending Approval by Owner for ${accountsDate}. ("${esc(pendingReq.notes||'')}")
       </div>`;
     } else {
       statusBanner = `<div style="background:var(--blue-soft);color:var(--turmeric);font-size:0.8rem;font-weight:600;padding:10px 14px;border-radius:8px;margin-bottom:14px;border:1px solid var(--turmeric);">
-        🔒 Editing past date accounts (${accountsDate}) is restricted to the Owner.
+        Editing past date accounts (${accountsDate}) is restricted to the Owner.
       </div>`;
     }
   } else if(!isOwner() && isPastDate){
     const mins = isFinite(unlockStatus.remainingMs) ? Math.floor(unlockStatus.remainingMs / 60000) : 30;
     const secs = isFinite(unlockStatus.remainingMs) ? Math.floor((unlockStatus.remainingMs % 60000) / 1000) : 0;
     statusBanner = `<div style="background:var(--blue-soft);color:var(--turmeric);font-size:0.82rem;font-weight:600;padding:10px 14px;border-radius:8px;margin-bottom:14px;border:1px solid var(--turmeric);display:flex;align-items:center;justify-content:space-between;">
-      <span>✓ Edit Access Unlocked for ${accountsDate}!</span>
-      <span style="font-family:'Roboto Mono',monospace;background:var(--card);padding:3px 8px;border-radius:4px;border:1px solid var(--turmeric);">⏱️ Closes in ${mins}m ${secs}s</span>
+      <span>Edit Access Unlocked for ${accountsDate}!</span>
+      <span style="font-family:'Roboto Mono',monospace;background:var(--card);padding:3px 8px;border-radius:4px;border:1px solid var(--turmeric);">Closes in ${mins}m ${secs}s</span>
     </div>`;
   } else if(existing){
-    statusBanner = `<div style="background:var(--blue-soft);color:var(--turmeric);font-size:0.78rem;font-weight:600;padding:8px 12px;border-radius:6px;margin-bottom:14px;">✓ Entry already saved for this day — editing will update it</div>`;
+    statusBanner = `<div style="background:var(--blue-soft);color:var(--turmeric);font-size:0.78rem;font-weight:600;padding:8px 12px;border-radius:6px;margin-bottom:14px;">Entry already saved for this day — editing will update it</div>`;
   }
 
   let nonOwnerBtnHtml = '';
@@ -2437,14 +2437,14 @@ function renderAccEntryHtml(existing){
     nonOwnerBtnHtml = `
       <div style="display:flex;flex-direction:column;gap:8px;">
         ${pendingReq ? `
-          <button class="stamp-btn ghost" style="width:100%;padding:12px 0;font-size:0.92rem;color:var(--turmeric);border-color:var(--turmeric);cursor:not-allowed;" disabled>⏳ Owner Approval Pending</button>
+          <button class="stamp-btn ghost" style="width:100%;padding:12px 0;font-size:0.92rem;color:var(--turmeric);border-color:var(--turmeric);cursor:not-allowed;" disabled>Owner Approval Pending</button>
         ` : `
-          <button class="stamp-btn" style="width:100%;padding:12px 0;font-size:0.95rem;background:var(--turmeric);color:white;" onclick="window.__requestAccEditPermission('${accountsDate}')">📩 Request Owner Remote Approval</button>
+          <button class="stamp-btn" style="width:100%;padding:12px 0;font-size:0.95rem;background:var(--turmeric);color:white;" onclick="window.__requestAccEditPermission('${accountsDate}')">Request Owner Remote Approval</button>
         `}
-        <button class="stamp-btn ghost" style="width:100%;padding:10px 0;font-size:0.88rem;color:var(--ink-soft);border-color:var(--paper-line);" onclick="window.__unlockWithOwnerPin('${accountsDate}')">🔑 Enter Owner PIN to Unlock On-Site</button>
+        <button class="stamp-btn ghost" style="width:100%;padding:10px 0;font-size:0.88rem;color:var(--ink-soft);border-color:var(--paper-line);" onclick="window.__unlockWithOwnerPin('${accountsDate}')">Enter Owner PIN to Unlock On-Site</button>
       </div>`;
   } else {
-    nonOwnerBtnHtml = `<button class="stamp-btn" style="width:100%;padding:14px 0;font-size:1rem;font-weight:700;" onclick="window.__saveAccEntry()">💾 Save Day's Account Entry</button>`;
+    nonOwnerBtnHtml = `<button class="stamp-btn" style="width:100%;padding:14px 0;font-size:1rem;font-weight:700;" onclick="window.__saveAccEntry()">Save Day's Account Entry</button>`;
   }
 
   return `
@@ -2484,7 +2484,7 @@ function renderAccEntryHtml(existing){
       ${(isOwner() && accountsDate < todayStr()) ? `
         <div style="margin-top:12px;margin-bottom:8px;width:100%;">
           <button class="stamp-btn ghost small" style="width:100%;font-size:0.8rem;padding:9px 0;${isDateUnlockedForStaff(accountsDate)?'color:var(--turmeric);border-color:var(--turmeric);':'color:var(--turmeric);border-color:var(--turmeric);'}" onclick="window.__toggleOwnerManualUnlock('${accountsDate}')">
-            ${isDateUnlockedForStaff(accountsDate) ? '🔓 DATE IS UNLOCKED FOR STAFF EDIT — TAP TO LOCK' : '🔒 DATE IS LOCKED FOR STAFF EDIT — TAP TO UNLOCK'}
+            ${isDateUnlockedForStaff(accountsDate) ? 'DATE IS UNLOCKED FOR STAFF EDIT — TAP TO LOCK' : 'DATE IS LOCKED FOR STAFF EDIT — TAP TO UNLOCK'}
           </button>
         </div>` : ''}
       <!-- Live Summary Bar Pinned Footer for Owner -->
@@ -2512,10 +2512,10 @@ function renderAccEntryHtml(existing){
 
         <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;">
           <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;width:100%;">
-            <button class="stamp-btn" style="padding:12px 0;font-size:0.9rem;width:100%;" onclick="window.__saveAccEntry()">💾 SAVE DAY'S ACCOUNT</button>
-            <button class="stamp-btn ghost" style="padding:12px 0;font-size:0.8rem;background:var(--blue-soft);color:var(--blue);border-color:var(--blue);width:100%;" onclick="window.__openChooseStaffSmsModal('summary')">📲 SEND SMS</button>
+            <button class="stamp-btn" style="padding:12px 0;font-size:0.9rem;width:100%;" onclick="window.__saveAccEntry()">SAVE DAY'S ACCOUNT</button>
+            <button class="stamp-btn ghost" style="padding:12px 0;font-size:0.8rem;background:var(--blue-soft);color:var(--blue);border-color:var(--blue);width:100%;" onclick="window.__openChooseStaffSmsModal('summary')">SEND SMS</button>
           </div>
-          <button class="stamp-btn ghost" style="width:100%;padding:11px 0;font-size:0.8rem;background:var(--blue-soft);color:var(--turmeric-dark);border-color:var(--turmeric);" onclick="window.__openChooseStaffSmsModal('surplus')">📢 CHOOSE STAFF & SEND SURPLUS/DEFICIT SMS</button>
+          <button class="stamp-btn ghost" style="width:100%;padding:11px 0;font-size:0.8rem;background:var(--blue-soft);color:var(--turmeric-dark);border-color:var(--turmeric);" onclick="window.__openChooseStaffSmsModal('surplus')">CHOOSE STAFF & SEND SURPLUS/DEFICIT SMS</button>
         </div>
       </div>` : `
       <!-- Simple Data Entry Footer for Non-Owner Roles -->
@@ -2598,7 +2598,7 @@ window.__openChooseStaffSmsModal = function(smsType) {
   }
 
   const holder = getModalHolder('taskModalHolder');
-  const title = smsType === 'surplus' ? '📢 Choose Staff for Surplus/Deficit SMS' : '📲 Choose Staff for Accounts Summary SMS';
+  const title = smsType === 'surplus' ? 'Choose Staff for Surplus/Deficit SMS' : 'Choose Staff for Accounts Summary SMS';
 
   holder.innerHTML = `
   <div class="overlay show"><div class="modal">
@@ -2625,7 +2625,7 @@ window.__openChooseStaffSmsModal = function(smsType) {
 
     <div class="modal-actions">
       <button class="stamp-btn ghost" onclick="window.__closeVendorModal()">Cancel</button>
-      <button class="stamp-btn" style="background:var(--turmeric);color:white;" onclick="window.__sendSmsToSelectedStaff('${smsType}')">📢 Send SMS</button>
+      <button class="stamp-btn" style="background:var(--turmeric);color:white;" onclick="window.__sendSmsToSelectedStaff('${smsType}')">Send SMS</button>
     </div>
   </div></div>`;
 };
@@ -2663,7 +2663,7 @@ window.__sendSmsToSelectedStaff = function(smsType) {
   sendSmsTo(phones.join(','), msg);
   getModalHolder('taskModalHolder').innerHTML = '';
   logAuditEvent('Staff SMS', `Sent SMS to ${names.join(', ')}`);
-  window.showToast(`📢 SMS sent to ${names.length} staff member(s)!`, 'success');
+  window.showToast(`SMS sent to ${names.length} staff member(s)!`, 'success');
 };
 
 
@@ -2814,7 +2814,7 @@ window.__saveAccEntry = function() {
             var cached = cache.dailyAccounts.find(function(a) { return a.date === accountsDate; });
             if (cached) Object.assign(cached, saved);
             try { localStorage.setItem('br_daily_accounts_' + session.businessId, JSON.stringify(cache.dailyAccounts)); } catch(e) {}
-            console.log('✓ Accounts successfully saved & verified in Supabase cloud for ' + accountsDate);
+            console.log('Accounts successfully saved & verified in Supabase cloud for ' + accountsDate);
           } else if (error) {
             console.warn('Supabase save error:', error);
             if (typeof queueOfflineMutation === 'function') queueOfflineMutation('upsert', 'daily_accounts', payload);
@@ -2868,14 +2868,14 @@ function renderAccHistoryRows(records){
             </div>
           </div>
           <span class="stamp ${rec.excess > 0 ? 'present' : rec.less > 0 ? 'absent' : 'done'}" style="flex-shrink:0;font-size:0.72rem;padding:4px 8px;">
-            ${rec.excess > 0 ? '+₹'+Number(rec.excess).toFixed(0)+' EXCESS' : rec.less > 0 ? '-₹'+Number(rec.less).toFixed(0)+' LESS' : '✓ BALANCED'}
+            ${rec.excess > 0 ? '+₹'+Number(rec.excess).toFixed(0)+' EXCESS' : rec.less > 0 ? '-₹'+Number(rec.less).toFixed(0)+' LESS' : 'BALANCED'}
           </span>
         </div>
 
         <!-- Bottom Action Bar: Check Button & View Details -->
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px dashed var(--paper-line);">
           <button class="stamp-btn small ${isChecked ? '' : 'ghost'}" style="${isChecked ? 'background:var(--turmeric);color:#fff;border-color:var(--turmeric);font-weight:700;' : ''}" onclick="event.stopPropagation();window.__toggleAccChecked('${rec.date}', ${!isChecked})">
-            ${isChecked ? '✓ Checked' : '☐ Check'}
+            ${isChecked ? icon('check', 12) + ' Checked' : 'Check'}
           </button>
 
           <button class="stamp-btn ghost small" style="font-size:0.75rem;padding:4px 10px;" onclick="window.__toggleAccExpand('${rec.date}')">
@@ -2897,8 +2897,8 @@ function renderAccHistoryRows(records){
             ${rec.notes ? `<div class="notes" style="margin-bottom:10px;"><b>Notes:</b> ${esc(rec.notes)}</div>` : ''}
 
             <div style="display:flex;gap:8px;margin-top:8px;">
-              <button class="stamp-btn ghost small" style="flex:1;" onclick="accountsDate='${rec.date}';accountsSubTab='entry';renderTabBody();">✎ Edit</button>
-              <button class="stamp-btn ghost small" style="color:var(--turmeric);border-color:var(--turmeric);flex:1;" onclick="window.__deleteAcc('${rec.id||rec.date}')">🗑 Delete</button>
+              <button class="stamp-btn ghost small" style="flex:1;" onclick="accountsDate='${rec.date}';accountsSubTab='entry';renderTabBody();" style="display:inline-flex;align-items:center;gap:4px;">${icon("edit", 14)} Edit</button>
+              <button class="stamp-btn ghost small" style="color:var(--turmeric);border-color:var(--turmeric);flex:1;" onclick="window.__deleteAcc('${rec.id||rec.date}')" style="display:inline-flex;align-items:center;gap:4px;">${icon("trash", 14)} Delete</button>
             </div>
           </div>
         ` : ''}
@@ -3653,7 +3653,7 @@ window.__updateBulkVendorSummary = function() {
           <b style="font-size:0.9rem;color:var(--turmeric-dark);">${selectedCount} Bill${selectedCount!==1?'s':''} Selected for Bulk Settlement</b>
           <div style="font-size:0.75rem;color:var(--ink-soft);">Total Selected Amount: ₹${totalAmt.toFixed(0)}</div>
         </div>
-        <button class="stamp-btn" style="background:var(--turmeric);color:#fff;border-color:var(--turmeric);font-weight:700;padding:8px 14px;" onclick="window.__paySelectedVendorBillsBulk()">💳 Pay ${selectedCount} Bill${selectedCount!==1?'s':''} (₹${totalAmt.toFixed(0)})</button>
+        <button class="stamp-btn" style="background:var(--turmeric);color:#fff;border-color:var(--turmeric);font-weight:700;padding:8px 14px;" onclick="window.__paySelectedVendorBillsBulk()">Pay ${selectedCount} Bill${selectedCount!==1?'s':''} (₹${totalAmt.toFixed(0)})</button>
       </div>
     ` : '';
   }
@@ -3730,8 +3730,8 @@ function renderVendorBillsTab(body) {
       </div>
 
       <div style="margin-top:14px;display:flex;gap:8px;">
-        <button class="stamp-btn" style="flex:1;padding:12px 0;font-size:0.9rem;" onclick="window.__openScanVendorBillModal()">➕ Add Purchase Bill</button>
-        <button class="stamp-btn" style="flex:1;padding:12px 0;font-size:0.9rem;background:var(--turmeric);color:#fff;border-color:var(--turmeric);" onclick="window.__openBulkVendorSettlementModal()">💳 Bulk Pay & Voucher</button>
+        <button class="stamp-btn" style="flex:1;padding:12px 0;font-size:0.9rem;" onclick="window.__openScanVendorBillModal()">Add Purchase Bill</button>
+        <button class="stamp-btn" style="flex:1;padding:12px 0;font-size:0.9rem;background:var(--turmeric);color:#fff;border-color:var(--turmeric);" onclick="window.__openBulkVendorSettlementModal()">Bulk Pay & Voucher</button>
       </div>
     </div>
 
@@ -3745,7 +3745,7 @@ function renderVendorBillsTab(body) {
         <button class="stamp-btn small ${vendorSubTab==='overdue'?'':'ghost'}" style="${vendorSubTab==='overdue'?'background:var(--turmeric);color:#fff;border-color:var(--turmeric);':''}" onclick="window.__setVendorSubTab('overdue')">Overdue (${bills.filter(b => getBillStatus(b)!=='paid' && b.due_date && (new Date(b.due_date+'T23:59:59').getTime() < new Date().getTime())).length})</button>
         <button class="stamp-btn small ${vendorSubTab==='paid'?'':'ghost'}" onclick="window.__setVendorSubTab('paid')">Paid History (${paid.length})</button>
         <button class="stamp-btn small ${vendorSubTab==='all'?'':'ghost'}" onclick="window.__setVendorSubTab('all')">All Bills (${bills.length})</button>
-        <button class="stamp-btn small ${isCompactView?'':'ghost'}" onclick="window.__toggleCompactView()">${isCompactView?'📄 Compact':'📋 Detailed'}</button>
+        <button class="stamp-btn small ${isCompactView?'':'ghost'}" onclick="window.__toggleCompactView()">${isCompactView?'Compact':'Detailed'}</button>
       </div>
 
       ${(isOwner() && unpaid.length > 0 && vendorSubTab !== 'paid') ? `
@@ -3777,9 +3777,9 @@ function renderVendorBillCard(b) {
     const nowTime = new Date().getTime();
     const daysLeft = Math.ceil((dueTime - nowTime) / (86400 * 1000));
     if (daysLeft < 0) {
-      dueBadgeHtml = `<span class="due-badge-overdue">⚠️ ${Math.abs(daysLeft)}d Overdue</span>`;
+      dueBadgeHtml = `<span class="due-badge-overdue">${Math.abs(daysLeft)}d Overdue</span>`;
     } else if (daysLeft <= 3) {
-      dueBadgeHtml = `<span class="due-badge-warning">⏰ Due in ${daysLeft}d</span>`;
+      dueBadgeHtml = `<span class="due-badge-warning">Due in ${daysLeft}d</span>`;
     }
   }
 
@@ -3804,7 +3804,7 @@ function renderVendorBillCard(b) {
             </div>
           ` : `
             <div style="width:46px;height:46px;border-radius:8px;background:var(--paper-line);display:flex;align-items:center;justify-content:center;color:var(--ink-soft);font-size:1.2rem;flex-shrink:0;">
-              🧾
+              
             </div>
           `}
           <div>
@@ -3835,19 +3835,19 @@ function renderVendorBillCard(b) {
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px dashed var(--paper-line);">
         <div style="display:flex;gap:6px;align-items:center;">
           ${!isPaid ? `
-            <button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border:none;font-weight:700;" onclick="window.__openRecordPaymentModal('${b.id}')">💳 Pay Now</button>
+            <button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border:none;font-weight:700;" onclick="window.__openRecordPaymentModal('${b.id}')">Pay Now</button>
           ` : ''}
-          <button class="stamp-btn small ghost" onclick="window.__openVendorPaymentHistoryModal('${b.id}')">📜 History</button>
+          <button class="stamp-btn small ghost" onclick="window.__openVendorPaymentHistoryModal('${b.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon("reports", 13)} History</button>
         </div>
 
         <div class="action-dropdown-holder">
           <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${b.id}')">More ▾</button>
           <div class="action-dropdown-menu" id="actionMenu_${b.id}">
-            <button onclick="window.__openVendorLedgerModal('${esc(getVendorName(b))}')">📊 Statement</button>
-            ${b.photo_url ? `<button onclick="window.__viewVendorBillPhoto('${b.id}')">👁 View Photo</button>` : ''}
-            <button onclick="window.__showPaymentVoucherModal({vendorName:'${esc(getVendorName(b))}', bills:[cache.vendorBills.find(x=>x.id==='${b.id}')], totalAmount:${amt}, paymentMode:'Cash'})">🖨 Print Voucher</button>
-            ${(isPaid || isPartial) && isOwner() ? `<button onclick="window.__revertVendorBillToUnpaid('${b.id}')">↩ Move to Unpaid</button>` : ''}
-            ${isOwner() ? `<button class="danger" onclick="window.__deleteVendorBill('${b.id}')">🗑 Delete</button>` : ''}
+            <button onclick="window.__openVendorLedgerModal('${esc(getVendorName(b))}')" style="display:inline-flex;align-items:center;gap:4px;">${icon("sales", 13)} Statement</button>
+            ${b.photo_url ? `<button onclick="window.__viewVendorBillPhoto('${b.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon("eye", 13)} View Photo</button>` : ''}
+            <button onclick="window.__showPaymentVoucherModal({vendorName:'${esc(getVendorName(b))}', bills:[cache.vendorBills.find(x=>x.id==='${b.id}')], totalAmount:${amt}, paymentMode:'Cash'})">Print Voucher</button>
+            ${(isPaid || isPartial) && isOwner() ? `<button onclick="window.__revertVendorBillToUnpaid('${b.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon("rotate", 13)} Move to Unpaid</button>` : ''}
+            ${isOwner() ? `<button class="danger" onclick="window.__deleteVendorBill('${b.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon("trash", 14)} Delete</button>` : ''}
           </div>
         </div>
       </div>
@@ -3911,7 +3911,7 @@ window.__revertVendorBillToUnpaid = async function(billId) {
   }
 
   logAuditEvent('Vendor Bill Reverted to Unpaid', `Moved Bill #${billNo} (${vendorName}) back to Unpaid — cleared ₹${paidSoFar} recorded payment`);
-  window.showToast(`↩ Bill moved back to Unpaid`, 'success');
+  window.showToast(`Bill moved back to Unpaid`, 'success');
   renderTabBody();
 };
 
@@ -3931,7 +3931,7 @@ window.__openScanVendorBillModal = function() {
 
   holder.innerHTML = `
   <div class="overlay show"><div class="modal" style="max-width:440px;">
-    <h2>🧾 Add Purchase Bill</h2>
+    <h2> Add Purchase Bill</h2>
 
     <label>Vendor / Supplier Name</label>
     ${(cache.vendorBills && cache.vendorBills.length > 0) ? `
@@ -3972,7 +3972,7 @@ window.__openScanVendorBillModal = function() {
 
     <div class="modal-actions">
       <button class="stamp-btn ghost" onclick="window.__closeVendorModal()">Cancel</button>
-      <button class="stamp-btn" style="background:var(--turmeric);color:white;" onclick="window.__saveVendorBill()">💾 Save Purchase Bill</button>
+      <button class="stamp-btn" style="background:var(--turmeric);color:white;" onclick="window.__saveVendorBill()">Save Purchase Bill</button>
     </div>
   </div></div>`;
 
@@ -4055,18 +4055,18 @@ function parseExtractedBillText(rawText) {
 
   const area = document.getElementById('vBillPhotoArea');
   if (area) {
-    area.innerHTML = `<span style="font-size:0.8rem;color:var(--turmeric);font-weight:700;">✨ AI OCR Scan Complete! Detected ${amount > 0 ? '₹'+amount : ''} ${billNo ? '#'+billNo : ''}</span>`;
+    area.innerHTML = `<span style="font-size:0.8rem;color:var(--turmeric);font-weight:700;">AI OCR Scan Complete! Detected ${amount > 0 ? '₹'+amount : ''} ${billNo ? '#'+billNo : ''}</span>`;
   }
 
   if (typeof window.showToast === 'function') {
-    window.showToast(`✨ OCR Scanned: ${amount > 0 ? '₹'+amount : 'Details Auto-Detected'}!`, 'success');
+    window.showToast(`OCR Scanned: ${amount > 0 ? '₹'+amount : 'Details Auto-Detected'}!`, 'success');
   }
 }
 
 function runBillOCRScan(imageSrc) {
   const area = document.getElementById('vBillPhotoArea');
   if (area) {
-    area.innerHTML = '<span style="font-size:0.82rem;color:var(--turmeric-dark);font-weight:700;">🔍 AI OCR Scanning Bill Text... Please wait.</span>';
+    area.innerHTML = '<span style="font-size:0.82rem;color:var(--turmeric-dark);font-weight:700;">AI OCR Scanning Bill Text... Please wait.</span>';
   }
 
   if (typeof Tesseract !== 'undefined') {
@@ -4075,7 +4075,7 @@ function runBillOCRScan(imageSrc) {
         parseExtractedBillText(text);
       })
       .catch(() => {
-        if (area) area.innerHTML = '<span style="font-size:0.8rem;color:var(--turmeric);font-weight:700;">✓ Bill Photo Attached & Details Auto-Filled!</span>';
+        if (area) area.innerHTML = '<span style="font-size:0.8rem;color:var(--turmeric);font-weight:700;">Bill Photo Attached & Details Auto-Filled!</span>';
       });
   }
 }
@@ -4094,7 +4094,7 @@ window.__handleBillPhotoSelected = function(input) {
         img.style.display = 'block';
       }
       if (area) {
-        area.innerHTML = '<span style="font-size:0.8rem;color:var(--turmeric);font-weight:700;">✓ Bill Photo Attached & Details Auto-Filled!</span>';
+        area.innerHTML = '<span style="font-size:0.8rem;color:var(--turmeric);font-weight:700;">Bill Photo Attached & Details Auto-Filled!</span>';
       }
 
       // Auto-fill Bill Number if empty
@@ -4264,7 +4264,7 @@ window.__saveVendorBill = async function() {
   getModalHolder('taskModalHolder').innerHTML = '';
   logAuditEvent('Vendor Bill Scanned', `Saved Bill #${bill_no} for ₹${amount} from ${vendor_name}`);
   triggerAppNotification('Bill Logged', `Vendor bill of ₹${amount} saved`);
-  window.showToast(`🧾 Purchase Bill #${bill_no} saved!`, 'success');
+  window.showToast(` Purchase Bill #${bill_no} saved!`, 'success');
   renderTabBody();
 };
 
@@ -4309,7 +4309,7 @@ window.__deleteVendorBill = async function(id) {
   }
 
   logAuditEvent('Vendor Bill Delete', `Deleted vendor bill`);
-  window.showToast('🗑 Vendor bill deleted', 'info');
+  window.showToast('Vendor bill deleted', 'info');
   renderTabBody();
 };
 
@@ -4322,7 +4322,7 @@ window.__viewVendorBillPhoto = function(id) {
   <div class="overlay show" onclick="this.remove()"><div class="modal" style="max-width:90vw;max-height:90vh;padding:12px;background:#000;color:#fff;text-align:center;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <span style="font-weight:700;font-size:0.9rem;">${esc(bill.vendor_name)} (Bill #${esc(bill.bill_no||'N/A')})</span>
-      <button class="stamp-btn ghost small" style="color:#fff;border-color:#fff;" onclick="this.closest('.overlay').remove()">✕ Close</button>
+      <button class="stamp-btn ghost small" style="color:#fff;border-color:#fff;" onclick="this.closest('.overlay').remove()">Close</button>
     </div>
     <img src="${bill.photo_url}" style="max-width:100%;max-height:75vh;object-fit:contain;border-radius:6px;">
   </div></div>`;
@@ -4358,8 +4358,8 @@ function renderLowStockTab(body) {
   body.innerHTML = `
     <!-- Sub-menu Navigation -->
     <div style="display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;">
-      <button class="stamp-btn small ${lowStockSubTab==='alerts'?'':'ghost'}" onclick="window.__setLowStockSubTab('alerts')">📦 Low Stock (${list.length})</button>
-      <button class="stamp-btn small ${lowStockSubTab==='expiry'?'':'ghost'}" onclick="window.__setLowStockSubTab('expiry')">⏰ Expiry Tracker</button>
+      <button class="stamp-btn small ${lowStockSubTab==='alerts'?'':'ghost'}" onclick="window.__setLowStockSubTab('alerts')">Low Stock (${list.length})</button>
+      <button class="stamp-btn small ${lowStockSubTab==='expiry'?'':'ghost'}" onclick="window.__setLowStockSubTab('expiry')">Expiry Tracker</button>
     </div>
 
     ${lowStockSubTab === 'alerts' ? `
@@ -4367,7 +4367,7 @@ function renderLowStockTab(body) {
     <div class="row-card" style="flex-direction:column;align-items:stretch;background:var(--card);border:1.5px solid var(--paper-line);padding:14px;margin-bottom:16px;border-radius:12px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <div>
-          <h2 style="margin:0;font-size:1.05rem;color:var(--ink);font-family:'Roboto Mono',monospace;font-weight:700;">📦 Low Stock Alerts</h2>
+          <h2 style="margin:0;font-size:1.05rem;color:var(--ink);font-family:'Roboto Mono',monospace;font-weight:700;" style="display:inline-flex;align-items:center;gap:4px;">${icon("low_stock", 13)} Low Stock Alerts</h2>
           <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">Track items running out &amp; enter low stock reports</div>
         </div>
         <button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border:none;" onclick="window.__openLowStockModal()">+ Report Low Stock</button>
@@ -4437,10 +4437,10 @@ function renderLowStockTab(body) {
           </div>
           <div class="row-actions">
             ${status === 'pending' ? `
-              <button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border-color:var(--turmeric);" onclick="window.__markLowStockStatus('${item.id}', 'restocked')">✓ Restocked</button>
-              <button class="stamp-btn small ghost" onclick="window.__markLowStockStatus('${item.id}', 'ordered')">📦 Ordered</button>
+              <button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border-color:var(--turmeric);" onclick="window.__markLowStockStatus('${item.id}', 'restocked')">Restocked</button>
+              <button class="stamp-btn small ghost" onclick="window.__markLowStockStatus('${item.id}', 'ordered')" style="display:inline-flex;align-items:center;gap:4px;">${icon("package", 13)} Ordered</button>
             ` : (status === 'ordered' ? `
-              <button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border-color:var(--turmeric);" onclick="window.__markLowStockStatus('${item.id}', 'restocked')">✓ Restocked</button>
+              <button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border-color:var(--turmeric);" onclick="window.__markLowStockStatus('${item.id}', 'restocked')">Restocked</button>
             ` : `
               <button class="stamp-btn small ghost" onclick="window.__markLowStockStatus('${item.id}', 'pending')">↺ Re-open</button>
             `)}
@@ -4448,8 +4448,8 @@ function renderLowStockTab(body) {
             <div class="action-dropdown-holder">
               <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${item.id}')">More ▾</button>
               <div class="action-dropdown-menu" id="actionMenu_${item.id}">
-                <button onclick="window.__openLowStockModal('${item.id}')">✎ Edit</button>
-                <button class="danger" onclick="window.__deleteLowStockItem('${item.id}')">🗑 Delete</button>
+                <button onclick="window.__openLowStockModal('${item.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon("edit", 14)} Edit</button>
+                <button class="danger" onclick="window.__deleteLowStockItem('${item.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon("trash", 14)} Delete</button>
               </div>
             </div>
           </div>
@@ -4469,7 +4469,7 @@ window.__openLowStockModal = function(id) {
 
   holder.innerHTML = `
   <div class="overlay show"><div class="modal">
-    <h2>${item ? '✎ Edit Low Stock Item' : '📦 Report Low Stock'}</h2>
+    <h2>${item ? 'Edit Low Stock Item' : 'Report Low Stock'}</h2>
     <p style="font-size:0.82rem;color:var(--ink-soft);margin:0 0 10px;">Enter items running low so managers & owners know what to re-order.</p>
 
     <label>Item / Product Name *</label>
@@ -4565,7 +4565,7 @@ window.__saveLowStockItem = async function(id) {
 
   getModalHolder('lowStockModalHolder').innerHTML = '';
   logAuditEvent('Low Stock Reported', `Reported low stock: ${item_name} (${current_qty} remaining)`);
-  window.showToast('📦 Low Stock item logged!', 'success');
+  window.showToast('Low Stock item logged!', 'success');
   renderTabBody();
 };
 
@@ -4608,7 +4608,7 @@ window.__deleteLowStockItem = function(id) {
       } catch(e) {}
       finally {
         hideLoading();
-        window.showToast('🗑 Low Stock alert removed', 'info');
+        window.showToast('Low Stock alert removed', 'info');
         renderTabBody();
       }
     }
@@ -4666,7 +4666,7 @@ window.__showPaymentVoucherModal = function({ vendorName, bills, totalAmount, pa
         
         <!-- Header & Close Button -->
         <div style="display:flex;justify-content:flex-end;margin-bottom:-10px;" class="no-print">
-          <button class="stamp-btn ghost small" style="color:#000;border-color:#ccc;font-size:0.8rem;padding:4px 10px;" onclick="window.__closePaymentVoucherModal()">✕ Close</button>
+          <button class="stamp-btn ghost small" style="color:#000;border-color:#ccc;font-size:0.8rem;padding:4px 10px;" onclick="window.__closePaymentVoucherModal()">Close</button>
         </div>
         <div style="text-align:center;margin-bottom:18px;">
           <h2 style="margin:0 0 4px;font-family:'Roboto Mono', monospace;font-size:1.3rem;font-weight:800;letter-spacing:0.02em;text-transform:uppercase;color:#000;">${esc(bizName)}</h2>
@@ -4741,7 +4741,7 @@ window.__showPaymentVoucherModal = function({ vendorName, bills, totalAmount, pa
       <div class="no-print" style="padding:14px 20px;background:#f1f5f9;border-top:1px solid #cbd5e1;display:flex;justify-content:space-between;align-items:center;">
         <button class="stamp-btn ghost" style="color:#475569;border-color:#cbd5e1;font-weight:700;" onclick="getModalHolder('vendorVoucherModalHolder').innerHTML=''">CANCEL</button>
         <button class="stamp-btn" style="background:#d97706;color:#ffffff;border:none;font-weight:700;padding:10px 20px;display:flex;align-items:center;gap:8px;" onclick="window.__printPaymentVoucher()">
-          🖨 PRINT / SHARE PDF
+          PRINT / SHARE PDF
         </button>
       </div>
 
@@ -5019,8 +5019,8 @@ window.__openGlobalSearchModal = function() {
   holder.innerHTML = `
   <div class="overlay show" onclick="if(event.target===this) this.remove()"><div class="modal" style="max-width:540px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-      <h2 style="margin:0;font-size:1.1rem;">🔍 Global Quick Search</h2>
-      <button class="stamp-btn ghost small" onclick="this.closest('.overlay').remove()">✕</button>
+      <h2 style="margin:0;font-size:1.1rem;display:flex;align-items:center;gap:6px;">${icon("search", 18)} Global Quick Search</h2>
+      <button class="stamp-btn ghost small" onclick="this.closest('.overlay').remove()" style="display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;">${icon("close", 14)}</button>
     </div>
     
     <input id="mGlobalSearchInput" placeholder="Search Bill #, Vendor, Item, Staff, Task..." style="font-size:1.05rem;font-weight:600;padding:12px;margin-bottom:12px;width:100%;" oninput="window.__runGlobalSearch(this.value)" autofocus>
@@ -5121,7 +5121,7 @@ window.__runGlobalSearch = function(query) {
         <b style="font-size:0.9rem;display:block;margin-top:2px;">${esc(r.title)}</b>
         <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">${esc(r.meta)}</div>
       </div>
-      <span style="font-size:0.85rem;color:var(--turmeric-dark);font-weight:700;">Go ↗</span>
+      <span style="font-size:0.85rem;color:var(--turmeric-dark);font-weight:700;">Go</span>
     </div>
   `).join('');
 };
@@ -5177,10 +5177,10 @@ window.__openVendorLedgerModal = function(vendorName) {
   <div class="overlay show"><div class="modal" style="max-width:680px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--paper-line);">
       <div>
-        <h2 style="margin:0;font-size:1.15rem;">📊 Account Statement</h2>
+        <h2 style="margin:0;font-size:1.15rem;display:flex;align-items:center;gap:6px;">${icon("sales", 18)} Account Statement</h2>
         <div style="font-size:0.8rem;color:var(--ink-soft);font-weight:700;text-transform:uppercase;margin-top:2px;">${esc(vendorName)}</div>
       </div>
-      <button class="stamp-btn ghost small" onclick="getModalHolder('vendorModalHolder').innerHTML=''">✕</button>
+      <button class="stamp-btn ghost small" onclick="getModalHolder('vendorModalHolder').innerHTML=''" style="display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;">${icon("close", 14)}</button>
     </div>
 
     <!-- Summary Bar -->
@@ -5230,7 +5230,7 @@ window.__openVendorLedgerModal = function(vendorName) {
 
     <div class="modal-actions">
       <button class="stamp-btn ghost" onclick="getModalHolder('vendorModalHolder').innerHTML=''">Close</button>
-      <button class="stamp-btn" style="background:var(--turmeric);color:#fff;border:none;" onclick="window.__printVendorStatement('${esc(vendorName)}')">🖨 Print Statement</button>
+      <button class="stamp-btn" style="background:var(--turmeric);color:#fff;border:none;" onclick="window.__printVendorStatement('${esc(vendorName)}')">Print Statement</button>
     </div>
   </div></div>`;
 };
@@ -5347,8 +5347,8 @@ window.__openRecordPaymentModal = function(billId) {
   holder.innerHTML = `
   <div class="overlay show"><div class="modal" style="max-width:440px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--paper-line);">
-      <h2 style="margin:0;font-size:1.1rem;">💳 Record Payment</h2>
-      <button class="stamp-btn ghost small" onclick="getModalHolder('vendorModalHolder').innerHTML=''">✕</button>
+      <h2 style="margin:0;font-size:1.1rem;display:flex;align-items:center;gap:6px;">${icon("salary", 18)} Record Payment</h2>
+      <button class="stamp-btn ghost small" onclick="getModalHolder('vendorModalHolder').innerHTML=''" style="display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;">${icon("close", 14)}</button>
     </div>
 
     <div style="background:var(--paper);border:1px solid var(--paper-line);border-radius:8px;padding:12px;margin-bottom:14px;display:flex;flex-direction:column;gap:6px;">
@@ -5395,7 +5395,7 @@ window.__openRecordPaymentModal = function(billId) {
 
     <div class="modal-actions" style="margin-top:18px;">
       <button class="stamp-btn ghost" onclick="getModalHolder('vendorModalHolder').innerHTML=''">Cancel</button>
-      <button class="stamp-btn" style="background:var(--turmeric);color:#fff;" onclick="window.__saveSingleBillPayment('${b.id}')">💾 Save Payment & Print</button>
+      <button class="stamp-btn" style="background:var(--turmeric);color:#fff;" onclick="window.__saveSingleBillPayment('${b.id}')">Save Payment & Print</button>
     </div>
   </div></div>`;
 };
@@ -5484,7 +5484,7 @@ window.__saveSingleBillPayment = async function(billId) {
 
   getModalHolder('vendorModalHolder').innerHTML = '';
   logAuditEvent('Vendor Payment Recorded', `Recorded ₹${payAmt} payment for Bill #${getBillNo(b)} (${getVendorName(b)})`);
-  window.showToast(`✅ Payment of ₹${payAmt} saved! Status: ${newStatus.toUpperCase()}`, 'success');
+  window.showToast(`Payment of ₹${payAmt} saved! Status: ${newStatus.toUpperCase()}`, 'success');
   renderTabBody();
 
   // 3. Launch Payment Voucher Printable Modal
@@ -5513,8 +5513,8 @@ window.__openVendorPaymentHistoryModal = function(billId) {
   holder.innerHTML = `
   <div class="overlay show"><div class="modal" style="max-width:500px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--paper-line);">
-      <h2 style="margin:0;font-size:1.1rem;">📜 Payment History</h2>
-      <button class="stamp-btn ghost small" onclick="getModalHolder('vendorModalHolder').innerHTML=''">✕</button>
+      <h2 style="margin:0;font-size:1.1rem;display:flex;align-items:center;gap:6px;">${icon("reports", 18)} Payment History</h2>
+      <button class="stamp-btn ghost small" onclick="getModalHolder('vendorModalHolder').innerHTML=''" style="display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;">${icon("close", 14)}</button>
     </div>
 
     <div style="background:var(--paper);border:1px solid var(--paper-line);border-radius:8px;padding:10px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
@@ -5540,7 +5540,7 @@ window.__openVendorPaymentHistoryModal = function(billId) {
               </div>
               ${p.remarks ? `<div style="font-size:0.75rem;color:var(--ink);margin-top:2px;font-style:italic;">"${esc(p.remarks)}"</div>` : ''}
             </div>
-            <button class="stamp-btn small ghost" onclick="window.__printSinglePaymentReceipt('${p.id}')">🖨 Voucher</button>
+            <button class="stamp-btn small ghost" onclick="window.__printSinglePaymentReceipt('${p.id}')" style="display:inline-flex;align-items:center;gap:4px;">Voucher</button>
           </div>
         `).join('')}
       </div>
@@ -5591,7 +5591,7 @@ window.__openBulkVendorSettlementModal = function() {
 
   holder.innerHTML = `
   <div class="overlay show"><div class="modal" style="max-width:540px;">
-    <h2>💳 Bulk Vendor Bill Settlement & Voucher</h2>
+    <h2 style="display:flex;align-items:center;gap:6px;">${icon("salary", 18)} Bulk Vendor Bill Settlement & Voucher</h2>
     <p style="font-size:0.82rem;color:var(--ink-soft);margin:0 0 12px;">Settle multiple bills for a vendor and generate an official printable Payment Voucher.</p>
 
     <label>Select Vendor / Supplier *</label>
@@ -5615,7 +5615,7 @@ window.__openBulkVendorSettlementModal = function() {
 
     <div class="modal-actions" style="margin-top:20px;">
       <button class="stamp-btn ghost" onclick="getModalHolder('vendorModalHolder').innerHTML=''">Cancel</button>
-      <button class="stamp-btn" style="background:var(--turmeric);color:#fff;border-color:var(--turmeric);" onclick="window.__submitBulkVendorPayment()">✓ Settle & Generate Voucher</button>
+      <button class="stamp-btn" style="background:var(--turmeric);color:#fff;border-color:var(--turmeric);" onclick="window.__submitBulkVendorPayment()">Settle & Generate Voucher</button>
     </div>
   </div></div>`;
 
@@ -5745,7 +5745,7 @@ window.__submitBulkVendorPayment = async function() {
 
   getModalHolder('vendorModalHolder').innerHTML = '';
   logAuditEvent('Bulk Vendor Payment', `Paid ₹${totalSettled} across ${affectedBills.length} bills for ${vendor}`);
-  window.showToast(`✅ Distributed ₹${totalSettled} cash across ${affectedBills.length} bills!`, 'success');
+  window.showToast(`Distributed ₹${totalSettled} cash across ${affectedBills.length} bills!`, 'success');
   renderTabBody();
 
   // Open Payment Voucher Printable Modal
@@ -5798,7 +5798,7 @@ function renderAccCalendarHtml(){
       } else if(totals.less > 0){
         badgeBg = 'var(--blue-soft)'; badgeText = '-' + totals.less.toFixed(0); color = 'var(--turmeric)';
       } else {
-        badgeBg = 'var(--blue-soft)'; badgeText = '✓ OK'; color = 'var(--turmeric)';
+        badgeBg = 'var(--blue-soft)'; badgeText = 'OK'; color = 'var(--turmeric)';
       }
     }
 
@@ -5806,7 +5806,7 @@ function renderAccCalendarHtml(){
       <div onclick="accountsDate='${dateStr}';accountsSubTab='entry';renderTabBody();" style="background:${isToday?'var(--blue-soft)':badgeBg};border:1px solid ${isToday?'var(--turmeric)':'var(--paper-line)'};border-radius:6px;padding:6px 4px;min-height:54px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;transition:transform 0.15s ease;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <span style="font-weight:700;font-size:0.8rem;color:${isToday?'var(--turmeric-dark)':'var(--ink)'}">${day}</span>
-          ${rec && isAccRecordChecked(rec) ? '<span style="color:var(--turmeric);font-size:0.75rem;font-weight:700;">✓ CHECKED</span>' : ''}
+          ${rec && isAccRecordChecked(rec) ? '<span style="color:var(--turmeric);font-size:0.75rem;font-weight:700;">CHECKED</span>' : ''}
         </div>
         <div style="font-family:'Roboto Mono',monospace;font-size:0.65rem;font-weight:700;color:${color};text-align:right;">
           ${badgeText}
@@ -5895,7 +5895,7 @@ window.__exportLabelReportPDF = function() {
           <!-- Official Approved Seal Stamp -->
           <div style="border:2px dashed #16A34A;color:#16A34A;background:#F0FDF4;padding:6px 12px;border-radius:8px;text-align:center;transform:rotate(-3deg);box-shadow:0 2px 6px rgba(22,163,74,0.15);">
             <div style="font-size:0.62rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:#15803D;">OFFICIAL VERIFIED</div>
-            <div style="font-size:0.95rem;font-weight:900;letter-spacing:0.08em;text-transform:uppercase;margin:2px 0;">✓ APPROVED</div>
+            <div style="font-size:0.95rem;font-weight:900;letter-spacing:0.08em;text-transform:uppercase;margin:2px 0;">APPROVED</div>
             <div style="font-size:0.58rem;font-weight:700;color:#16A34A;">THE MALABAR OILS</div>
           </div>
 
@@ -6030,7 +6030,7 @@ window.__exportPackageReportPDF = function() {
           <!-- Official Approved Seal Stamp -->
           <div style="border:2px dashed #16A34A;color:#16A34A;background:#F0FDF4;padding:6px 12px;border-radius:8px;text-align:center;transform:rotate(-3deg);box-shadow:0 2px 6px rgba(22,163,74,0.15);">
             <div style="font-size:0.62rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:#15803D;">OFFICIAL VERIFIED</div>
-            <div style="font-size:0.95rem;font-weight:900;letter-spacing:0.08em;text-transform:uppercase;margin:2px 0;">✓ APPROVED</div>
+            <div style="font-size:0.95rem;font-weight:900;letter-spacing:0.08em;text-transform:uppercase;margin:2px 0;">APPROVED</div>
             <div style="font-size:0.58rem;font-weight:700;color:#16A34A;">THE MALABAR OILS</div>
           </div>
 

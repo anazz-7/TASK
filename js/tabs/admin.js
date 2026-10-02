@@ -376,11 +376,11 @@ window.__importAccExcel = async function(input) {
     const holder = getModalHolder('taskModalHolder');
     holder.innerHTML = `
       <div class="overlay show"><div class="modal" style="max-width:440px;">
-        <h2>📊 Excel Import Summary</h2>
+        <h2>Excel Import Summary</h2>
         <div style="background:var(--paper);padding:14px;border-radius:10px;border:1px solid var(--paper-line);margin-bottom:14px;">
           <div style="font-size:0.9rem;margin-bottom:6px;">Total SpreadSheet Rows Processed: <b>${localCount} Day(s)</b></div>
-          <div style="font-size:0.9rem;color:var(--turmeric);font-weight:700;margin-bottom:4px;">✅ Verified Saved to Supabase Cloud: ${cloudSuccessCount}</div>
-          ${cloudErrorCount > 0 ? `<div style="font-size:0.88rem;color:var(--turmeric);font-weight:700;">⚠️ Cloud Save Failures: ${cloudErrorCount}</div>` : ''}
+          <div style="font-size:0.9rem;color:var(--turmeric);font-weight:700;margin-bottom:4px;">Verified Saved to Supabase Cloud: ${cloudSuccessCount}</div>
+          ${cloudErrorCount > 0 ? `<div style="font-size:0.88rem;color:var(--turmeric);font-weight:700;">Cloud Save Failures: ${cloudErrorCount}</div>` : ''}
         </div>
         ${failedLogs.length ? `
           <div style="max-height:120px;overflow-y:auto;background:var(--blue-soft);padding:8px 10px;border-radius:6px;font-size:0.75rem;color:var(--turmeric);font-family:'Roboto Mono',monospace;margin-bottom:14px;">
@@ -461,11 +461,11 @@ window.__restoreAccJson = async function(input) {
     const holder = getModalHolder('taskModalHolder');
     holder.innerHTML = `
       <div class="overlay show"><div class="modal" style="max-width:440px;">
-        <h2>📥 Backup Restore Summary</h2>
+        <h2>Backup Restore Summary</h2>
         <div style="background:var(--paper);padding:14px;border-radius:10px;border:1px solid var(--paper-line);margin-bottom:14px;">
           <div style="font-size:0.9rem;margin-bottom:6px;">Total Backup Records Processed: <b>${localCount} Day(s)</b></div>
-          <div style="font-size:0.9rem;color:var(--turmeric);font-weight:700;margin-bottom:4px;">✅ Verified Saved to Supabase Cloud: ${cloudSuccessCount}</div>
-          ${cloudErrorCount > 0 ? `<div style="font-size:0.88rem;color:var(--turmeric);font-weight:700;">⚠️ Cloud Save Failures: ${cloudErrorCount}</div>` : ''}
+          <div style="font-size:0.9rem;color:var(--turmeric);font-weight:700;margin-bottom:4px;">Verified Saved to Supabase Cloud: ${cloudSuccessCount}</div>
+          ${cloudErrorCount > 0 ? `<div style="font-size:0.88rem;color:var(--turmeric);font-weight:700;">Cloud Save Failures: ${cloudErrorCount}</div>` : ''}
         </div>
         ${failedLogs.length ? `
           <div style="max-height:120px;overflow-y:auto;background:var(--blue-soft);padding:8px 10px;border-radius:6px;font-size:0.75rem;color:var(--turmeric);font-family:'Roboto Mono',monospace;margin-bottom:14px;">
@@ -524,7 +524,7 @@ function renderStockkeeperTab(body){
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
           ${GODOWNS.map(g => {
             const isChecked = checkedGodowns.has(g);
-            return `<button class="attend-btn ${isChecked?'present active':''}" onclick="window.__toggleGodownCheck('${g}')">${isChecked?'✓ ':''}${g}</button>`;
+            return `<button class="attend-btn ${isChecked?'present active':''}" onclick="window.__toggleGodownCheck('${g}')">${isChecked?'Checked: ':''}${g}</button>`;
           }).join('')}
         </div>
 
@@ -715,10 +715,10 @@ function renderSalaryReportHtml() {
           ${advThisMonth > 0 ? `<div style="font-size:0.65rem;color:var(--turmeric-dark);">(Incl. ₹${advThisMonth} Adv)</div>` : ''}
         </td>
         <td style="padding:10px 12px;font-family:'Roboto Mono',monospace;color:${staffPending>0?'var(--brick)':'var(--leaf)'};font-weight:700;">
-          ${staffPending > 0 ? `₹${staffPending.toLocaleString('en-IN')}` : '✓ Settled'}
+          ${staffPending > 0 ? `₹${staffPending.toLocaleString('en-IN')}` : 'Settled'}
         </td>
         <td style="padding:10px 12px;text-align:right;">
-          <button class="stamp-btn small ghost" style="font-size:0.7rem;padding:2px 6px;" onclick="window.__editStaff('${s.id}')">✎ Base Rate</button>
+          <button class="stamp-btn small ghost" style="font-size:0.7rem;padding:2px 6px;" onclick="window.__editStaff('${s.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon("edit", 12)} Base Rate</button>
         </td>
       </tr>
     `;
@@ -817,8 +817,8 @@ window.__openSalaryAdvanceModal = function() {
   holder.innerHTML = `
   <div class="overlay show" onclick="if(event.target===this) window.__closeSalaryModal()"><div class="modal" style="max-width:440px;width:92%;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-      <h3 style="margin:0;">💸 Record Salary Advance</h3>
-      <button class="stamp-btn small ghost" onclick="window.__closeSalaryModal()">✕</button>
+      <h3 style="margin:0;">Record Salary Advance</h3>
+      <button class="stamp-btn small ghost" onclick="window.__closeSalaryModal()" style="display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;">${icon("close", 14)}</button>
     </div>
 
     <label>Select Staff Member *</label>
@@ -928,7 +928,7 @@ function renderExpensesTrackerHtml() {
   return `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
       <div class="section-label" style="margin:0;">Expenses Tracker Overview (${currentMonth})</div>
-      <button class="stamp-btn small" style="background:var(--turmeric);color:white;" onclick="window.__openExpenseModal()">💸 Record Expense</button>
+      <button class="stamp-btn small" style="background:var(--turmeric);color:white;" onclick="window.__openExpenseModal()" style="display:inline-flex;align-items:center;gap:4px;">${icon("salary", 14)} Record Expense</button>
     </div>
 
     <!-- Summary KPI Stat Cards -->
@@ -967,12 +967,12 @@ function renderExpensesTrackerHtml() {
         <div class="action-dropdown-holder">
           <button class="action-more-btn" onclick="window.__toggleActionMenu(event, 'exp_tr_${e.id}')">More ▾</button>
           <div class="action-dropdown-menu" id="actionMenu_exp_tr_${e.id}">
-            <button onclick="window.__openExpenseModal('${e.id}')">✎ Edit</button>
-            <button class="danger" onclick="window.__deleteExpenseItem('${e.id}')">🗑 Delete</button>
+            <button onclick="window.__openExpenseModal('${e.id}')">Edit</button>
+            <button class="danger" onclick="window.__deleteExpenseItem('${e.id}')">Delete</button>
           </div>
         </div>
       </div>
-    `).join('') : `<div class="empty">No expenses logged yet. Tap "💸 Record Expense" to log staff tea, fuel, travel, or maintenance expenses!</div>`}
+    `).join('') : `<div class="empty">No expenses logged yet. Tap "Record Expense" to log staff tea, fuel, travel, or maintenance expenses!</div>`}
   `;
 }
 
@@ -983,7 +983,7 @@ window.__openExpenseModal = function(id) {
 
   holder.innerHTML = `
   <div class="overlay show"><div class="modal" style="max-width:500px;">
-    <h2>${exp ? '✎ Edit Business Expense' : '💸 Record Business Expense'}</h2>
+    <h2>${exp ? 'Edit Business Expense' : 'Record Business Expense'}</h2>
     <p style="font-size:0.8rem;color:var(--ink-soft);margin-bottom:12px;">Log operational and staff expenses (Tea/Food, Travel, Fuel, Maintenance, Utilities).</p>
 
     <label>Spent By / Staff *</label>
@@ -1028,7 +1028,7 @@ window.__openExpenseModal = function(id) {
 
     <div class="modal-actions">
       <button class="stamp-btn ghost" onclick="getModalHolder('taskModalHolder').innerHTML=''">Cancel</button>
-      <button class="stamp-btn" style="background:var(--turmeric);color:white;" onclick="window.__saveExpenseItem('${id||''}')">💾 Save Expense</button>
+      <button class="stamp-btn" style="background:var(--turmeric);color:white;" onclick="window.__saveExpenseItem('${id||''}')">Save Expense</button>
     </div>
   </div></div>`;
 };
@@ -1060,7 +1060,7 @@ window.__saveExpenseItem = function(id) {
   saveExpensesList(expenses);
   getModalHolder('taskModalHolder').innerHTML = '';
   logAuditEvent('Expense Recorded', `Recorded ₹${amt} expense (${payload.category}) spent by ${staffName(payload.spent_by)}`);
-  window.showToast(`💸 Expense of ₹${amt} saved!`, 'success');
+  window.showToast(`Expense of ₹${amt} saved!`, 'success');
   renderTabBody();
 };
 
@@ -1068,7 +1068,7 @@ window.__deleteExpenseItem = function(id) {
   if (!confirm('Delete this expense entry?')) return;
   const expenses = getExpensesList().filter(x => x.id !== id);
   saveExpensesList(expenses);
-  window.showToast('🗑 Expense deleted.', 'info');
+  window.showToast('Expense deleted.', 'info');
   renderTabBody();
 };
 
@@ -1082,10 +1082,10 @@ function renderSalaryTab(body){
   body.innerHTML = `
     <!-- Salary Sub-Menu Navigation Bar -->
     <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;">
-      <button class="stamp-btn small ${salarySubTab==='payouts'?'':'ghost'}" onclick="window.__setSalarySubTab('payouts')">💵 Payout History (${cache.salaries.length})</button>
-      <button class="stamp-btn small ${salarySubTab==='advances'?'':'ghost'}" onclick="window.__setSalarySubTab('advances')">💸 Salary Advances (${advances.length})</button>
-      <button class="stamp-btn small ${salarySubTab==='expenses'?'':'ghost'}" onclick="window.__setSalarySubTab('expenses')">🧾 Expenses Tracker (${expenses.length})</button>
-      <button class="stamp-btn small ${salarySubTab==='schedules'?'':'ghost'}" onclick="window.__setSalarySubTab('schedules')">📅 Schedules (${cache.staff.length})</button>
+      <button class="stamp-btn small ${salarySubTab==='payouts'?'':'ghost'}" onclick="window.__setSalarySubTab('payouts')" style="display:inline-flex;align-items:center;gap:4px;">${icon("salary", 14)} Payout History (${cache.salaries.length})</button>
+      <button class="stamp-btn small ${salarySubTab==='advances'?'':'ghost'}" onclick="window.__setSalarySubTab('advances')" style="display:inline-flex;align-items:center;gap:4px;">${icon("salary", 14)} Salary Advances (${advances.length})</button>
+      <button class="stamp-btn small ${salarySubTab==='expenses'?'':'ghost'}" onclick="window.__setSalarySubTab('expenses')" style="display:inline-flex;align-items:center;gap:4px;">${icon("reports", 14)} Expenses Tracker (${expenses.length})</button>
+      <button class="stamp-btn small ${salarySubTab==='schedules'?'':'ghost'}" onclick="window.__setSalarySubTab('schedules')" style="display:inline-flex;align-items:center;gap:4px;">${icon("calendar", 14)} Schedules (${cache.staff.length})</button>
     </div>
 
 
@@ -1098,12 +1098,12 @@ function renderSalaryTab(body){
         <div class="row-card" style="align-items:center;">
           <div class="row-main"><h3>${esc(staffName(sa.staff_id))}</h3><div class="meta"><span>${sa.paid_date}</span>${sa.notes?`<span>${esc(sa.notes)}</span>`:''}</div></div>
           <b style="font-family:'Roboto Mono',monospace;">₹${Number(sa.amount).toFixed(0)}</b>
-          <button class="stamp-btn small ghost" style="font-size:0.65rem;padding:4px 8px;" onclick="window.__generateSalarySlip('${sa.id}')">📄 Slip</button>
+          <button class="stamp-btn small ghost" style="font-size:0.65rem;padding:4px 8px;" onclick="window.__generateSalarySlip('${sa.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon("reports", 12)} Slip</button>
           <div class="action-dropdown-holder">
             <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${sa.id}')">More ▾</button>
             <div class="action-dropdown-menu" id="actionMenu_${sa.id}">
-              <button onclick="window.__generateSalarySlip('${sa.id}')">📄 Generate Slip</button>
-              <button class="danger" onclick="window.__deleteSalary('${sa.id}')">🗑 Delete</button>
+              <button onclick="window.__generateSalarySlip('${sa.id}')">Generate Slip</button>
+              <button class="danger" onclick="window.__deleteSalary('${sa.id}')">Delete</button>
             </div>
           </div>
         </div>`;
@@ -1113,7 +1113,7 @@ function renderSalaryTab(body){
     ${salarySubTab === 'advances' ? `
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
         <div class="section-label" style="margin:0;">Staff Advances Overview (${currentMonth})</div>
-        <button class="stamp-btn small" style="background:var(--turmeric);color:white;" onclick="window.__openSalaryAdvanceModal()">💸 Record Salary Advance</button>
+        <button class="stamp-btn small" style="background:var(--turmeric);color:white;" onclick="window.__openSalaryAdvanceModal()" style="display:inline-flex;align-items:center;gap:4px;">${icon("salary", 14)} Record Salary Advance</button>
       </div>
 
       <div class="cards-grid" style="margin-bottom:16px;">
@@ -1157,12 +1157,12 @@ function renderSalaryTab(body){
             ${a.notes ? `<div class="notes">${esc(a.notes)}</div>` : ''}
           </div>
           <b style="font-family:'Roboto Mono',monospace;color:var(--turmeric);margin-right:6px;">₹${Number(a.amount).toFixed(0)}</b>
-          <button class="stamp-btn small ghost" style="font-size:0.65rem;padding:3px 7px;margin-right:6px;" onclick="window.__convertAdvanceToSalaryPaid('${a.id}')" title="Convert Advance to Salary Paid">🔄 Convert to Paid</button>
+          <button class="stamp-btn small ghost" style="font-size:0.65rem;padding:3px 7px;margin-right:6px;" onclick="window.__convertAdvanceToSalaryPaid('${a.id}')" title="Convert Advance to Salary Paid" style="display:inline-flex;align-items:center;gap:4px;">${icon("rotate", 12)} Convert to Paid</button>
           <div class="action-dropdown-holder">
             <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${a.id}')">More ▾</button>
             <div class="action-dropdown-menu" id="actionMenu_${a.id}">
-              <button onclick="window.__convertAdvanceToSalaryPaid('${a.id}')">🔄 Convert to Salary Paid</button>
-              <button class="danger" onclick="window.__deleteSalaryAdvance('${a.id}')">🗑 Delete</button>
+              <button onclick="window.__convertAdvanceToSalaryPaid('${a.id}')">Convert to Salary Paid</button>
+              <button class="danger" onclick="window.__deleteSalaryAdvance('${a.id}')">Delete</button>
             </div>
           </div>
         </div>
@@ -1249,7 +1249,7 @@ function renderSalaryTab(body){
     }
 
     hideLoading();
-    window.showToast(`✓ Converted ₹${Number(adv.amount).toLocaleString('en-IN')} advance to Salary Paid!`, 'success');
+    window.showToast(`Converted ₹${Number(adv.amount).toLocaleString('en-IN')} advance to Salary Paid!`, 'success');
     logAuditEvent('Salary Converted', `Converted ₹${adv.amount} advance for ${sName} to Salary Paid`);
     
     // Switch to payouts tab to view newly converted salary
@@ -1270,12 +1270,12 @@ function renderSalaryTab(body){
       <div class="modal" style="max-width:560px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--paper-line);">
           <div>
-            <h2 style="margin:0;font-size:1.05rem;">📜 Salary Log &amp; Payout Audit</h2>
+            <h2 style="margin:0;font-size:1.05rem;">Salary Log &amp; Payout Audit</h2>
             <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">
               Total Paid: <b>₹${totalPaid.toLocaleString('en-IN')}</b> &bull; Total Advances: <b>₹${totalAdv.toLocaleString('en-IN')}</b>
             </div>
           </div>
-          <button class="stamp-btn ghost small" onclick="this.closest('.overlay').remove()">✕</button>
+          <button class="stamp-btn ghost small" onclick="this.closest('.overlay').remove()" style="display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;">${icon("close", 14)}</button>
         </div>
 
         <div style="max-height:360px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
@@ -1289,7 +1289,7 @@ function renderSalaryTab(body){
                   </div>
                 </div>
                 <b style="font-family:'Roboto Mono',monospace;font-size:0.95rem;color:var(--leaf);margin-right:6px;">₹${Number(sa.amount).toFixed(0)}</b>
-                <button class="stamp-btn small ghost" style="font-size:0.65rem;padding:2px 6px;" onclick="window.__generateSalarySlip('${sa.id}')">📄 Slip</button>
+                <button class="stamp-btn small ghost" style="font-size:0.65rem;padding:2px 6px;" onclick="window.__generateSalarySlip('${sa.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon("reports", 12)} Slip</button>
               </div>`;
           }).join('') : '<div class="empty">No salary payments logged yet.</div>'}
         </div>
@@ -1447,7 +1447,7 @@ function renderReportsTab(body) {
       <div style="margin-bottom:20px;">
         <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
           <span>P&amp;L Net Profits &amp; Revenue Analytics</span>
-          <button class="stamp-btn small ghost" onclick="window.__setTab('pnl')">View Full P&amp;L Tab ➔</button>
+          <button class="stamp-btn small ghost" onclick="window.__setTab('pnl')">View Full P&amp;L Tab &rarr;</button>
         </div>
         ${typeof buildDashboardPnLLineGraphHtml === 'function' ? buildDashboardPnLLineGraphHtml() : ''}
       </div>
@@ -1458,7 +1458,7 @@ function renderReportsTab(body) {
       <div style="margin-bottom:20px;">
         <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
           <span>Salary Assumptions &amp; Expense Outflow Report</span>
-          <button class="stamp-btn small ghost" onclick="window.__setTab('salary')">View Salary Tab ➔</button>
+          <button class="stamp-btn small ghost" onclick="window.__setTab('salary')">View Salary Tab &rarr;</button>
         </div>
 
         <div class="dash-kpi-grid" style="margin-bottom:12px;">
@@ -1501,7 +1501,7 @@ function renderReportsTab(body) {
       <div style="margin-bottom:20px;">
         <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
           <span>Inventory &amp; Stock Health Reports</span>
-          <button class="stamp-btn small ghost" onclick="window.__setTab('low_stock')">View Low Stock Tab ➔</button>
+          <button class="stamp-btn small ghost" onclick="window.__setTab('low_stock')">View Low Stock Tab &rarr;</button>
         </div>
 
         <div class="dash-kpi-grid" style="margin-bottom:12px;">
@@ -1531,7 +1531,7 @@ function renderReportsTab(body) {
       <div style="margin-bottom:20px;">
         <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
           <span>Staff Attendance &amp; Team Performance Visuals</span>
-          <button class="stamp-btn small ghost" onclick="window.__setTab('attendance')">View Attendance Tab ➔</button>
+          <button class="stamp-btn small ghost" onclick="window.__setTab('attendance')">View Attendance Tab &rarr;</button>
         </div>
 
         <div class="dash-kpi-grid" style="margin-bottom:12px;">
@@ -1554,7 +1554,7 @@ function renderReportsTab(body) {
       <div style="margin-bottom:20px;">
         <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
           <span>Sales &amp; Revenue Reports</span>
-          <button class="stamp-btn small ghost" onclick="window.__setTab('sales')">View Sales Tab ➔</button>
+          <button class="stamp-btn small ghost" onclick="window.__setTab('sales')">View Sales Tab &rarr;</button>
         </div>
 
         <div class="dash-kpi-grid" style="margin-bottom:12px;">
@@ -1647,23 +1647,23 @@ function renderAccountTab(body){
       <div class="kv"><span>Phone</span><b>${s.phone?esc(s.phone):'Not on file'}</b></div>
     </div></div>
 
-    <div class="section-label">🔔 Pop-Up &amp; Notification Settings</div>
+    <div class="section-label">Pop-Up &amp; Notification Settings</div>
     <div class="row-card" style="flex-direction:column;align-items:stretch;gap:10px;">
       <p style="font-size:0.78rem;color:var(--ink-soft);margin:0;">Control pop-up reminders and audio alert beeps on your device.</p>
       
       <label style="display:flex;align-items:center;gap:10px;font-size:0.84rem;cursor:pointer;margin-top:4px;">
         <input type="checkbox" id="cfgDisableTaskPopups" ${getFeatureConfig().disablePendingTaskPopups ? 'checked' : ''} style="width:18px;height:18px;">
-        <span>🚫 <b>Disable Pending Task Pop-Up Reminders (Every 5 mins)</b></span>
+        <span><b>Disable Pending Task Pop-Up Reminders (Every 5 mins)</b></span>
       </label>
 
       <label style="display:flex;align-items:center;gap:10px;font-size:0.84rem;cursor:pointer;">
         <input type="checkbox" id="cfgDisableBackupPopups" ${getFeatureConfig().disableBackupReminderPopups ? 'checked' : ''} style="width:18px;height:18px;">
-        <span>📦 <b>Disable Weekend Backup Reminder Pop-Ups</b></span>
+        <span><b>Disable Weekend Backup Reminder Pop-Ups</b></span>
       </label>
 
       <label style="display:flex;align-items:center;gap:10px;font-size:0.84rem;cursor:pointer;">
         <input type="checkbox" id="cfgDisableAudioBeeps" ${getFeatureConfig().disableAudioNotificationBeeps ? 'checked' : ''} style="width:18px;height:18px;">
-        <span>🔇 <b>Mute Audio Sound Effects on Reminders &amp; Alerts</b></span>
+        <span><b>Mute Audio Sound Effects on Reminders &amp; Alerts</b></span>
       </label>
 
       <div class="modal-actions" style="margin-top:6px;">
@@ -1781,7 +1781,7 @@ function renderSettingsTab(body){
       allowStaffExpiryTracker: true
     };
     saveFeatureConfig(newCfg);
-    window.showToast('⚙️ Custom feature & pop-up settings saved!', 'success');
+    window.showToast('Custom feature & pop-up settings saved!', 'success');
     renderShell();
   };
 
@@ -2050,8 +2050,8 @@ function renderExpiryTrackerHtml() {
         <div class="action-dropdown-holder">
           <button class="action-more-btn" onclick="window.__toggleActionMenu(event,'exp_${item.id}')">More ▾</button>
           <div class="action-dropdown-menu" id="actionMenu_exp_${item.id}">
-            <button onclick="window.__openExpiryModal('${item.id}')">✎ Edit</button>
-            <button class="danger" onclick="window.__deleteExpiryItem('${item.id}')">🗑 Delete</button>
+            <button onclick="window.__openExpiryModal('${item.id}')">Edit</button>
+            <button class="danger" onclick="window.__deleteExpiryItem('${item.id}')">Delete</button>
           </div>
         </div>
       </div>`;
@@ -2067,7 +2067,7 @@ window.__openExpiryModal = function(id) {
   const holder = getModalHolder('taskModalHolder');
   holder.innerHTML = `
   <div class="overlay show"><div class="modal">
-    <h2>${item ? '✎ Edit Expiry Item' : '⏰ Add Expiry Item'}</h2>
+    <h2>${item ? 'Edit Expiry Item' : 'Add Expiry Item'}</h2>
     <label>Item / Product Name *</label>
     <input id="mExpName" value="${item ? esc(item.item_name) : ''}" placeholder="e.g. Amul Butter, Bread Loaf">
     <div class="two-col">
@@ -2113,7 +2113,7 @@ window.__saveExpiryItem = function(id) {
   }
   saveExpiryItems(items);
   getModalHolder('taskModalHolder').innerHTML = '';
-  window.showToast('⏰ Expiry item saved!', 'success');
+  window.showToast('Expiry item saved!', 'success');
   renderTabBody();
 };
 
@@ -2122,7 +2122,7 @@ window.__deleteExpiryItem = function(id) {
   if (!confirm('Delete this expiry item?')) return;
   const items = getExpiryItems().filter(x => x.id !== id);
   saveExpiryItems(items);
-  window.showToast('🗑 Deleted.', 'info');
+  window.showToast('Deleted.', 'info');
   renderTabBody();
 };
 
@@ -2189,7 +2189,7 @@ window.__reloadAppData = async function(btn) {
     await loadData();
     renderShell();
     renderTabBody();
-    if (typeof window.showToast === 'function') window.showToast('☁️ Cloud Data Synced across all devices!', 'success');
+    if (typeof window.showToast === 'function') window.showToast('Cloud Data Synced across all devices!', 'success');
   } catch(e) {
     console.warn('Reload app data error:', e);
   } finally {
@@ -2412,7 +2412,7 @@ window.__saveCustomFeatures = function() {
   }
 
   if (typeof window.showToast === 'function') {
-    window.showToast('⚙️ Pop-up & feature settings saved successfully!', 'success');
+    window.showToast('Pop-up & feature settings saved successfully!', 'success');
   }
   renderShell();
 };
@@ -2446,7 +2446,7 @@ function maskSalesAmount(val) {
 
   // FOR MANAGERS & ALL STAFF / NON-OWNER ROLES:
   // ALL FINANCIAL MONETARY DATA IS STRICTLY MASKED AND PROTECTED
-  return '🔒 Restricted';
+  return 'Restricted';
 }
 
 
@@ -2571,14 +2571,14 @@ function renderCustomerDirectoryHtml() {
     <!-- Header -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
       <div>
-        <div style="font-weight:700;font-size:0.95rem;color:var(--ink);">📒 Customer Directory ${isMasked ? '<span style="font-size:0.7rem;color:var(--turmeric-dark);font-weight:600;margin-left:6px;">🔒 [DATA MASKED FOR NON-OWNER]</span>' : ''}</div>
+        <div style="font-weight:700;font-size:0.95rem;color:var(--ink);">Customer Directory ${isMasked ? '<span style="font-size:0.7rem;color:var(--turmeric-dark);font-weight:600;margin-left:6px;">[DATA MASKED FOR NON-OWNER]</span>' : ''}</div>
         <div style="font-size:0.68rem;color:var(--ink-soft);">${list.length} customer${list.length!==1?'s':''} saved &bull; Entry allowed for all staff</div>
       </div>
       <button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border:none;" onclick="window.__openCustDirModal()">+ Add Customer Entry</button>
     </div>
 
     <!-- Search -->
-    <input placeholder="🔍 Search by name, mobile or address..." value="${esc(dirSearch)}"
+    <input placeholder="Search by name, mobile or address..." value="${esc(dirSearch)}"
       style="margin-bottom:12px;"
       oninput="window._dirSearch=this.value; renderTabBody();">
 
@@ -2608,14 +2608,14 @@ function renderCustomerDirectoryHtml() {
               <div class="avatar-circle" style="width:28px;height:28px;font-size:0.75rem;flex-shrink:0;background:var(--paper-line);color:var(--ink);">${(c.name||'?')[0].toUpperCase()}</div>
               <div style="min-width:0;flex:1;overflow:hidden;">
                 <b style="font-size:0.8rem;color:var(--ink);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;">${esc(displayName)}</b>
-                <div style="font-size:0.66rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;margin-top:1px;">📍 ${esc(c.city || 'N/A')}${c.mobile ? ' &bull; 📞 ' + esc(displayMobile) : ''}</div>
+                <div style="font-size:0.66rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;margin-top:1px;">${esc(c.city || 'N/A')}${c.mobile ? ' &bull; ' + esc(displayMobile) : ''}</div>
               </div>
             </div>
             <div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;flex-shrink:0;margin-left:auto;white-space:nowrap;">
-              ${(!isMasked && cleanPhone) ? `<a href="tel:${cleanPhone}" class="stamp-btn small ghost" style="padding:2px 5px;font-size:0.68rem;text-decoration:none;" title="Call">📞</a>` : ''}
-              ${(!isMasked && cleanPhone) ? `<a href="https://wa.me/91${cleanPhone}" target="_blank" rel="noopener" class="stamp-btn small" style="background:#25D366;color:#fff;border-color:#25D366;padding:2px 5px;font-size:0.68rem;text-decoration:none;" title="WhatsApp">💬</a>` : ''}
-              <button class="stamp-btn small ghost" style="padding:2px 5px;font-size:0.68rem;" onclick="window.__openCustDirModal('${c.id}')" title="Edit">✎</button>
-              ${isOwner() ? `<button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:2px 5px;font-size:0.68rem;" onclick="window.__deleteCustDir('${c.id}')" title="Delete">🗑</button>` : ''}
+              ${(!isMasked && cleanPhone) ? `<a href="tel:${cleanPhone}" class="stamp-btn small ghost" style="padding:2px 5px;font-size:0.68rem;text-decoration:none;" title="Call" style="display:inline-flex;align-items:center;padding:2px 5px;font-size:0.68rem;text-decoration:none;">${icon("phone", 13)}</a>` : ''}
+              ${(!isMasked && cleanPhone) ? `<a href="https://wa.me/91${cleanPhone}" target="_blank" rel="noopener" class="stamp-btn small" style="background:#25D366;color:#fff;border-color:#25D366;padding:2px 5px;font-size:0.68rem;text-decoration:none;" title="WhatsApp" style="display:inline-flex;align-items:center;padding:2px 5px;font-size:0.68rem;text-decoration:none;background:#25D366;color:#fff;border-color:#25D366;">${icon("message", 13)}</a>` : ''}
+              <button class="stamp-btn small ghost" style="padding:2px 5px;font-size:0.68rem;" onclick="window.__openCustDirModal('${c.id}')" title="Edit" style="display:inline-flex;align-items:center;padding:2px 5px;font-size:0.68rem;">${icon("edit", 13)}</button>
+              ${isOwner() ? `<button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:2px 5px;font-size:0.68rem;" onclick="window.__deleteCustDir('${c.id}')" title="Delete" style="display:inline-flex;align-items:center;padding:2px 5px;font-size:0.68rem;color:var(--brick);border-color:var(--brick);">${icon("trash", 13)}</button>` : ''}
             </div>
           </div>
         </div>`;
@@ -2636,7 +2636,7 @@ window.__openCustDirModal = function(id) {
   if (!holder) { holder = document.createElement('div'); holder.id='custDirModalHolder'; document.body.appendChild(holder); }
   holder.innerHTML = `
   <div class="overlay show"><div class="modal">
-    <h2>${c ? '✎ Edit Customer' : '👤 Add Customer'}</h2>
+    <h2>${c ? 'Edit Customer' : 'Add Customer'}</h2>
     <label>Customer / Party Name *</label>
     <input id="mCdName" value="${c ? esc(c.name) : ''}" placeholder="e.g. Ravi Traders, Meena Store">
     <label>Mobile Number</label>
@@ -2678,7 +2678,7 @@ window.__saveCustDir = function(id) {
   saveCustomerDirectory(list);
   const h = document.getElementById('custDirModalHolder');
   if (h) h.innerHTML = '';
-  window.showToast('👤 Customer saved!', 'success');
+  window.showToast('Customer saved!', 'success');
   renderTabBody();
 };
 
@@ -2687,7 +2687,7 @@ window.__deleteCustDir = function(id) {
   if (!confirm('Delete this customer?')) return;
   const list = getCustomerDirectory().filter(x => x.id !== id);
   saveCustomerDirectory(list);
-  window.showToast('🗑 Customer deleted.', 'info');
+  window.showToast('Customer deleted.', 'info');
   renderTabBody();
 };
 
@@ -2719,7 +2719,7 @@ function renderCityReportHtml(reports) {
 
   return `
     <div style="margin-bottom:16px;">
-      <div style="font-weight:700;font-size:1.1rem;color:var(--ink);margin-bottom:4px;">🏙️ City &amp; Territory Sales Breakdown</div>
+      <div style="font-weight:700;font-size:1.1rem;color:var(--ink);margin-bottom:4px;">City &amp; Territory Sales Breakdown</div>
       <div style="font-size:0.78rem;color:var(--ink-soft);">Sales volume and customer distribution by location (${cityList.length} Cities)</div>
     </div>
 
@@ -2730,7 +2730,7 @@ function renderCityReportHtml(reports) {
           <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px;margin-bottom:0;">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
               <div>
-                <b style="font-size:1rem;color:var(--ink);">📍 ${esc(c.city)}</b>
+                <b style="font-size:1rem;color:var(--ink);">${esc(c.city)}</b>
                 <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">
                   ${c.count} Client${c.count!==1?'s':''} ${c.vip > 0 ? `&bull; <span style="color:var(--turmeric);font-weight:600;">${c.vip} VIP</span>` : ''}
                 </div>
@@ -2761,7 +2761,7 @@ function renderTopClientsLeaderboardHtml(reports) {
 
   return `
     <div style="margin-bottom:16px;">
-      <div style="font-weight:700;font-size:1.1rem;color:var(--ink);margin-bottom:4px;">🏆 Top Clients Leaderboard</div>
+      <div style="font-weight:700;font-size:1.1rem;color:var(--ink);margin-bottom:4px;">Top Clients Leaderboard</div>
       <div style="font-size:0.78rem;color:var(--ink-soft);">Highest spending accounts ranked by cumulative sales volume</div>
     </div>
 
@@ -2769,7 +2769,7 @@ function renderTopClientsLeaderboardHtml(reports) {
       ${ranked.map((r, idx) => {
         const spent = Number(r.total_spent || 0);
         const pct = topSpent > 0 ? Math.round((spent / topSpent) * 100) : 0;
-        const rankMedal = idx === 0 ? '🥇 #1' : idx === 1 ? '🥈 #2' : idx === 2 ? '🥉 #3' : `#${idx+1}`;
+        const rankMedal = idx === 0 ? '#1' : idx === 1 ? '#2' : idx === 2 ? '#3' : `#${idx+1}`;
 
         return `
           <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px;margin-bottom:0;${idx < 3 ? 'border-left:4px solid var(--turmeric);background:var(--blue-soft);' : ''}">
@@ -2778,7 +2778,7 @@ function renderTopClientsLeaderboardHtml(reports) {
                 <span class="stamp ${idx<3?'present':'done'}" style="font-weight:800;font-size:0.85rem;padding:4px 8px;">${rankMedal}</span>
                 <div>
                   <b style="font-size:0.98rem;color:var(--ink);">${esc(r.customer_name || 'UNNAMED PARTY')}</b>
-                  <div style="font-size:0.75rem;color:var(--ink-soft);">📍 ${esc(r.city || 'N/A')} &bull; 📞 ${esc(r.phone || 'No Phone')}</div>
+                  <div style="font-size:0.75rem;color:var(--ink-soft);">${esc(r.city || 'N/A')} &bull; ${esc(r.phone || 'No Phone')}</div>
                 </div>
               </div>
               <div style="text-align:right;">
@@ -2804,12 +2804,12 @@ function renderInactiveClientsReportHtml(reports) {
   const inactive = (reports || []).filter(r => r.segment === 'INACTIVE' || !r.last_order_date || r.last_order_date < '2026-07-01');
 
   if (!inactive.length) {
-    return `<div class="empty">🎉 Great news! No inactive accounts found. All clients are currently active!</div>`;
+    return `<div class="empty">No inactive accounts found. All clients are currently active!</div>`;
   }
 
   return `
     <div style="margin-bottom:16px;">
-      <div style="font-weight:700;font-size:1.1rem;color:var(--ink);margin-bottom:4px;">💤 Inactive Account Follow-Up List (${inactive.length})</div>
+      <div style="font-weight:700;font-size:1.1rem;color:var(--ink);margin-bottom:4px;">Inactive Account Follow-Up List (${inactive.length})</div>
       <div style="font-size:0.78rem;color:var(--ink-soft);">Clients needing follow-up to re-engage orders and boost sales volume</div>
     </div>
 
@@ -2823,9 +2823,9 @@ function renderInactiveClientsReportHtml(reports) {
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;">
               <div>
                 <b style="font-size:0.95rem;color:var(--ink);">${esc(r.customer_name || 'UNNAMED PARTY')}</b>
-                <div style="font-size:0.75rem;color:var(--ink-soft);">📍 ${esc(r.city || 'N/A')} &bull; 📞 ${esc(r.phone || 'No Phone')}</div>
+                <div style="font-size:0.75rem;color:var(--ink-soft);">${esc(r.city || 'N/A')} &bull; ${esc(r.phone || 'No Phone')}</div>
               </div>
-              <span class="stamp absent">💤 INACTIVE</span>
+              <span class="stamp absent">INACTIVE</span>
             </div>
 
             <div style="font-size:0.75rem;color:var(--ink-soft);margin-bottom:10px;">
@@ -2835,8 +2835,8 @@ function renderInactiveClientsReportHtml(reports) {
             </div>
 
             <div style="display:flex;gap:6px;margin-top:auto;">
-              ${cleanPhone ? `<a href="tel:${cleanPhone}" class="stamp-btn small ghost" style="flex:1;text-decoration:none;">📞 Call Party</a>` : ''}
-              ${cleanPhone ? `<a href="https://wa.me/${cleanPhone.length===10?'91'+cleanPhone:cleanPhone}?text=${waMsg}" target="_blank" class="stamp-btn small" style="background:#25D366;color:#fff;border-color:#25D366;flex:1;text-decoration:none;">💬 Re-engage WhatsApp</a>` : ''}
+              ${cleanPhone ? `<a href="tel:${cleanPhone}" class="stamp-btn small ghost" style="flex:1;text-decoration:none;" style="display:inline-flex;align-items:center;justify-content:center;gap:4px;flex:1;text-decoration:none;">${icon("phone", 13)} Call Party</a>` : ''}
+              ${cleanPhone ? `<a href="https://wa.me/${cleanPhone.length===10?'91'+cleanPhone:cleanPhone}?text=${waMsg}" target="_blank" class="stamp-btn small" style="background:#25D366;color:#fff;border-color:#25D366;flex:1;text-decoration:none;" style="display:inline-flex;align-items:center;justify-content:center;gap:4px;flex:1;text-decoration:none;background:#25D366;color:#fff;border-color:#25D366;">${icon("message", 13)} Re-engage WhatsApp</a>` : ''}
             </div>
           </div>
         `;
@@ -2858,7 +2858,7 @@ function renderPaymentReportHtml(reports) {
   return `
     <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
       <div>
-        <div style="font-weight:700;font-size:1.1rem;color:var(--ink);">💳 Customer Payment &amp; Ledger Settlement Report</div>
+        <div style="font-weight:700;font-size:1.1rem;color:var(--ink);">Customer Payment &amp; Ledger Settlement Report</div>
         <div style="font-size:0.78rem;color:var(--ink-soft);">Track outstanding party balances, collections, payment reminders, and WhatsApp follow-ups</div>
       </div>
       <button class="stamp-btn small" onclick="window.__openAddCustomerReportModal()">+ Record Payment Entry</button>
@@ -2906,21 +2906,21 @@ function renderPaymentReportHtml(reports) {
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;">
               <div>
                 <b style="font-size:0.95rem;color:var(--ink);">${esc(r.customer_name || 'UNNAMED PARTY')}</b>
-                <div style="font-size:0.75rem;color:var(--ink-soft);">📍 ${esc(r.city || 'N/A')} &bull; 📞 ${esc(r.phone || 'No Phone')}</div>
+                <div style="font-size:0.75rem;color:var(--ink-soft);">${esc(r.city || 'N/A')} &bull; ${esc(r.phone || 'No Phone')}</div>
               </div>
-              <span class="stamp ${isPending ? 'absent' : 'present'}">${isPending ? '🔴 DUES PENDING' : '🟢 SETTLED'}</span>
+              <span class="stamp ${isPending ? 'absent' : 'present'}">${isPending ? 'DUES PENDING' : 'SETTLED'}</span>
             </div>
 
             <div style="display:flex;justify-content:space-between;align-items:center;background:var(--paper);padding:8px 12px;border-radius:6px;margin:6px 0 10px;font-size:0.8rem;">
               <div>Lifetime Business: <b>${maskSalesAmount(spent)}</b></div>
               <div style="color:${isPending ? 'var(--brick)' : 'var(--leaf)'};font-weight:700;">
-                ${isPending ? `Due: ${maskSalesAmount(dueAmt)}` : `Cleared ✓`}
+                ${isPending ? `Due: ${maskSalesAmount(dueAmt)}` : `Cleared`}
               </div>
             </div>
 
             <div style="display:flex;gap:6px;margin-top:auto;">
-              ${cleanPhone ? `<a href="tel:${cleanPhone}" class="stamp-btn small ghost" style="flex:1;text-decoration:none;">📞 Call</a>` : ''}
-              ${cleanPhone && isPending ? `<a href="https://wa.me/${cleanPhone.length===10?'91'+cleanPhone:cleanPhone}?text=${waMsg}" target="_blank" class="stamp-btn small" style="background:#25D366;color:#fff;border-color:#25D366;flex:1;text-decoration:none;">💬 Payment Reminder</a>` : ''}
+              ${cleanPhone ? `<a href="tel:${cleanPhone}" class="stamp-btn small ghost" style="flex:1;text-decoration:none;" style="display:inline-flex;align-items:center;justify-content:center;gap:4px;flex:1;text-decoration:none;">${icon("phone", 13)} Call</a>` : ''}
+              ${cleanPhone && isPending ? `<a href="https://wa.me/${cleanPhone.length===10?'91'+cleanPhone:cleanPhone}?text=${waMsg}" target="_blank" class="stamp-btn small" style="background:#25D366;color:#fff;border-color:#25D366;flex:1;text-decoration:none;" style="display:inline-flex;align-items:center;justify-content:center;gap:4px;flex:1;text-decoration:none;background:#25D366;color:#fff;border-color:#25D366;">${icon("message", 13)} Payment Reminder</a>` : ''}
             </div>
           </div>
         `;
@@ -2965,18 +2965,18 @@ function renderCustomerReportTab(body) {
   body.innerHTML = `
     <!-- Sub-menu Navigation with More Dropdown (No Long Swiping Needed) -->
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:16px;flex-wrap:wrap;">
-      <button class="stamp-btn small ${customerReportSubTab==='directory'?'':'ghost'}" onclick="window.__setCustomerReportSubTab('directory')">📒 Directory (${getCustomerDirectory().length})</button>
-      <button class="stamp-btn small ${customerReportSubTab==='report'?'':'ghost'}" onclick="window.__setCustomerReportSubTab('report')">📊 Analytics (${reports.length})</button>
+      <button class="stamp-btn small ${customerReportSubTab==='directory'?'':'ghost'}" onclick="window.__setCustomerReportSubTab('directory')" style="display:inline-flex;align-items:center;gap:4px;">${icon("user", 13)} Directory (${getCustomerDirectory().length})</button>
+      <button class="stamp-btn small ${customerReportSubTab==='report'?'':'ghost'}" onclick="window.__setCustomerReportSubTab('report')" style="display:inline-flex;align-items:center;gap:4px;">${icon("reports", 13)} Analytics (${reports.length})</button>
 
       <div style="position:relative;display:inline-block;">
         <button class="stamp-btn small ${['city_report','top_clients','payment_report','inactive_list'].includes(customerReportSubTab)?'':'ghost'}" onclick="window.__toggleCustMoreMenu(event)" style="display:flex;align-items:center;gap:4px;">
-          ${customerReportSubTab === 'city_report' ? '🏙️ City' : customerReportSubTab === 'top_clients' ? '🏆 Top Clients' : customerReportSubTab === 'payment_report' ? '💳 Payments' : customerReportSubTab === 'inactive_list' ? '💤 Inactive' : '••• More'} ▾
+          ${customerReportSubTab === 'city_report' ? 'City' : customerReportSubTab === 'top_clients' ? 'Top Clients' : customerReportSubTab === 'payment_report' ? 'Payments' : customerReportSubTab === 'inactive_list' ? 'Inactive' : 'More'} ▾
         </button>
         <div class="action-dropdown-menu" id="custSubTabMoreMenu" style="left:0;right:auto;top:100%;margin-top:4px;min-width:185px;">
-          <button onclick="window.__setCustomerReportSubTab('city_report')">🏙️ City Breakdown</button>
-          <button onclick="window.__setCustomerReportSubTab('top_clients')">🏆 Top Clients</button>
-          <button onclick="window.__setCustomerReportSubTab('payment_report')">💳 Payment Report</button>
-          <button onclick="window.__setCustomerReportSubTab('inactive_list')">💤 Inactive (${inactiveCount})</button>
+          <button onclick="window.__setCustomerReportSubTab('city_report')">City Breakdown</button>
+          <button onclick="window.__setCustomerReportSubTab('top_clients')">Top Clients</button>
+          <button onclick="window.__setCustomerReportSubTab('payment_report')">Payment Report</button>
+          <button onclick="window.__setCustomerReportSubTab('inactive_list')">Inactive (${inactiveCount})</button>
         </div>
       </div>
     </div>
@@ -2998,15 +2998,15 @@ function renderCustomerReportTab(body) {
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         ${isOwner() ? `
           <button class="stamp-btn small ghost" onclick="window.__toggleCustKpiOverview()">
-            ${window.isCustKpiCollapsed ? '📊 Show KPI Overview' : '📊 Collapse KPI Overview'}
+            ${window.isCustKpiCollapsed ? 'Show KPI Overview' : 'Collapse KPI Overview'}
           </button>
         ` : ''}
-        <button class="stamp-btn" style="background:var(--turmeric);color:#fff;border-color:var(--turmeric);" onclick="window.__openImportCustomerJsonModal()">📥 Import Vyapar / File</button>
+        <button class="stamp-btn" style="background:var(--turmeric);color:#fff;border-color:var(--turmeric);" onclick="window.__openImportCustomerJsonModal()" style="display:inline-flex;align-items:center;gap:6px;background:var(--turmeric);color:#fff;border-color:var(--turmeric);">${icon("box", 14)} Import Vyapar / File</button>
         <div style="position:relative;display:inline-block;">
           <button class="stamp-btn ghost" onclick="window.__toggleCustActionsMoreMenu(event)">••• Actions ▾</button>
           <div class="action-dropdown-menu" id="custActionsMoreMenu" style="right:0;left:auto;top:100%;margin-top:4px;min-width:190px;">
-            <button onclick="window.__openAddCustomerReportModal()">➕ Add Customer Entry</button>
-            <button onclick="window.__copyChatGPTCustomerPrompt()">📋 Copy ChatGPT Prompt</button>
+            <button onclick="window.__openAddCustomerReportModal()">Add Customer Entry</button>
+            <button onclick="window.__copyChatGPTCustomerPrompt()">Copy ChatGPT Prompt</button>
           </div>
         </div>
       </div>
@@ -3046,10 +3046,10 @@ function renderCustomerReportTab(body) {
       
       <div style="display:flex;gap:6px;overflow-x:auto;">
         <button class="stamp-btn small ${customerSegmentFilter==='all'?'':'ghost'}" onclick="customerSegmentFilter='all';renderTabBody();">ALL (${totalCount})</button>
-        <button class="stamp-btn small ${customerSegmentFilter==='VIP'?'':'ghost'}" style="${customerSegmentFilter==='VIP'?'background:var(--turmeric-dark);color:#fff;border-color:var(--turmeric-dark);':''}" onclick="customerSegmentFilter='VIP';renderTabBody();">⭐ VIP (${vipCount})</button>
-        <button class="stamp-btn small ${customerSegmentFilter==='REGULAR'?'':'ghost'}" onclick="customerSegmentFilter='REGULAR';renderTabBody();">👥 REGULAR</button>
-        <button class="stamp-btn small ${customerSegmentFilter==='NEW'?'':'ghost'}" onclick="customerSegmentFilter='NEW';renderTabBody();">✨ NEW</button>
-        <button class="stamp-btn small ${customerSegmentFilter==='INACTIVE'?'':'ghost'}" onclick="customerSegmentFilter='INACTIVE';renderTabBody();">💤 INACTIVE</button>
+        <button class="stamp-btn small ${customerSegmentFilter==='VIP'?'':'ghost'}" style="${customerSegmentFilter==='VIP'?'background:var(--turmeric-dark);color:#fff;border-color:var(--turmeric-dark);':''}" onclick="customerSegmentFilter='VIP';renderTabBody();">VIP (${vipCount})</button>
+        <button class="stamp-btn small ${customerSegmentFilter==='REGULAR'?'':'ghost'}" onclick="customerSegmentFilter='REGULAR';renderTabBody();">REGULAR</button>
+        <button class="stamp-btn small ${customerSegmentFilter==='NEW'?'':'ghost'}" onclick="customerSegmentFilter='NEW';renderTabBody();">NEW</button>
+        <button class="stamp-btn small ${customerSegmentFilter==='INACTIVE'?'':'ghost'}" onclick="customerSegmentFilter='INACTIVE';renderTabBody();">INACTIVE</button>
       </div>
     </div>
 
@@ -3058,7 +3058,7 @@ function renderCustomerReportTab(body) {
       <div style="font-weight:700;font-size:0.9rem;color:var(--ink);">Customer Accounts (${filtered.length})</div>
       ${filtered.length ? `
         <button class="stamp-btn small ghost" onclick="window.__toggleExpandAllCustReport()">
-          ${filtered.every(r => window.expandedCustReportIds.has(r.id)) ? '📂 Collapse All Details' : '📖 Expand All Details'}
+          ${filtered.every(r => window.expandedCustReportIds.has(r.id)) ? 'Collapse All Details' : 'Expand All Details'}
         </button>
       ` : ''}
     </div>
@@ -3081,12 +3081,12 @@ function renderCustomerReportTab(body) {
                   <span class="collapse-arrow ${isExpanded?'open':''}" style="font-size:0.75rem;color:var(--ink-soft);flex-shrink:0;">▸</span>
                   <div style="min-width:0;flex:1;overflow:hidden;">
                     <b style="font-size:0.82rem;color:var(--ink);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;width:100%;">${esc(r.customer_name || 'UNNAMED PARTY')}</b>
-                    <div style="font-size:0.68rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;margin-top:1px;width:100%;">📍 ${esc(r.city || 'N/A')}${cleanPhone ? ' &bull; 📞 ' + esc(r.phone) : ''}</div>
+                    <div style="font-size:0.68rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;margin-top:1px;width:100%;">${esc(r.city || 'N/A')}${cleanPhone ? ' &bull; ' + esc(r.phone) : ''}</div>
                   </div>
                 </div>
                 <div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:2px;flex-shrink:0;margin-left:auto;white-space:nowrap;">
                   <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.82rem;color:var(--turmeric-dark);line-height:1.1;">${maskSalesAmount(r.total_spent)}</span>
-                  <span class="stamp ${statusClass}" style="padding:1px 5px;font-size:0.58rem;border-radius:999px;white-space:nowrap;line-height:1.1;">${isVip ? '⭐ VIP' : r.segment || 'REGULAR'}</span>
+                  <span class="stamp ${statusClass}" style="padding:1px 5px;font-size:0.58rem;border-radius:999px;white-space:nowrap;line-height:1.1;">${isVip ? 'VIP' : r.segment || 'REGULAR'}</span>
                 </div>
               </div>
 
@@ -3105,10 +3105,10 @@ function renderCustomerReportTab(body) {
                   ${r.remarks ? `<div style="margin-bottom:8px;color:var(--ink);"><b>Notes:</b> ${esc(r.remarks)}</div>` : ''}
 
                   <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
-                    ${cleanPhone ? `<a href="tel:${cleanPhone}" class="stamp-btn small ghost" style="flex:1 1 70px;text-decoration:none;text-align:center;">📞 Call</a>` : ''}
-                    ${cleanPhone ? `<a href="https://wa.me/${cleanPhone.length===10?'91'+cleanPhone:cleanPhone}?text=${waMessage}" target="_blank" class="stamp-btn small" style="background:#25D366;color:#fff;border-color:#25D366;flex:1 1 100px;text-decoration:none;text-align:center;">💬 WhatsApp</a>` : ''}
-                    <button class="stamp-btn small ghost" style="flex:1 1 60px;" onclick="window.__editCustomerReportModal('${r.id}')">✎ Edit</button>
-                    <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);flex:1 1 50px;" onclick="window.__deleteCustomerReport('${r.id}')">🗑</button>
+                    ${cleanPhone ? `<a href="tel:${cleanPhone}" class="stamp-btn small ghost" style="flex:1 1 70px;text-decoration:none;text-align:center;" style="display:inline-flex;align-items:center;justify-content:center;gap:4px;flex:1;text-decoration:none;">${icon("phone", 13)} Call</a>` : ''}
+                    ${cleanPhone ? `<a href="https://wa.me/${cleanPhone.length===10?'91'+cleanPhone:cleanPhone}?text=${waMessage}" target="_blank" class="stamp-btn small" style="background:#25D366;color:#fff;border-color:#25D366;flex:1 1 100px;text-decoration:none;text-align:center;" style="display:inline-flex;align-items:center;justify-content:center;gap:4px;background:#25D366;color:#fff;border-color:#25D366;flex:1 1 100px;text-decoration:none;text-align:center;">${icon("message", 13)} WhatsApp</a>` : ''}
+                    <button class="stamp-btn small ghost" style="flex:1 1 60px;" onclick="window.__editCustomerReportModal('${r.id}')">Edit</button>
+                    <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);flex:1 1 50px;" onclick="window.__deleteCustomerReport('${r.id}')" style="display:inline-flex;align-items:center;justify-content:center;color:var(--brick);border-color:var(--brick);flex:1 1 50px;">${icon('trash', 13)}</button>
                   </div>
                 </div>
               ` : ''}
@@ -3162,7 +3162,7 @@ window.__handleVyaparFileSelected = function(event) {
   const statusEl = document.getElementById('vyaparFileLoadedStatus');
   if (statusEl) {
     statusEl.style.display = 'block';
-    statusEl.innerHTML = `⏳ Reading file: ${esc(file.name)} (${(file.size/1024).toFixed(1)} KB)...`;
+    statusEl.innerHTML = `Reading file: ${esc(file.name)} (${(file.size/1024).toFixed(1)} KB)...`;
   }
 
   const fname = file.name.toLowerCase();
@@ -3245,9 +3245,9 @@ window.__handleVyaparFileSelected = function(event) {
         if (rows.length > 0) {
           __loadedVyaparFileData = rows;
           if (statusEl) {
-            statusEl.innerHTML = `✅ Ready to Import Vyapar Backup (.VYB): <b>${esc(file.name)}</b> (${rows.length} party records extracted)`;
+            statusEl.innerHTML = `Ready to Import Vyapar Backup (.VYB): <b>${esc(file.name)}</b> (${rows.length} party records extracted)`;
           }
-          window.showToast(`✅ Loaded ${rows.length} Vyapar party records from .VYB backup!`, 'success');
+          window.showToast(`Loaded ${rows.length} Vyapar party records from .VYB backup!`, 'success');
         } else {
           alert('Could not auto-extract party records from this .vyb file. Please export Party List as Excel/CSV from Vyapar or paste raw data.');
         }
@@ -3274,9 +3274,9 @@ window.__handleVyaparFileSelected = function(event) {
 
         __loadedVyaparFileData = rows;
         if (statusEl) {
-          statusEl.innerHTML = `✅ Ready to Import: <b>${esc(file.name)}</b> (${rows.length} party records found)`;
+          statusEl.innerHTML = `Ready to Import: <b>${esc(file.name)}</b> (${rows.length} party records found)`;
         }
-        window.showToast(`✅ Loaded ${rows.length} Vyapar party records!`, 'success');
+        window.showToast(`Loaded ${rows.length} Vyapar party records!`, 'success');
       } catch(err) {
         alert('Error reading Excel/CSV file: ' + err.message);
       }
@@ -3288,9 +3288,9 @@ window.__handleVyaparFileSelected = function(event) {
         const text = e.target.result;
         document.getElementById('customerJsonInput').value = text;
         if (statusEl) {
-          statusEl.innerHTML = `✅ File Loaded: <b>${esc(file.name)}</b>`;
+          statusEl.innerHTML = `File Loaded: <b>${esc(file.name)}</b>`;
         }
-        window.showToast('✅ Text file loaded into input box!', 'success');
+        window.showToast('Text file loaded into input box!', 'success');
       } catch(err) {
         alert('Error reading file: ' + err.message);
       }
@@ -3308,7 +3308,7 @@ window.__openImportCustomerJsonModal = function() {
     div.className = 'overlay';
     div.innerHTML = `
       <div class="modal" style="max-width:640px;">
-        <h2>📥 Import Vyapar Backup (.VYB), Excel, CSV or JSON</h2>
+        <h2>Import Vyapar Backup (.VYB), Excel, CSV or JSON</h2>
         <p style="font-size:0.78rem;color:var(--ink-soft);margin-bottom:12px;">
           Directly select your <b>Vyapar App backup file (.vyb, .xlsx, .xls, .csv, .json)</b> or paste raw party data. Party names, phone numbers, total sales, and pending balance dues will be automatically parsed!
         </p>
@@ -3316,7 +3316,7 @@ window.__openImportCustomerJsonModal = function() {
         <!-- Direct File Upload Box -->
         <input type="file" id="mVyaparFileInput" accept=".vyb,.xlsx,.xls,.csv,.json,.txt" style="display:none;" onchange="window.__handleVyaparFileSelected(event)">
         <div id="vyaparFileDropZone" onclick="document.getElementById('mVyaparFileInput').click()" style="border:2px dashed var(--turmeric);background:var(--blue-soft);padding:18px 14px;border-radius:8px;text-align:center;cursor:pointer;margin-bottom:14px;transition:background 0.2s ease;">
-          <div style="font-size:1.6rem;margin-bottom:4px;">📁</div>
+          <div style="margin-bottom:4px;display:flex;justify-content:center;color:var(--ink-soft);">${icon("box", 28)}</div>
           <b style="font-size:0.92rem;color:var(--turmeric-dark);">Tap to Select Vyapar Backup File (.vyb, .xlsx, .xls, .csv, .json)</b>
           <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">Supports Vyapar Backup (.VYB), Party Exports, Excel Spreadsheets, CSV &amp; JSON</div>
         </div>
@@ -3324,11 +3324,11 @@ window.__openImportCustomerJsonModal = function() {
         <div id="vyaparFileLoadedStatus" style="display:none;margin-bottom:12px;padding:8px 12px;background:#e2e8f0;border-radius:6px;font-size:0.8rem;color:var(--ink);font-weight:700;"></div>
 
         <div style="margin-bottom:12px;">
-          <label style="font-size:0.78rem;font-weight:700;color:var(--ink);">💳 PAYMENT DUES HANDLING ON IMPORT:</label>
+          <label style="font-size:0.78rem;font-weight:700;color:var(--ink);">PAYMENT DUES HANDLING ON IMPORT:</label>
           <select id="importPaymentDuesMode" style="width:100%;padding:9px;border-radius:6px;border:1.5px solid var(--paper-line);font-size:0.82rem;">
-            <option value="auto">⚡ Auto-Detect Dues from Vyapar Balance / Receivable Columns</option>
-            <option value="dues">🔴 Mark Dues Pending for All Imported Records</option>
-            <option value="settled">🟢 Mark All Imported Records as Fully Settled (Zero Dues)</option>
+            <option value="auto">Auto-Detect Dues from Vyapar Balance / Receivable Columns</option>
+            <option value="dues">Mark Dues Pending for All Imported Records</option>
+            <option value="settled">Mark All Imported Records as Fully Settled (Zero Dues)</option>
           </select>
         </div>
 
@@ -3336,13 +3336,13 @@ window.__openImportCustomerJsonModal = function() {
         <textarea id="customerJsonInput" style="height:140px;font-family:monospace;font-size:0.8rem;" placeholder='Paste Vyapar Party List, CSV rows, or JSON here...'></textarea>
 
         <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
-          <button class="stamp-btn small ghost" onclick="document.getElementById('mVyaparFileInput').click()">📁 Choose File</button>
-          <button class="stamp-btn small ghost" onclick="window.__copyChatGPTCustomerPrompt()">📋 Copy Prompt Guide</button>
+          <button class="stamp-btn small ghost" onclick="document.getElementById('mVyaparFileInput').click()">Choose File</button>
+          <button class="stamp-btn small ghost" onclick="window.__copyChatGPTCustomerPrompt()">Copy Prompt Guide</button>
         </div>
 
         <div class="modal-actions" style="margin-top:18px;">
           <button class="stamp-btn ghost" onclick="window.__closeCurrentModal(this)">Cancel</button>
-          <button class="stamp-btn" style="background:var(--turmeric);color:#fff;border-color:var(--turmeric);" onclick="window.__submitImportCustomerJson()">📥 Import &amp; Save Customer Ledger</button>
+          <button class="stamp-btn" style="background:var(--turmeric);color:#fff;border-color:var(--turmeric);" onclick="window.__submitImportCustomerJson()" style="display:inline-flex;align-items:center;gap:6px;background:var(--turmeric);color:#fff;border-color:var(--turmeric);">${icon("box", 14)} Import &amp; Save Customer Ledger</button>
         </div>
       </div>
     `;
@@ -3440,14 +3440,14 @@ window.__submitImportCustomerJson = function() {
   const modal = document.getElementById('importCustomerJsonModal');
   if (modal) modal.classList.remove('show');
 
-  window.showToast(`✅ Successfully imported ${count} Vyapar customer records!`, 'success');
+  window.showToast(`Successfully imported ${count} Vyapar customer records!`, 'success');
   renderTabBody();
 };
 
 window.__copyChatGPTCustomerPrompt = function() {
   const promptText = `Convert the following customer sales & payment ledger list into a clean JSON array with keys: "customer_name", "phone", "city", "total_spent", "due_amount", "payment_status" ("SETTLED" or "DUE"), "total_orders", "last_order_date", "favorite_item", "segment" (VIP/REGULAR/NEW/INACTIVE), "remarks". Output ONLY valid JSON array without markdown code blocks.`;
   navigator.clipboard.writeText(promptText).then(() => {
-    window.showToast('📋 Copied ChatGPT payment prompt guide to clipboard!', 'success');
+    window.showToast('Copied ChatGPT payment prompt guide to clipboard!', 'success');
   }).catch(() => {
     alert('ChatGPT Prompt:\n\n' + promptText);
   });
@@ -3470,7 +3470,7 @@ window.__openAddCustomerReportModal = function(editId) {
 
   modal.innerHTML = `
     <div class="modal">
-      <h2>${existing ? '✎ Edit Customer Report' : '➕ Add Customer Profile'}</h2>
+      <h2>${existing ? 'Edit Customer Report' : 'Add Customer Profile'}</h2>
       <label>CUSTOMER / PARTY NAME:</label>
       <input type="text" id="custName" value="${esc(r.customer_name || '')}" placeholder="e.g. ROHIT TRADERS">
 
@@ -3500,8 +3500,8 @@ window.__openAddCustomerReportModal = function(editId) {
         <div>
           <label>PAYMENT STATUS:</label>
           <select id="custPaymentStatus">
-            <option value="SETTLED" ${r.payment_status==='SETTLED'||(!r.due_amount&&r.payment_status!=='DUE')?'selected':''}>🟢 SETTLED (PAID)</option>
-            <option value="DUE" ${r.payment_status==='DUE'||r.due_amount>0?'selected':''}>🔴 DUES PENDING</option>
+            <option value="SETTLED" ${r.payment_status==='SETTLED'||(!r.due_amount&&r.payment_status!=='DUE')?'selected':''}>SETTLED (PAID)</option>
+            <option value="DUE" ${r.payment_status==='DUE'||r.due_amount>0?'selected':''}>DUES PENDING</option>
           </select>
         </div>
         <div>
@@ -3514,10 +3514,10 @@ window.__openAddCustomerReportModal = function(editId) {
         <div>
           <label>SEGMENT:</label>
           <select id="custSegment">
-            <option value="REGULAR" ${r.segment==='REGULAR'?'selected':''}>👥 REGULAR</option>
-            <option value="VIP" ${r.segment==='VIP'?'selected':''}>⭐ VIP</option>
-            <option value="NEW" ${r.segment==='NEW'?'selected':''}>✨ NEW</option>
-            <option value="INACTIVE" ${r.segment==='INACTIVE'?'selected':''}>💤 INACTIVE</option>
+            <option value="REGULAR" ${r.segment==='REGULAR'?'selected':''}>REGULAR</option>
+            <option value="VIP" ${r.segment==='VIP'?'selected':''}>VIP</option>
+            <option value="NEW" ${r.segment==='NEW'?'selected':''}>NEW</option>
+            <option value="INACTIVE" ${r.segment==='INACTIVE'?'selected':''}>INACTIVE</option>
           </select>
         </div>
         <div>
@@ -3598,7 +3598,7 @@ window.__saveCustomerReportModal = function(editId) {
 
   saveCustomerReportsData();
   document.getElementById('addCustomerReportModal').classList.remove('show');
-  window.showToast('✅ Customer report saved!', 'success');
+  window.showToast('Customer report saved!', 'success');
   renderTabBody();
 };
 
@@ -3607,7 +3607,7 @@ window.__deleteCustomerReport = function(id) {
   if (!confirm('Are you sure you want to delete this customer report entry?')) return;
   cache.customerReports = getCustomerReportsData().filter(r => r.id !== id);
   saveCustomerReportsData();
-  window.showToast('🗑 Customer report deleted.', 'info');
+  window.showToast('Customer report deleted.', 'info');
   renderTabBody();
 };
 
@@ -3712,7 +3712,7 @@ function renderPriceListTab(body) {
 
     <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
       <span style="display:inline-flex;align-items:center;gap:6px;">${icon('label', 16)} Product Price List &amp; Beat Schemes (${filtered.length} Items)</span>
-      <button class="stamp-btn small ghost" style="padding:4px 10px;font-size:0.75rem;" onclick="window.__exportPriceListPDF()">📄 Export PDF</button>
+      <button class="stamp-btn small ghost" style="padding:4px 10px;font-size:0.75rem;" onclick="window.__exportPriceListPDF()" style="display:inline-flex;align-items:center;gap:4px;">${icon("reports", 13)} Export PDF</button>
     </div>
 
     <!-- Mobile Card View (< 640px) -->
@@ -3733,8 +3733,8 @@ function renderPriceListTab(body) {
               </div>
               ${isManagerPlus() ? `
                 <div style="display:flex;gap:2px;flex-shrink:0;">
-                  <button class="stamp-btn small ghost" style="padding:1px 5px;font-size:0.62rem;height:20px;line-height:1;" onclick="window.__editPriceListItem('${item.id}')">✎ Edit</button>
-                  <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:1px 5px;font-size:0.62rem;height:20px;line-height:1;" onclick="window.__deletePriceListItem('${item.id}')">🗑</button>
+                  <button class="stamp-btn small ghost" style="padding:1px 5px;font-size:0.62rem;height:20px;line-height:1;" onclick="window.__editPriceListItem('${item.id}')">Edit</button>
+                  <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:1px 5px;font-size:0.62rem;height:20px;line-height:1;" onclick="window.__deletePriceListItem('${item.id}')" style="display:inline-flex;align-items:center;justify-content:center;color:var(--brick);border-color:var(--brick);padding:1px 5px;font-size:0.62rem;height:20px;">${icon('trash', 12)}</button>
                 </div>
               ` : ''}
             </div>
@@ -3797,8 +3797,8 @@ function renderPriceListTab(body) {
                   </td>
                   ${isManagerPlus() ? `
                     <td style="padding:6px 10px;text-align:right;white-space:nowrap;">
-                      <button class="stamp-btn small ghost" style="padding:2px 6px;font-size:0.72rem;margin-right:4px;" onclick="window.__editPriceListItem('${item.id}')">✎ Edit</button>
-                      <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:2px 6px;font-size:0.72rem;" onclick="window.__deletePriceListItem('${item.id}')">🗑 Delete</button>
+                      <button class="stamp-btn small ghost" style="padding:2px 6px;font-size:0.72rem;margin-right:4px;" onclick="window.__editPriceListItem('${item.id}')">Edit</button>
+                      <button class="stamp-btn small ghost" style="color:var(--brick);border-color:var(--brick);padding:2px 6px;font-size:0.72rem;" onclick="window.__deletePriceListItem('${item.id}')">Delete</button>
                     </td>
                   ` : ''}
                 </tr>
@@ -3885,7 +3885,7 @@ window.__exportPriceListPDF = function() {
           <!-- Official Approved Seal Stamp -->
           <div style="border:2px dashed #16A34A;color:#16A34A;background:#F0FDF4;padding:6px 12px;border-radius:8px;text-align:center;transform:rotate(-3deg);box-shadow:0 2px 6px rgba(22,163,74,0.15);">
             <div style="font-size:0.62rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:#15803D;">OFFICIAL VERIFIED</div>
-            <div style="font-size:0.95rem;font-weight:900;letter-spacing:0.08em;text-transform:uppercase;margin:2px 0;">✓ APPROVED</div>
+            <div style="font-size:0.95rem;font-weight:900;letter-spacing:0.08em;text-transform:uppercase;margin:2px 0;">APPROVED</div>
             <div style="font-size:0.58rem;font-weight:700;color:#16A34A;">THE MALABAR OILS</div>
           </div>
 
