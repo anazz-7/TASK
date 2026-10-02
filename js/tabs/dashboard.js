@@ -48,14 +48,14 @@ function buildPinnedIncentiveTargetWidgetHtml(curMonth, monthSales) {
 
   return `
     <!-- PINNED INCENTIVE TARGET CARD (SLIM COMPACT MOBILE & DESKTOP DESIGN) -->
-    <div class="row-card pinned-target-card" style="flex-direction:column;align-items:stretch;margin-bottom:16px;background:linear-gradient(135deg, #0F172A 0%, #1E293B 100%);color:#FFFFFF;border-radius:12px;border:1px solid rgba(255,255,255,0.08);box-shadow:0 4px 16px rgba(15,23,42,0.22);">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:nowrap;gap:8px;">
+    <div class="row-card pinned-target-card" style="flex-direction:column;align-items:stretch;margin-bottom:12px;background:linear-gradient(135deg, #0F172A 0%, #1E3A6E 100%);color:#FFFFFF;border-radius:12px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 4px 14px rgba(15,23,42,0.18);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;flex-wrap:nowrap;gap:8px;">
         <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1;">
-          <div class="pinned-target-icon-box" style="display:inline-flex;align-items:center;justify-content:center;background:rgba(56,189,248,0.14);border:1px solid rgba(56,189,248,0.25);color:#38BDF8;flex-shrink:0;">
-            ${icon('target', 18)}
+          <div class="pinned-target-icon-box" style="display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#93C5FD;flex-shrink:0;">
+            ${icon('target', 16)}
           </div>
           <div style="min-width:0;flex:1;">
-            <b class="pinned-target-title" style="color:#FFFFFF;display:block;letter-spacing:0.01em;text-transform:uppercase;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${titleText}</b>
+            <b class="pinned-target-title" style="color:#FFFFFF;display:block;letter-spacing:0.01em;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${titleText}</b>
             <span class="pinned-target-sub" style="color:#94A3B8;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Reach goal to unlock <b style="color:#34D399;font-weight:700;">₹${incentiveBonus.toLocaleString('en-IN')} Bonus</b></span>
           </div>
         </div>
@@ -69,48 +69,48 @@ function buildPinnedIncentiveTargetWidgetHtml(curMonth, monthSales) {
 
       ${isOwnerUser ? `
         <!-- Simple Report Visual: Previous Month Sales Benchmark vs Current Goal -->
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:rgba(255,255,255,0.06);border-radius:8px;margin-bottom:8px;font-size:0.75rem;border:1px solid rgba(255,255,255,0.08);">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 9px;background:rgba(255,255,255,0.06);border-radius:8px;margin-bottom:7px;font-size:0.72rem;border:1px solid rgba(255,255,255,0.08);">
           <div>
-            <span style="color:#94A3B8;display:block;font-size:0.62rem;text-transform:uppercase;font-weight:700;">${prevInfo.prevMonthTitle} Sales Benchmark</span>
-            <b style="color:#F8FAFC;font-family:'Roboto Mono',monospace;font-size:0.82rem;">₹${prevInfo.total.toLocaleString('en-IN')}</b>
+            <span style="color:#94A3B8;display:block;font-size:0.6rem;font-weight:700;">${prevInfo.prevMonthTitle} Benchmark</span>
+            <b style="color:#F8FAFC;font-family:'Roboto Mono',monospace;font-size:0.78rem;">₹${prevInfo.total.toLocaleString('en-IN')}</b>
           </div>
           <div style="text-align:center;">
-            <span style="color:#94A3B8;display:block;font-size:0.62rem;text-transform:uppercase;font-weight:700;">${curMonth} Target Goal</span>
-            <b style="color:#FBBF24;font-family:'Roboto Mono',monospace;font-size:0.82rem;">₹${targetVal.toLocaleString('en-IN')}</b>
+            <span style="color:#94A3B8;display:block;font-size:0.6rem;font-weight:700;">${curMonth} Target Goal</span>
+            <b style="color:#FBBF24;font-family:'Roboto Mono',monospace;font-size:0.78rem;">₹${targetVal.toLocaleString('en-IN')}</b>
           </div>
           <div style="text-align:right;">
-            <span style="color:#94A3B8;display:block;font-size:0.62rem;text-transform:uppercase;font-weight:700;">Achieved So Far</span>
-            <b style="color:#34D399;font-family:'Roboto Mono',monospace;font-size:0.82rem;">₹${achievedSales.toLocaleString('en-IN')}</b>
+            <span style="color:#94A3B8;display:block;font-size:0.6rem;font-weight:700;">Achieved So Far</span>
+            <b style="color:#34D399;font-family:'Roboto Mono',monospace;font-size:0.78rem;">₹${achievedSales.toLocaleString('en-IN')}</b>
           </div>
         </div>
       ` : ''}
 
-      <!-- Catchy Incentive Bonus Highlight Banner Pinned Above Progress Track -->
+      <!-- Incentive Bonus Highlight Banner Pinned Above Progress Track -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-        <span style="font-size:0.72rem;color:#CBD5E1;font-weight:600;">Target Goal Progress</span>
-        <span style="background:linear-gradient(135deg, #10B981, #059669);color:#FFFFFF;font-family:'Roboto Mono',monospace;font-size:0.72rem;font-weight:800;padding:2px 8px;border-radius:999px;box-shadow:0 0 10px rgba(16,185,129,0.4);display:inline-flex;align-items:center;gap:4px;">
-          ${icon('trophy', 12)} INV BONUS: ₹${incentiveBonus.toLocaleString('en-IN')}
+        <span style="font-size:0.7rem;color:#CBD5E1;font-weight:600;">Target Goal Progress</span>
+        <span style="background:linear-gradient(135deg, #10B981, #059669);color:#FFFFFF;font-family:'Roboto Mono',monospace;font-size:0.68rem;font-weight:800;padding:2px 7px;border-radius:999px;box-shadow:0 0 10px rgba(16,185,129,0.4);display:inline-flex;align-items:center;gap:3px;">
+          ${icon('trophy', 11)} Bonus: ₹${incentiveBonus.toLocaleString('en-IN')}
         </span>
       </div>
 
       <!-- Animated Executive Gold Progress Bar -->
-      <div class="progress-track" style="height:10px;background:rgba(255,255,255,0.12);border-radius:999px;overflow:hidden;margin-bottom:8px;">
+      <div class="progress-track" style="height:9px;background:rgba(255,255,255,0.15);border-radius:999px;overflow:hidden;margin-bottom:7px;">
         <div class="progress-fill ${pct>=100?'complete':''}" style="width:${pct}%;height:100%;border-radius:999px;background:${pct>=100?'linear-gradient(90deg, #F59E0B, #10B981)':'linear-gradient(90deg, #D97706, #FBBF24, #FCD34D)'};"></div>
       </div>
 
-      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);flex-wrap:nowrap;gap:6px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:5px;border-top:1px solid rgba(255,255,255,0.08);flex-wrap:nowrap;gap:6px;">
         ${pct >= 100 ? `
           <span class="pinned-target-status" style="color:#34D399;font-weight:700;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-            ${icon('check', 14)} Target Achieved! ₹${incentiveBonus.toLocaleString('en-IN')} Bonus Unlocked!
+            ${icon('check', 13)} Target Achieved! ₹${incentiveBonus.toLocaleString('en-IN')} Bonus Unlocked!
           </span>
         ` : `
           <span class="pinned-target-status" style="color:#FCD34D;font-weight:600;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-            ${icon('trending', 13)} Achieve ₹${remaining.toLocaleString('en-IN')} more to unlock ₹${incentiveBonus.toLocaleString('en-IN')} Bonus!
+            ${icon('trending', 12)} Achieve ₹${remaining.toLocaleString('en-IN')} more to unlock ₹${incentiveBonus.toLocaleString('en-IN')} Bonus!
           </span>
         `}
-        ${isOwner() ? `
+        ${isManagerPlus() ? `
           <button class="stamp-btn small pinned-target-btn" style="background:rgba(255,255,255,0.14);color:#FFFFFF;border:1px solid rgba(255,255,255,0.22);display:inline-flex;align-items:center;gap:4px;flex-shrink:0;white-space:nowrap;" onclick="window.__openSetTargetsModal()">
-            ${icon('settings', 12)} Set Targets
+            ${icon('settings', 11)} Set Targets
           </button>
         ` : ''}
       </div>
@@ -139,49 +139,58 @@ function buildStaffTargetsHtml(curMonth, monthSales){
     const bonusVal = targetObj ? Number(targetObj.incentive_bonus||3000) : 3000;
     const pct = Math.min(100, Math.round((sSales / Math.max(1, targetVal)) * 100));
     return `
-      <div class="row-card" style="flex-direction:column;align-items:stretch;padding:12px;margin-bottom:8px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px;">
-          <div style="display:flex;align-items:center;gap:6px;">
-            <b style="margin:0;font-size:0.88rem;color:var(--ink);">${esc(s.name)}</b>
-            <span style="background:var(--leaf-soft);color:var(--leaf);border:1px solid var(--leaf);font-family:'Roboto Mono',monospace;font-size:0.68rem;font-weight:800;padding:1px 7px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;box-shadow:0 1px 4px rgba(16,185,129,0.15);">
-              ${icon('trophy', 11)} Bonus: ₹${bonusVal.toLocaleString('en-IN')}
+      <div class="dash-card" style="margin-bottom:7px;padding:9px 12px;" onclick="window.__setTab('sales')">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-wrap:wrap;gap:4px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="dash-squircle" style="width:28px !important;height:28px !important;min-width:28px !important;min-height:28px !important;border-radius:8px;">
+              ${icon('users', 14)}
+            </div>
+            <b style="margin:0;font-size:0.84rem;color:#0F172A;">${esc(s.name)}</b>
+            <span style="background:var(--leaf-soft);color:var(--leaf);border:1px solid var(--leaf);font-family:'Roboto Mono',monospace;font-size:0.65rem;font-weight:800;padding:1px 6px;border-radius:999px;display:inline-flex;align-items:center;gap:3px;">
+              ${icon('trophy', 10)} Bonus: ₹${bonusVal.toLocaleString('en-IN')}
             </span>
           </div>
-          <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.8rem;color:var(--turmeric-dark);">
+          <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.78rem;color:#1E3A6E;">
             ₹${sSales.toLocaleString('en-IN')} / ₹${targetVal.toLocaleString('en-IN')} (${pct}%)
           </span>
         </div>
-        <div class="progress-track" style="height:8px;background:var(--paper-line);border-radius:999px;overflow:hidden;">
-          <div class="progress-fill ${pct>=100?'complete':''}" style="width:${pct}%;height:100%;border-radius:999px;"></div>
+        <div class="progress-track" style="height:7px;background:#F1F5F9;border-radius:999px;overflow:hidden;margin:3px 0 0 0;">
+          <div class="progress-fill ${pct>=100?'complete':''}" style="width:${pct}%;height:100%;border-radius:999px;background:${pct>=100?'linear-gradient(90deg, #F59E0B, #10B981)':'linear-gradient(90deg, #D97706, #FBBF24, #FCD34D)'};"></div>
         </div>
       </div>
     `;
   }).filter(Boolean).join('');
 
   return `
-    <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
-      <span>Target Progress & Sales Performance — ${curMonth}</span>
-      ${isManagerPlus() ? `<button class="stamp-btn small ghost" style="padding:2px 8px;font-size:0.7rem;" onclick="window.__openSetTargetsModal()">Set Targets</button>` : ''}
+    <div class="dash-section-header">
+      <div class="dash-section-title">Target Progress &amp; Sales Performance — ${curMonth}</div>
+      ${isManagerPlus() ? `<button class="stamp-btn small ghost" onclick="window.__openSetTargetsModal()" style="display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 8px;font-size:0.7rem;color:#334155;border:1px solid #CBD5E1;background:#FFFFFF;">${icon('settings', 11)} Set Targets</button>` : ''}
     </div>
 
     <!-- Overall Business Sales Goal Progress Card -->
-    <div class="row-card" style="flex-direction:column;align-items:stretch;padding:12px 14px;margin-bottom:12px;background:var(--blue-soft);border:1px solid var(--paper-line);">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-        <div>
-          <b style="font-size:0.9rem;color:var(--ink);">Business Monthly Target Goal (${curMonth})</b>
-          <div style="font-size:0.7rem;color:var(--ink-soft);margin-top:1px;">Based on ${prevInfo.prevMonthTitle} Total Sales Baseline: <b>₹${prevInfo.total.toLocaleString('en-IN')}</b></div>
+    <div class="dash-card dash-target-goal-card" style="margin-bottom:8px;padding:11px 13px;" onclick="window.__setTab('sales')">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;flex-wrap:nowrap;">
+        <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+          <div class="dash-squircle">
+            ${icon('target', 16)}
+          </div>
+          <div style="min-width:0;">
+            <b style="font-size:0.86rem;color:#0F172A;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Business Monthly Target Goal (${curMonth})</b>
+            <span style="font-size:0.68rem;color:#64748B;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Based on ${prevInfo.prevMonthTitle} Baseline: ₹${prevInfo.total.toLocaleString('en-IN')}</span>
+          </div>
         </div>
-        <b style="font-family:'Roboto Mono',monospace;font-size:0.85rem;color:var(--ink);">
-          ₹${totalMonthSales.toLocaleString('en-IN')} / ₹${businessTargetVal.toLocaleString('en-IN')} (${bizPct}%)
-        </b>
+        <div style="text-align:right;flex-shrink:0;">
+          <b style="font-family:'Roboto Mono',monospace;font-size:0.86rem;color:#0F172A;">₹${totalMonthSales.toLocaleString('en-IN')} / ₹${businessTargetVal.toLocaleString('en-IN')}</b>
+          <span style="display:block;font-size:0.68rem;font-weight:700;color:#1E3A6E;margin-top:1px;">${bizPct}% achieved</span>
+        </div>
       </div>
-      <div class="progress-track" style="height:10px;background:var(--paper-line);border-radius:999px;overflow:hidden;">
-        <div class="progress-fill ${bizPct>=100?'complete':''}" style="width:${bizPct}%;height:100%;border-radius:999px;"></div>
+      <div class="progress-track" style="height:9px;background:#F1F5F9;border-radius:999px;overflow:hidden;margin:3px 0 0 0;">
+        <div class="progress-fill ${bizPct>=100?'complete':''}" style="width:${bizPct}%;height:100%;border-radius:999px;background:${bizPct>=100?'linear-gradient(90deg, #F59E0B, #10B981)':'linear-gradient(90deg, #D97706, #FBBF24, #FCD34D)'};"></div>
       </div>
     </div>
 
     <!-- Staff Individual Sales Targets Progress Grid (Only >0 Sales) -->
-    ${activeStaffCards ? `<div class="cards-grid">${activeStaffCards}</div>` : '<div class="empty">No staff sales recorded above zero yet this month.</div>'}
+    ${activeStaffCards ? `<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">${activeStaffCards}</div>` : ''}
   `;
 }
 
@@ -559,6 +568,9 @@ function renderDashboardTab(body){
     <!-- 1. Top Activity Wave Graph Card -->
     ${buildDashboardActivityGraphHtml()}
 
+    <!-- PINNED INCENTIVE TARGET PROGRESS BAR (OLD EXECUTIVE DESIGN) -->
+    ${buildPinnedIncentiveTargetWidgetHtml(curMonth, monthSales)}
+
     <!-- 2. TASKS Section -->
     <div class="dash-section-header">
       <div class="dash-section-title">Tasks</div>
@@ -567,13 +579,11 @@ function renderDashboardTab(body){
     <div class="dash-cards-grid-2">
       <!-- Card 1: Total Tasks -->
       <div class="dash-card" style="--c-idx:1;" onclick="window.__setTab('tasks')">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
           <div class="dash-squircle">
             ${icon('checkDouble', 16)}
           </div>
-          <div style="color:#94A3B8;">
-            ${icon('chartMini', 15)}
-          </div>
+          <div class="dash-card-chevron">›</div>
         </div>
         <div>
           <div class="dash-stat-num">${total}</div>
@@ -586,53 +596,58 @@ function renderDashboardTab(body){
 
       <!-- Card 2: Completion Rate with Radial Progress -->
       <div class="dash-card" style="--c-idx:2;" onclick="window.__setTab('tasks')">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div class="dash-squircle">
+            ${icon('checkSquare', 16)}
+          </div>
           <div class="dash-radial-wrap" style="flex-shrink:0;">
-            <svg width="38" height="38" viewBox="0 0 38 38">
+            <svg width="32" height="32" viewBox="0 0 38 38">
               <circle cx="19" cy="19" r="14.5" fill="none" stroke="#E2E8F0" stroke-width="3.5"/>
               <circle class="dash-radial-circle" cx="19" cy="19" r="14.5" fill="none" stroke="#1E3A6E" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="91.1" stroke-dashoffset="${(91.1 * (1 - rate / 100)).toFixed(1)}" transform="rotate(-90 19 19)"/>
               <text x="19" y="22.5" text-anchor="middle" font-size="9.5" font-weight="800" fill="#0F172A" font-family="'Plus Jakarta Sans',sans-serif">${rate}%</text>
             </svg>
           </div>
-          <div style="min-width:0;">
-            <b style="font-size:0.82rem;color:#0F172A;display:block;">Completion Rate</b>
-            <span style="font-size:0.68rem;color:#64748B;display:block;margin-top:1px;">${done} of ${total} completed</span>
-          </div>
         </div>
-        <div style="margin-top:auto;">
-          <span class="dash-trend-up">↑ +2%</span> <span class="dash-trend-sub">vs last month</span>
+        <div>
+          <div class="dash-stat-num">${rate}%</div>
+          <div class="dash-stat-label">Completion Rate (${done}/${total})</div>
+          <div style="margin-top:4px;">
+            <span class="dash-trend-up">↑ +2%</span> <span class="dash-trend-sub">vs last month</span>
+          </div>
         </div>
       </div>
 
       <!-- Card 3: Overdue Tasks -->
       <div class="dash-card" style="--c-idx:3;" onclick="window.__setTab('tasks')">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
           <div class="dash-squircle">
-            ${icon('clock', 15)}
+            ${icon('clock', 16)}
           </div>
           <div class="dash-card-chevron">›</div>
         </div>
         <div>
-          <div class="dash-stat-num">${overdue}</div>
+          <div class="dash-stat-num" style="${overdue > 0 ? 'color:var(--turmeric);' : ''}">${overdue}</div>
           <div class="dash-stat-label">Overdue Tasks</div>
           <div style="margin-top:4px;">
-            <span class="dash-trend-up">↑ +1</span> <span class="dash-trend-sub">vs yesterday</span>
+            <span class="dash-trend-up">${overdue > 0 ? 'Action required' : 'All on track'}</span>
           </div>
         </div>
       </div>
 
       <!-- Card 4: Top Performer -->
       <div class="dash-card" style="--c-idx:4;" onclick="window.__setTab('tasks')">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
           <div class="dash-squircle">
-            ${icon('trophy', 15)}
+            ${icon('trophy', 16)}
           </div>
           <div class="dash-card-chevron">›</div>
         </div>
         <div>
-          <b style="font-size:0.86rem;color:#0F172A;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(topStaffNameOnly)}</b>
-          <span style="font-size:0.68rem;color:#64748B;display:block;margin-top:1px;">${topStaffDoneCount} tasks completed</span>
-          <div style="margin-top:4px;font-size:0.68rem;font-weight:600;color:#64748B;">Top Performer</div>
+          <div class="dash-stat-num" style="font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(topStaffNameOnly)}</div>
+          <div class="dash-stat-label">Top Performer</div>
+          <div style="margin-top:4px;">
+            <span class="dash-trend-up">${topStaffDoneCount} tasks</span> <span class="dash-trend-sub">completed</span>
+          </div>
         </div>
       </div>
     </div>
@@ -645,59 +660,65 @@ function renderDashboardTab(body){
     <div class="dash-cards-grid-2">
       <!-- Card 1: Present Rate -->
       <div class="dash-card" style="--c-idx:5;" onclick="window.__setTab('attendance')">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-          <div class="dash-squircle">${icon('users', 15)}</div>
-          <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <div class="dash-squircle">${icon('users', 16)}</div>
+          <div style="min-width:0;flex:1;">
             <div class="dash-stat-num">${attPct}%</div>
-            <div class="dash-stat-label">Present Rate (All Staff)</div>
+            <div class="dash-stat-label">Present Rate</div>
           </div>
         </div>
-        <div style="font-size:0.68rem;color:#64748B;margin-top:3px;">${todayCheckedIn} / ${cache.staff.length} staff present</div>
         <div class="dash-progress-track">
           <div class="dash-progress-fill" style="width:${attPct}%;"></div>
         </div>
+        <div style="font-size:0.66rem;color:#64748B;">${todayCheckedIn} / ${cache.staff.length} staff present</div>
       </div>
 
       <!-- Card 2: Checked In Today -->
       <div class="dash-card" style="--c-idx:6;" onclick="window.__setTab('attendance')">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-          <div class="dash-squircle">${icon('calendar', 15)}</div>
-          <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <div class="dash-squircle">${icon('calendar', 16)}</div>
+          <div style="min-width:0;flex:1;">
             <div class="dash-stat-num">${todayCheckedIn} / ${cache.staff.length}</div>
             <div class="dash-stat-label">Checked In Today</div>
           </div>
         </div>
-        <div style="font-size:0.68rem;color:#64748B;margin-top:3px;">${Math.max(0, cache.staff.length - todayCheckedIn)} staff remaining</div>
         <div class="dash-progress-track">
           <div class="dash-progress-fill" style="width:${cache.staff.length ? Math.round((todayCheckedIn / cache.staff.length)*100) : 0}%;"></div>
         </div>
+        <div style="font-size:0.66rem;color:#64748B;">${Math.max(0, cache.staff.length - todayCheckedIn)} staff remaining</div>
       </div>
 
       <!-- Card 3: Best Attendance -->
       <div class="dash-card" style="--c-idx:7;" onclick="window.__setTab('attendance')">
-        <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:4px;">
-          <div class="dash-squircle">${icon('star', 15)}</div>
-          <div style="min-width:0;">
-            <b style="font-size:0.84rem;color:#0F172A;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(bestStaffNameOnly)}</b>
-            <div class="dash-stat-label">Best Attendance This Month</div>
-            <div style="font-size:0.68rem;color:#64748B;margin-top:2px;">100% present rate</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <div class="dash-squircle">${icon('star', 16)}</div>
+          <div style="min-width:0;flex:1;">
+            <b style="font-size:0.86rem;color:#0F172A;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(bestStaffNameOnly)}</b>
+            <div class="dash-stat-label">Best Attendance</div>
           </div>
         </div>
+        <div class="dash-progress-track">
+          <div class="dash-progress-fill" style="width:100%;"></div>
+        </div>
+        <div style="font-size:0.66rem;color:#64748B;">100% present rate this month</div>
       </div>
 
       <!-- Card 4: Staff On Roll -->
       <div class="dash-card" style="--c-idx:8;" onclick="window.__setTab('attendance')">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
           <div style="display:flex;align-items:center;gap:10px;">
-            <div class="dash-squircle">${icon('users', 15)}</div>
+            <div class="dash-squircle">${icon('users', 16)}</div>
             <div>
               <div class="dash-stat-num">${cache.staff.length}</div>
               <div class="dash-stat-label">Staff On Roll</div>
-              <div style="font-size:0.68rem;color:#64748B;margin-top:1px;">Active staff members</div>
             </div>
           </div>
           <div class="dash-card-chevron">›</div>
         </div>
+        <div class="dash-progress-track">
+          <div class="dash-progress-fill" style="width:100%;"></div>
+        </div>
+        <div style="font-size:0.66rem;color:#64748B;">Active staff members</div>
       </div>
     </div>
 
@@ -708,12 +729,12 @@ function renderDashboardTab(body){
     </div>
     <div class="dash-cards-grid-3">
       <!-- Card 1: Everyday Tasks Done -->
-      <div class="dash-card" style="--c-idx:9;padding:9px 10px;" onclick="window.__setTab('daily')">
-        <div class="dash-squircle" style="width:28px;height:28px;border-radius:8px;margin-bottom:4px;">
-          ${icon('checkSquare', 14)}
+      <div class="dash-card" style="--c-idx:9;padding:11px 12px;" onclick="window.__setTab('daily')">
+        <div class="dash-squircle" style="margin-bottom:6px;">
+          ${icon('checkSquare', 16)}
         </div>
         <div class="dash-stat-num" style="font-size:1.05rem;">${routineDoneToday} / ${routineTotal}</div>
-        <div class="dash-stat-label" style="font-size:0.66rem;">Everyday Tasks Done</div>
+        <div class="dash-stat-label" style="font-size:0.68rem;">Everyday Tasks Done</div>
         <div class="dash-progress-track" style="margin:5px 0 3px 0;">
           <div class="dash-progress-fill" style="width:${routinePct}%;"></div>
         </div>
@@ -721,27 +742,29 @@ function renderDashboardTab(body){
       </div>
 
       <!-- Card 2: Items Labelled Today -->
-      <div class="dash-card" style="--c-idx:10;padding:9px 10px;" onclick="window.__setTab('label')">
-        <div class="dash-squircle" style="width:28px;height:28px;border-radius:8px;margin-bottom:4px;">
-          ${icon('tagDiamond', 14)}
+      <div class="dash-card" style="--c-idx:10;padding:11px 12px;" onclick="window.__setTab('label')">
+        <div class="dash-squircle" style="margin-bottom:6px;">
+          ${icon('tagDiamond', 16)}
         </div>
         <div class="dash-stat-num" style="font-size:1.05rem;">${labelsToday}</div>
-        <div class="dash-stat-label" style="font-size:0.66rem;">Items Labelled Today</div>
-        <div style="margin-top:4px;">
-          <span class="dash-trend-up">↑ +12%</span> <span class="dash-trend-sub">vs yesterday</span>
+        <div class="dash-stat-label" style="font-size:0.68rem;">Items Labelled Today</div>
+        <div class="dash-progress-track" style="margin:5px 0 3px 0;">
+          <div class="dash-progress-fill" style="width:${labelsToday > 0 ? 100 : 0}%;"></div>
         </div>
+        <div style="font-size:0.65rem;color:#64748B;"><span class="dash-trend-up">↑ Active</span> today</div>
       </div>
 
       <!-- Card 3: Items Packaged Today -->
-      <div class="dash-card" style="--c-idx:11;padding:9px 10px;" onclick="window.__setTab('package')">
-        <div class="dash-squircle" style="width:28px;height:28px;border-radius:8px;margin-bottom:4px;">
-          ${icon('package', 14)}
+      <div class="dash-card" style="--c-idx:11;padding:11px 12px;" onclick="window.__setTab('package')">
+        <div class="dash-squircle" style="margin-bottom:6px;">
+          ${icon('package', 16)}
         </div>
         <div class="dash-stat-num" style="font-size:1.05rem;">${packagesToday}</div>
-        <div class="dash-stat-label" style="font-size:0.66rem;">Items Packaged Today</div>
-        <div style="margin-top:4px;">
-          <span class="dash-trend-up">↑ +18%</span> <span class="dash-trend-sub">vs yesterday</span>
+        <div class="dash-stat-label" style="font-size:0.68rem;">Items Packaged Today</div>
+        <div class="dash-progress-track" style="margin:5px 0 3px 0;">
+          <div class="dash-progress-fill" style="width:${packagesToday > 0 ? 100 : 0}%;"></div>
         </div>
+        <div style="font-size:0.65rem;color:#64748B;"><span class="dash-trend-up">↑ Active</span> today</div>
       </div>
     </div>
 
@@ -753,7 +776,7 @@ function renderDashboardTab(body){
     <div class="dash-cards-grid-2">
       <!-- Card 1: Today's Sales -->
       <div class="dash-card" style="--c-idx:12;" onclick="window.__setTab('sales')">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
           <div class="dash-squircle">${icon('cart', 16)}</div>
           <div>
             <div class="dash-stat-num">₹${todaySalesTotal.toLocaleString('en-IN')}</div>
@@ -771,7 +794,7 @@ function renderDashboardTab(body){
 
       <!-- Card 2: This Month -->
       <div class="dash-card" style="--c-idx:13;" onclick="window.__setTab('sales')">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
           <div class="dash-squircle">${icon('sales', 16)}</div>
           <div>
             <div class="dash-stat-num">₹${monthSalesTotal.toLocaleString('en-IN')}</div>
@@ -788,31 +811,8 @@ function renderDashboardTab(body){
       </div>
     </div>
 
-    <!-- 6. TARGET PROGRESS & SALES PERFORMANCE Section -->
-    <div class="dash-section-header">
-      <div class="dash-section-title">Target Progress & Sales Performance ${curMonth}</div>
-      ${isManagerPlus() ? `<button class="stamp-btn small ghost" onclick="window.__openSetTargetsModal()" style="display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 8px;font-size:0.7rem;color:#334155;border:1px solid #CBD5E1;background:#FFFFFF;">${icon('edit', 11)} Set Target</button>` : ''}
-    </div>
-    <div class="dash-card dash-target-goal-card" style="--c-idx:14;" onclick="window.__setTab('sales')">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;flex-wrap:nowrap;">
-        <div style="display:flex;align-items:center;gap:10px;min-width:0;">
-          <div class="dash-squircle" style="border-radius:50%;background:#F0F4FA;color:#1E3A6E;">
-            ${icon('target', 17)}
-          </div>
-          <div style="min-width:0;">
-            <b style="font-size:0.88rem;color:#0F172A;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Business Monthly Target Goal (${curMonth})</b>
-            <span style="font-size:0.68rem;color:#64748B;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Based on ${prevInfo.prevMonthTitle} Total Sales Baseline: ₹${prevInfo.total.toLocaleString('en-IN')}</span>
-          </div>
-        </div>
-        <div style="text-align:right;flex-shrink:0;">
-          <b style="font-family:'Roboto Mono',monospace;font-size:0.88rem;color:#0F172A;">₹${monthSalesTotal.toLocaleString('en-IN')} / ₹${businessTargetVal.toLocaleString('en-IN')}</b>
-          <span style="display:block;font-size:0.68rem;font-weight:700;color:#64748B;margin-top:1px;">${bizPct}%</span>
-        </div>
-      </div>
-      <div class="dash-progress-track" style="margin:0;">
-        <div class="dash-progress-fill" style="width:${bizPct}%;"></div>
-      </div>
-    </div>
+    <!-- 6. TARGET PROGRESS & SALES PERFORMANCE Section (OLD PROGRESS BAR RESTORED) -->
+    ${buildStaffTargetsHtml(curMonth, monthSales)}
 
     <!-- Additional Owner/Management Details -->
     ${isOwner() ? `
@@ -822,7 +822,7 @@ function renderDashboardTab(body){
     <div class="dash-cards-grid-2">
       <div class="dash-card" style="--c-idx:15;" onclick="window.__setTab('salary')">
         <div style="display:flex;align-items:center;gap:10px;">
-          <div class="dash-squircle">${icon('salary', 15)}</div>
+          <div class="dash-squircle">${icon('salary', 16)}</div>
           <div>
             <div class="dash-stat-num">₹${monthSalaryTotal.toLocaleString('en-IN')}</div>
             <div class="dash-stat-label">Salary paid this month</div>
