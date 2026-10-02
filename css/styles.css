@@ -1829,22 +1829,69 @@
     transform: translateY(1px) scale(0.96);
   }
 
-  /* --- Dynamic Line Growth (Simulating Passage of Time from First to Latest Point) --- */
-  .trend-chart-dot {
-    opacity: 0;
-    transform: scale(0.3);
-    transition: transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1), fill 0.25s ease, r 0.25s ease, filter 0.25s ease !important;
+  /* --- Modern Graph Enhancements --- */
+  .trend-stat-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    background: #F1F5F9;
+    color: var(--ink-soft);
+    font-family: 'Roboto Mono', monospace;
+    border: 1px solid var(--paper-line);
+  }
+  .trend-stat-chip.peak {
+    background: #FEF3C7;
+    color: #B45309;
+    border-color: #FDE68A;
+    font-weight: 700;
+  }
+  .trend-pulse-ring {
+    animation: trendPulseHalo 2.2s infinite ease-out;
     transform-origin: center;
     transform-box: fill-box;
-    animation: weightlessDotPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) calc(var(--dot-idx, 0) * 75ms) forwards;
+    pointer-events: none;
+  }
+  @keyframes trendPulseHalo {
+    0% {
+      transform: scale(0.8);
+      opacity: 0.85;
+    }
+    60% {
+      transform: scale(1.65);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1.65);
+      opacity: 0;
+    }
+  }
+
+  /* --- Dynamic Line Growth & Responsive Dot Highlights --- */
+  .trend-chart-dot {
+    opacity: 0;
+    cursor: pointer;
+    transition: r 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), fill 0.2s ease, stroke 0.2s ease, filter 0.2s ease !important;
+    animation: weightlessDotPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) calc(var(--dot-idx, 0) * 40ms) forwards;
   }
   .trend-chart-dot:hover {
-    opacity: 1 !important;
-    transform: translateY(-9px) scale(1.55) !important;
-    fill: #0284C7 !important;
-    stroke: #E0F2FE !important;
-    filter: drop-shadow(0 6px 14px rgba(2, 132, 199, 0.5));
-    cursor: pointer;
+    r: 6 !important;
+    stroke: #FFFFFF !important;
+    stroke-width: 2.5px !important;
+    filter: drop-shadow(0 3px 8px rgba(30, 58, 110, 0.45));
+  }
+  .trend-chart-dot.is-peak:hover {
+    r: 6.5 !important;
+    fill: #F59E0B !important;
+    filter: drop-shadow(0 3px 8px rgba(245, 158, 11, 0.5));
+  }
+  .trend-chart-dot.is-latest:hover {
+    r: 6 !important;
+    fill: #2563EB !important;
+    filter: drop-shadow(0 3px 8px rgba(37, 99, 235, 0.5));
   }
 
   .trend-chart-line {

@@ -144,11 +144,13 @@ function buildSalesReportHtml(){
   const max = Math.max(1, ...buckets.map(b=>b.total));
   const periodTotal = buckets.reduce((s,b)=>s+b.total,0);
   const avg = periodTotal / buckets.length;
+  const peakVal = Math.max(0, ...buckets.map(b=>b.total));
+  const peakIdx = peakVal > 0 ? buckets.findIndex(b=>b.total === peakVal) : -1;
 
   const width = 640;
   const height = 180;
-  const paddingX = 36;
-  const paddingY = 28;
+  const paddingX = 40;
+  const paddingY = 30;
 
   const points = buckets.map((b, i) => {
     const x = paddingX + (i / Math.max(1, buckets.length - 1)) * (width - paddingX * 2);
@@ -157,46 +159,66 @@ function buildSalesReportHtml(){
   });
 
   let pathD = '';
-  let areaD = '';
   if (points.length > 0) {
-    pathD = `M ${points[0].x} ${points[0].y}`;
-    for (let i = 1; i < points.length; i++) {
-      const prev = points[i - 1];
-      const curr = points[i];
-      const cx = (prev.x + curr.x) / 2;
-      pathD += ` C ${cx} ${prev.y}, ${cx} ${curr.y}, ${curr.x} ${curr.y}`;
+    pathD = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = i > 0 ? points[i - 1] : points[i];
+      const p1 = points[i];
+      const p2 = points[i + 1];
+      const p3 = i < points.length - 2 ? points[i + 2] : p2;
+      const cp1x = p1.x + (p2.x - p0.x) / 6;
+      const cp1y = p1.y + (p2.y - p0.y) / 6;
+      const cp2x = p2.x - (p3.x - p1.x) / 6;
+      const cp2y = p2.y - (p3.y - p1.y) / 6;
+      pathD += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
     }
-    areaD = pathD + ` L ${points[points.length - 1].x} ${height - paddingY} L ${points[0].x} ${height - paddingY} Z`;
   }
+  const areaD = points.length ? `${pathD} L ${points[points.length - 1].x.toFixed(1)} ${height - paddingY} L ${points[0].x.toFixed(1)} ${height - paddingY} Z` : '';
 
   const lineGraphHtml = `
     <div style="position:relative;width:100%;overflow-x:auto;">
       <svg viewBox="0 0 ${width} ${height}" style="width:100%;height:auto;min-width:320px;overflow:visible;">
         <defs>
           <linearGradient id="salesReportGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#1E3A6E" stop-opacity="0.35"/>
+            <stop offset="0%" stop-color="#1E3A6E" stop-opacity="0.30"/>
+            <stop offset="60%" stop-color="#2563EB" stop-opacity="0.08"/>
             <stop offset="100%" stop-color="#1E3A6E" stop-opacity="0.0"/>
           </linearGradient>
+          <linearGradient id="salesStrokeGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#1E3A6E"/>
+            <stop offset="100%" stop-color="#2563EB"/>
+          </linearGradient>
+          <filter id="salesLineGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#1E3A6E" flood-opacity="0.22"/>
+          </filter>
         </defs>
 
-        <line x1="${paddingX}" y1="${paddingY}" x2="${width-paddingX}" y2="${paddingY}" stroke="var(--paper-line)" stroke-dasharray="3,3"/>
-        <line x1="${paddingX}" y1="${height/2}" x2="${width-paddingX}" y2="${height/2}" stroke="var(--paper-line)" stroke-dasharray="3,3"/>
-        <line x1="${paddingX}" y1="${height-paddingY}" x2="${width-paddingX}" y2="${height-paddingY}" stroke="var(--paper-line)"/>
+        <!-- Horizontal Reference Gridlines -->
+        <line x1="${paddingX}" y1="${paddingY}" x2="${width-paddingX}" y2="${paddingY}" stroke="var(--paper-line)" stroke-dasharray="4 4" stroke-width="1"/>
+        <line x1="${paddingX}" y1="${height/2}" x2="${width-paddingX}" y2="${height/2}" stroke="var(--paper-line)" stroke-dasharray="4 4" stroke-width="1"/>
+        <line x1="${paddingX}" y1="${height-paddingY}" x2="${width-paddingX}" y2="${height-paddingY}" stroke="var(--paper-line)" stroke-width="1.2"/>
 
-        ${areaD ? `<path d="${areaD}" fill="url(#salesReportGrad)"/>` : ''}
-        ${pathD ? `<path d="${pathD}" fill="none" stroke="#1E3A6E" stroke-width="3" stroke-linecap="round"/>` : ''}
+        ${areaD ? `<path class="trend-chart-area" d="${areaD}" fill="url(#salesReportGrad)"/>` : ''}
+        ${pathD ? `<path class="trend-chart-line" d="${pathD}" fill="none" stroke="url(#salesStrokeGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" filter="url(#salesLineGlow)"/>` : ''}
 
-        ${points.map(p => `
+        ${points.map((p, idx) => {
+          const isPeak = (idx === peakIdx && peakVal > 0);
+          const isLatest = (idx === points.length - 1);
+          return `
           <g>
-            <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="var(--paper)" stroke="#1E3A6E" stroke-width="2.5"/>
-            <text x="${p.x}" y="${Math.max(14, p.y - 10)}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--turmeric-dark)" font-family="'Roboto Mono',monospace">
-              ${p.val > 0 ? '₹' + (p.val >= 1000 ? Math.round(p.val/1000)+'k' : Math.round(p.val)) : ''}
+            ${isPeak ? `
+              <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="7.5" fill="none" stroke="#F59E0B" stroke-width="2" class="trend-pulse-ring"/>
+              <text x="${p.x.toFixed(1)}" y="${Math.max(12, p.y - 12).toFixed(1)}" text-anchor="middle" font-size="8" font-weight="800" fill="#D97706" font-family="'Roboto Mono',monospace">PEAK</text>
+            ` : ''}
+            <circle class="trend-chart-dot ${isPeak ? 'is-peak' : ''}" style="--dot-idx:${idx};" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${isPeak ? 5 : 4}" fill="${isPeak ? '#F59E0B' : 'var(--paper)'}" stroke="${isPeak ? '#FFFFFF' : '#1E3A6E'}" stroke-width="${isPeak ? 2 : 2.5}"/>
+            <text x="${p.x.toFixed(1)}" y="${isPeak ? Math.max(22, p.y - 21) : Math.max(14, p.y - 10)}" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--turmeric-dark)" font-family="'Roboto Mono',monospace">
+              ${p.val > 0 ? '₹' + (p.val >= 100000 ? (p.val/100000).toFixed(1)+'L' : p.val >= 1000 ? Math.round(p.val/1000)+'k' : Math.round(p.val)) : ''}
             </text>
-            <text x="${p.x}" y="${height - 8}" text-anchor="middle" font-size="10" font-weight="600" fill="var(--ink-soft)" font-family="'Roboto Mono',monospace">
+            <text x="${p.x.toFixed(1)}" y="${height - 8}" text-anchor="middle" font-size="9.5" font-weight="600" fill="var(--ink-soft)" font-family="'Roboto Mono',monospace">
               ${p.label}
             </text>
           </g>
-        `).join('')}
+        `;}).join('')}
       </svg>
     </div>
   `;
@@ -204,14 +226,17 @@ function buildSalesReportHtml(){
   return `
     <div class="section-label">Sales report</div>
     <div class="row-card" style="flex-direction:column;align-items:stretch;">
-      <div style="display:flex;gap:6px;margin-bottom:14px;">
-        <button class="stamp-btn small ${mode==='weekly'?'':'ghost'}" onclick="window.__setSalesMode('weekly')">Weekly</button>
-        <button class="stamp-btn small ${mode==='monthly'?'':'ghost'}" onclick="window.__setSalesMode('monthly')">Monthly</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;gap:6px;">
+          <button class="stamp-btn small ${mode==='weekly'?'':'ghost'}" onclick="window.__setSalesMode('weekly')">Weekly</button>
+          <button class="stamp-btn small ${mode==='monthly'?'':'ghost'}" onclick="window.__setSalesMode('monthly')">Monthly</button>
+        </div>
+        ${peakVal > 0 ? `<span class="trend-stat-chip peak">Peak ₹${peakVal >= 100000 ? (peakVal/100000).toFixed(1)+'L' : Math.round(peakVal).toLocaleString('en-IN')}</span>` : ''}
       </div>
       ${lineGraphHtml}
       <div class="two-col" style="margin-top:14px;">
-        <div class="kv"><span>Total (${mode==='weekly'?'last 8 weeks':'last 6 months'})</span><b>₹${periodTotal.toFixed(0)}</b></div>
-        <div class="kv"><span>${mode==='weekly'?'Weekly':'Monthly'} average</span><b>₹${avg.toFixed(0)}</b></div>
+        <div class="kv"><span>Total (${mode==='weekly'?'last 8 weeks':'last 6 months'})</span><b style="font-family:'Roboto Mono',monospace;">₹${periodTotal.toLocaleString('en-IN')}</b></div>
+        <div class="kv"><span>${mode==='weekly'?'Weekly':'Monthly'} average</span><b style="font-family:'Roboto Mono',monospace;">₹${Math.round(avg).toLocaleString('en-IN')}</b></div>
       </div>
     </div>
   `;
@@ -305,6 +330,8 @@ function buildQtyGraphHtml(items, mode, setModeGlobalName, unitLabel, valueField
   const maxVal = Math.max(1, ...buckets.map(b=>b.total));
   const periodTotal = buckets.reduce((s,b)=>s+b.total,0);
   const avg = periodTotal / buckets.length;
+  const peakVal = Math.max(0, ...buckets.map(b=>b.total));
+  const peakIdx = peakVal > 0 ? buckets.findIndex(b=>b.total === peakVal) : -1;
 
   const width = 600;
   const height = 150;
@@ -319,18 +346,23 @@ function buildQtyGraphHtml(items, mode, setModeGlobalName, unitLabel, valueField
     return { x, y, val: b.total, label: b.label };
   });
 
-  let pathD = `M ${points[0].x} ${points[0].y}`;
-  for(let i = 0; i < points.length - 1; i++){
-    const curr = points[i];
-    const next = points[i+1];
-    const cpX1 = curr.x + (next.x - curr.x) / 2;
-    const cpY1 = curr.y;
-    const cpX2 = curr.x + (next.x - curr.x) / 2;
-    const cpY2 = next.y;
-    pathD += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${next.x} ${next.y}`;
+  let pathD = '';
+  if (points.length > 0) {
+    pathD = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = i > 0 ? points[i - 1] : points[i];
+      const p1 = points[i];
+      const p2 = points[i + 1];
+      const p3 = i < points.length - 2 ? points[i + 2] : p2;
+      const cp1x = p1.x + (p2.x - p0.x) / 6;
+      const cp1y = p1.y + (p2.y - p0.y) / 6;
+      const cp2x = p2.x - (p3.x - p1.x) / 6;
+      const cp2y = p2.y - (p3.y - p1.y) / 6;
+      pathD += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+    }
   }
 
-  const areaD = `${pathD} L ${points[points.length-1].x} ${height - paddingY} L ${points[0].x} ${height - paddingY} Z`;
+  const areaD = points.length ? `${pathD} L ${points[points.length-1].x.toFixed(1)} ${height - paddingY} L ${points[0].x.toFixed(1)} ${height - paddingY} Z` : '';
   const gradId = 'lineGrad_' + Math.random().toString(36).substr(2, 6);
 
   const svgGraph = `
@@ -338,27 +370,43 @@ function buildQtyGraphHtml(items, mode, setModeGlobalName, unitLabel, valueField
       <svg viewBox="0 0 ${width} ${height}" style="width:100%;height:auto;display:block;min-width:320px;">
         <defs>
           <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#1E3A6E" stop-opacity="0.35"/>
+            <stop offset="0%" stop-color="#1E3A6E" stop-opacity="0.30"/>
+            <stop offset="70%" stop-color="#2563EB" stop-opacity="0.06"/>
             <stop offset="100%" stop-color="#1E3A6E" stop-opacity="0.0"/>
           </linearGradient>
+          <linearGradient id="${gradId}_stroke" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#1E3A6E"/>
+            <stop offset="100%" stop-color="#2563EB"/>
+          </linearGradient>
+          <filter id="${gradId}_glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#1E3A6E" flood-opacity="0.2"/>
+          </filter>
         </defs>
         <!-- Horizontal Gridlines -->
-        <line x1="${paddingX}" y1="${paddingY}" x2="${width-paddingX}" y2="${paddingY}" stroke="var(--paper-line)" stroke-dasharray="4" stroke-width="1"/>
-        <line x1="${paddingX}" y1="${height/2}" x2="${width-paddingX}" y2="${height/2}" stroke="var(--paper-line)" stroke-dasharray="4" stroke-width="1"/>
-        <line x1="${paddingX}" y1="${height-paddingY}" x2="${width-paddingX}" y2="${height-paddingY}" stroke="var(--paper-line)" stroke-width="1"/>
+        <line x1="${paddingX}" y1="${paddingY}" x2="${width-paddingX}" y2="${paddingY}" stroke="var(--paper-line)" stroke-dasharray="4 4" stroke-width="1"/>
+        <line x1="${paddingX}" y1="${height/2}" x2="${width-paddingX}" y2="${height/2}" stroke="var(--paper-line)" stroke-dasharray="4 4" stroke-width="1"/>
+        <line x1="${paddingX}" y1="${height-paddingY}" x2="${width-paddingX}" y2="${height-paddingY}" stroke="var(--paper-line)" stroke-width="1.2"/>
 
         <!-- Gradient Fill -->
-        <path class="trend-chart-area" d="${areaD}" fill="url(#${gradId})" />
+        ${areaD ? `<path class="trend-chart-area" d="${areaD}" fill="url(#${gradId})" />` : ''}
 
         <!-- Spline Line -->
-        <path class="trend-chart-line" d="${pathD}" fill="none" stroke="var(--turmeric)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+        ${pathD ? `<path class="trend-chart-line" d="${pathD}" fill="none" stroke="url(#${gradId}_stroke)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" filter="url(#${gradId}_glow)"/>` : ''}
 
         <!-- Dots & Data Labels -->
-        ${points.map((p, idx)=>`
-          <circle class="trend-chart-dot" style="--dot-idx:${idx};" cx="${p.x}" cy="${p.y}" r="5.5" fill="#FFFFFF" stroke="var(--turmeric)" stroke-width="3" />
-          <text x="${p.x}" y="${p.y - 10}" text-anchor="middle" font-size="10" font-family="'Roboto Mono', monospace" font-weight="700" fill="var(--ink)">${p.val > 0 ? prefix + Math.round(p.val) : ''}</text>
-          <text x="${p.x}" y="${height - 6}" text-anchor="middle" font-size="9" font-family="'Roboto Mono', monospace" fill="var(--ink-soft)">${p.label}</text>
-        `).join('')}
+        ${points.map((p, idx)=>{
+          const isPeak = (idx === peakIdx && peakVal > 0);
+          return `
+          <g>
+            ${isPeak ? `
+              <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="7.5" fill="none" stroke="#F59E0B" stroke-width="2" class="trend-pulse-ring"/>
+              <text x="${p.x.toFixed(1)}" y="${Math.max(12, p.y - 12).toFixed(1)}" text-anchor="middle" font-size="8" font-weight="800" fill="#D97706" font-family="'Roboto Mono',monospace">PEAK</text>
+            ` : ''}
+            <circle class="trend-chart-dot ${isPeak ? 'is-peak' : ''}" style="--dot-idx:${idx};" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${isPeak ? 5 : 4}" fill="${isPeak ? '#F59E0B' : '#FFFFFF'}" stroke="${isPeak ? '#FFFFFF' : '#1E3A6E'}" stroke-width="${isPeak ? 2 : 2.5}" />
+            <text x="${p.x.toFixed(1)}" y="${isPeak ? Math.max(22, p.y - 20) : Math.max(14, p.y - 9)}" text-anchor="middle" font-size="10" font-family="'Roboto Mono', monospace" font-weight="700" fill="var(--ink)">${p.val > 0 ? prefix + Math.round(p.val) : ''}</text>
+            <text x="${p.x.toFixed(1)}" y="${height - 6}" text-anchor="middle" font-size="9" font-family="'Roboto Mono', monospace" fill="var(--ink-soft)">${p.label}</text>
+          </g>
+        `;}).join('')}
       </svg>
     </div>
   `;

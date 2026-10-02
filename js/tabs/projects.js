@@ -646,33 +646,85 @@ function buildSalesTrendChartHtml() {
     }
   }
 
-  const maxVal     = Math.max(1, ...buckets.map(b => b.val));
+  const maxVal      = Math.max(1, ...buckets.map(b => b.val));
   const totalPeriod = buckets.reduce((s,b) => s+b.val, 0);
   const avgPeriod   = buckets.length ? totalPeriod/buckets.length : 0;
+  const peakVal     = Math.max(0, ...buckets.map(b => b.val));
+  const peakIdx     = peakVal > 0 ? buckets.findIndex(b => b.val === peakVal) : -1;
   const n = buckets.length;
-  const W = 600, H = 130, pL=10, pR=10, pT=16, pB=32;
-  const cW = W-pL-pR, cH = H-pT-pB;
+
+  const W = 640, H = 175, pL = 20, pR = 48, pT = 26, pB = 32;
+  const cW = W - pL - pR, cH = H - pT - pB;
+  const baseY = pT + cH;
+  const midY  = pT + cH / 2;
+  const topY  = pT;
 
   const pts = buckets.map((b,i) => ({
-    x: pL + (n<2 ? cW/2 : (i/(n-1))*cW),
-    y: pT + cH - (b.val/maxVal)*cH,
+    x: pL + (n < 2 ? cW/2 : (i / (n - 1)) * cW),
+    y: baseY - (maxVal > 0 ? (b.val / maxVal) * cH : 0),
     ...b
   }));
 
-  const polyline = pts.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-  const area = `${pts[0].x.toFixed(1)},${(pT+cH).toFixed(1)} ${pts.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')} ${pts[n-1].x.toFixed(1)},${(pT+cH).toFixed(1)}`;
-  const avgY = pT+cH-(avgPeriod/maxVal)*cH;
-  const showIdx = new Set([0, Math.floor(n/3), Math.floor(2*n/3), n-1]);
+  // Cubic Bézier spline helper for fluid curves
+  let pathD = '';
+  if (pts.length > 0) {
+    pathD = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = i > 0 ? pts[i - 1] : pts[i];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = i < pts.length - 2 ? pts[i + 2] : p2;
+      const cp1x = p1.x + (p2.x - p0.x) / 6;
+      const cp1y = p1.y + (p2.y - p0.y) / 6;
+      const cp2x = p2.x - (p3.x - p1.x) / 6;
+      const cp2y = p2.y - (p3.y - p1.y) / 6;
+      pathD += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+    }
+  }
 
-  const fmtVal = v => v>=100000 ? `\u20b9${(v/100000).toFixed(1)}L` : v>=1000 ? `\u20b9${(v/1000).toFixed(1)}K` : `\u20b9${v.toFixed(0)}`;
+  const areaD = pts.length ? `${pathD} L ${pts[n-1].x.toFixed(1)} ${baseY.toFixed(1)} L ${pts[0].x.toFixed(1)} ${baseY.toFixed(1)} Z` : '';
+  const avgY = baseY - (maxVal > 0 ? (avgPeriod / maxVal) * cH : 0);
 
-  const dots = pts.map((p,i) => `<circle class="trend-chart-dot" style="--dot-idx:${i};" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4.5" fill="#0F172A" stroke="#FFFFFF" stroke-width="2"
-    data-tip="${esc(p.label)}: ${fmtVal(p.val)}"
-    onmouseenter="window.__showTrendTip(event,this)" onmouseleave="window.__hideTrendTip()"
-    ontouchstart="window.__showTrendTip(event,this)"/>`).join('');
+  const fmtVal = v => v >= 100000 ? `\u20b9${(v/100000).toFixed(1)}L` : v >= 1000 ? `\u20b9${(v/1000).toFixed(1)}K` : `\u20b9${Math.round(v)}`;
+
+  // Determine dynamic step for X-axis labels
+  const step = trendChartMode === 'daily' ? 6 : (trendChartMode === 'weekly' ? 2 : 2);
+  const showIdx = new Set();
+  for (let i = 0; i < n; i += step) showIdx.add(i);
+  showIdx.add(n - 1);
+
+  const dots = pts.map((p,i) => {
+    const isPeak = (i === peakIdx && peakVal > 0);
+    const isLatest = (i === n - 1);
+    return `
+      <g class="trend-node-group">
+        ${isPeak ? `
+          <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="7.5" fill="none" stroke="#F59E0B" stroke-width="2" class="trend-pulse-ring"/>
+          <text x="${p.x.toFixed(1)}" y="${Math.max(12, p.y - 11).toFixed(1)}" text-anchor="middle" font-size="7.5" font-weight="800" fill="#D97706" font-family="'Roboto Mono',monospace">PEAK</text>
+        ` : ''}
+        ${isLatest && !isPeak ? `
+          <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="7" fill="none" stroke="#2563EB" stroke-width="2" class="trend-pulse-ring"/>
+        ` : ''}
+        <circle class="trend-chart-dot ${isPeak ? 'is-peak' : ''} ${isLatest ? 'is-latest' : ''}" 
+          style="--dot-idx:${i};" 
+          cx="${p.x.toFixed(1)}" 
+          cy="${p.y.toFixed(1)}" 
+          r="${isPeak ? 5 : (isLatest ? 4.5 : 3.5)}" 
+          fill="${isPeak ? '#F59E0B' : (isLatest ? '#2563EB' : '#0F172A')}" 
+          stroke="#FFFFFF" 
+          stroke-width="2"
+          data-label="${esc(p.label)}"
+          data-val="${fmtVal(p.val)}"
+          data-tip="${esc(p.label)}: ${fmtVal(p.val)}"
+          onmouseenter="window.__showTrendTip(event,this)" 
+          onmouseleave="window.__hideTrendTip()"
+          ontouchstart="window.__showTrendTip(event,this)"/>
+      </g>
+    `;
+  }).join('');
 
   const xlabels = pts.map((p,i) => showIdx.has(i)
-    ? `<text x="${p.x.toFixed(1)}" y="${(pT+cH+18).toFixed(1)}" text-anchor="middle" font-size="8" fill="var(--ink-soft)" font-family="'Roboto Mono',monospace">${esc(p.label)}</text>`
+    ? `<text x="${p.x.toFixed(1)}" y="${(baseY + 16).toFixed(1)}" text-anchor="middle" font-size="8.5" fill="var(--ink-soft)" font-weight="600" font-family="'Roboto Mono',monospace">${esc(p.label)}</text>`
     : '').join('');
 
   // Calculate period percentage growth vs previous period for Green/Red Up/Down Trend Badges
@@ -688,21 +740,22 @@ function buildSalesTrendChartHtml() {
   }
 
   if (trendPctChange > 0) {
-    trendBadgeHtml = `<span style="display:inline-flex;align-items:center;gap:2px;padding:2px 7px;border-radius:999px;background:var(--leaf-soft);color:var(--leaf);font-size:0.7rem;font-weight:800;margin-left:6px;" title="Sales Growth vs Previous Period">▲ +${trendPctChange}%</span>`;
+    trendBadgeHtml = `<span style="display:inline-flex;align-items:center;gap:2px;padding:2px 7px;border-radius:999px;background:var(--leaf-soft);color:var(--leaf);font-size:0.7rem;font-weight:800;" title="Sales Growth vs Previous Period">▲ +${trendPctChange}%</span>`;
   } else if (trendPctChange < 0) {
-    trendBadgeHtml = `<span style="display:inline-flex;align-items:center;gap:2px;padding:2px 7px;border-radius:999px;background:var(--brick-soft);color:var(--brick);font-size:0.7rem;font-weight:800;margin-left:6px;" title="Sales Decline vs Previous Period">▼ ${trendPctChange}%</span>`;
+    trendBadgeHtml = `<span style="display:inline-flex;align-items:center;gap:2px;padding:2px 7px;border-radius:999px;background:var(--brick-soft);color:var(--brick);font-size:0.7rem;font-weight:800;" title="Sales Decline vs Previous Period">▼ ${trendPctChange}%</span>`;
   } else {
-    trendBadgeHtml = `<span style="display:inline-flex;align-items:center;gap:2px;padding:2px 7px;border-radius:999px;background:var(--paper-line);color:var(--ink-soft);font-size:0.7rem;font-weight:700;margin-left:6px;">▶ 0%</span>`;
+    trendBadgeHtml = `<span style="display:inline-flex;align-items:center;gap:2px;padding:2px 7px;border-radius:999px;background:var(--paper-line);color:var(--ink-soft);font-size:0.7rem;font-weight:700;">▶ 0%</span>`;
   }
 
   return `
   <div class="trend-chart-wrap">
     <div class="trend-chart-header">
       <div>
-        <div class="trend-chart-title" style="display:inline-flex;align-items:center;gap:6px;">${icon('sales', 14)} Sales Trend</div>
-        <div style="display:flex;align-items:center;gap:4px;margin-top:2px;">
-          <span style="font-size:0.95rem;font-weight:800;color:var(--ink);font-family:'Roboto Mono',monospace;">${fmtVal(totalPeriod)}</span>
-          <span style="font-size:0.68rem;font-weight:600;color:var(--ink-soft);font-family:'Roboto Mono',monospace;">${fmtVal(avgPeriod)} avg</span>
+        <div class="trend-chart-title" style="display:inline-flex;align-items:center;gap:6px;">${icon('sales', 14)} Sales Velocity & Trend</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:3px;flex-wrap:wrap;">
+          <span style="font-size:1.15rem;font-weight:800;color:var(--ink);font-family:'Roboto Mono',monospace;letter-spacing:-0.02em;">${fmtVal(totalPeriod)}</span>
+          <span class="trend-stat-chip">${fmtVal(avgPeriod)} avg</span>
+          ${peakVal > 0 ? `<span class="trend-stat-chip peak">Peak ${fmtVal(peakVal)}</span>` : ''}
           ${trendBadgeHtml}
         </div>
       </div>
@@ -715,14 +768,45 @@ function buildSalesTrendChartHtml() {
     <div style="position:relative;">
       <svg class="trend-chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
         <defs>
-          <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#0284C7" stop-opacity="0.22"/>
-            <stop offset="100%" stop-color="#0F172A" stop-opacity="0"/>
+          <linearGradient id="trendGradNew" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#1E3A6E" stop-opacity="0.30"/>
+            <stop offset="65%" stop-color="#2563EB" stop-opacity="0.08"/>
+            <stop offset="100%" stop-color="#1E3A6E" stop-opacity="0.0"/>
           </linearGradient>
+          <linearGradient id="trendStrokeGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#1E3A6E"/>
+            <stop offset="100%" stop-color="#2563EB"/>
+          </linearGradient>
+          <filter id="trendGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#1E3A6E" flood-opacity="0.22"/>
+          </filter>
         </defs>
-        <polygon class="trend-chart-area" points="${area}" fill="url(#trendGrad)"/>
-        <line x1="${pL}" y1="${avgY.toFixed(1)}" x2="${W-pR}" y2="${avgY.toFixed(1)}" stroke="var(--ink-soft)" stroke-width="1" stroke-dasharray="4 3" opacity="0.45"/>
-        <polyline class="trend-chart-line" points="${polyline}" fill="none" stroke="#0284C7" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+
+        <!-- Horizontal Reference Gridlines & Y-Axis Scale -->
+        <g class="trend-grid" opacity="0.7">
+          <line x1="${pL}" y1="${topY.toFixed(1)}" x2="${W - pR}" y2="${topY.toFixed(1)}" stroke="var(--paper-line)" stroke-dasharray="4 4" stroke-width="1"/>
+          <text x="${W - pR + 6}" y="${(topY + 3).toFixed(1)}" font-size="8.5" font-family="'Roboto Mono',monospace" fill="var(--ink-soft)" font-weight="600">${fmtVal(maxVal)}</text>
+          
+          <line x1="${pL}" y1="${midY.toFixed(1)}" x2="${W - pR}" y2="${midY.toFixed(1)}" stroke="var(--paper-line)" stroke-dasharray="4 4" stroke-width="1"/>
+          <text x="${W - pR + 6}" y="${(midY + 3).toFixed(1)}" font-size="8.5" font-family="'Roboto Mono',monospace" fill="var(--ink-soft)" font-weight="600">${fmtVal(maxVal / 2)}</text>
+
+          <line x1="${pL}" y1="${baseY.toFixed(1)}" x2="${W - pR}" y2="${baseY.toFixed(1)}" stroke="var(--paper-line)" stroke-width="1.2"/>
+          <text x="${W - pR + 6}" y="${(baseY + 3).toFixed(1)}" font-size="8.5" font-family="'Roboto Mono',monospace" fill="var(--ink-soft)" font-weight="600">₹0</text>
+        </g>
+
+        <!-- Dynamic Average Reference Line -->
+        <line x1="${pL}" y1="${avgY.toFixed(1)}" x2="${W - pR}" y2="${avgY.toFixed(1)}" stroke="#64748B" stroke-width="1" stroke-dasharray="3 3" opacity="0.5"/>
+
+        <!-- Interactive Crosshair Guideline -->
+        <line id="trendCrosshair" x1="0" y1="${topY}" x2="0" y2="${baseY}" stroke="#2563EB" stroke-width="1.2" stroke-dasharray="3 3" opacity="0" style="transition:opacity 0.15s ease;pointer-events:none;"/>
+
+        <!-- Shaded Cubic Gradient Area -->
+        <path class="trend-chart-area" d="${areaD}" fill="url(#trendGradNew)"/>
+
+        <!-- Luminous Bézier Spline Line -->
+        <path class="trend-chart-line" d="${pathD}" fill="none" stroke="url(#trendStrokeGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" filter="url(#trendGlow)"/>
+
+        <!-- Node Highlights & Labels -->
         ${dots}${xlabels}
       </svg>
       <div class="trend-tooltip" id="trendTooltip"></div>
@@ -732,25 +816,39 @@ function buildSalesTrendChartHtml() {
 
 window.__showTrendTip = function(e, el) {
   const tip = document.getElementById('trendTooltip');
+  const ch  = document.getElementById('trendCrosshair');
   if (!tip) return;
-  tip.textContent = el.getAttribute('data-tip');
+  const label = el.getAttribute('data-label') || '';
+  const val   = el.getAttribute('data-val') || '';
+  tip.innerHTML = `<div style="font-size:0.65rem;color:#94A3B8;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;">${label}</div><div style="font-size:0.85rem;font-weight:800;color:#F8FAFC;font-family:'Roboto Mono',monospace;margin-top:1px;">${val}</div>`;
   tip.classList.add('show');
+
+  const cx = parseFloat(el.getAttribute('cx'));
+  const cy = parseFloat(el.getAttribute('cy'));
+  if (ch) {
+    ch.setAttribute('x1', cx);
+    ch.setAttribute('x2', cx);
+    ch.style.opacity = '0.65';
+  }
+
   const wrap = el.closest('.trend-chart-wrap');
   const svg  = el.closest('svg');
   if (!wrap || !svg) return;
   const wRect = wrap.getBoundingClientRect();
   const sRect = svg.getBoundingClientRect();
   const vb    = svg.viewBox.baseVal;
-  const scX   = sRect.width / vb.width;
-  const scY   = sRect.height / vb.height;
-  const cx    = parseFloat(el.getAttribute('cx'));
-  const cy    = parseFloat(el.getAttribute('cy'));
-  tip.style.left = `${Math.max(4, Math.min(sRect.left - wRect.left + cx*scX - 40, wRect.width - 90))}px`;
-  tip.style.top  = `${sRect.top - wRect.top + cy*scY - 36}px`;
+  const scX   = sRect.width / (vb.width || 640);
+  const scY   = sRect.height / (vb.height || 175);
+  const tipX  = sRect.left - wRect.left + cx * scX;
+  const tipY  = sRect.top - wRect.top + cy * scY;
+  tip.style.left = `${Math.max(6, Math.min(tipX - 45, wRect.width - 110))}px`;
+  tip.style.top  = `${Math.max(4, tipY - 46)}px`;
 };
 window.__hideTrendTip = function() {
-  const t = document.getElementById('trendTooltip');
+  const t  = document.getElementById('trendTooltip');
+  const ch = document.getElementById('trendCrosshair');
   if (t) t.classList.remove('show');
+  if (ch) ch.style.opacity = '0';
 };
 
 
