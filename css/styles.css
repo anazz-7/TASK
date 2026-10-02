@@ -2,12 +2,13 @@
   /* Base Spacing Scale: 4px → 8px → 12px → 16px → 24px → 32px → 40px → 48px */
   
   body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, label, p, span, div, a, td, th, b, strong, small {
-    font-family: 'Roboto Mono', monospace, sans-serif !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.03em;
+    font-family: var(--font-sans);
+    letter-spacing: normal;
   }
 
   :root {
+    --font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     --paper: #F8FAFC;
     --paper-line: #DCE6F5;
     --card: #FFFFFF;
@@ -51,16 +52,19 @@
     margin: 0;
     background: var(--paper);
     color: var(--ink);
-    font-family: 'Roboto Mono', monospace !important;
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
-    text-transform: uppercase !important;
+    -moz-osx-font-smoothing: grayscale;
     text-align: left;
   }
   
   button, input, select, textarea {
     transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
-    font-family: 'Roboto Mono', monospace !important;
-    text-transform: uppercase !important;
+    font-family: var(--font-sans);
+  }
+
+  input, select, textarea {
+    text-transform: none !important;
   }
   
   /* ── Layout Containers ──────────────────────────────────── */
@@ -125,12 +129,12 @@
   }
   
   header.top h1 {
-    font-family: 'Roboto Mono', monospace !important;
-    font-size: 1.35rem;
+    font-family: var(--font-sans);
+    font-size: 1.25rem;
     font-weight: 700;
-    margin: 0 0 4px;
-    letter-spacing: 0.02em;
-    text-transform: uppercase !important;
+    margin: 0 0 2px;
+    letter-spacing: -0.015em;
+    text-transform: none;
     text-align: left;
   }
   
@@ -138,7 +142,7 @@
     margin: 0;
     color: var(--ink-soft);
     font-size: 0.78rem;
-    text-transform: uppercase !important;
+    text-transform: none;
     text-align: left;
   }
   
@@ -162,9 +166,9 @@
     align-items: center !important;
     justify-content: center !important;
     border-radius: 8px !important;
-    font-family: 'Roboto Mono', monospace !important;
-    font-size: 0.75rem !important;
-    font-weight: 700 !important;
+    font-family: var(--font-sans) !important;
+    font-size: 0.78rem !important;
+    font-weight: 600 !important;
     line-height: 1 !important;
     vertical-align: middle !important;
     margin: 0 !important;
@@ -191,10 +195,10 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    font-family: 'Roboto Mono', monospace !important;
-    font-weight: 700;
-    font-size: 0.78rem;
-    text-transform: uppercase !important;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: none;
     background: var(--ink);
     color: #FFFFFF;
     border: 1.5px solid var(--ink);
@@ -245,11 +249,11 @@
   }
   
   nav.tabs button {
-    font-family: 'Roboto Mono', monospace !important;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase !important;
+    font-family: var(--font-sans);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-transform: none;
     padding: 8px 16px;
     border-radius: 999px;
     border: 1.5px solid var(--paper-line);
@@ -280,7 +284,7 @@
     text-align: left;
   }
   
-  .section-label a { color: var(--turmeric-dark); font-weight: 700; cursor: pointer; text-decoration: none; text-transform: uppercase !important; }
+  .section-label a { color: var(--turmeric-dark); font-weight: 600; cursor: pointer; text-decoration: none; text-transform: none; }
   
   /* Strict Card Radius: 12px, Card Padding: 16px */
   .row-card {
@@ -364,26 +368,26 @@
   .row-main h3 {
     margin: 0 0 4px;
     font-size: 0.95rem;
-    font-weight: 700;
-    line-height: 1.3;
+    font-weight: 600;
+    line-height: 1.35;
     display: flex;
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
-    text-transform: uppercase !important;
+    text-transform: none;
     text-align: left;
   }
   
   .row-main .meta {
-    font-family: 'Roboto Mono', monospace !important;
-    font-size: 0.72rem;
+    font-family: var(--font-sans);
+    font-size: 0.74rem;
     color: var(--ink-soft);
     display: flex;
     align-items: center;
     gap: 12px;
     flex-wrap: wrap;
     margin-bottom: 4px;
-    text-transform: uppercase !important;
+    text-transform: none;
     text-align: left;
   }
   
@@ -393,7 +397,7 @@
     margin-top: 4px;
     line-height: 1.4;
     word-break: break-word;
-    text-transform: uppercase !important;
+    text-transform: none;
     text-align: left;
   }
   
@@ -432,8 +436,8 @@
   .row-actions { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
   .icon-btn { border: none; background: none; cursor: pointer; font-size: 0.82rem; padding: 4px; color: var(--ink-soft); display: inline-flex; align-items: center; justify-content: center; }
   
-  .wa-btn { background: var(--turmeric); color: #FFFFFF; border: none; border-radius: 8px !important; padding: 8px 12px; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; text-transform: uppercase !important; }
-  .attend-btn { border: 1.5px solid var(--paper-line); background: #FFFFFF; border-radius: 8px !important; padding: 8px 12px; font-size: 0.76rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; text-transform: uppercase !important; }
+  .wa-btn { background: var(--turmeric); color: #FFFFFF; border: none; border-radius: 8px !important; padding: 8px 12px; font-size: 0.78rem; font-weight: 600; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; text-transform: none; font-family: var(--font-sans); }
+  .attend-btn { border: 1.5px solid var(--paper-line); background: #FFFFFF; border-radius: 8px !important; padding: 8px 12px; font-size: 0.76rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; text-transform: none; font-family: var(--font-sans); }
   .attend-btn.present.active { background: var(--leaf); border-color: var(--leaf); color: #FFFFFF; }
   .attend-btn.absent.active { background: var(--brick); border-color: var(--brick); color: #FFFFFF; }
   
@@ -445,7 +449,8 @@
     font-size: 0.85rem;
     border: 1.5px dashed var(--paper-line);
     border-radius: 12px !important;
-    text-transform: uppercase !important;
+    text-transform: none;
+    font-family: var(--font-sans);
   }
   
   /* ── Modals ──────────────────────────────────────────────── */
@@ -493,38 +498,38 @@
   .overlay.show .modal { transform: scale(1); }
 
   .modal h2 {
-    font-family: 'Roboto Mono', monospace !important;
-    font-size: 0.95rem !important;
+    font-family: var(--font-sans);
+    font-size: 1.1rem !important;
     font-weight: 700;
     margin: 0 0 12px !important;
-    text-transform: uppercase !important;
+    text-transform: none;
     text-align: left;
     line-height: 1.3;
   }
   
   label {
     display: block;
-    font-size: 0.7rem !important;
-    font-weight: 700;
+    font-size: 0.72rem !important;
+    font-weight: 600;
     color: var(--ink-soft);
     margin: 10px 0 4px !important;
-    font-family: 'Roboto Mono', monospace !important;
-    letter-spacing: 0.04em;
-    text-transform: uppercase !important;
+    font-family: var(--font-sans);
+    letter-spacing: normal;
+    text-transform: none;
     text-align: left;
   }
   
   /* Strict Input Radius: 8px */
   input, select, textarea {
     width: 100%;
-    padding: 8px 11px !important;
+    padding: 9px 12px !important;
     border-radius: 8px !important;
     border: 1.5px solid var(--paper-line);
     background: #FFFFFF;
-    font-family: 'Roboto Mono', monospace !important;
-    font-size: 0.85rem !important;
+    font-family: var(--font-sans);
+    font-size: 0.88rem !important;
     color: var(--ink);
-    text-transform: uppercase !important;
+    text-transform: none !important;
     box-sizing: border-box;
     text-align: left;
   }
@@ -537,14 +542,14 @@
   .fab:active { transform: scale(0.92); }
   .two-col { display: flex; gap: 12px; align-items: center; }
   .two-col > div { flex: 1; }
-  small.hint { display: block; margin-top: 6px; color: var(--ink-soft); font-size: 0.72rem; text-transform: uppercase !important; text-align: left; }
+  small.hint { display: block; margin-top: 6px; color: var(--ink-soft); font-size: 0.72rem; text-transform: none; text-align: left; }
   
   /* Auth Screen Centered */
   .center-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
   .auth-card { background: var(--card); border: 1.5px solid var(--paper-line); border-radius: 16px !important; padding: 32px 24px !important; max-width: 380px; width: 100%; text-align: center !important; }
-  .auth-card h1 { font-family: 'Roboto Mono', monospace !important; font-size: 1.3rem; margin: 0 0 8px; text-transform: uppercase !important; text-align: center !important; }
-  .auth-card p { color: var(--ink-soft); font-size: 0.82rem; margin: 0 0 24px; text-transform: uppercase !important; text-align: center !important; }
-  .err { color: var(--brick); font-size: 0.8rem; margin-top: 12px; text-transform: uppercase !important; }
+  .auth-card h1 { font-family: var(--font-sans); font-size: 1.35rem; font-weight: 700; margin: 0 0 8px; text-transform: none; text-align: center !important; }
+  .auth-card p { color: var(--ink-soft); font-size: 0.85rem; margin: 0 0 24px; text-transform: none; text-align: center !important; }
+  .err { color: var(--brick); font-size: 0.8rem; margin-top: 12px; text-transform: none; }
   
   .kv {
     display: flex;
@@ -554,14 +559,14 @@
     padding: 4px 0;
     width: 100%;
     gap: 12px;
-    text-transform: uppercase !important;
+    text-transform: none;
     text-align: left;
   }
   
-  .kv b { font-family: 'Roboto Mono', monospace !important; font-weight: 700; text-align: right; }
+  .kv b { font-family: var(--font-mono); font-weight: 700; text-align: right; }
   .role-pill { font-family: 'Roboto Mono', monospace !important; font-size: 0.65rem; text-transform: uppercase !important; background: var(--ink); color: #FFFFFF; padding: 4px 8px; border-radius: 6px !important; margin-left: 8px; display: inline-flex; align-items: center; justify-content: center; }
   .role-pill.owner { background: var(--turmeric); }
-  a.link { color: var(--turmeric-dark); font-weight: 700; cursor: pointer; text-decoration: none; font-size: 0.85rem; text-transform: uppercase !important; }
+  a.link { color: var(--turmeric-dark); font-weight: 600; cursor: pointer; text-decoration: none; font-size: 0.85rem; text-transform: none; }
   
   /* Stat Cards: Strict 12px Radius, 16px Padding */
   .stat-grid {
@@ -593,15 +598,15 @@
   .leaderboard-card.top { background: linear-gradient(135deg, var(--blue-soft), var(--card)); border-color: var(--turmeric); }
   .leaderboard-card.me { border-color: var(--turmeric); border-width: 2px; }
   .leaderboard-rank { font-family: 'Roboto Mono', monospace !important; font-weight: 700; color: var(--ink-soft); font-size: 0.85rem; width: 24px; text-align: center; flex-shrink: 0; }
-  .leaderboard-name { font-weight: 700; font-size: 0.95rem; text-transform: uppercase !important; text-align: left; }
-  .leaderboard-meta { font-family: 'Roboto Mono', monospace !important; font-size: 0.68rem; color: var(--ink-soft); margin-top: 2px; text-transform: uppercase !important; text-align: left; }
+  .leaderboard-name { font-family: var(--font-sans); font-weight: 600; font-size: 0.95rem; text-transform: none; text-align: left; }
+  .leaderboard-meta { font-family: var(--font-sans); font-size: 0.72rem; color: var(--ink-soft); margin-top: 2px; text-transform: none; text-align: left; }
   .leaderboard-points { font-family: 'Roboto Mono', monospace !important; font-weight: 700; font-size: 1.1rem; color: var(--turmeric-dark); flex-shrink: 0; }
   
   .drawer-overlay { position: fixed; inset: 0; background: rgba(32,38,47,0.45); z-index: 80; opacity: 0; visibility: hidden; transition: opacity 0.2s ease; }
   .drawer-overlay.show { opacity: 1; visibility: visible; }
   .drawer { position: fixed; top: 0; left: 0; bottom: 0; width: 78%; max-width: 300px; background: var(--paper); z-index: 81; transform: translateX(-100%); transition: transform 0.25s ease; overflow-y: auto; padding: 24px 16px calc(24px + env(safe-area-inset-bottom)); text-align: left; }
   .drawer-overlay.show .drawer { transform: translateX(0); }
-  .drawer-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 8px !important; cursor: pointer; font-weight: 700; font-size: 0.88rem; text-transform: uppercase !important; text-align: left; }
+  .drawer-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 8px !important; cursor: pointer; font-weight: 600; font-size: 0.88rem; text-transform: none; text-align: left; font-family: var(--font-sans); }
   .drawer-item.active { background: var(--ink); color: #FFFFFF; }
   .drawer-item .ic { font-size: 1.1rem; width: 24px; text-align: center; display: inline-flex; align-items: center; justify-content: center; }
   
@@ -619,10 +624,10 @@
     border-top: 1px solid rgba(255, 255, 255, 0.15) !important;
     color: #FFFFFF !important;
     padding: 8px 14px calc(8px + env(safe-area-inset-bottom)) !important;
-    font-family: 'Roboto Mono', monospace !important;
-    font-size: 0.72rem !important;
-    font-weight: 700 !important;
-    text-transform: uppercase !important;
+    font-family: var(--font-sans) !important;
+    font-size: 0.76rem !important;
+    font-weight: 600 !important;
+    text-transform: none !important;
     box-shadow: 0 -4px 16px rgba(0,0,0,0.3) !important;
   }
 
@@ -631,7 +636,7 @@
 
   .header-icon-btn { background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--ink); padding: 8px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
   .badge-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--blue-soft); border: 1px solid var(--turmeric); color: var(--turmeric-dark); padding: 6px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; margin: 0 8px 8px 0; text-transform: uppercase !important; }
-  .celebrate-banner { position: fixed; top: 22%; left: 50%; transform: translateX(-50%); background: var(--ink); color: #FFFFFF; padding: 16px 32px; border-radius: 16px !important; font-family: 'Roboto Mono', monospace !important; font-weight: 700; font-size: 1.1rem; z-index: 300; box-shadow: 0 10px 30px rgba(0,0,0,0.35); animation: celebratePop 0.35s ease, celebrateFade 0.4s ease 1.25s forwards; text-transform: uppercase !important; }
+  .celebrate-banner { position: fixed; top: 22%; left: 50%; transform: translateX(-50%); background: var(--ink); color: #FFFFFF; padding: 16px 32px; border-radius: 16px !important; font-family: var(--font-sans); font-weight: 700; font-size: 1.1rem; z-index: 300; box-shadow: 0 10px 30px rgba(0,0,0,0.35); animation: celebratePop 0.35s ease, celebrateFade 0.4s ease 1.25s forwards; text-transform: none; }
   @keyframes celebratePop{from{transform:translateX(-50%) scale(0.6);opacity:0;}to{transform:translateX(-50%) scale(1);opacity:1;}}
   @keyframes celebrateFade{to{opacity:0;transform:translateX(-50%) scale(0.92);}}
   .confetti-piece{position:fixed;top:-24px;width:9px;height:15px;z-index:299;border-radius:2px;animation-name:confettiFall;animation-timing-function:cubic-bezier(.35,0,.65,1);animation-fill-mode:forwards;}
@@ -690,16 +695,16 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 10px 14px;
+      padding: 9px 12px;
       border-radius: 8px !important;
       border: none !important;
       background: transparent !important;
       color: var(--ink-soft);
       cursor: pointer;
-      font-weight: 700;
-      font-size: 0.82rem;
+      font-weight: 600;
+      font-size: 0.84rem;
       transition: all 0.15s ease;
-      text-transform: uppercase !important;
+      text-transform: none;
       width: 100%;
       text-align: left;
       box-shadow: none !important;
@@ -810,8 +815,8 @@
   .dash-kpi-sub {
     font-size: 0.68rem;
     color: var(--ink-soft);
-    font-weight: 700;
-    text-transform: uppercase !important;
+    font-weight: 600;
+    text-transform: none;
     text-align: left;
   }
 
@@ -829,14 +834,14 @@
     border-radius: 8px !important;
     padding: 5px 10px !important;
     font-size: 0.72rem !important;
-    font-family: 'Roboto Mono', monospace !important;
-    font-weight: 700 !important;
+    font-family: var(--font-sans) !important;
+    font-weight: 600 !important;
     cursor: pointer !important;
     color: var(--ink) !important;
     display: inline-flex !important;
     align-items: center !important;
     gap: 4px !important;
-    text-transform: uppercase !important;
+    text-transform: none !important;
     white-space: nowrap !important;
     transition: all 0.15s ease !important;
     box-shadow: 0 1px 2px rgba(0,0,0,0.06) !important;
@@ -871,16 +876,16 @@
   }
 
   .action-dropdown-menu button {
-    padding: 4px 9px !important;
+    padding: 5px 10px !important;
     border: 1px solid var(--paper-line) !important;
     border-radius: 999px !important;
     background: #FFFFFF !important;
-    font-family: 'Roboto Mono', monospace !important;
-    font-size: 0.7rem !important;
-    font-weight: 700 !important;
+    font-family: var(--font-sans) !important;
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
     color: var(--ink) !important;
     cursor: pointer !important;
-    text-transform: uppercase !important;
+    text-transform: none !important;
     display: inline-flex !important;
     align-items: center !important;
     gap: 4px !important;
@@ -1014,9 +1019,9 @@
     border-left: 5px solid var(--leaf) !important;
     border-radius: 12px !important;
     padding: 12px 16px !important;
-    font-family: 'Roboto Mono', monospace !important;
-    font-size: 0.8rem !important;
-    font-weight: 700 !important;
+    font-family: var(--font-sans) !important;
+    font-size: 0.82rem !important;
+    font-weight: 600 !important;
     box-shadow: 0 12px 32px rgba(15,23,42,0.18) !important;
     display: flex;
     align-items: center;
@@ -1025,7 +1030,7 @@
     animation: toastPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     position: relative;
     overflow: hidden;
-    text-transform: uppercase !important;
+    text-transform: none;
   }
   .toast-banner.toast-success { border-left-color: var(--leaf) !important; }
   .toast-banner.toast-warning { border-left-color: var(--turmeric) !important; }
@@ -1078,18 +1083,18 @@
     opacity: 0.85;
   }
   .empty-state-card .empty-title {
-    font-family: 'Roboto Mono', monospace !important;
-    font-weight: 800;
-    font-size: 0.92rem;
+    font-family: var(--font-sans);
+    font-weight: 700;
+    font-size: 0.95rem;
     color: var(--ink);
-    text-transform: uppercase !important;
+    text-transform: none;
   }
   .empty-state-card .empty-desc {
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     color: var(--ink-soft);
     max-width: 320px;
     line-height: 1.4;
-    text-transform: uppercase !important;
+    text-transform: none;
   }
 
   /* 9. Target Progress Bar Animations */
@@ -1232,13 +1237,13 @@
     border: 1.5px solid var(--turmeric);
     padding: 10px 16px;
     border-radius: 30px;
-    font-family: 'Roboto Mono', monospace !important;
-    font-weight: 700;
-    font-size: 0.82rem;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 0.84rem;
     box-shadow: 0 4px 18px rgba(0,0,0,0.18);
     cursor: pointer;
     white-space: nowrap;
-    text-transform: uppercase !important;
+    text-transform: none;
   }
   .owner-fab-btn {
     position: fixed;
@@ -1249,14 +1254,14 @@
     border: 1px solid rgba(255,255,255,0.3);
     border-radius: 24px;
     padding: 10px 16px;
-    font-family: 'Roboto Mono', monospace !important;
-    font-size: 0.78rem;
-    font-weight: 700;
+    font-family: var(--font-sans);
+    font-size: 0.82rem;
+    font-weight: 600;
     box-shadow: 0 4px 14px rgba(30,58,110,0.3);
     cursor: pointer;
     z-index: 44;
     transition: all 0.2s ease;
-    text-transform: uppercase !important;
+    text-transform: none;
   }
   @media (min-width: 900px) {
     .owner-fab-btn {
@@ -1758,8 +1763,8 @@
     opacity: 0;
     transform: translateY(6px) scale(0.95);
     transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    font-family: 'Roboto Mono', monospace;
-    text-transform: uppercase;
+    font-family: var(--font-sans);
+    text-transform: none;
     box-shadow: 0 10px 25px rgba(0,0,0,0.25);
     border: 1px solid rgba(255,255,255,0.15);
   }
@@ -1870,10 +1875,10 @@
     border: 1.5px solid var(--paper-line);
     border-radius: 8px;
     padding: 10px 16px;
-    font-size: 0.78rem;
-    font-weight: 700;
-    font-family: 'Roboto Mono', monospace;
-    text-transform: uppercase;
+    font-size: 0.82rem;
+    font-weight: 600;
+    font-family: var(--font-sans);
+    text-transform: none;
     cursor: pointer;
     transition: all 0.2s ease;
     width: 100%;

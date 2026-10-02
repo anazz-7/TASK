@@ -3324,7 +3324,7 @@ window.__openImportCustomerJsonModal = function() {
         <div id="vyaparFileLoadedStatus" style="display:none;margin-bottom:12px;padding:8px 12px;background:#e2e8f0;border-radius:6px;font-size:0.8rem;color:var(--ink);font-weight:700;"></div>
 
         <div style="margin-bottom:12px;">
-          <label style="font-size:0.78rem;font-weight:700;color:var(--ink);">PAYMENT DUES HANDLING ON IMPORT:</label>
+          <label style="font-size:0.78rem;font-weight:600;color:var(--ink);">Payment Dues Handling on Import:</label>
           <select id="importPaymentDuesMode" style="width:100%;padding:9px;border-radius:6px;border:1.5px solid var(--paper-line);font-size:0.82rem;">
             <option value="auto">Auto-Detect Dues from Vyapar Balance / Receivable Columns</option>
             <option value="dues">Mark Dues Pending for All Imported Records</option>
@@ -3332,7 +3332,7 @@ window.__openImportCustomerJsonModal = function() {
           </select>
         </div>
 
-        <label style="font-size:0.78rem;font-weight:700;color:var(--ink);">OR PASTE RAW CSV / TEXT / JSON DATA:</label>
+        <label style="font-size:0.78rem;font-weight:600;color:var(--ink);">Or Paste Raw CSV / Text / JSON Data:</label>
         <textarea id="customerJsonInput" style="height:140px;font-family:monospace;font-size:0.8rem;" placeholder='Paste Vyapar Party List, CSV rows, or JSON here...'></textarea>
 
         <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
@@ -3471,65 +3471,65 @@ window.__openAddCustomerReportModal = function(editId) {
   modal.innerHTML = `
     <div class="modal">
       <h2>${existing ? 'Edit Customer Report' : 'Add Customer Profile'}</h2>
-      <label>CUSTOMER / PARTY NAME:</label>
-      <input type="text" id="custName" value="${esc(r.customer_name || '')}" placeholder="e.g. ROHIT TRADERS">
+      <label>Customer / Party Name:</label>
+      <input type="text" id="custName" value="${esc(r.customer_name || '')}" placeholder="e.g. Rohit Traders">
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div>
-          <label>PHONE NUMBER:</label>
+          <label>Phone Number:</label>
           <input type="text" id="custPhone" value="${esc(r.phone || '')}" placeholder="e.g. 9876543210">
         </div>
         <div>
-          <label>CITY / LOCATION:</label>
-          <input type="text" id="custCity" value="${esc(r.city || '')}" placeholder="e.g. MUMBAI">
+          <label>City / Location:</label>
+          <input type="text" id="custCity" value="${esc(r.city || '')}" placeholder="e.g. Mumbai">
         </div>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div>
-          <label>TOTAL SPENT (₹):</label>
+          <label>Total Spent (₹):</label>
           <input type="number" id="custSpent" value="${r.total_spent || ''}" placeholder="e.g. 48500">
         </div>
         <div>
-          <label>PENDING DUE AMOUNT (₹):</label>
+          <label>Pending Due Amount (₹):</label>
           <input type="number" id="custDueAmount" value="${r.due_amount !== undefined ? r.due_amount : ''}" placeholder="e.g. 9500 (0 if paid)">
         </div>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div>
-          <label>PAYMENT STATUS:</label>
+          <label>Payment Status:</label>
           <select id="custPaymentStatus">
-            <option value="SETTLED" ${r.payment_status==='SETTLED'||(!r.due_amount&&r.payment_status!=='DUE')?'selected':''}>SETTLED (PAID)</option>
-            <option value="DUE" ${r.payment_status==='DUE'||r.due_amount>0?'selected':''}>DUES PENDING</option>
+            <option value="SETTLED" ${r.payment_status==='SETTLED'||(!r.due_amount&&r.payment_status!=='DUE')?'selected':''}>Settled (Paid)</option>
+            <option value="DUE" ${r.payment_status==='DUE'||r.due_amount>0?'selected':''}>Dues Pending</option>
           </select>
         </div>
         <div>
-          <label>TOTAL ORDERS:</label>
+          <label>Total Orders:</label>
           <input type="number" id="custOrders" value="${r.total_orders || '1'}" placeholder="e.g. 12">
         </div>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div>
-          <label>SEGMENT:</label>
+          <label>Segment:</label>
           <select id="custSegment">
-            <option value="REGULAR" ${r.segment==='REGULAR'?'selected':''}>REGULAR</option>
+            <option value="REGULAR" ${r.segment==='REGULAR'?'selected':''}>Regular</option>
             <option value="VIP" ${r.segment==='VIP'?'selected':''}>VIP</option>
-            <option value="NEW" ${r.segment==='NEW'?'selected':''}>NEW</option>
-            <option value="INACTIVE" ${r.segment==='INACTIVE'?'selected':''}>INACTIVE</option>
+            <option value="NEW" ${r.segment==='NEW'?'selected':''}>New</option>
+            <option value="INACTIVE" ${r.segment==='INACTIVE'?'selected':''}>Inactive</option>
           </select>
         </div>
         <div>
-          <label>LAST ORDER DATE:</label>
+          <label>Last Order Date:</label>
           <input type="date" id="custLastDate" value="${r.last_order_date || ''}">
         </div>
       </div>
 
-      <label>PREFERRED ITEM / CATEGORY:</label>
-      <input type="text" id="custFavItem" value="${esc(r.favorite_item || '')}" placeholder="e.g. STAINLESS STEEL FLANGE 2 INCH">
+      <label>Preferred Item / Category:</label>
+      <input type="text" id="custFavItem" value="${esc(r.favorite_item || '')}" placeholder="e.g. Stainless Steel Flange 2 Inch">
 
-      <label>REMARKS / NOTES:</label>
+      <label>Remarks / Notes:</label>
       <textarea id="custNotes" placeholder="e.g. High volume buyer. Prefers Express delivery.">${esc(r.remarks || '')}</textarea>
 
       <div class="modal-actions">

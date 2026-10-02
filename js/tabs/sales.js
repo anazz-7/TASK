@@ -2451,12 +2451,12 @@ function renderAccEntryHtml(existing){
     <div class="row-card" style="flex-direction:column;align-items:stretch;padding:16px;box-sizing:border-box;">
       <!-- Date Navigation Bar -->
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:16px;background:var(--paper);padding:10px 14px;border-radius:10px;border:1.5px solid var(--paper-line);">
-        <button class="stamp-btn ghost small" style="flex-shrink:0;height:36px;padding:0 12px;" onclick="window.__shiftAccDate(-1)">‹ PREV</button>
+        <button class="stamp-btn ghost small" style="flex-shrink:0;height:36px;padding:0 12px;" onclick="window.__shiftAccDate(-1)">‹ Prev</button>
         <div style="text-align:center;flex:1;min-width:0;">
-          <input type="date" id="accDateInput" value="${accountsDate}" style="font-family:'Roboto Mono',monospace !important;font-weight:700;font-size:1.05rem;border:none;background:transparent;text-align:center;width:100%;text-transform:uppercase !important;">
-          <div style="font-size:0.72rem;color:var(--ink-soft);margin-top:2px;text-transform:uppercase !important;font-weight:600;">${new Date(accountsDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</div>
+          <input type="date" id="accDateInput" value="${accountsDate}" style="font-family:var(--font-mono) !important;font-weight:700;font-size:1.05rem;border:none;background:transparent;text-align:center;width:100%;">
+          <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;font-weight:600;">${new Date(accountsDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</div>
         </div>
-        <button class="stamp-btn ghost small" style="flex-shrink:0;height:36px;padding:0 12px;" onclick="window.__shiftAccDate(1)">NEXT ›</button>
+        <button class="stamp-btn ghost small" style="flex-shrink:0;height:36px;padding:0 12px;" onclick="window.__shiftAccDate(1)">Next ›</button>
       </div>
 
       ${statusBanner}
@@ -2466,56 +2466,56 @@ function renderAccEntryHtml(existing){
         ${ACC_FIELDS.filter(field => isOwner() || field.key !== 'total_sales').map(field => `
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px dashed var(--paper-line);width:100%;">
             <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;">
-              <div style="font-size:0.86rem;font-weight:700;color:var(--ink);text-transform:uppercase !important;line-height:1.3;margin-bottom:2px;">${field.label}</div>
-              <div style="font-size:0.68rem;color:var(--ink-soft);text-transform:uppercase !important;line-height:1.2;font-weight:500;">${field.hint}</div>
+              <div style="font-size:0.88rem;font-weight:600;color:var(--ink);line-height:1.3;margin-bottom:2px;">${field.label}</div>
+              <div style="font-size:0.72rem;color:var(--ink-soft);line-height:1.2;font-weight:500;">${field.hint}</div>
             </div>
-            <input type="number" step="0.01" inputmode="decimal" placeholder="0" id="accField_${field.key}" value="${f[field.key] != null ? f[field.key] : ''}" ${isLockedForNonOwner ? 'disabled style="opacity:0.6;width:130px;flex-shrink:0;text-align:right;font-weight:700;padding:9px 12px;border:1.5px solid var(--paper-line);border-radius:8px;background:var(--paper);text-transform:uppercase !important;box-sizing:border-box;"' : 'style="width:130px;flex-shrink:0;text-align:right;font-weight:700;padding:9px 12px;border:1.5px solid var(--paper-line);border-radius:8px;background:var(--paper);text-transform:uppercase !important;box-sizing:border-box;"'}>
+            <input type="number" step="0.01" inputmode="decimal" placeholder="0" id="accField_${field.key}" value="${f[field.key] != null ? f[field.key] : ''}" ${isLockedForNonOwner ? 'disabled style="opacity:0.6;width:130px;flex-shrink:0;text-align:right;font-weight:700;font-family:var(--font-mono);padding:9px 12px;border:1.5px solid var(--paper-line);border-radius:8px;background:var(--paper);box-sizing:border-box;"' : 'style="width:130px;flex-shrink:0;text-align:right;font-weight:700;font-family:var(--font-mono);padding:9px 12px;border:1.5px solid var(--paper-line);border-radius:8px;background:var(--paper);box-sizing:border-box;"'}>
           </div>
         `).join('')}
       </div>
 
       <!-- Notes / Comments -->
       <div style="margin-top:16px;width:100%;">
-        <label style="margin-bottom:6px;">NOTES / REMARKS</label>
-        <textarea id="accNotes" placeholder="OPTIONAL NOTES FOR TODAY'S CASH TALLY..." ${isLockedForNonOwner ? 'disabled' : ''} style="width:100%;box-sizing:border-box;">${f.notes ? esc(f.notes) : ''}</textarea>
+        <label style="margin-bottom:6px;font-size:0.82rem;font-weight:600;">Notes / Remarks</label>
+        <textarea id="accNotes" placeholder="Optional notes for today's cash tally..." ${isLockedForNonOwner ? 'disabled' : ''} style="width:100%;box-sizing:border-box;">${f.notes ? esc(f.notes) : ''}</textarea>
       </div>
 
       ${isOwner() ? `
       ${(isOwner() && accountsDate < todayStr()) ? `
         <div style="margin-top:12px;margin-bottom:8px;width:100%;">
           <button class="stamp-btn ghost small" style="width:100%;font-size:0.8rem;padding:9px 0;${isDateUnlockedForStaff(accountsDate)?'color:var(--turmeric);border-color:var(--turmeric);':'color:var(--turmeric);border-color:var(--turmeric);'}" onclick="window.__toggleOwnerManualUnlock('${accountsDate}')">
-            ${isDateUnlockedForStaff(accountsDate) ? 'DATE IS UNLOCKED FOR STAFF EDIT — TAP TO LOCK' : 'DATE IS LOCKED FOR STAFF EDIT — TAP TO UNLOCK'}
+            ${isDateUnlockedForStaff(accountsDate) ? 'Date is Unlocked for Staff Edit — Tap to Lock' : 'Date is Locked for Staff Edit — Tap to Unlock'}
           </button>
         </div>` : ''}
       <!-- Live Summary Bar Pinned Footer for Owner -->
       <div style="margin-top:16px;background:var(--card);border:2px solid var(--paper-line);border-radius:12px;padding:16px;box-shadow:0 4px 12px rgba(0,0,0,0.05);width:100%;box-sizing:border-box;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
           <div class="kv" style="flex-direction:column;align-items:flex-start;gap:2px;">
-            <span style="font-size:0.68rem;font-weight:700;color:var(--ink-soft);">CALCULATED TOTAL</span>
+            <span style="font-size:0.72rem;font-weight:600;color:var(--ink-soft);">Calculated Total</span>
             <b id="accSumTotal" style="font-family:'Roboto Mono',monospace !important;font-size:1.25rem;color:var(--turmeric-dark);font-weight:700;">₹${totals.total.toFixed(0)}</b>
           </div>
           <div class="kv" style="flex-direction:column;align-items:flex-start;gap:2px;">
-            <span style="font-size:0.68rem;font-weight:700;color:var(--ink-soft);">TOTAL SALES</span>
+            <span style="font-size:0.72rem;font-weight:600;color:var(--ink-soft);">Total Sales</span>
             <b style="font-family:'Roboto Mono',monospace !important;font-size:1.25rem;font-weight:700;">₹${totals.totalSales.toFixed(0)}</b>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--paper-line);">
           <div class="kv" style="flex-direction:column;align-items:flex-start;gap:2px;">
-            <span style="font-size:0.68rem;font-weight:700;color:var(--ink-soft);">EXCESS (SURPLUS)</span>
+            <span style="font-size:0.72rem;font-weight:600;color:var(--ink-soft);">Excess (Surplus)</span>
             <b id="accSumExcess" style="font-family:'Roboto Mono',monospace !important;font-size:1.15rem;font-weight:700;color:var(--turmeric);">₹${totals.excess.toFixed(0)}</b>
           </div>
           <div class="kv" style="flex-direction:column;align-items:flex-start;gap:2px;">
-            <span style="font-size:0.68rem;font-weight:700;color:var(--ink-soft);">LESS (SHORTAGE)</span>
+            <span style="font-size:0.72rem;font-weight:600;color:var(--ink-soft);">Less (Shortage)</span>
             <b id="accSumLess" style="font-family:'Roboto Mono',monospace !important;font-size:1.15rem;font-weight:700;color:var(--turmeric);">₹${totals.less.toFixed(0)}</b>
           </div>
         </div>
 
         <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;">
           <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;width:100%;">
-            <button class="stamp-btn" style="padding:12px 0;font-size:0.9rem;width:100%;" onclick="window.__saveAccEntry()">SAVE DAY'S ACCOUNT</button>
-            <button class="stamp-btn ghost" style="padding:12px 0;font-size:0.8rem;background:var(--blue-soft);color:var(--blue);border-color:var(--blue);width:100%;" onclick="window.__openChooseStaffSmsModal('summary')">SEND SMS</button>
+            <button class="stamp-btn" style="padding:12px 0;font-size:0.9rem;width:100%;" onclick="window.__saveAccEntry()">Save Day's Account</button>
+            <button class="stamp-btn ghost" style="padding:12px 0;font-size:0.8rem;background:var(--blue-soft);color:var(--blue);border-color:var(--blue);width:100%;" onclick="window.__openChooseStaffSmsModal('summary')">Send SMS</button>
           </div>
-          <button class="stamp-btn ghost" style="width:100%;padding:11px 0;font-size:0.8rem;background:var(--blue-soft);color:var(--turmeric-dark);border-color:var(--turmeric);" onclick="window.__openChooseStaffSmsModal('surplus')">CHOOSE STAFF & SEND SURPLUS/DEFICIT SMS</button>
+          <button class="stamp-btn ghost" style="width:100%;padding:11px 0;font-size:0.8rem;background:var(--blue-soft);color:var(--turmeric-dark);border-color:var(--turmeric);" onclick="window.__openChooseStaffSmsModal('surplus')">Choose Staff & Send Surplus/Deficit SMS</button>
         </div>
       </div>` : `
       <!-- Simple Data Entry Footer for Non-Owner Roles -->

@@ -1107,21 +1107,21 @@ function updateOfflineBadgeBar() {
     bar.innerHTML = `
       <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1;overflow:hidden;">
         <span style="color:#F59E0B;display:inline-flex;align-items:center;">${icon('alert', 15)}</span>
-        <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><b>${queue.length} ITEM(S) QUEUED FOR CLOUD SYNC</b> ${isOffline ? '(OFFLINE)' : ''}</span>
+        <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><b>${queue.length} item(s) queued for cloud sync</b> ${isOffline ? '(Offline)' : ''}</span>
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0;">
-        ${navigator.onLine ? `<button class="stamp-btn small" style="background:#F59E0B;color:#000;padding:2px 8px;font-size:0.68rem;font-weight:700;border:none;" onclick="event.stopPropagation();flushOfflineMutationQueue()">SYNC NOW</button>` : ''}
-        <button class="stamp-btn small ghost" style="color:#fff;border-color:rgba(255,255,255,0.3);padding:2px 8px;font-size:0.68rem;" onclick="event.stopPropagation();window.__openQueuedMutationsModal()">DETAILS</button>
+        ${navigator.onLine ? `<button class="stamp-btn small" style="background:#F59E0B;color:#000;padding:2px 8px;font-size:0.68rem;font-weight:700;border:none;" onclick="event.stopPropagation();flushOfflineMutationQueue()">Sync Now</button>` : ''}
+        <button class="stamp-btn small ghost" style="color:#fff;border-color:rgba(255,255,255,0.3);padding:2px 8px;font-size:0.68rem;" onclick="event.stopPropagation();window.__openQueuedMutationsModal()">Details</button>
       </div>
     `;
   } else {
     bar.innerHTML = `
       <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1;overflow:hidden;">
         <span style="color:#10B981;display:inline-flex;align-items:center;">${icon('check', 15)}</span>
-        <span style="color:rgba(255,255,255,0.85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><b>CLOUD DATA SYNCED (0 QUEUED)</b> &bull; AUTO-REFRESH ACTIVE</span>
+        <span style="color:rgba(255,255,255,0.85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><b>Cloud Data Synced (0 Queued)</b> &bull; Auto-refresh active</span>
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0;">
-        <button class="stamp-btn small ghost" style="color:#fff;border-color:rgba(255,255,255,0.3);padding:2px 8px;font-size:0.68rem;" onclick="event.stopPropagation();window.__openQueuedMutationsModal()">DETAILS</button>
+        <button class="stamp-btn small ghost" style="color:#fff;border-color:rgba(255,255,255,0.3);padding:2px 8px;font-size:0.68rem;" onclick="event.stopPropagation();window.__openQueuedMutationsModal()">Details</button>
       </div>
     `;
   }
