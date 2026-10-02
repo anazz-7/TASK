@@ -2207,46 +2207,111 @@ function renderShell(){
     </div>
   </div>
 
-  <!-- Mobile Bottom Nav -->
-  <div class="bottom-nav mobile-only" id="bottomNav"></div>
+  <!-- Mobile Bottom Navigation Bar (Image 2 Method) -->
+  <nav class="bottom-nav mobile-only" id="bottomNav"></nav>
 
-  <!-- Mobile Drawer Overlay -->
-  <div class="drawer-overlay" id="drawerOverlay">
-    <div class="drawer" onclick="event.stopPropagation()">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-        <div class="avatar-circle" style="width:44px;height:44px;">${initials(session.name)}</div>
-        <div><div style="font-weight:700;">${esc(session.name)}</div><span class="role-pill ${session.role}">${session.role}</span></div>
+  <!-- Mobile Bottom Sheet Navigation Menu (New Method replacing side-drawer) -->
+  <div class="nav-sheet-overlay" id="navSheetOverlay" onclick="window.__closeNavSheet()">
+    <div class="nav-sheet" onclick="event.stopPropagation()">
+      <div class="nav-sheet-handle"></div>
+
+      <div class="nav-sheet-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="nav-tile-squircle" style="background:#F0F4FA;color:#1E3A6E;width:38px;height:38px;border-radius:11px;">
+            ${icon('dashboard', 19)}
+          </div>
+          <div>
+            <div class="nav-sheet-header-title">Navigation Menu</div>
+            <div class="nav-sheet-header-sub">Tap any tile to navigate</div>
+          </div>
+        </div>
+        <button class="nav-sheet-close-btn" onclick="window.__closeNavSheet()" title="Close menu">
+          ${icon('close', 15)}
+        </button>
       </div>
-      <!-- Regrouped 5 Labeled Sections -->
-      <div style="display:flex;flex-direction:column;gap:12px;">
-        ${[
-          { section: 'Overview', keys: ['dashboard','reports','projects'] },
-          { section: 'Work', keys: ['tasks','daily','weekly','attendance'] },
-          { section: 'Sales', keys: ['sales'] },
-          { section: 'Money', keys: ['accounts','office_logs','pnl','vendors','salary'] },
-          { section: 'Admin', keys: ['staff','audit','settings'] }
-        ].map(grp => {
-          const validKeys = grp.keys.filter(k => tabs.includes(k));
-          if(!validKeys.length) return '';
+
+      ${(() => {
+        const pendingTasksCount = (cache.tasks || []).filter(t => !t.completed).length;
+        const todayRoutines = cache.routines || [];
+        const todayLogs = (cache.routineLogs || []).filter(l => l.date === todayStr());
+        const pendingRoutinesCount = Math.max(0, todayRoutines.length - todayRoutines.filter(r => todayLogs.some(l => l.routine_id === r.id)).length);
+        const lowStockCount = (cache.priceList || []).filter(p => p.stock !== undefined && p.stock !== null && Number(p.stock) <= Number(p.min_stock || 5)).length;
+
+        const renderNavSheetTile = (k) => {
+          const meta = TAB_META[k] || { icon: 'clipboard', label: k };
+          const isActive = activeTab === k;
+          let badgeHtml = '';
+          if (k === 'tasks' && pendingTasksCount > 0) {
+            badgeHtml = `<span class="nav-tile-badge">${pendingTasksCount > 99 ? '99+' : pendingTasksCount}</span>`;
+          } else if (k === 'daily' && pendingRoutinesCount > 0) {
+            badgeHtml = `<span class="nav-tile-badge">${pendingRoutinesCount > 99 ? '99+' : pendingRoutinesCount}</span>`;
+          } else if (k === 'low_stock' && lowStockCount > 0) {
+            badgeHtml = `<span class="nav-tile-badge">${lowStockCount}</span>`;
+          }
+          let displayLabel = meta.label;
+          if (k === 'dashboard') displayLabel = 'Overview';
+          if (k === 'pricelist') displayLabel = 'Products';
+          if (k === 'office_logs') displayLabel = 'Expenses';
+          if (k === 'pnl') displayLabel = 'Statements';
           return `
-            <div>
-              <div style="font-size:11px;color:var(--ink-soft);margin:0 0 6px 4px;font-family:'Roboto Mono',monospace;letter-spacing:0.04em;text-transform:uppercase;">${grp.section}</div>
-              <div style="display:flex;flex-direction:column;gap:2px;">
-                ${validKeys.map(k => `
-                  <div class="drawer-item ${activeTab===k?'active':''}" onclick="window.__setTab('${k}')">
-                    <span class="ic">${icon(TAB_META[k].icon,18)}</span>
-                    <span style="font-size:13px;">${TAB_META[k].label}</span>
-                  </div>
-                `).join('')}
+            <div class="nav-sheet-tile ${isActive ? 'active' : ''}" onclick="window.__setTab('${k}')">
+              ${badgeHtml}
+              <div class="nav-tile-squircle">
+                ${icon(meta.icon, 20)}
               </div>
+              <span class="nav-tile-label">${displayLabel}</span>
             </div>
           `;
-        }).join('')}
+        };
+
+        const workspaceKeys = ['dashboard', 'tasks', 'daily', 'weekly', 'attendance', 'sales', 'pricelist', 'label', 'package', 'stockkeeper', 'low_stock', 'projects', 'points', 'reports'].filter(k => tabs.includes(k));
+        const moneyKeys = ['accounts', 'office_logs', 'pnl', 'salary'].filter(k => tabs.includes(k));
+        const manageKeys = ['staff', 'audit', 'settings'].filter(k => tabs.includes(k));
+
+        return `
+          <!-- Section 1: WORKSPACE -->
+          <div class="nav-sheet-section-title">Workspace</div>
+          <div class="nav-sheet-grid">
+            ${workspaceKeys.map(renderNavSheetTile).join('')}
+          </div>
+
+          <!-- Section 2: MONEY & OPERATIONS -->
+          ${moneyKeys.length ? `
+          <div class="nav-sheet-section-title">Money &amp; Operations</div>
+          <div class="nav-sheet-grid">
+            ${moneyKeys.map(renderNavSheetTile).join('')}
+          </div>
+          ` : ''}
+
+          <!-- Section 3: MANAGE -->
+          <div class="nav-sheet-section-title">Manage</div>
+          <div class="nav-sheet-grid">
+            ${manageKeys.map(renderNavSheetTile).join('')}
+            <div class="nav-sheet-tile ${activeTab === 'account' ? 'active' : ''}" onclick="window.__openAccount();window.__closeNavSheet();">
+              <div class="nav-tile-squircle">${icon('user', 19)}</div>
+              <span class="nav-tile-label">My Account</span>
+            </div>
+            ${notifState === 'default' ? `
+            <div class="nav-sheet-tile" onclick="window.__reqNotif();window.__closeNavSheet();">
+              <div class="nav-tile-squircle">${icon('bell', 19)}</div>
+              <span class="nav-tile-label">Enable Alerts</span>
+            </div>` : ''}
+            <div class="nav-sheet-tile" onclick="window.__logout()" style="border-color:#FEE2E2;">
+              <div class="nav-tile-squircle" style="color:var(--turmeric);background:#FFFBEB;">${icon('logout', 19)}</div>
+              <span class="nav-tile-label" style="color:var(--turmeric);">Sign Out</span>
+            </div>
+          </div>
+        `;
+      })()}
+
+      <!-- Sheet Footer Status -->
+      <div class="nav-sheet-footer">
+        <div class="nav-sheet-sync-pill">
+          <span class="nav-sheet-sync-dot"></span>
+          <span>Cloud sync active</span>
+        </div>
+        <span class="nav-sheet-powered">Powered by BABM TASK</span>
       </div>
-      <div style="border-top:1px solid var(--paper-line);margin:12px 0;"></div>
-      <div class="drawer-item" onclick="window.__openAccount()"><span class="ic">${icon('user',18)}</span>My Account</div>
-      ${notifState==='default' ? `<div class="drawer-item" onclick="window.__reqNotif()"><span class="ic">${icon('bell',18)}</span>Enable alerts</div>` : ''}
-      <div class="drawer-item" style="color:var(--turmeric);" onclick="window.__logout()"><span class="ic">${icon('logout',18)}</span>Sign out</div>
     </div>
   </div>
 
@@ -2277,25 +2342,69 @@ function renderShell(){
 
   window.__logout = logout;
   window.__reqNotif = requestNotifications;
-  window.__openDrawer = () => { document.getElementById('drawerOverlay').classList.add('show'); };
-  document.getElementById('drawerOverlay').onclick = () => { document.getElementById('drawerOverlay').classList.remove('show'); };
+  window.__openNavSheet = () => {
+    const overlay = document.getElementById('navSheetOverlay');
+    if (overlay) overlay.classList.add('show');
+  };
+  window.__closeNavSheet = () => {
+    const overlay = document.getElementById('navSheetOverlay');
+    if (overlay) overlay.classList.remove('show');
+  };
+  window.__openDrawer = window.__openNavSheet;
+  window.__closeDrawer = window.__closeNavSheet;
+
   window.__setTab = (t) => {
     activeTab = t;
     const body = document.getElementById('tabBody');
     if (body && typeof window.__renderSkeletonHtml === 'function') {
       body.innerHTML = window.__renderSkeletonHtml(4);
     }
-    document.getElementById('drawerOverlay').classList.remove('show');
+    if (typeof window.__closeNavSheet === 'function') window.__closeNavSheet();
     renderShell();
     if (typeof window.__triggerPageTransition === 'function') window.__triggerPageTransition();
   };
 
-  const quick = quickTabs();
+  // Modern 5-Button Bottom Nav Bar Population
   const bNav = document.getElementById('bottomNav');
-  if(bNav) {
-    bNav.innerHTML = quick.map(t=>
-      `<button class="${activeTab===t?'active':''}" onclick="window.__setTab('${t}')"><span class="ic">${icon(TAB_META[t].icon,18)}</span>${TAB_META[t].label}</button>`
-    ).join('') + `<button class="${activeTab==='account'?'active':''}" onclick="window.__openDrawer()"><span class="ic">${icon('menu',18)}</span>More</button>`;
+  if (bNav) {
+    const pendingTasksCount = (cache.tasks || []).filter(t => !t.completed).length;
+    const todayRoutines = cache.routines || [];
+    const todayLogs = (cache.routineLogs || []).filter(l => l.date === todayStr());
+    const pendingRoutinesCount = Math.max(0, todayRoutines.length - todayRoutines.filter(r => todayLogs.some(l => l.routine_id === r.id)).length);
+
+    const bottomPrimaryTabs = (session.role === 'sales' || session.role === 'salesman')
+      ? ['pricelist', 'tasks', 'sales', 'accounts']
+      : ['dashboard', 'tasks', 'daily', 'sales'];
+
+    const isMenuTabActive = !bottomPrimaryTabs.includes(activeTab);
+
+    const getTabBadge = (t) => {
+      if (t === 'tasks' && pendingTasksCount > 0) return `<span class="bnav-badge">${pendingTasksCount > 99 ? '99+' : pendingTasksCount}</span>`;
+      if (t === 'daily' && pendingRoutinesCount > 0) return `<span class="bnav-badge">${pendingRoutinesCount > 99 ? '99+' : pendingRoutinesCount}</span>`;
+      return '';
+    };
+    const getTabLabel = (t) => {
+      if (t === 'dashboard') return 'Home';
+      if (t === 'pricelist') return 'Products';
+      return TAB_META[t] ? TAB_META[t].label : t;
+    };
+
+    bNav.innerHTML = bottomPrimaryTabs.map(t => `
+      <button class="bnav-btn ${activeTab === t ? 'active' : ''}" onclick="window.__setTab('${t}')">
+        <div class="bnav-ic-box">
+          ${icon(TAB_META[t].icon, 19)}
+          ${getTabBadge(t)}
+        </div>
+        <span>${getTabLabel(t)}</span>
+      </button>
+    `).join('') + `
+      <button class="bnav-btn ${isMenuTabActive ? 'active' : ''}" onclick="window.__openNavSheet()">
+        <div class="bnav-ic-box">
+          ${icon('menu', 19)}
+        </div>
+        <span>Overview</span>
+      </button>
+    `;
   }
   renderTabBody();
 }
