@@ -86,6 +86,75 @@ window.__toggleCompactView = function() {
   }
 };
 
+/* ---------------- EXECUTIVE PRIVACY MODE (Feature 1) ---------------- */
+let privacyMode = false;
+try {
+  privacyMode = localStorage.getItem('babm_privacy_mode') === 'true';
+} catch(e){}
+window.__privacyMode = privacyMode;
+
+function applyPrivacyClass() {
+  if (typeof document !== 'undefined' && document.body) {
+    if (window.__privacyMode) document.body.classList.add('privacy-mode');
+    else document.body.classList.remove('privacy-mode');
+  }
+}
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyPrivacyClass);
+  } else {
+    applyPrivacyClass();
+  }
+}
+
+window.__togglePrivacyMode = function() {
+  privacyMode = !privacyMode;
+  window.__privacyMode = privacyMode;
+  try {
+    localStorage.setItem('babm_privacy_mode', privacyMode ? 'true' : 'false');
+  } catch(e){}
+  applyPrivacyClass();
+  if (typeof window.__vibrate === 'function') window.__vibrate(20);
+  if (typeof window.showToast === 'function') {
+    window.showToast(privacyMode ? 'Privacy Mode ON: Digits masked' : 'Privacy Mode OFF: Digits revealed', 'info');
+  }
+  renderShell();
+};
+
+window.maskFinance = function(formattedStr) {
+  if (window.__privacyMode) return '₹••••••';
+  return formattedStr;
+};
+
+/* ---------------- MEANINGFUL EMPTY STATE COMPONENT (Feature 5) ---------------- */
+window.renderEmptyState = function(iconName, title, subtitle, colorTheme) {
+  const themeClass = colorTheme || 'green';
+  return `
+    <div class="empty-state">
+      <div class="empty-state-icon-box ${themeClass}">
+        ${icon(iconName || 'checkDouble', 22)}
+      </div>
+      <div class="empty-state-title">${esc(title || 'All Caught Up!')}</div>
+      <div class="empty-state-sub">${esc(subtitle || 'No pending items found at this time.')}</div>
+    </div>
+  `;
+};
+
+/* ---------------- NUMERIC KEYPAD AUTO-ENHANCER (Feature 3) ---------------- */
+if (typeof document !== 'undefined') {
+  document.addEventListener('focusin', function(e) {
+    const t = e.target;
+    if (t && t.tagName === 'INPUT') {
+      const isNumType = t.type === 'number';
+      const isNumName = /(amount|price|qty|sales|bonus|val|cost|cash|upi|salary|target|stock|count)/i.test(t.id || t.name || t.placeholder || '');
+      if ((isNumType || isNumName) && !t.getAttribute('inputmode')) {
+        const step = t.getAttribute('step');
+        t.setAttribute('inputmode', (step && step !== '1') ? 'decimal' : 'numeric');
+      }
+    }
+  }, true);
+}
+
 function showLoading(msg) {
   const tabBody = document.getElementById('tabBody');
   if (tabBody && typeof window.__renderSkeletonHtml === 'function') {
@@ -2206,6 +2275,11 @@ function renderShell(){
           <button class="reload-btn" title="Refresh App Data" onclick="window.__reloadAppData(this)">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3L21.5 8M22 12.5a10 10 0 0 1-18.8 4.3L2.5 16"/></svg>
           </button>
+          ${isOwner() ? `
+          <button class="privacy-toggle-btn ${window.__privacyMode ? 'active-mask' : ''}" title="${window.__privacyMode ? 'Privacy Mode Active (Tap to reveal financial figures)' : 'Hide Financial Digits (Privacy Mode)'}" onclick="window.__togglePrivacyMode()">
+            ${window.__privacyMode ? icon('eyeSlash', 16) : icon('eye', 16)}
+          </button>
+          ` : ''}
           ${isManagerPlus() ? `<button class="stamp-btn compact-mobile" style="background:var(--turmeric-dark);color:#fff;border-color:var(--turmeric-dark);" onclick="window.__openQuickTaskModal()"><span class="btn-short" style="display:inline-flex;align-items:center;justify-content:center;">${icon('zap', 14)}</span><span class="btn-text" style="display:inline-flex;align-items:center;gap:4px;">${icon('zap', 14)} Quick Add</span></button>` : ''}
           ${getPrimaryActionBtn(activeTab)}
           <button class="avatar-circle mobile-only" style="width:34px;height:34px;font-size:0.75rem;border:none;cursor:pointer;" onclick="window.__openAccount()">${initials(session.name)}</button>

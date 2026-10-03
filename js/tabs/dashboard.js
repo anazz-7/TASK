@@ -52,13 +52,18 @@ function buildPinnedIncentiveTargetWidgetHtml(curMonth, monthSales) {
   const pct = Math.min(100, Math.round((achievedSales / Math.max(1, targetVal)) * 100));
   const remaining = Math.max(0, targetVal - achievedSales);
 
+  const fmtAchieved = window.maskFinance ? window.maskFinance(`₹${achievedSales.toLocaleString('en-IN')}`) : `₹${achievedSales.toLocaleString('en-IN')}`;
+  const fmtTarget = window.maskFinance ? window.maskFinance(`₹${targetVal.toLocaleString('en-IN')}`) : `₹${targetVal.toLocaleString('en-IN')}`;
+  const fmtBonus = window.maskFinance ? window.maskFinance(`₹${incentiveBonus.toLocaleString('en-IN')}`) : `₹${incentiveBonus.toLocaleString('en-IN')}`;
+  const fmtRemaining = window.maskFinance ? window.maskFinance(`₹${remaining.toLocaleString('en-IN')}`) : `₹${remaining.toLocaleString('en-IN')}`;
+
   const subTextHtml = isOwnerUser
-    ? `Reach goal to unlock <b style="color:#34D399;font-weight:700;">₹${incentiveBonus.toLocaleString('en-IN')} Bonus</b>`
+    ? `Reach goal to unlock <b style="color:#34D399;font-weight:700;">${fmtBonus} Bonus</b>`
     : `Reach goal to unlock <b style="color:#34D399;font-weight:700;">Performance Bonus Reward</b>`;
 
   const amountDisplayHtml = isOwnerUser
     ? `<b class="pinned-target-amount" style="font-family:'Roboto Mono',monospace;color:${pct>=100?'#34D399':'#FBBF24'};letter-spacing:-0.02em;white-space:nowrap;">
-        ₹${achievedSales.toLocaleString('en-IN')} / ₹${targetVal.toLocaleString('en-IN')}
+        ${fmtAchieved} / ${fmtTarget}
        </b>
        <span class="pinned-target-pct" style="display:block;color:#CBD5E1;font-weight:700;margin-top:1px;">${pct}% Completed</span>`
     : `<b class="pinned-target-amount" style="font-family:'Roboto Mono',monospace;color:${pct>=100?'#34D399':'#FBBF24'};letter-spacing:-0.02em;white-space:nowrap;">
@@ -68,7 +73,7 @@ function buildPinnedIncentiveTargetWidgetHtml(curMonth, monthSales) {
 
   const bonusPillHtml = isOwnerUser
     ? `<span style="background:linear-gradient(135deg, #10B981, #059669);color:#FFFFFF;font-family:'Roboto Mono',monospace;font-size:0.70rem;font-weight:800;padding:2px 8px;border-radius:999px;box-shadow:0 0 10px rgba(16,185,129,0.4);display:inline-flex;align-items:center;gap:4px;">
-        ${icon('trophy', 12)} Bonus: ₹${incentiveBonus.toLocaleString('en-IN')}
+        ${icon('trophy', 12)} Bonus: ${fmtBonus}
       </span>`
     : `<span style="background:linear-gradient(135deg, #10B981, #059669);color:#FFFFFF;font-size:0.70rem;font-weight:700;padding:2px 8px;border-radius:999px;box-shadow:0 0 10px rgba(16,185,129,0.4);display:inline-flex;align-items:center;gap:4px;">
         ${icon('trophy', 12)} Performance Bonus Active
@@ -77,10 +82,10 @@ function buildPinnedIncentiveTargetWidgetHtml(curMonth, monthSales) {
   const statusFooterHtml = isOwnerUser
     ? (pct >= 100
         ? `<span class="pinned-target-status" style="color:#34D399;font-weight:700;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-            ${icon('check', 13)} Target Achieved! ₹${incentiveBonus.toLocaleString('en-IN')} Bonus Unlocked!
+            ${icon('check', 13)} Target Achieved! ${fmtBonus} Bonus Unlocked!
           </span>`
         : `<span class="pinned-target-status" style="color:#FCD34D;font-weight:600;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-            ${icon('trending', 12)} Achieve ₹${remaining.toLocaleString('en-IN')} more to unlock ₹${incentiveBonus.toLocaleString('en-IN')} Bonus!
+            ${icon('trending', 12)} Achieve ${fmtRemaining} more to unlock ${fmtBonus} Bonus!
           </span>`)
     : (pct >= 100
         ? `<span class="pinned-target-status" style="color:#34D399;font-weight:700;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
@@ -175,16 +180,20 @@ function buildStaffTargetsHtml(curMonth, monthSales){
     const bonusVal = targetObj ? Number(targetObj.incentive_bonus||3000) : 3000;
     const pct = Math.min(100, Math.round((sSales / Math.max(1, targetVal)) * 100));
 
+    const fmtSSales = window.maskFinance ? window.maskFinance(`₹${sSales.toLocaleString('en-IN')}`) : `₹${sSales.toLocaleString('en-IN')}`;
+    const fmtTarget = window.maskFinance ? window.maskFinance(`₹${targetVal.toLocaleString('en-IN')}`) : `₹${targetVal.toLocaleString('en-IN')}`;
+    const fmtBonus = window.maskFinance ? window.maskFinance(`₹${bonusVal.toLocaleString('en-IN')}`) : `₹${bonusVal.toLocaleString('en-IN')}`;
+
     const bonusBadgeHtml = isUserOwner
       ? `<span style="background:var(--leaf-soft);color:var(--leaf);border:1px solid var(--leaf);font-family:'Roboto Mono',monospace;font-size:0.65rem;font-weight:800;padding:1px 6px;border-radius:999px;display:inline-flex;align-items:center;gap:3px;">
-          ${icon('trophy', 10)} Bonus: ₹${bonusVal.toLocaleString('en-IN')}
+          ${icon('trophy', 10)} Bonus: ${fmtBonus}
         </span>`
       : `<span style="background:var(--leaf-soft);color:var(--leaf);border:1px solid var(--leaf);font-size:0.65rem;font-weight:700;padding:1px 6px;border-radius:999px;display:inline-flex;align-items:center;gap:3px;">
           ${icon('trophy', 10)} Target Bonus Active
         </span>`;
 
     const progressTextHtml = isUserOwner
-      ? `₹${sSales.toLocaleString('en-IN')} / ₹${targetVal.toLocaleString('en-IN')} (${pct}%)`
+      ? `${fmtSSales} / ${fmtTarget} (${pct}%)`
       : `${pct}% Target Completed`;
 
     return `
@@ -197,7 +206,7 @@ function buildStaffTargetsHtml(curMonth, monthSales){
             <b style="margin:0;font-size:0.84rem;color:#0F172A;">${esc(s.name)}</b>
             ${bonusBadgeHtml}
           </div>
-          <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.78rem;color:#1E3A6E;">
+          <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.78rem;color:#1E3A6E;" class="money-val">
             ${progressTextHtml}
           </span>
         </div>
@@ -226,11 +235,11 @@ function buildStaffTargetsHtml(curMonth, monthSales){
           </div>
           <div style="min-width:0;">
             <b style="font-size:0.86rem;color:#0F172A;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Business Monthly Target Goal (${curMonth})</b>
-            <span style="font-size:0.68rem;color:#64748B;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Based on ${prevInfo.prevMonthTitle} Baseline: ₹${prevInfo.total.toLocaleString('en-IN')}</span>
+            <span style="font-size:0.68rem;color:#64748B;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Based on ${prevInfo.prevMonthTitle} Baseline: ${window.maskFinance ? window.maskFinance('₹' + prevInfo.total.toLocaleString('en-IN')) : '₹' + prevInfo.total.toLocaleString('en-IN')}</span>
           </div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
-          <b style="font-family:'Roboto Mono',monospace;font-size:0.86rem;color:#0F172A;">₹${totalMonthSales.toLocaleString('en-IN')} / ₹${businessTargetVal.toLocaleString('en-IN')}</b>
+          <b style="font-family:'Roboto Mono',monospace;font-size:0.86rem;color:#0F172A;" class="money-val">${window.maskFinance ? window.maskFinance('₹' + totalMonthSales.toLocaleString('en-IN')) : '₹' + totalMonthSales.toLocaleString('en-IN')} / ${window.maskFinance ? window.maskFinance('₹' + businessTargetVal.toLocaleString('en-IN')) : '₹' + businessTargetVal.toLocaleString('en-IN')}</b>
           <span style="display:block;font-size:0.68rem;font-weight:700;color:#1E3A6E;margin-top:1px;">${bizPct}% achieved</span>
         </div>
       </div>
@@ -272,11 +281,11 @@ window.__openSetTargetsModal = function() {
             <div style="display:flex;gap:10px;align-items:center;margin-top:4px;">
               <div style="flex:1;">
                 <label style="font-size:0.7rem;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:2px;">TARGET SALES (₹)</label>
-                <input type="number" class="mTargetInput" data-staff="${s.id}" value="${tVal}" style="width:100%;box-sizing:border-box;font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.85rem;">
+                <input type="number" inputmode="numeric" class="mTargetInput" data-staff="${s.id}" value="${tVal}" style="width:100%;box-sizing:border-box;font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.85rem;">
               </div>
               <div style="flex:1;">
                 <label style="font-size:0.7rem;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:2px;">INCENTIVE BONUS (₹)</label>
-                <input type="number" class="mIncentiveInput" data-staff="${s.id}" value="${bVal}" style="width:100%;box-sizing:border-box;font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.85rem;color:var(--leaf);">
+                <input type="number" inputmode="numeric" class="mIncentiveInput" data-staff="${s.id}" value="${bVal}" style="width:100%;box-sizing:border-box;font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.85rem;color:var(--leaf);">
               </div>
             </div>
           </div>
@@ -571,8 +580,9 @@ function buildDashboardActivityGraphHtml() {
 
   const dots = pts.map((p, i) => {
     const isLatest = (i === n - 1);
+    const salesTipText = window.maskFinance ? window.maskFinance(`₹${p.salesVal.toLocaleString('en-IN')}`) : `₹${p.salesVal.toLocaleString('en-IN')}`;
     const tip = (effectiveMetric === 'sales' && canViewSales)
-      ? `${esc(p.label)}: ₹${p.salesVal.toLocaleString('en-IN')} (Accounts Sales)`
+      ? `${esc(p.label)}: ${salesTipText} (Accounts Sales)`
       : `${esc(p.label)}: ${p.actVal} activities completed`;
 
     if (isLatest) {
@@ -657,17 +667,17 @@ function buildDashboardActivityGraphHtml() {
       <div class="dash-activity-stats-row">
         <div class="dash-activity-stat-pill">
           <div class="dash-act-stat-label">Total Accounts Sales</div>
-          <div class="dash-act-stat-val">₹${totalSalesPeriod.toLocaleString('en-IN')}</div>
+          <div class="dash-act-stat-val money-val">${window.maskFinance ? window.maskFinance('₹' + totalSalesPeriod.toLocaleString('en-IN')) : '₹' + totalSalesPeriod.toLocaleString('en-IN')}</div>
           <div class="dash-act-stat-sub">${activeSalesDays} sales days in period</div>
         </div>
         <div class="dash-activity-stat-pill">
           <div class="dash-act-stat-label">${avgPaceLabel}</div>
-          <div class="dash-act-stat-val">₹${avgSalesPeriod.toLocaleString('en-IN')}</div>
+          <div class="dash-act-stat-val money-val">${window.maskFinance ? window.maskFinance('₹' + avgSalesPeriod.toLocaleString('en-IN')) : '₹' + avgSalesPeriod.toLocaleString('en-IN')}</div>
           <div class="dash-act-stat-sub">avg revenue pace</div>
         </div>
         <div class="dash-activity-stat-pill">
           <div class="dash-act-stat-label">Peak ${peakUnitLabel}</div>
-          <div class="dash-act-stat-val" style="color:var(--turmeric-dark,#D97706);">₹${peakBucket.salesVal.toLocaleString('en-IN')}</div>
+          <div class="dash-act-stat-val money-val" style="color:var(--turmeric-dark,#D97706);">${window.maskFinance ? window.maskFinance('₹' + peakBucket.salesVal.toLocaleString('en-IN')) : '₹' + peakBucket.salesVal.toLocaleString('en-IN')}</div>
           <div class="dash-act-stat-sub">${peakBucket.label}</div>
         </div>
         <div class="dash-activity-stat-pill">
@@ -978,7 +988,7 @@ function renderDashboardTab(body){
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
           <div class="dash-squircle">${icon('cart', 16)}</div>
           <div>
-            <div class="dash-stat-num">₹${todaySalesTotal.toLocaleString('en-IN')}</div>
+            <div class="dash-stat-num money-val">${window.maskFinance ? window.maskFinance('₹' + todaySalesTotal.toLocaleString('en-IN')) : '₹' + todaySalesTotal.toLocaleString('en-IN')}</div>
             <div class="dash-stat-label">Today's Sales</div>
           </div>
         </div>
@@ -987,7 +997,7 @@ function renderDashboardTab(body){
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.72rem;font-weight:600;color:#64748B;line-height:1.25;">
           <span>${todayAchievedPct}% achieved</span>
-          <span>Target: ₹${dailyTargetVal.toLocaleString('en-IN')}</span>
+          <span>Target: ${window.maskFinance ? window.maskFinance('₹' + dailyTargetVal.toLocaleString('en-IN')) : '₹' + dailyTargetVal.toLocaleString('en-IN')}</span>
         </div>
       </div>
 
@@ -996,7 +1006,7 @@ function renderDashboardTab(body){
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
           <div class="dash-squircle">${icon('sales', 16)}</div>
           <div>
-            <div class="dash-stat-num">₹${monthSalesTotal.toLocaleString('en-IN')}</div>
+            <div class="dash-stat-num money-val">${window.maskFinance ? window.maskFinance('₹' + monthSalesTotal.toLocaleString('en-IN')) : '₹' + monthSalesTotal.toLocaleString('en-IN')}</div>
             <div class="dash-stat-label">This Month</div>
           </div>
         </div>
@@ -1005,7 +1015,7 @@ function renderDashboardTab(body){
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.72rem;font-weight:600;color:#64748B;line-height:1.25;">
           <span>${bizPct}% achieved</span>
-          <span>Target: ₹${businessTargetVal.toLocaleString('en-IN')}</span>
+          <span>Target: ${window.maskFinance ? window.maskFinance('₹' + businessTargetVal.toLocaleString('en-IN')) : '₹' + businessTargetVal.toLocaleString('en-IN')}</span>
         </div>
       </div>
     </div>
@@ -1024,7 +1034,7 @@ function renderDashboardTab(body){
         <div style="display:flex;align-items:center;gap:10px;">
           <div class="dash-squircle">${icon('salary', 16)}</div>
           <div>
-            <div class="dash-stat-num">₹${monthSalaryTotal.toLocaleString('en-IN')}</div>
+            <div class="dash-stat-num money-val">${window.maskFinance ? window.maskFinance('₹' + monthSalaryTotal.toLocaleString('en-IN')) : '₹' + monthSalaryTotal.toLocaleString('en-IN')}</div>
             <div class="dash-stat-label">Salary paid this month</div>
           </div>
         </div>

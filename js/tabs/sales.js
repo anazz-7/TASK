@@ -256,7 +256,7 @@ window.__openSale = (saleId) => {
     <label>Date</label>
     <input type="date" id="mSaleDate" value="${existingSale ? existingSale.date : todayStr()}">
     <label>Order value (₹)</label>
-    <input type="number" step="0.01" id="mSaleValue" value="${existingSale ? existingSale.order_value : 0}">
+    <input type="number" step="0.01" inputmode="decimal" id="mSaleValue" value="${existingSale ? existingSale.order_value : 0}">
     <label>Notes</label>
     <textarea id="mSaleNotes" placeholder="Optional — customer, items, etc.">${existingSale && existingSale.notes ? esc(existingSale.notes) : ""}</textarea>
     <div class="modal-actions">

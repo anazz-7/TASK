@@ -604,9 +604,18 @@
     gap: 10px;
     margin-top: 20px !important;
     padding-top: 14px;
-    border-top: 1px solid #F1F5F9;
+    border-top: 1px solid #E2E8F0;
+    position: sticky;
+    bottom: -24px;
+    margin-bottom: -24px;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding-bottom: 14px;
+    z-index: 10;
+    box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.05);
   }
-  .modal-actions button { flex: 1; }
+  .modal-actions button { flex: 1; min-height: 40px; }
   
   .fab { position: fixed; bottom: 80px; right: 24px; width: 56px; height: 56px; border-radius: 50%; background: var(--turmeric); color: #FFFFFF; border: none; font-size: 1.6rem; box-shadow: 0 4px 16px rgba(0,0,0,0.25); cursor: pointer; z-index: 16; transition: transform 0.15s ease; animation: fadeInUp 0.3s ease; display: flex; align-items: center; justify-content: center; }
   .fab:active { transform: scale(0.92); }
@@ -2832,4 +2841,147 @@
     overflow: hidden;
     text-overflow: ellipsis;
     line-height: 1.25;
+  }
+
+  /* ── Header Privacy Toggle Button (Feature 1) ── */
+  .privacy-toggle-btn {
+    border: 1.5px solid var(--paper-line);
+    background: var(--card);
+    color: var(--ink);
+    border-radius: 8px !important;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.06);
+  }
+  .privacy-toggle-btn:hover {
+    background: var(--paper);
+    border-color: var(--turmeric);
+    color: var(--turmeric-dark);
+  }
+  .privacy-toggle-btn.active-mask {
+    background: #EFF6FF !important;
+    border-color: #1E3A6E !important;
+    color: #1E3A6E !important;
+  }
+  .privacy-toggle-btn:active {
+    transform: scale(0.92);
+  }
+
+  /* Privacy Mode Financial Masking */
+  body.privacy-mode .money-val,
+  body.privacy-mode .dash-finance-val,
+  body.privacy-mode .privacy-maskable,
+  body.privacy-mode [data-finance="true"] {
+    letter-spacing: 0.08em;
+    font-family: var(--font-mono) !important;
+    font-weight: 700;
+  }
+
+  /* ── Tabular Numerals System (Feature 7) ── */
+  .tabular-nums,
+  .money-val,
+  .dash-stat-num,
+  .dash-act-stat-val,
+  .pinned-target-amount,
+  .pinned-target-pct,
+  .leaderboard-points,
+  .data-num,
+  .stat-grid .dash-stat-num,
+  [data-tabular="true"],
+  table td {
+    font-variant-numeric: tabular-nums !important;
+    font-feature-settings: "tnum" 1 !important;
+  }
+
+  /* ── 44px Minimum Touch Targets on Mobile (Feature 7) ── */
+  @media (max-width: 899px) {
+    .reload-btn,
+    .privacy-toggle-btn,
+    .nav-sheet-close-btn {
+      position: relative;
+    }
+    .reload-btn::after,
+    .privacy-toggle-btn::after,
+    .nav-sheet-close-btn::after {
+      content: '';
+      position: absolute;
+      top: -5px;
+      bottom: -5px;
+      left: -5px;
+      right: -5px;
+      min-width: 44px;
+      min-height: 44px;
+    }
+    .bnav-btn {
+      min-height: 48px;
+    }
+  }
+
+  /* ── Meaningful Empty States (Feature 5) ── */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 38px 20px;
+    background: #FFFFFF;
+    border: 1.5px dashed #CBD5E1;
+    border-radius: var(--radius-card);
+    margin: 12px 0;
+    box-sizing: border-box;
+  }
+  .empty-state-icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: #F0FDF4;
+    color: #16A34A;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.12);
+  }
+  .empty-state-icon-box.amber {
+    background: #FFFBEB;
+    color: #D97706;
+    box-shadow: 0 2px 8px rgba(217, 119, 6, 0.12);
+  }
+  .empty-state-icon-box.blue {
+    background: #EFF6FF;
+    color: #1E3A6E;
+    box-shadow: 0 2px 8px rgba(30, 58, 110, 0.12);
+  }
+  .empty-state-title {
+    font-size: 0.94rem;
+    font-weight: 700;
+    color: #0F172A;
+    margin: 0 0 4px 0;
+    letter-spacing: -0.01em;
+  }
+  .empty-state-sub {
+    font-size: 0.76rem;
+    color: #64748B;
+    max-width: 320px;
+    margin: 0 auto;
+    line-height: 1.35;
+  }
+
+  /* ── Checkmark Pulse & Task Completion Micro-interaction (Feature 5) ── */
+  @keyframes checkPulse {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.18); background: #DCFCE7 !important; color: #16A34A !important; }
+    100% { transform: scale(1); }
+  }
+  .check-pulse {
+    animation: checkPulse 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   }

@@ -247,7 +247,7 @@ function renderTasksTab(body) {
         </div>
       </div>
       <div class="row-actions" style="display:flex;align-items:center;gap:6px;">
-        ${t.status !== 'done' ? `<button class="stamp-btn small" style="background:var(--turmeric);color:#fff;border:none;padding:6px 14px;font-weight:700;" onclick="window.__markDone('${t.id}')">${icon('check', 13)} Done</button>` : ''}
+        ${t.status !== 'done' ? `<button class="stamp-btn small check-btn" style="background:var(--turmeric);color:#fff;border:none;padding:6px 14px;font-weight:700;" onclick="window.__markDone('${t.id}', this)">${icon('check', 13)} Done</button>` : ''}
         <div class="action-dropdown-holder">
           <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${t.id}')">More ▾</button>
           <div class="action-dropdown-menu" id="actionMenu_${t.id}">
@@ -341,13 +341,13 @@ function renderTasksTab(body) {
         <span>Active Tasks (${pending.length})</span>
         ${isManagerPlus() && pending.length ? `<a style="cursor:pointer;font-size:0.75rem;color:var(--turmeric);font-weight:700;" onclick="window.__sendAllPending()">Send all pending &rarr;</a>` : ''}
       </div>
-      ${pending.length ? pending.map(row).join('') : `<div class="empty">No active tasks right now. Great job!</div>`}
+      ${pending.length ? pending.map(row).join('') : (window.renderEmptyState ? window.renderEmptyState('checkDouble', 'All Caught Up!', 'No active tasks pending right now. Great job keeping everything on schedule!') : '<div class="empty">No active tasks right now. Great job!</div>')}
     ` : ''}
 
     ${taskSubTab === 'history' ? `
       ${filterBar}
       <div class="section-label">Completed Task History (${done.length})</div>
-      ${done.length ? done.map(historyRow).join('') : `<div class="empty">No completed tasks in history yet.</div>`}
+      ${done.length ? done.map(historyRow).join('') : (window.renderEmptyState ? window.renderEmptyState('calendar', 'No Completed Tasks Yet', 'Completed tasks will be archived here for performance tracking.', 'blue') : '<div class="empty">No completed tasks in history yet.</div>')}
     ` : ''}`;
 
   window.__setTaskFilter = () => {
@@ -406,9 +406,15 @@ function renderTasksTab(body) {
 }
 
 // Mark Done Handler
-window.__markDone = async function(id) {
+window.__markDone = async function(id, btn) {
   const t = (cache.tasks || []).find(x => x.id === id);
   if (!t) return;
+
+  if (btn) {
+    btn.classList.add('check-pulse');
+    btn.innerHTML = `${icon('checkDouble', 13)} Done!`;
+  }
+  if (typeof window.__vibrate === 'function') window.__vibrate(25);
 
   // 1. Instant optimistic local update
   t.status = 'done';
@@ -583,7 +589,7 @@ function renderDailyTab(body){
         </div>
       </div>
       <div class="row-actions">
-        <button class="stamp-btn small ${done?'ghost':''}" onclick="window.__toggleRoutine('${r.id}', ${done})">${done?'Undo':icon('check',14)+' Done today'}</button>
+        <button class="stamp-btn small ${done?'ghost':''} check-btn" onclick="window.__toggleRoutine('${r.id}', ${done}, this)">${done?'Undo':icon('check',14)+' Done today'}</button>
         
         <div class="action-dropdown-holder">
     <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${r.id}')">More ▾</button>
@@ -628,7 +634,7 @@ function renderDailyTab(body){
         <span style="color:var(--ink-soft);font-size:0.75rem;">(${doneList.length}/${list.length})</span>
       </div>
     </div>
-    ${pending.length ? pending.map(row).join('') : (list.length ? '' : `<div class="empty">No everyday tasks set up yet.${isManagerPlus()?' Tap + to add one — it repeats automatically every day.':''}</div>`)}
+    ${pending.length ? pending.map(row).join('') : (list.length ? (window.renderEmptyState ? window.renderEmptyState('checkDouble', 'All Everyday Tasks Done!', 'You have completed all scheduled routine tasks for today.') : '<div class="empty">All everyday tasks done today!</div>') : (window.renderEmptyState ? window.renderEmptyState('calendar', 'No Everyday Tasks Set Up', isManagerPlus() ? 'Tap + to add a recurring daily routine.' : 'No daily routine tasks assigned yet.', 'amber') : '<div class="empty">No everyday tasks set up yet.</div>'))}
     ${doneList.length ? `<div class="section-label">Done today <span style="color:var(--ink-soft);font-weight:600;">tap to expand</span></div>${doneList.map(doneWrap).join('')}` : ''}
     <div id="routineModalHolder"></div>
   `;
@@ -636,7 +642,9 @@ function renderDailyTab(body){
     if(expandedRoutineIds.has(id)) expandedRoutineIds.delete(id); else expandedRoutineIds.add(id);
     renderTabBody();
   };
-  window.__toggleRoutine = async (routineId, currentlyDone) => {
+  window.__toggleRoutine = async (routineId, currentlyDone, btn) => {
+    if (btn) btn.classList.add('check-pulse');
+    if (typeof window.__vibrate === 'function') window.__vibrate(25);
     const key = 'routine-'+routineId;
     if(__busyKeys.has(key)) return;
     __busyKeys.add(key);
@@ -747,7 +755,7 @@ function renderWeeklyTab(body){
         </div>
       </div>
       <div class="row-actions">
-        <button class="stamp-btn small ${done?'ghost':''}" onclick="window.__toggleWeekly('${w.id}', ${done})">${done?'Undo':icon('check',14)+' Done'}</button>
+        <button class="stamp-btn small ${done?'ghost':''} check-btn" onclick="window.__toggleWeekly('${w.id}', ${done}, this)">${done?'Undo':icon('check',14)+' Done'}</button>
         
         <div class="action-dropdown-holder">
     <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${w.id}')">More ▾</button>
@@ -780,7 +788,7 @@ function renderWeeklyTab(body){
   body.innerHTML = `
     
     <div class="section-label"><span>This week — ${weekStartDisp} to ${weekEndDisp}</span><span style="color:var(--ink-soft);font-weight:600;">${doneList.length}/${list.length} done</span></div>
-    ${pending.length ? pending.map(row).join('') : (list.length ? '' : `<div class="empty">No weekly tasks set up yet.${isManagerPlus()?' Tap + to add one — it repeats automatically every week, resetting each Monday.':''}</div>`)}
+    ${pending.length ? pending.map(row).join('') : (list.length ? (window.renderEmptyState ? window.renderEmptyState('checkDouble', 'All Weekly Tasks Done!', 'You have completed all scheduled weekly checkpoints for this week.') : '<div class="empty">All weekly tasks done this week!</div>') : (window.renderEmptyState ? window.renderEmptyState('calendar', 'No Weekly Tasks Set Up', isManagerPlus() ? 'Tap + to add a recurring weekly task.' : 'No weekly tasks assigned yet.', 'amber') : '<div class="empty">No weekly tasks set up yet.</div>'))}
     ${doneList.length ? `<div class="section-label">Done this week <span style="color:var(--ink-soft);font-weight:600;">tap to expand</span></div>${doneList.map(doneWrap).join('')}` : ''}
     <div id="weeklyModalHolder"></div>
   `;
@@ -788,7 +796,9 @@ function renderWeeklyTab(body){
     if(expandedWeeklyIds.has(id)) expandedWeeklyIds.delete(id); else expandedWeeklyIds.add(id);
     renderTabBody();
   };
-  window.__toggleWeekly = async (weeklyId, currentlyDone) => {
+  window.__toggleWeekly = async (weeklyId, currentlyDone, btn) => {
+    if (btn) btn.classList.add('check-pulse');
+    if (typeof window.__vibrate === 'function') window.__vibrate(25);
     const key = 'weekly-'+weeklyId;
     if(__busyKeys.has(key)) return;
     __busyKeys.add(key);
