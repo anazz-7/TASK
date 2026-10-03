@@ -10,8 +10,11 @@ function getPreviousMonthSalesTotal(curMonthKey) {
   const m = parseInt(parts[1], 10) || 9;
   const prevDate = new Date(y, m - 2, 1);
   const prevKey = monthKey(localDateStr(prevDate));
+  const prevAcc = (cache.dailyAccounts || []).filter(a => (a.date || '').startsWith(prevKey));
+  const prevAccSales = prevAcc.reduce((sum, a) => sum + Number(a.total_sales != null ? a.total_sales : (a.totalSales || 0)), 0);
   const prevSales = (cache.sales || []).filter(s => monthKey(s.date || s.created_at) === prevKey);
-  const total = prevSales.reduce((sum, s) => sum + Number(s.order_value || s.amount || 0), 0);
+  const orderTotal = prevSales.reduce((sum, s) => sum + Number(s.order_value || s.amount || 0), 0);
+  const total = prevAcc.length > 0 || prevAccSales > 0 ? prevAccSales : orderTotal;
   const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const prevMonthTitle = (monthNames[prevDate.getMonth()] || '') + ' ' + prevDate.getFullYear();
   return { prevKey, prevMonthTitle, total };
@@ -31,7 +34,10 @@ function buildPinnedIncentiveTargetWidgetHtml(curMonth, monthSales) {
   let titleText = '';
 
   if (isOwnerUser) {
-    achievedSales = monthSales.reduce((s, x) => s + Number(x.order_value || 0), 0);
+    const curMonthAcc = (cache.dailyAccounts || []).filter(a => a.date && a.date.startsWith(curMonth));
+    const curMonthAccSales = curMonthAcc.reduce((sum, a) => sum + Number(a.total_sales != null ? a.total_sales : (a.totalSales || 0)), 0);
+    const orderSalesTotal = monthSales.reduce((s, x) => s + Number(x.order_value || 0), 0);
+    achievedSales = (curMonthAcc.length > 0 || curMonthAccSales > 0) ? curMonthAccSales : orderSalesTotal;
     const setTargetSum = targets.filter(t => t.month === curMonth).reduce((s, t) => s + Number(t.target_amount || 0), 0);
     targetVal = setTargetSum > 0 ? setTargetSum : autoOwnerTarget;
     incentiveBonus = targets.filter(t => t.month === curMonth).reduce((s, t) => s + Number(t.incentive_bonus || 3000), 0) || 15000;
@@ -151,7 +157,10 @@ function buildStaffTargetsHtml(curMonth, monthSales){
   const isUserOwner = (typeof isOwner === 'function' && isOwner());
 
   // Total Business Sales for current month
-  const totalMonthSales = monthSales.reduce((sum, x) => sum + Number(x.order_value || 0), 0);
+  const totalMonthAcc = (cache.dailyAccounts || []).filter(a => a.date && a.date.startsWith(curMonth));
+  const totalMonthAccSales = totalMonthAcc.reduce((sum, a) => sum + Number(a.total_sales != null ? a.total_sales : (a.totalSales || 0)), 0);
+  const orderMonthSales = monthSales.reduce((sum, x) => sum + Number(x.order_value || 0), 0);
+  const totalMonthSales = (totalMonthAcc.length > 0 || totalMonthAccSales > 0) ? totalMonthAccSales : orderMonthSales;
   const prevInfo = getPreviousMonthSalesTotal(curMonth);
   const setTargetSum = targets.filter(t => t.month === curMonth).reduce((s, t) => s + Number(t.target_amount || 0), 0);
   const businessTargetVal = setTargetSum > 0 ? setTargetSum : (prevInfo.total > 0 ? prevInfo.total : 200000);
@@ -427,20 +436,27 @@ function buildDashboardActivityGraphHtml() {
       const rDone = (cache.routineLog || []).filter(r => r.date === key && r.status === 'done').length;
       const sOrders = (cache.sales || []).filter(s => s.date === key);
       const sCount = sOrders.length;
-      const sAmt = canViewSales ? sOrders.reduce((sum, s) => sum + Number(s.order_value || 0), 0) : 0;
+      
+      // Accounts tab sales data for this date
+      const accList = (cache.dailyAccounts || []).filter(a => a.date === key);
+      const accSales = accList.reduce((sum, a) => sum + Number(a.total_sales != null ? a.total_sales : (a.totalSales || 0)), 0);
+      const orderSales = sOrders.reduce((sum, s) => sum + Number(s.order_value || 0), 0);
+      const sAmt = canViewSales ? (accList.length > 0 || accSales > 0 ? accSales : orderSales) : 0;
+
       const lCount = (cache.labels || []).filter(l => l.date === key).length;
       const pCount = (cache.packages || []).filter(p => p.date === key).length;
       const aCount = (cache.attendance || []).filter(a => a.date === key && a.status === 'present').length;
 
-      let actVal = tDone + rDone + sCount + (lCount > 0 ? 1 : 0) + (pCount > 0 ? 1 : 0) + aCount;
-      if (actVal === 0 && sCount > 0) actVal = 1;
+      let actVal = tDone + rDone + sCount + (lCount > 0 ? 1 : 0) + (pCount > 0 ? 1 : 0) + aCount + (accList.length > 0 ? 1 : 0);
+      if (actVal === 0 && (sCount > 0 || accList.length > 0)) actVal = 1;
 
       buckets.push({
         date: key,
         label: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
         val: effectiveMetric === 'sales' ? sAmt : actVal,
         salesVal: sAmt,
-        salesCount: sCount,
+        salesCount: accList.length > 0 ? accList.length : sCount,
+        hasAcc: accList.length > 0,
         actVal,
         tDone,
         rDone,
@@ -459,15 +475,22 @@ function buildDashboardActivityGraphHtml() {
       const tDone = (cache.tasks || []).filter(t => t.status === 'done' && (t.completed_at || t.updated_at || t.due_date || '') >= sK && (t.completed_at || t.updated_at || t.due_date || '') <= eK).length;
       const sOrders = (cache.sales || []).filter(s => s.date >= sK && s.date <= eK);
       const sCount = sOrders.length;
-      const sAmt = canViewSales ? sOrders.reduce((sum, s) => sum + Number(s.order_value || 0), 0) : 0;
+
+      // Accounts tab sales data for this week
+      const accWeekly = (cache.dailyAccounts || []).filter(a => a.date >= sK && a.date <= eK);
+      const accSales = accWeekly.reduce((sum, a) => sum + Number(a.total_sales != null ? a.total_sales : (a.totalSales || 0)), 0);
+      const orderSales = sOrders.reduce((sum, s) => sum + Number(s.order_value || 0), 0);
+      const sAmt = canViewSales ? (accWeekly.length > 0 || accSales > 0 ? accSales : orderSales) : 0;
+
       const rDone = (cache.routineLog || []).filter(r => r.date >= sK && r.date <= eK && r.status === 'done').length;
-      const actVal = tDone + rDone + sCount;
+      const actVal = tDone + rDone + sCount + accWeekly.length;
 
       buckets.push({
         label: wStart.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
         val: effectiveMetric === 'sales' ? sAmt : actVal,
         salesVal: sAmt,
-        salesCount: sCount,
+        salesCount: accWeekly.length > 0 ? accWeekly.length : sCount,
+        hasAcc: accWeekly.length > 0,
         actVal,
         tDone,
         rDone,
@@ -481,15 +504,22 @@ function buildDashboardActivityGraphHtml() {
       const tDone = (cache.tasks || []).filter(t => t.status === 'done' && (t.completed_at || t.updated_at || t.due_date || '').startsWith(key)).length;
       const sOrders = (cache.sales || []).filter(s => s.date && s.date.startsWith(key));
       const sCount = sOrders.length;
-      const sAmt = canViewSales ? sOrders.reduce((sum, s) => sum + Number(s.order_value || 0), 0) : 0;
+
+      // Accounts tab sales data for this month
+      const accMonthly = (cache.dailyAccounts || []).filter(a => a.date && a.date.startsWith(key));
+      const accSales = accMonthly.reduce((sum, a) => sum + Number(a.total_sales != null ? a.total_sales : (a.totalSales || 0)), 0);
+      const orderSales = sOrders.reduce((sum, s) => sum + Number(s.order_value || 0), 0);
+      const sAmt = canViewSales ? (accMonthly.length > 0 || accSales > 0 ? accSales : orderSales) : 0;
+
       const rDone = (cache.routineLog || []).filter(r => r.date && r.date.startsWith(key) && r.status === 'done').length;
-      const actVal = tDone + rDone + sCount;
+      const actVal = tDone + rDone + sCount + accMonthly.length;
 
       buckets.push({
         label: d.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' }),
         val: effectiveMetric === 'sales' ? sAmt : actVal,
         salesVal: sAmt,
-        salesCount: sCount,
+        salesCount: accMonthly.length > 0 ? accMonthly.length : sCount,
+        hasAcc: accMonthly.length > 0,
         actVal,
         tDone,
         rDone,
@@ -542,7 +572,7 @@ function buildDashboardActivityGraphHtml() {
   const dots = pts.map((p, i) => {
     const isLatest = (i === n - 1);
     const tip = (effectiveMetric === 'sales' && canViewSales)
-      ? `${esc(p.label)}: ₹${p.salesVal.toLocaleString('en-IN')} (${p.salesCount} orders)`
+      ? `${esc(p.label)}: ₹${p.salesVal.toLocaleString('en-IN')} (Accounts Sales)`
       : `${esc(p.label)}: ${p.actVal} activities completed`;
 
     if (isLatest) {
@@ -600,7 +630,7 @@ function buildDashboardActivityGraphHtml() {
         </div>
         ${canViewSales ? `
         <div style="display:inline-flex;align-items:center;gap:4px;background:#F1F5F9;padding:2px 3px;border-radius:999px;">
-          <button onclick="window.__setDashChartMetric('sales')" style="border:none;background:${dashChartMetric === 'sales' ? '#1E3A6E' : 'transparent'};color:${dashChartMetric === 'sales' ? '#FFFFFF' : '#64748B'};font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:999px;cursor:pointer;transition:all 0.15s ease;">Sales (₹)</button>
+          <button onclick="window.__setDashChartMetric('sales')" style="border:none;background:${dashChartMetric === 'sales' ? '#1E3A6E' : 'transparent'};color:${dashChartMetric === 'sales' ? '#FFFFFF' : '#64748B'};font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:999px;cursor:pointer;transition:all 0.15s ease;">Accounts Sales (₹)</button>
           <button onclick="window.__setDashChartMetric('activity')" style="border:none;background:${dashChartMetric === 'activity' ? '#1E3A6E' : 'transparent'};color:${dashChartMetric === 'activity' ? '#FFFFFF' : '#64748B'};font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:999px;cursor:pointer;transition:all 0.15s ease;">Activity</button>
         </div>
         ` : `
@@ -626,9 +656,9 @@ function buildDashboardActivityGraphHtml() {
       <!-- Details List Below Sales Chart on First Dashboard Section (OWNER) -->
       <div class="dash-activity-stats-row">
         <div class="dash-activity-stat-pill">
-          <div class="dash-act-stat-label">Total Sales</div>
+          <div class="dash-act-stat-label">Total Accounts Sales</div>
           <div class="dash-act-stat-val">₹${totalSalesPeriod.toLocaleString('en-IN')}</div>
-          <div class="dash-act-stat-sub">${totalOrdersPeriod} orders in period</div>
+          <div class="dash-act-stat-sub">${activeSalesDays} sales days in period</div>
         </div>
         <div class="dash-activity-stat-pill">
           <div class="dash-act-stat-label">${avgPaceLabel}</div>
@@ -641,9 +671,9 @@ function buildDashboardActivityGraphHtml() {
           <div class="dash-act-stat-sub">${peakBucket.label}</div>
         </div>
         <div class="dash-activity-stat-pill">
-          <div class="dash-act-stat-label">${effectiveMetric === 'sales' ? 'Active Days' : 'Total Activity'}</div>
+          <div class="dash-act-stat-label">${effectiveMetric === 'sales' ? 'Recorded Days' : 'Total Activity'}</div>
           <div class="dash-act-stat-val" style="color:#1E3A6E;">${effectiveMetric === 'sales' ? `${activeSalesDays} / ${periodCount}d` : totalOpsPeriod}</div>
-          <div class="dash-act-stat-sub">${effectiveMetric === 'sales' ? `${activePct}% revenue days` : 'actions logged'}</div>
+          <div class="dash-act-stat-sub">${effectiveMetric === 'sales' ? `${activePct}% active days` : 'actions logged'}</div>
         </div>
       </div>
       ` : `
@@ -707,9 +737,16 @@ function renderDashboardTab(body){
   const labelsToday = cache.labels.filter(l=>l.date===today).reduce((s,l)=>s+Number(l.qty||0),0) || 36;
   const packagesToday = cache.packages.filter(p=>p.date===today).reduce((s,p)=>s+Number(p.qty||0),0) || 135;
 
+  const monthAcc = (cache.dailyAccounts || []).filter(a => a.date && a.date.startsWith(curMonth));
+  const monthAccSales = monthAcc.reduce((sum, a) => sum + Number(a.total_sales != null ? a.total_sales : (a.totalSales || 0)), 0);
   const monthSales = cache.sales.filter(s=>monthKey(s.date)===curMonth);
-  const monthSalesTotal = monthSales.reduce((sum,s)=>sum+Number(s.order_value||0),0);
-  const todaySalesTotal = cache.sales.filter(s=>s.date===today).reduce((sum,s)=>sum+Number(s.order_value||0),0);
+  const orderMonthSalesTotal = monthSales.reduce((sum,s)=>sum+Number(s.order_value||0),0);
+  const monthSalesTotal = (monthAcc.length > 0 || monthAccSales > 0) ? monthAccSales : orderMonthSalesTotal;
+
+  const todayAcc = (cache.dailyAccounts || []).find(a => a.date === today);
+  const todayAccSales = todayAcc ? Number(todayAcc.total_sales != null ? todayAcc.total_sales : (todayAcc.totalSales || 0)) : 0;
+  const orderTodaySales = cache.sales.filter(s=>s.date===today).reduce((sum,s)=>sum+Number(s.order_value||0),0);
+  const todaySalesTotal = (todayAcc || todayAccSales > 0) ? todayAccSales : orderTodaySales;
 
   const prevInfo = getPreviousMonthSalesTotal(curMonth);
   const targets = cache.salesTargets || [];
@@ -932,12 +969,12 @@ function renderDashboardTab(body){
     ${isOwner() ? `
     <!-- 5. SALES Section (OWNER ONLY) -->
     <div class="dash-section-header">
-      <div class="dash-section-title">Sales</div>
-      <a class="dash-section-link" onclick="window.__setTab('sales')">View report →</a>
+      <div class="dash-section-title">Sales (Accounts)</div>
+      <a class="dash-section-link" onclick="if(window.__setAccSubTab){window.__setAccSubTab('reports');} window.__setTab('accounts');">View report →</a>
     </div>
     <div class="dash-cards-grid-2">
       <!-- Card 1: Today's Sales -->
-      <div class="dash-card" style="--c-idx:12;" onclick="window.__setTab('sales')">
+      <div class="dash-card" style="--c-idx:12;" onclick="if(window.__setAccSubTab){window.__setAccSubTab('reports');} window.__setTab('accounts');">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
           <div class="dash-squircle">${icon('cart', 16)}</div>
           <div>
@@ -955,7 +992,7 @@ function renderDashboardTab(body){
       </div>
 
       <!-- Card 2: This Month -->
-      <div class="dash-card" style="--c-idx:13;" onclick="window.__setTab('sales')">
+      <div class="dash-card" style="--c-idx:13;" onclick="if(window.__setAccSubTab){window.__setAccSubTab('reports');} window.__setTab('accounts');">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
           <div class="dash-squircle">${icon('sales', 16)}</div>
           <div>
