@@ -1074,8 +1074,8 @@ window.__deleteExpenseItem = function(id) {
 
 
 function renderSalaryTab(body){
+  if (salarySubTab === 'expenses') salarySubTab = 'payouts';
   const advances = getSalaryAdvances();
-  const expenses = getExpensesList();
   const currentMonth = monthKey(todayStr());
   const advancesThisMonth = advances.filter(a => monthKey(a.date) === currentMonth);
 
@@ -1084,7 +1084,6 @@ function renderSalaryTab(body){
     <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;">
       <button class="stamp-btn small ${salarySubTab==='payouts'?'':'ghost'}" onclick="window.__setSalarySubTab('payouts')" style="display:inline-flex;align-items:center;gap:4px;">${icon("salary", 14)} Payout History (${cache.salaries.length})</button>
       <button class="stamp-btn small ${salarySubTab==='advances'?'':'ghost'}" onclick="window.__setSalarySubTab('advances')" style="display:inline-flex;align-items:center;gap:4px;">${icon("salary", 14)} Salary Advances (${advances.length})</button>
-      <button class="stamp-btn small ${salarySubTab==='expenses'?'':'ghost'}" onclick="window.__setSalarySubTab('expenses')" style="display:inline-flex;align-items:center;gap:4px;">${icon("reports", 14)} Expenses Tracker (${expenses.length})</button>
       <button class="stamp-btn small ${salarySubTab==='schedules'?'':'ghost'}" onclick="window.__setSalarySubTab('schedules')" style="display:inline-flex;align-items:center;gap:4px;">${icon("calendar", 14)} Schedules (${cache.staff.length})</button>
     </div>
 
@@ -1168,11 +1167,6 @@ function renderSalaryTab(body){
         </div>
       `).join('') : `<div class="empty">No salary advances recorded.</div>`}
     ` : ''}
-
-    ${salarySubTab === 'expenses' ? `
-      ${renderExpensesTrackerHtml()}
-    ` : ''}
-
 
     ${salarySubTab === 'schedules' ? `
 

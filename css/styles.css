@@ -1879,40 +1879,48 @@
     justify-content: center;
   }
 
-  /* Pinned Incentive Target Card Typography (Compact 1-2 REM scale reduction) */
+  /* Pinned Incentive Target Card Typography (Balanced & Legible) */
   .pinned-target-card {
-    padding: 10px 12px !important;
+    padding: 12px 14px !important;
   }
   .pinned-target-title {
-    font-size: 0.72rem !important;
+    font-size: 0.84rem !important;
     letter-spacing: 0.01em !important;
-    line-height: 1.15 !important;
+    line-height: 1.25 !important;
+    font-weight: 700 !important;
   }
   .pinned-target-sub {
-    font-size: 0.62rem !important;
-    margin-top: 1px !important;
+    font-size: 0.72rem !important;
+    margin-top: 2px !important;
+    line-height: 1.25 !important;
   }
   .pinned-target-amount {
-    font-size: 0.80rem !important;
+    font-size: 0.90rem !important;
+    letter-spacing: -0.01em !important;
+    line-height: 1.2 !important;
   }
   .pinned-target-pct {
-    font-size: 0.62rem !important;
+    font-size: 0.72rem !important;
+    margin-top: 2px !important;
+    line-height: 1.2 !important;
   }
   .pinned-target-status {
-    font-size: 0.62rem !important;
+    font-size: 0.72rem !important;
+    line-height: 1.25 !important;
   }
   .pinned-target-btn {
-    font-size: 0.62rem !important;
-    padding: 2px 6px !important;
+    font-size: 0.72rem !important;
+    padding: 3px 8px !important;
+    line-height: 1.2 !important;
   }
   .pinned-target-icon-box {
-    width: 26px !important;
-    height: 26px !important;
-    border-radius: 6px !important;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 8px !important;
   }
   .pinned-target-icon-box svg {
-    width: 13px !important;
-    height: 13px !important;
+    width: 16px !important;
+    height: 16px !important;
   }
 
 
@@ -2491,24 +2499,24 @@
     margin-bottom: 7px;
   }
   .dash-section-title {
-    font-size: 0.72rem;
+    font-size: 0.76rem;
     font-weight: 800;
     color: #475569;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
     font-family: var(--font-sans);
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
   }
   .dash-section-link {
-    font-size: 0.75rem;
+    font-size: 0.76rem;
     font-weight: 700;
     color: #1E3A6E;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
-    gap: 3px;
+    gap: 4px;
     cursor: pointer;
     transition: gap 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s ease;
     font-family: var(--font-sans);
@@ -2655,29 +2663,32 @@
   /* Trend Micro-Badges */
   .dash-trend-up {
     color: #1E3A6E;
-    font-size: 0.68rem;
+    font-size: 0.72rem;
     font-weight: 700;
+    line-height: 1.25;
   }
   .dash-trend-sub {
     color: #64748B;
-    font-size: 0.68rem;
+    font-size: 0.70rem;
     font-weight: 500;
+    line-height: 1.25;
   }
 
   /* Big Number Typography (Compact & Punchy) */
   .dash-stat-num {
-    font-size: 1.22rem;
+    font-size: 1.25rem;
     font-weight: 800;
     color: #0F172A;
     font-family: var(--font-sans);
-    line-height: 1.15;
+    line-height: 1.2;
     letter-spacing: -0.02em;
   }
   .dash-stat-label {
-    font-size: 0.72rem;
-    font-weight: 500;
-    color: #64748B;
-    margin-top: 2px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #475569;
+    margin-top: 3px;
+    line-height: 1.25;
   }
 
   /* Compact Activity Graph Card at top */
@@ -2764,22 +2775,22 @@
   .dash-activity-stats-row {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 7px;
-    margin-top: 10px;
-    padding-top: 10px;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
     border-top: 1px solid #F1F5F9;
   }
   @media (min-width: 600px) {
     .dash-activity-stats-row {
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 9px;
+      gap: 10px;
     }
   }
   .dash-activity-stat-pill {
     background: #F8FAFC;
     border: 1px solid #E2E8F0;
-    border-radius: 9px;
-    padding: 7px 9px;
+    border-radius: 10px;
+    padding: 8px 10px;
     display: flex;
     flex-direction: column;
     min-width: 0;
@@ -2790,32 +2801,35 @@
     transform: translateY(-1px);
   }
   .dash-act-stat-label {
-    font-size: 0.65rem;
+    font-size: 0.68rem;
     font-weight: 700;
     color: #64748B;
     text-transform: uppercase;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.04em;
     font-family: var(--font-sans);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    line-height: 1.25;
   }
   .dash-act-stat-val {
-    font-size: 0.96rem;
+    font-size: 1.05rem;
     font-weight: 800;
     color: #1E3A6E;
     font-family: var(--font-mono);
+    margin-top: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+  }
+  .dash-act-stat-sub {
+    font-size: 0.68rem;
+    color: #64748B;
+    font-family: var(--font-sans);
     margin-top: 2px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-  .dash-act-stat-sub {
-    font-size: 0.62rem;
-    color: #94A3B8;
-    font-family: var(--font-sans);
-    margin-top: 1px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    line-height: 1.25;
   }

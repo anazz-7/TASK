@@ -2180,10 +2180,9 @@ function renderShell(){
     <div class="app-main">
       <header class="top">
         <div class="header-title-area">
-          <button class="header-icon-btn mobile-only" onclick="window.__openDrawer()" style="margin-right:2px;display:flex;align-items:center;justify-content:center;">${icon('menu',22)}</button>
           <div style="display:flex;flex-direction:column;justify-content:center;">
-            <h1 style="font-size:1.15rem;margin:0;line-height:1.2;">${activeLabel}</h1>
-            <p class="desktop-only" style="margin:2px 0 0;font-size:0.75rem;color:var(--ink-soft);line-height:1.2;">${esc(session.businessName)} &bull; ${esc(session.name)} (${session.role})</p>
+            <h1 style="font-size:1.2rem;font-weight:800;margin:0;line-height:1.25;color:#0F172A;letter-spacing:-0.015em;">${activeLabel}</h1>
+            <p class="desktop-only" style="margin:2px 0 0;font-size:0.76rem;color:var(--ink-soft);line-height:1.25;">${esc(session.businessName)} &bull; ${esc(session.name)} (${session.role})</p>
           </div>
         </div>
         <div class="header-actions">
@@ -2193,7 +2192,7 @@ function renderShell(){
               ? `<button class="offline-badge pending" title="${qLen} record(s) pending cloud sync. Tap to sync." onclick="window.__reloadAppData(document.querySelector('.reload-btn'))">
                   ● ${qLen} PENDING
                 </button>`
-              : `<span class="offline-badge synced" title="All data synced to cloud" style="display:inline-flex;align-items:center;gap:4px;">${icon('check', 12)} SYNCED</span>`;
+              : '';
           })()}
           <button class="reload-btn" title="Refresh App Data" onclick="window.__reloadAppData(this)">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3L21.5 8M22 12.5a10 10 0 0 1-18.8 4.3L2.5 16"/></svg>

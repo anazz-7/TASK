@@ -69,27 +69,27 @@ function buildPinnedIncentiveTargetWidgetHtml(curMonth, monthSales) {
 
       ${isOwnerUser ? `
         <!-- Simple Report Visual: Previous Month Sales Benchmark vs Current Goal -->
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 9px;background:rgba(255,255,255,0.06);border-radius:8px;margin-bottom:7px;font-size:0.72rem;border:1px solid rgba(255,255,255,0.08);">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 11px;background:rgba(255,255,255,0.06);border-radius:8px;margin-bottom:8px;font-size:0.75rem;border:1px solid rgba(255,255,255,0.08);">
           <div>
-            <span style="color:#94A3B8;display:block;font-size:0.6rem;font-weight:700;">${prevInfo.prevMonthTitle} Benchmark</span>
-            <b style="color:#F8FAFC;font-family:'Roboto Mono',monospace;font-size:0.78rem;">₹${prevInfo.total.toLocaleString('en-IN')}</b>
+            <span style="color:#94A3B8;display:block;font-size:0.68rem;font-weight:700;margin-bottom:2px;">${prevInfo.prevMonthTitle} Benchmark</span>
+            <b style="color:#F8FAFC;font-family:'Roboto Mono',monospace;font-size:0.86rem;">₹${prevInfo.total.toLocaleString('en-IN')}</b>
           </div>
           <div style="text-align:center;">
-            <span style="color:#94A3B8;display:block;font-size:0.6rem;font-weight:700;">${curMonth} Target Goal</span>
-            <b style="color:#FBBF24;font-family:'Roboto Mono',monospace;font-size:0.78rem;">₹${targetVal.toLocaleString('en-IN')}</b>
+            <span style="color:#94A3B8;display:block;font-size:0.68rem;font-weight:700;margin-bottom:2px;">${curMonth} Target Goal</span>
+            <b style="color:#FBBF24;font-family:'Roboto Mono',monospace;font-size:0.86rem;">₹${targetVal.toLocaleString('en-IN')}</b>
           </div>
           <div style="text-align:right;">
-            <span style="color:#94A3B8;display:block;font-size:0.6rem;font-weight:700;">Achieved So Far</span>
-            <b style="color:#34D399;font-family:'Roboto Mono',monospace;font-size:0.78rem;">₹${achievedSales.toLocaleString('en-IN')}</b>
+            <span style="color:#94A3B8;display:block;font-size:0.68rem;font-weight:700;margin-bottom:2px;">Achieved So Far</span>
+            <b style="color:#34D399;font-family:'Roboto Mono',monospace;font-size:0.86rem;">₹${achievedSales.toLocaleString('en-IN')}</b>
           </div>
         </div>
       ` : ''}
 
       <!-- Incentive Bonus Highlight Banner Pinned Above Progress Track -->
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-        <span style="font-size:0.7rem;color:#CBD5E1;font-weight:600;">Target Goal Progress</span>
-        <span style="background:linear-gradient(135deg, #10B981, #059669);color:#FFFFFF;font-family:'Roboto Mono',monospace;font-size:0.68rem;font-weight:800;padding:2px 7px;border-radius:999px;box-shadow:0 0 10px rgba(16,185,129,0.4);display:inline-flex;align-items:center;gap:3px;">
-          ${icon('trophy', 11)} Bonus: ₹${incentiveBonus.toLocaleString('en-IN')}
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+        <span style="font-size:0.74rem;color:#CBD5E1;font-weight:600;">Target Goal Progress</span>
+        <span style="background:linear-gradient(135deg, #10B981, #059669);color:#FFFFFF;font-family:'Roboto Mono',monospace;font-size:0.70rem;font-weight:800;padding:2px 8px;border-radius:999px;box-shadow:0 0 10px rgba(16,185,129,0.4);display:inline-flex;align-items:center;gap:4px;">
+          ${icon('trophy', 12)} Bonus: ₹${incentiveBonus.toLocaleString('en-IN')}
         </span>
       </div>
 
@@ -742,7 +742,7 @@ function renderDashboardTab(body){
         <div class="dash-progress-track">
           <div class="dash-progress-fill" style="width:${attPct}%;"></div>
         </div>
-        <div style="font-size:0.66rem;color:#64748B;">${todayCheckedIn} / ${cache.staff.length} staff present</div>
+        <div style="font-size:0.72rem;color:#64748B;line-height:1.25;">${todayCheckedIn} / ${cache.staff.length} staff present</div>
       </div>
 
       <!-- Card 2: Checked In Today -->
@@ -757,7 +757,7 @@ function renderDashboardTab(body){
         <div class="dash-progress-track">
           <div class="dash-progress-fill" style="width:${cache.staff.length ? Math.round((todayCheckedIn / cache.staff.length)*100) : 0}%;"></div>
         </div>
-        <div style="font-size:0.66rem;color:#64748B;">${Math.max(0, cache.staff.length - todayCheckedIn)} staff remaining</div>
+        <div style="font-size:0.72rem;color:#64748B;line-height:1.25;">${Math.max(0, cache.staff.length - todayCheckedIn)} staff remaining</div>
       </div>
 
       <!-- Card 3: Best Attendance -->
@@ -765,14 +765,14 @@ function renderDashboardTab(body){
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
           <div class="dash-squircle">${icon('star', 16)}</div>
           <div style="min-width:0;flex:1;">
-            <b style="font-size:0.86rem;color:#0F172A;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(bestStaffNameOnly)}</b>
+            <b style="font-size:0.90rem;color:#0F172A;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(bestStaffNameOnly)}</b>
             <div class="dash-stat-label">Best Attendance</div>
           </div>
         </div>
         <div class="dash-progress-track">
           <div class="dash-progress-fill" style="width:100%;"></div>
         </div>
-        <div style="font-size:0.66rem;color:#64748B;">100% present rate this month</div>
+        <div style="font-size:0.72rem;color:#64748B;line-height:1.25;">100% present rate this month</div>
       </div>
 
       <!-- Card 4: Staff On Roll -->
@@ -790,7 +790,7 @@ function renderDashboardTab(body){
         <div class="dash-progress-track">
           <div class="dash-progress-fill" style="width:100%;"></div>
         </div>
-        <div style="font-size:0.66rem;color:#64748B;">Active staff members</div>
+        <div style="font-size:0.72rem;color:#64748B;line-height:1.25;">Active staff members</div>
       </div>
     </div>
 
@@ -801,42 +801,42 @@ function renderDashboardTab(body){
     </div>
     <div class="dash-cards-grid-3">
       <!-- Card 1: Everyday Tasks Done -->
-      <div class="dash-card" style="--c-idx:9;padding:11px 12px;" onclick="window.__setTab('daily')">
+      <div class="dash-card" style="--c-idx:9;padding:12px 13px;" onclick="window.__setTab('daily')">
         <div class="dash-squircle" style="margin-bottom:6px;">
           ${icon('checkSquare', 16)}
         </div>
-        <div class="dash-stat-num" style="font-size:1.05rem;">${routineDoneToday} / ${routineTotal}</div>
-        <div class="dash-stat-label" style="font-size:0.68rem;">Everyday Tasks Done</div>
-        <div class="dash-progress-track" style="margin:5px 0 3px 0;">
+        <div class="dash-stat-num" style="font-size:1.15rem;line-height:1.2;">${routineDoneToday} / ${routineTotal}</div>
+        <div class="dash-stat-label" style="font-size:0.72rem;line-height:1.25;">Everyday Tasks Done</div>
+        <div class="dash-progress-track" style="margin:6px 0 4px 0;">
           <div class="dash-progress-fill" style="width:${routinePct}%;"></div>
         </div>
-        <div style="font-size:0.65rem;color:#64748B;">${routinePct}% completed</div>
+        <div style="font-size:0.70rem;color:#64748B;line-height:1.25;">${routinePct}% completed</div>
       </div>
 
       <!-- Card 2: Items Labelled Today -->
-      <div class="dash-card" style="--c-idx:10;padding:11px 12px;" onclick="window.__setTab('label')">
+      <div class="dash-card" style="--c-idx:10;padding:12px 13px;" onclick="window.__setTab('label')">
         <div class="dash-squircle" style="margin-bottom:6px;">
           ${icon('tagDiamond', 16)}
         </div>
-        <div class="dash-stat-num" style="font-size:1.05rem;">${labelsToday}</div>
-        <div class="dash-stat-label" style="font-size:0.68rem;">Items Labelled Today</div>
-        <div class="dash-progress-track" style="margin:5px 0 3px 0;">
+        <div class="dash-stat-num" style="font-size:1.15rem;line-height:1.2;">${labelsToday}</div>
+        <div class="dash-stat-label" style="font-size:0.72rem;line-height:1.25;">Items Labelled Today</div>
+        <div class="dash-progress-track" style="margin:6px 0 4px 0;">
           <div class="dash-progress-fill" style="width:${labelsToday > 0 ? 100 : 0}%;"></div>
         </div>
-        <div style="font-size:0.65rem;color:#64748B;"><span class="dash-trend-up">↑ Active</span> today</div>
+        <div style="font-size:0.70rem;color:#64748B;line-height:1.25;"><span class="dash-trend-up">↑ Active</span> today</div>
       </div>
 
       <!-- Card 3: Items Packaged Today -->
-      <div class="dash-card" style="--c-idx:11;padding:11px 12px;" onclick="window.__setTab('package')">
+      <div class="dash-card" style="--c-idx:11;padding:12px 13px;" onclick="window.__setTab('package')">
         <div class="dash-squircle" style="margin-bottom:6px;">
           ${icon('package', 16)}
         </div>
-        <div class="dash-stat-num" style="font-size:1.05rem;">${packagesToday}</div>
-        <div class="dash-stat-label" style="font-size:0.68rem;">Items Packaged Today</div>
-        <div class="dash-progress-track" style="margin:5px 0 3px 0;">
+        <div class="dash-stat-num" style="font-size:1.15rem;line-height:1.2;">${packagesToday}</div>
+        <div class="dash-stat-label" style="font-size:0.72rem;line-height:1.25;">Items Packaged Today</div>
+        <div class="dash-progress-track" style="margin:6px 0 4px 0;">
           <div class="dash-progress-fill" style="width:${packagesToday > 0 ? 100 : 0}%;"></div>
         </div>
-        <div style="font-size:0.65rem;color:#64748B;"><span class="dash-trend-up">↑ Active</span> today</div>
+        <div style="font-size:0.70rem;color:#64748B;line-height:1.25;"><span class="dash-trend-up">↑ Active</span> today</div>
       </div>
     </div>
 
@@ -858,7 +858,7 @@ function renderDashboardTab(body){
         <div class="dash-progress-track">
           <div class="dash-progress-fill" style="width:${todayAchievedPct}%;"></div>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.66rem;color:#64748B;">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.72rem;font-weight:600;color:#64748B;line-height:1.25;">
           <span>${todayAchievedPct}% achieved</span>
           <span>Target: ₹${dailyTargetVal.toLocaleString('en-IN')}</span>
         </div>
@@ -876,7 +876,7 @@ function renderDashboardTab(body){
         <div class="dash-progress-track">
           <div class="dash-progress-fill" style="width:${bizPct}%;"></div>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.66rem;color:#64748B;">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.72rem;font-weight:600;color:#64748B;line-height:1.25;">
           <span>${bizPct}% achieved</span>
           <span>Target: ₹${businessTargetVal.toLocaleString('en-IN')}</span>
         </div>
