@@ -1089,14 +1089,14 @@ function renderSalaryTab(body){
 
 
     ${salarySubTab === 'payouts' ? `
-      ${buildQtyGraphHtml(cache.salaries, salaryReportMode, '__setSalaryReportMode', '', 'amount', '₹', 'paid_date')}
+      ${isOwner() ? buildQtyGraphHtml(cache.salaries, salaryReportMode, '__setSalaryReportMode', '', 'amount', '₹', 'paid_date') : ''}
       <div class="section-label">Salary Payment History</div>
       ${cache.salaries.length ? cache.salaries.map(sa=>{
         const staff = cache.staff.find(s=>s.id===sa.staff_id)||{};
         return `
         <div class="row-card" style="align-items:center;">
           <div class="row-main"><h3>${esc(staffName(sa.staff_id))}</h3><div class="meta"><span>${sa.paid_date}</span>${sa.notes?`<span>${esc(sa.notes)}</span>`:''}</div></div>
-          <b style="font-family:'Roboto Mono',monospace;">₹${Number(sa.amount).toFixed(0)}</b>
+          <b style="font-family:'Roboto Mono',monospace;">${maskSalesAmount(sa.amount)}</b>
           <button class="stamp-btn small ghost" style="font-size:0.65rem;padding:4px 8px;" onclick="window.__generateSalarySlip('${sa.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon("reports", 12)} Slip</button>
           <div class="action-dropdown-holder">
             <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${sa.id}')">More ▾</button>
@@ -1129,7 +1129,7 @@ function renderSalaryTab(body){
                 </div>
                 <div style="text-align:right;">
                   <div style="font-size:0.68rem;color:var(--ink-soft);font-family:'Roboto Mono',monospace;">ADVANCES THIS MONTH</div>
-                  <b style="font-size:1rem;color:${totalAdv > 0 ? 'var(--turmeric)' : 'var(--turmeric)'};font-family:'Roboto Mono',monospace;">₹${totalAdv.toFixed(0)}</b>
+                  <b style="font-size:1rem;color:${totalAdv > 0 ? 'var(--turmeric)' : 'var(--turmeric)'};font-family:'Roboto Mono',monospace;">${maskSalesAmount(totalAdv)}</b>
                 </div>
               </div>
               ${staffAdvs.length ? `
@@ -1137,7 +1137,7 @@ function renderSalaryTab(body){
                   ${staffAdvs.map(a => `
                     <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">
                       <span>${a.date} (${esc(a.notes||'Advance')})</span>
-                      <span style="font-family:'Roboto Mono',monospace;font-weight:600;color:var(--turmeric);">₹${Number(a.amount).toFixed(0)}</span>
+                      <span style="font-family:'Roboto Mono',monospace;font-weight:600;color:var(--turmeric);">${maskSalesAmount(a.amount)}</span>
                     </div>
                   `).join('')}
                 </div>
@@ -1155,7 +1155,7 @@ function renderSalaryTab(body){
             <div class="meta"><span>${a.date}</span></div>
             ${a.notes ? `<div class="notes">${esc(a.notes)}</div>` : ''}
           </div>
-          <b style="font-family:'Roboto Mono',monospace;color:var(--turmeric);margin-right:6px;">₹${Number(a.amount).toFixed(0)}</b>
+          <b style="font-family:'Roboto Mono',monospace;color:var(--turmeric);margin-right:6px;">${maskSalesAmount(a.amount)}</b>
           <button class="stamp-btn small ghost" style="font-size:0.65rem;padding:3px 7px;margin-right:6px;" onclick="window.__convertAdvanceToSalaryPaid('${a.id}')" title="Convert Advance to Salary Paid" style="display:inline-flex;align-items:center;gap:4px;">${icon("rotate", 12)} Convert to Paid</button>
           <div class="action-dropdown-holder">
             <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${a.id}')">More ▾</button>
@@ -2431,15 +2431,13 @@ function maskCustData(text, type) {
 }
 
 function maskSalesAmount(val) {
+  if (typeof window.maskSalesAmount === 'function') {
+    return window.maskSalesAmount(val);
+  }
   const num = Math.round(Number(val || 0));
-
-  // ONLY OWNER ROLE CAN VIEW UNMASKED FINANCIAL DATA & LEDGER AMOUNTS
-  if (isOwner()) {
+  if (typeof isOwner === 'function' && isOwner()) {
     return '₹' + num.toLocaleString('en-IN');
   }
-
-  // FOR MANAGERS & ALL STAFF / NON-OWNER ROLES:
-  // ALL FINANCIAL MONETARY DATA IS STRICTLY MASKED AND PROTECTED
   return 'Restricted';
 }
 

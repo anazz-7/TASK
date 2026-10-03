@@ -1618,6 +1618,15 @@ function isOwner(){ return session.role === 'owner'; }
 function isManagerPlus(){ return session.role === 'owner' || session.role === 'manager'; }
 function esc(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+window.maskSalesAmount = function(val) {
+  if (typeof isOwner === 'function' && isOwner()) {
+    const num = Math.round(Number(val || 0));
+    return '₹' + num.toLocaleString('en-IN');
+  }
+  return 'Restricted';
+};
+function maskSalesAmount(val) { return window.maskSalesAmount(val); }
+
 /* ---------------- reliability helpers: stop double-submits, surface real errors ---------------- */
 let __busyKeys = new Set();
 async function guardedSave(key, fn){

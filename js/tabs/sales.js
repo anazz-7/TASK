@@ -1,6 +1,7 @@
 /* ---------------- SALES ---------------- */
 let salesReportMode = 'weekly';
 function buildTargetsHtml(){
+  if (typeof isOwner === 'function' && !isOwner()) return '';
   const curMonth = localMonthStr(new Date());
   const monthSalesTotal = cache.sales.filter(s=>s.date.startsWith(curMonth)).reduce((sum,s)=>sum+Number(s.order_value||0),0);
   return `
@@ -64,7 +65,7 @@ function renderSalesTab(body){
   list.forEach(s=>{ (byDate[s.date] = byDate[s.date]||[]).push(s); });
   const dates = Object.keys(byDate).sort((a,b)=>b.localeCompare(a));
 
-  const reportSection = isManagerPlus() ? buildSalesReportHtml() + buildTargetsHtml() : '';
+  const reportSection = (typeof isOwner === 'function' && isOwner()) ? buildSalesReportHtml() + buildTargetsHtml() : '';
 
   body.innerHTML = `
     
@@ -73,11 +74,11 @@ function renderSalesTab(body){
     ${dates.length ? dates.map(d=>{
       const entries = byDate[d];
       const dayTotal = entries.reduce((s,e)=>s+Number(e.order_value||0),0);
-      return `<div class="section-label" style="margin-top:14px;"><span>${d}</span><span style="font-family:'Roboto Mono',monospace;">₹${dayTotal.toFixed(0)}</span></div>
+      return `<div class="section-label" style="margin-top:14px;"><span>${d}</span><span style="font-family:'Roboto Mono',monospace;">${maskSalesAmount(dayTotal)}</span></div>
       ${entries.map(e=>`
         <div class="row-card" style="align-items:center;">
           <div class="row-main"><h3>${esc(staffName(e.staff_id))}</h3>${e.notes?`<div class="notes">${esc(e.notes)}</div>`:''}</div>
-          <b style="font-family:'Roboto Mono',monospace;">₹${Number(e.order_value).toFixed(0)}</b>
+          <b style="font-family:'Roboto Mono',monospace;">${maskSalesAmount(e.order_value)}</b>
           <div class="action-dropdown-holder">
     <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${e.id}')">More ▾</button>
     <div class="action-dropdown-menu" id="actionMenu_${e.id}">
@@ -118,6 +119,7 @@ function getWeekStartDate(d){
 }
 function currentWeekStartStr(){ return localDateStr(getWeekStartDate(new Date())); }
 function buildSalesReportHtml(){
+  if (typeof isOwner === 'function' && !isOwner()) return '';
   const mode = salesReportMode;
   const today = new Date();
   const buckets = [];
@@ -1514,10 +1516,10 @@ function renderReportsTab(body){
       </div></div>`).join('') : `<div class="empty">No staff yet.</div>`}
     ${undatedTasks ? `<p style="font-size:0.78rem;color:var(--ink-soft);">${undatedTasks} task(s) have no due date, so aren't counted in this range.</p>` : ''}
 
-    <div class="section-label"><span>Sales — detailed</span><span style="font-family:'Roboto Mono',monospace;">₹${salesTotal.toFixed(0)} total</span></div>
+    <div class="section-label"><span>Sales — detailed</span><span style="font-family:'Roboto Mono',monospace;">${maskSalesAmount(salesTotal)} total</span></div>
     ${salesRows.map(r=>`
       <div class="row-card" style="align-items:center;"><div class="row-main"><h3>${esc(r.name)}</h3><div class="meta"><span>${r.orders} order(s)</span></div></div>
-      <b style="font-family:'Roboto Mono',monospace;">₹${r.total.toFixed(0)}</b></div>`).join('')}
+      <b style="font-family:'Roboto Mono',monospace;">${maskSalesAmount(r.total)}</b></div>`).join('')}
 
     <div class="section-label">Points — detailed</div>
     ${pointsRows.map(r=>`
@@ -1539,7 +1541,7 @@ function renderReportsTab(body){
     lines.push('', 'Tasks', 'Name,Assigned,Completed,Overdue,Completion Rate');
     taskRows.forEach(r=>lines.push(`${r.name},${r.assigned},${r.done},${r.overdue},${r.rate}%`));
     lines.push('', 'Sales', 'Name,Orders,Total');
-    salesRows.forEach(r=>lines.push(`${r.name},${r.orders},${r.total.toFixed(2)}`));
+    salesRows.forEach(r=>lines.push(`${r.name},${r.orders},${(typeof isOwner === 'function' && isOwner()) ? r.total.toFixed(2) : '[RESTRICTED]'}`));
     lines.push('', 'Points', 'Name,Total');
     pointsRows.forEach(r=>lines.push(`${r.name},${r.total}`));
     const blob = new Blob([lines.join('\n')], {type:'text/csv'});
@@ -3766,12 +3768,12 @@ function renderVendorBillsTab(body) {
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
         <div>
           <span style="font-size:0.75rem;font-weight:700;color:var(--ink-soft);letter-spacing:0.04em;text-transform:uppercase;">Total Outstanding Balance</span>
-          <h2 style="font-family:'Roboto Mono',monospace;font-size:1.6rem;font-weight:800;color:var(--turmeric);margin:4px 0 0;">₹${totalUnpaidBalance.toLocaleString('en-IN')}</h2>
+          <h2 style="font-family:'Roboto Mono',monospace;font-size:1.6rem;font-weight:800;color:var(--turmeric);margin:4px 0 0;">${maskSalesAmount(totalUnpaidBalance)}</h2>
           <div style="font-size:0.78rem;color:var(--ink-soft);margin-top:2px;">${unpaid.length} Pending Bills (${partial.length} Partially Paid)</div>
         </div>
         <div style="text-align:right;">
           <span style="font-size:0.72rem;font-weight:600;color:var(--turmeric);display:block;">Settled Bills Total</span>
-          <b style="font-family:'Roboto Mono',monospace;font-size:1.1rem;color:var(--turmeric);">₹${totalPaid.toLocaleString('en-IN')}</b>
+          <b style="font-family:'Roboto Mono',monospace;font-size:1.1rem;color:var(--turmeric);">${maskSalesAmount(totalPaid)}</b>
         </div>
       </div>
 
@@ -3867,13 +3869,13 @@ function renderVendorBillCard(b) {
         <div style="text-align:right;flex-shrink:0;">
           <span class="stamp ${statusStampClass}" style="margin-bottom:4px;display:inline-block;">${statusStampText}</span>
           <div style="font-family:'Roboto Mono',monospace;font-size:0.95rem;font-weight:700;color:var(--ink);">
-            Bill: <b>₹${amt.toLocaleString('en-IN')}</b>
+            Bill: <b>${maskSalesAmount(amt)}</b>
           </div>
           <div style="font-family:'Roboto Mono',monospace;font-size:0.78rem;color:var(--turmeric);">
-            Paid: ₹${paidAmt.toLocaleString('en-IN')}
+            Paid: ${maskSalesAmount(paidAmt)}
           </div>
           <div style="font-family:'Roboto Mono',monospace;font-size:0.82rem;font-weight:700;color:${balance>0?'var(--turmeric)':'var(--turmeric)'};">
-            Balance: ₹${balance.toLocaleString('en-IN')}
+            Balance: ${maskSalesAmount(balance)}
           </div>
         </div>
       </div>

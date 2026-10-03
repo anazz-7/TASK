@@ -21,7 +21,7 @@ function buildPinnedIncentiveTargetWidgetHtml(curMonth, monthSales) {
   const targets = cache.salesTargets || [];
   const myStaffId = session ? session.staffId : '';
   const myTargetObj = targets.find(t => t.staff_id === myStaffId && t.month === curMonth);
-  const isOwnerUser = isOwner();
+  const isOwnerUser = (typeof isOwner === 'function' && isOwner());
   const prevInfo = getPreviousMonthSalesTotal(curMonth);
   const autoOwnerTarget = prevInfo.total > 0 ? prevInfo.total : 200000;
 
@@ -40,11 +40,49 @@ function buildPinnedIncentiveTargetWidgetHtml(curMonth, monthSales) {
     achievedSales = monthSales.filter(x => x.staff_id === myStaffId).reduce((s, x) => s + Number(x.order_value || 0), 0);
     targetVal = myTargetObj ? Number(myTargetObj.target_amount || 30000) : 30000;
     incentiveBonus = myTargetObj ? Number(myTargetObj.incentive_bonus || 3000) : 3000;
-    titleText = `Monthly Target to Earn Incentive (${curMonth})`;
+    titleText = `Monthly Performance Target (${curMonth})`;
   }
 
   const pct = Math.min(100, Math.round((achievedSales / Math.max(1, targetVal)) * 100));
   const remaining = Math.max(0, targetVal - achievedSales);
+
+  const subTextHtml = isOwnerUser
+    ? `Reach goal to unlock <b style="color:#34D399;font-weight:700;">₹${incentiveBonus.toLocaleString('en-IN')} Bonus</b>`
+    : `Reach goal to unlock <b style="color:#34D399;font-weight:700;">Performance Bonus Reward</b>`;
+
+  const amountDisplayHtml = isOwnerUser
+    ? `<b class="pinned-target-amount" style="font-family:'Roboto Mono',monospace;color:${pct>=100?'#34D399':'#FBBF24'};letter-spacing:-0.02em;white-space:nowrap;">
+        ₹${achievedSales.toLocaleString('en-IN')} / ₹${targetVal.toLocaleString('en-IN')}
+       </b>
+       <span class="pinned-target-pct" style="display:block;color:#CBD5E1;font-weight:700;margin-top:1px;">${pct}% Completed</span>`
+    : `<b class="pinned-target-amount" style="font-family:'Roboto Mono',monospace;color:${pct>=100?'#34D399':'#FBBF24'};letter-spacing:-0.02em;white-space:nowrap;">
+        ${pct}% Completed
+       </b>
+       <span class="pinned-target-pct" style="display:block;color:#CBD5E1;font-weight:700;margin-top:1px;">Active Target Track</span>`;
+
+  const bonusPillHtml = isOwnerUser
+    ? `<span style="background:linear-gradient(135deg, #10B981, #059669);color:#FFFFFF;font-family:'Roboto Mono',monospace;font-size:0.70rem;font-weight:800;padding:2px 8px;border-radius:999px;box-shadow:0 0 10px rgba(16,185,129,0.4);display:inline-flex;align-items:center;gap:4px;">
+        ${icon('trophy', 12)} Bonus: ₹${incentiveBonus.toLocaleString('en-IN')}
+      </span>`
+    : `<span style="background:linear-gradient(135deg, #10B981, #059669);color:#FFFFFF;font-size:0.70rem;font-weight:700;padding:2px 8px;border-radius:999px;box-shadow:0 0 10px rgba(16,185,129,0.4);display:inline-flex;align-items:center;gap:4px;">
+        ${icon('trophy', 12)} Performance Bonus Active
+      </span>`;
+
+  const statusFooterHtml = isOwnerUser
+    ? (pct >= 100
+        ? `<span class="pinned-target-status" style="color:#34D399;font-weight:700;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            ${icon('check', 13)} Target Achieved! ₹${incentiveBonus.toLocaleString('en-IN')} Bonus Unlocked!
+          </span>`
+        : `<span class="pinned-target-status" style="color:#FCD34D;font-weight:600;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            ${icon('trending', 12)} Achieve ₹${remaining.toLocaleString('en-IN')} more to unlock ₹${incentiveBonus.toLocaleString('en-IN')} Bonus!
+          </span>`)
+    : (pct >= 100
+        ? `<span class="pinned-target-status" style="color:#34D399;font-weight:700;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            ${icon('check', 13)} Target Achieved! Performance Bonus Unlocked!
+          </span>`
+        : `<span class="pinned-target-status" style="color:#FCD34D;font-weight:600;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            ${icon('trending', 12)} Progress: ${pct}% achieved — Keep going to unlock Bonus!
+          </span>`);
 
   return `
     <!-- PINNED INCENTIVE TARGET CARD (SLIM COMPACT MOBILE & DESKTOP DESIGN) -->
@@ -56,19 +94,16 @@ function buildPinnedIncentiveTargetWidgetHtml(curMonth, monthSales) {
           </div>
           <div style="min-width:0;flex:1;">
             <b class="pinned-target-title" style="color:#FFFFFF;display:block;letter-spacing:0.01em;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${titleText}</b>
-            <span class="pinned-target-sub" style="color:#94A3B8;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Reach goal to unlock <b style="color:#34D399;font-weight:700;">₹${incentiveBonus.toLocaleString('en-IN')} Bonus</b></span>
+            <span class="pinned-target-sub" style="color:#94A3B8;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${subTextHtml}</span>
           </div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
-          <b class="pinned-target-amount" style="font-family:'Roboto Mono',monospace;color:${pct>=100?'#34D399':'#FBBF24'};letter-spacing:-0.02em;white-space:nowrap;">
-            ₹${achievedSales.toLocaleString('en-IN')} / ₹${targetVal.toLocaleString('en-IN')}
-          </b>
-          <span class="pinned-target-pct" style="display:block;color:#CBD5E1;font-weight:700;margin-top:1px;">${pct}% Completed</span>
+          ${amountDisplayHtml}
         </div>
       </div>
 
       ${isOwnerUser ? `
-        <!-- Simple Report Visual: Previous Month Sales Benchmark vs Current Goal -->
+        <!-- Simple Report Visual: Previous Month Sales Benchmark vs Current Goal (OWNER ONLY) -->
         <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 11px;background:rgba(255,255,255,0.06);border-radius:8px;margin-bottom:8px;font-size:0.75rem;border:1px solid rgba(255,255,255,0.08);">
           <div>
             <span style="color:#94A3B8;display:block;font-size:0.68rem;font-weight:700;margin-bottom:2px;">${prevInfo.prevMonthTitle} Benchmark</span>
@@ -88,9 +123,7 @@ function buildPinnedIncentiveTargetWidgetHtml(curMonth, monthSales) {
       <!-- Incentive Bonus Highlight Banner Pinned Above Progress Track -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
         <span style="font-size:0.74rem;color:#CBD5E1;font-weight:600;">Target Goal Progress</span>
-        <span style="background:linear-gradient(135deg, #10B981, #059669);color:#FFFFFF;font-family:'Roboto Mono',monospace;font-size:0.70rem;font-weight:800;padding:2px 8px;border-radius:999px;box-shadow:0 0 10px rgba(16,185,129,0.4);display:inline-flex;align-items:center;gap:4px;">
-          ${icon('trophy', 12)} Bonus: ₹${incentiveBonus.toLocaleString('en-IN')}
-        </span>
+        ${bonusPillHtml}
       </div>
 
       <!-- Animated Executive Gold Progress Bar -->
@@ -99,16 +132,8 @@ function buildPinnedIncentiveTargetWidgetHtml(curMonth, monthSales) {
       </div>
 
       <div style="display:flex;justify-content:space-between;align-items:center;padding-top:5px;border-top:1px solid rgba(255,255,255,0.08);flex-wrap:nowrap;gap:6px;">
-        ${pct >= 100 ? `
-          <span class="pinned-target-status" style="color:#34D399;font-weight:700;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-            ${icon('check', 13)} Target Achieved! ₹${incentiveBonus.toLocaleString('en-IN')} Bonus Unlocked!
-          </span>
-        ` : `
-          <span class="pinned-target-status" style="color:#FCD34D;font-weight:600;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-            ${icon('trending', 12)} Achieve ₹${remaining.toLocaleString('en-IN')} more to unlock ₹${incentiveBonus.toLocaleString('en-IN')} Bonus!
-          </span>
-        `}
-        ${isManagerPlus() ? `
+        ${statusFooterHtml}
+        ${isOwnerUser ? `
           <button class="stamp-btn small pinned-target-btn" style="background:rgba(255,255,255,0.14);color:#FFFFFF;border:1px solid rgba(255,255,255,0.22);display:inline-flex;align-items:center;gap:4px;flex-shrink:0;white-space:nowrap;" onclick="window.__openSetTargetsModal()">
             ${icon('settings', 11)} Set Targets
           </button>
@@ -122,6 +147,8 @@ function buildStaffTargetsHtml(curMonth, monthSales){
   const targets = cache.salesTargets || [];
   const staffList = cache.staff || [];
   if (!staffList.length) return '';
+
+  const isUserOwner = (typeof isOwner === 'function' && isOwner());
 
   // Total Business Sales for current month
   const totalMonthSales = monthSales.reduce((sum, x) => sum + Number(x.order_value || 0), 0);
@@ -138,6 +165,19 @@ function buildStaffTargetsHtml(curMonth, monthSales){
     const targetVal = targetObj ? Number(targetObj.target_amount||0) : 25000;
     const bonusVal = targetObj ? Number(targetObj.incentive_bonus||3000) : 3000;
     const pct = Math.min(100, Math.round((sSales / Math.max(1, targetVal)) * 100));
+
+    const bonusBadgeHtml = isUserOwner
+      ? `<span style="background:var(--leaf-soft);color:var(--leaf);border:1px solid var(--leaf);font-family:'Roboto Mono',monospace;font-size:0.65rem;font-weight:800;padding:1px 6px;border-radius:999px;display:inline-flex;align-items:center;gap:3px;">
+          ${icon('trophy', 10)} Bonus: ₹${bonusVal.toLocaleString('en-IN')}
+        </span>`
+      : `<span style="background:var(--leaf-soft);color:var(--leaf);border:1px solid var(--leaf);font-size:0.65rem;font-weight:700;padding:1px 6px;border-radius:999px;display:inline-flex;align-items:center;gap:3px;">
+          ${icon('trophy', 10)} Target Bonus Active
+        </span>`;
+
+    const progressTextHtml = isUserOwner
+      ? `₹${sSales.toLocaleString('en-IN')} / ₹${targetVal.toLocaleString('en-IN')} (${pct}%)`
+      : `${pct}% Target Completed`;
+
     return `
       <div class="dash-card" style="margin-bottom:7px;padding:9px 12px;" onclick="window.__setTab('sales')">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-wrap:wrap;gap:4px;">
@@ -146,12 +186,10 @@ function buildStaffTargetsHtml(curMonth, monthSales){
               ${icon('users', 14)}
             </div>
             <b style="margin:0;font-size:0.84rem;color:#0F172A;">${esc(s.name)}</b>
-            <span style="background:var(--leaf-soft);color:var(--leaf);border:1px solid var(--leaf);font-family:'Roboto Mono',monospace;font-size:0.65rem;font-weight:800;padding:1px 6px;border-radius:999px;display:inline-flex;align-items:center;gap:3px;">
-              ${icon('trophy', 10)} Bonus: ₹${bonusVal.toLocaleString('en-IN')}
-            </span>
+            ${bonusBadgeHtml}
           </div>
           <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.78rem;color:#1E3A6E;">
-            ₹${sSales.toLocaleString('en-IN')} / ₹${targetVal.toLocaleString('en-IN')} (${pct}%)
+            ${progressTextHtml}
           </span>
         </div>
         <div class="progress-track" style="height:7px;background:#F1F5F9;border-radius:999px;overflow:hidden;margin:3px 0 0 0;">
@@ -161,13 +199,16 @@ function buildStaffTargetsHtml(curMonth, monthSales){
     `;
   }).filter(Boolean).join('');
 
+  if (!isUserOwner && !activeStaffCards) return '';
+
   return `
     <div class="dash-section-header">
-      <div class="dash-section-title">Target Progress &amp; Sales Performance — ${curMonth}</div>
-      ${isManagerPlus() ? `<button class="stamp-btn small ghost" onclick="window.__openSetTargetsModal()" style="display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 8px;font-size:0.7rem;color:#334155;border:1px solid #CBD5E1;background:#FFFFFF;">${icon('settings', 11)} Set Targets</button>` : ''}
+      <div class="dash-section-title">${isUserOwner ? `Target Progress &amp; Sales Performance — ${curMonth}` : `Target Progress — ${curMonth}`}</div>
+      ${isUserOwner ? `<button class="stamp-btn small ghost" onclick="window.__openSetTargetsModal()" style="display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 8px;font-size:0.7rem;color:#334155;border:1px solid #CBD5E1;background:#FFFFFF;">${icon('settings', 11)} Set Targets</button>` : ''}
     </div>
 
-    <!-- Overall Business Sales Goal Progress Card -->
+    ${isUserOwner ? `
+    <!-- Overall Business Sales Goal Progress Card (OWNER ONLY) -->
     <div class="dash-card dash-target-goal-card" style="margin-bottom:8px;padding:11px 13px;" onclick="window.__setTab('sales')">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;flex-wrap:nowrap;">
         <div style="display:flex;align-items:center;gap:10px;min-width:0;">
@@ -188,6 +229,7 @@ function buildStaffTargetsHtml(curMonth, monthSales){
         <div class="progress-fill ${bizPct>=100?'complete':''}" style="width:${bizPct}%;height:100%;border-radius:999px;background:${bizPct>=100?'linear-gradient(90deg, #F59E0B, #10B981)':'linear-gradient(90deg, #D97706, #FBBF24, #FCD34D)'};"></div>
       </div>
     </div>
+    ` : ''}
 
     <!-- Staff Individual Sales Targets Progress Grid (Only >0 Sales) -->
     ${activeStaffCards ? `<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">${activeStaffCards}</div>` : ''}
@@ -348,6 +390,7 @@ window.__setDashActivityPeriod = function(period) {
 };
 
 window.__setDashChartMetric = function(metric) {
+  if (typeof isOwner === 'function' && !isOwner()) return; // Non-owner cannot toggle to sales
   dashChartMetric = metric;
   renderTabBody();
 };
@@ -371,6 +414,8 @@ document.addEventListener('click', function(e) {
 function buildDashboardActivityGraphHtml() {
   const today = new Date();
   const buckets = [];
+  const canViewSales = (typeof isOwner === 'function' && isOwner());
+  const effectiveMetric = canViewSales ? dashChartMetric : 'activity';
 
   if (dashActivityPeriod === 'daily') {
     for (let i = 29; i >= 0; i--) {
@@ -382,7 +427,7 @@ function buildDashboardActivityGraphHtml() {
       const rDone = (cache.routineLog || []).filter(r => r.date === key && r.status === 'done').length;
       const sOrders = (cache.sales || []).filter(s => s.date === key);
       const sCount = sOrders.length;
-      const sAmt = sOrders.reduce((sum, s) => sum + Number(s.order_value || 0), 0);
+      const sAmt = canViewSales ? sOrders.reduce((sum, s) => sum + Number(s.order_value || 0), 0) : 0;
       const lCount = (cache.labels || []).filter(l => l.date === key).length;
       const pCount = (cache.packages || []).filter(p => p.date === key).length;
       const aCount = (cache.attendance || []).filter(a => a.date === key && a.status === 'present').length;
@@ -393,10 +438,13 @@ function buildDashboardActivityGraphHtml() {
       buckets.push({
         date: key,
         label: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
-        val: dashChartMetric === 'sales' ? sAmt : actVal,
+        val: effectiveMetric === 'sales' ? sAmt : actVal,
         salesVal: sAmt,
         salesCount: sCount,
-        actVal
+        actVal,
+        tDone,
+        rDone,
+        itemsDone: (lCount + pCount)
       });
     }
   } else if (dashActivityPeriod === 'weekly') {
@@ -411,15 +459,19 @@ function buildDashboardActivityGraphHtml() {
       const tDone = (cache.tasks || []).filter(t => t.status === 'done' && (t.completed_at || t.updated_at || t.due_date || '') >= sK && (t.completed_at || t.updated_at || t.due_date || '') <= eK).length;
       const sOrders = (cache.sales || []).filter(s => s.date >= sK && s.date <= eK);
       const sCount = sOrders.length;
-      const sAmt = sOrders.reduce((sum, s) => sum + Number(s.order_value || 0), 0);
-      const actVal = tDone + sCount;
+      const sAmt = canViewSales ? sOrders.reduce((sum, s) => sum + Number(s.order_value || 0), 0) : 0;
+      const rDone = (cache.routineLog || []).filter(r => r.date >= sK && r.date <= eK && r.status === 'done').length;
+      const actVal = tDone + rDone + sCount;
 
       buckets.push({
         label: wStart.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
-        val: dashChartMetric === 'sales' ? sAmt : actVal,
+        val: effectiveMetric === 'sales' ? sAmt : actVal,
         salesVal: sAmt,
         salesCount: sCount,
-        actVal
+        actVal,
+        tDone,
+        rDone,
+        itemsDone: 0
       });
     }
   } else {
@@ -429,15 +481,19 @@ function buildDashboardActivityGraphHtml() {
       const tDone = (cache.tasks || []).filter(t => t.status === 'done' && (t.completed_at || t.updated_at || t.due_date || '').startsWith(key)).length;
       const sOrders = (cache.sales || []).filter(s => s.date && s.date.startsWith(key));
       const sCount = sOrders.length;
-      const sAmt = sOrders.reduce((sum, s) => sum + Number(s.order_value || 0), 0);
-      const actVal = tDone + sCount;
+      const sAmt = canViewSales ? sOrders.reduce((sum, s) => sum + Number(s.order_value || 0), 0) : 0;
+      const rDone = (cache.routineLog || []).filter(r => r.date && r.date.startsWith(key) && r.status === 'done').length;
+      const actVal = tDone + rDone + sCount;
 
       buckets.push({
         label: d.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' }),
-        val: dashChartMetric === 'sales' ? sAmt : actVal,
+        val: effectiveMetric === 'sales' ? sAmt : actVal,
         salesVal: sAmt,
         salesCount: sCount,
-        actVal
+        actVal,
+        tDone,
+        rDone,
+        itemsDone: 0
       });
     }
   }
@@ -485,9 +541,9 @@ function buildDashboardActivityGraphHtml() {
 
   const dots = pts.map((p, i) => {
     const isLatest = (i === n - 1);
-    const tip = dashChartMetric === 'sales'
+    const tip = (effectiveMetric === 'sales' && canViewSales)
       ? `${esc(p.label)}: ₹${p.salesVal.toLocaleString('en-IN')} (${p.salesCount} orders)`
-      : `${esc(p.label)}: ${p.actVal} activities`;
+      : `${esc(p.label)}: ${p.actVal} activities completed`;
 
     if (isLatest) {
       return `
@@ -520,6 +576,9 @@ function buildDashboardActivityGraphHtml() {
   const activeSalesDays = buckets.filter(b => b.salesVal > 0).length;
   const activePct = Math.round((activeSalesDays / periodCount) * 100);
   const totalOpsPeriod = buckets.reduce((s, b) => s + Number(b.actVal || 0), 0);
+  const totalTasksPeriod = buckets.reduce((s, b) => s + Number(b.tDone || 0), 0);
+  const totalRoutinesPeriod = buckets.reduce((s, b) => s + Number(b.rDone || 0), 0);
+  const activeOpsDays = buckets.filter(b => b.actVal > 0).length;
 
   const avgPaceLabel = dashActivityPeriod === 'daily' ? 'Daily Avg' : (dashActivityPeriod === 'weekly' ? 'Weekly Avg' : 'Monthly Avg');
   const peakUnitLabel = dashActivityPeriod === 'daily' ? 'Day' : (dashActivityPeriod === 'weekly' ? 'Week' : 'Month');
@@ -539,10 +598,14 @@ function buildDashboardActivityGraphHtml() {
             <div class="dash-dd-item" onclick="window.__setDashActivityPeriod('monthly')">Last 12 months</div>
           </div>
         </div>
+        ${canViewSales ? `
         <div style="display:inline-flex;align-items:center;gap:4px;background:#F1F5F9;padding:2px 3px;border-radius:999px;">
           <button onclick="window.__setDashChartMetric('sales')" style="border:none;background:${dashChartMetric === 'sales' ? '#1E3A6E' : 'transparent'};color:${dashChartMetric === 'sales' ? '#FFFFFF' : '#64748B'};font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:999px;cursor:pointer;transition:all 0.15s ease;">Sales (₹)</button>
           <button onclick="window.__setDashChartMetric('activity')" style="border:none;background:${dashChartMetric === 'activity' ? '#1E3A6E' : 'transparent'};color:${dashChartMetric === 'activity' ? '#FFFFFF' : '#64748B'};font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:999px;cursor:pointer;transition:all 0.15s ease;">Activity</button>
         </div>
+        ` : `
+        <span style="font-size:0.75rem;font-weight:700;color:#1E3A6E;background:#F1F5F9;padding:3px 10px;border-radius:999px;letter-spacing:0.02em;">Activity Trends</span>
+        `}
       </div>
       <div style="position:relative;">
         <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;overflow:visible;">
@@ -559,7 +622,8 @@ function buildDashboardActivityGraphHtml() {
         </svg>
       </div>
 
-      <!-- Details List Below Sales Chart on First Dashboard Section -->
+      ${canViewSales ? `
+      <!-- Details List Below Sales Chart on First Dashboard Section (OWNER) -->
       <div class="dash-activity-stats-row">
         <div class="dash-activity-stat-pill">
           <div class="dash-act-stat-label">Total Sales</div>
@@ -577,11 +641,36 @@ function buildDashboardActivityGraphHtml() {
           <div class="dash-act-stat-sub">${peakBucket.label}</div>
         </div>
         <div class="dash-activity-stat-pill">
-          <div class="dash-act-stat-label">${dashChartMetric === 'sales' ? 'Active Days' : 'Total Activity'}</div>
-          <div class="dash-act-stat-val" style="color:#1E3A6E;">${dashChartMetric === 'sales' ? `${activeSalesDays} / ${periodCount}d` : totalOpsPeriod}</div>
-          <div class="dash-act-stat-sub">${dashChartMetric === 'sales' ? `${activePct}% revenue days` : 'actions logged'}</div>
+          <div class="dash-act-stat-label">${effectiveMetric === 'sales' ? 'Active Days' : 'Total Activity'}</div>
+          <div class="dash-act-stat-val" style="color:#1E3A6E;">${effectiveMetric === 'sales' ? `${activeSalesDays} / ${periodCount}d` : totalOpsPeriod}</div>
+          <div class="dash-act-stat-sub">${effectiveMetric === 'sales' ? `${activePct}% revenue days` : 'actions logged'}</div>
         </div>
       </div>
+      ` : `
+      <!-- Details List Below Activity Chart for Manager & Staff (OPERATIONAL ONLY - NO FINANCIALS) -->
+      <div class="dash-activity-stats-row">
+        <div class="dash-activity-stat-pill">
+          <div class="dash-act-stat-label">Total Operations</div>
+          <div class="dash-act-stat-val" style="color:#1E3A6E;">${totalOpsPeriod}</div>
+          <div class="dash-act-stat-sub">tasks &amp; actions logged</div>
+        </div>
+        <div class="dash-activity-stat-pill">
+          <div class="dash-act-stat-label">Tasks Done</div>
+          <div class="dash-act-stat-val" style="color:var(--leaf,#10B981);">${totalTasksPeriod}</div>
+          <div class="dash-act-stat-sub">completed in period</div>
+        </div>
+        <div class="dash-activity-stat-pill">
+          <div class="dash-act-stat-label">Routines Done</div>
+          <div class="dash-act-stat-val" style="color:var(--turmeric-dark,#D97706);">${totalRoutinesPeriod}</div>
+          <div class="dash-act-stat-sub">daily routine checkpoints</div>
+        </div>
+        <div class="dash-activity-stat-pill">
+          <div class="dash-act-stat-label">Active Days</div>
+          <div class="dash-act-stat-val" style="color:#1E3A6E;">${activeOpsDays} / ${periodCount}d</div>
+          <div class="dash-act-stat-sub">${Math.round((activeOpsDays / periodCount) * 100)}% operating days</div>
+        </div>
+      </div>
+      `}
     </div>
   `;
 }
@@ -840,7 +929,8 @@ function renderDashboardTab(body){
       </div>
     </div>
 
-    <!-- 5. SALES Section -->
+    ${isOwner() ? `
+    <!-- 5. SALES Section (OWNER ONLY) -->
     <div class="dash-section-header">
       <div class="dash-section-title">Sales</div>
       <a class="dash-section-link" onclick="window.__setTab('sales')">View report →</a>
@@ -882,6 +972,7 @@ function renderDashboardTab(body){
         </div>
       </div>
     </div>
+    ` : ''}
 
     <!-- 6. TARGET PROGRESS & SALES PERFORMANCE Section (OLD PROGRESS BAR RESTORED) -->
     ${buildStaffTargetsHtml(curMonth, monthSales)}
