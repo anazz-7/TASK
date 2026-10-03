@@ -2074,6 +2074,7 @@ const ICONS = {
   zap: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
   lock: '<rect x="3" y="11" width="18" height="11" rx="2" ry="2" fill="none" stroke-width="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4" fill="none" stroke-width="2"/>',
   eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" fill="none" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="none" stroke-width="2"/>',
+  eyeSlash: '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" fill="none" stroke-width="2"/><line x1="1" y1="1" x2="23" y2="23" stroke-width="2"/>',
 };
 function icon(name, size){
   size = size || 18;

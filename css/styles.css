@@ -900,16 +900,16 @@
 
   /* Grid & Tiles inside Navigation Menu Sheet */
   .nav-sheet-section-title {
-    font-size: 0.68rem;
+    font-size: 0.65rem;
     font-weight: 800;
     letter-spacing: 0.08em;
     color: #94A3B8;
     text-transform: uppercase;
     font-family: var(--font-sans);
-    margin: 14px 0 10px 4px;
+    margin: 10px 0 6px 2px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
   }
   .nav-sheet-section-title::after {
     content: '';
@@ -921,20 +921,20 @@
   .nav-sheet-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 9px;
-    margin-bottom: 12px;
+    gap: 7px;
+    margin-bottom: 8px;
   }
 
   .nav-sheet-tile {
     background: #FFFFFF;
     border: 1px solid #E2E8F0;
-    border-radius: 16px;
-    padding: 13px 6px 11px 6px;
+    border-radius: 12px;
+    padding: 9px 4px 7px 4px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 7px;
+    gap: 4px;
     cursor: pointer;
     position: relative;
     box-sizing: border-box;
@@ -945,7 +945,7 @@
   .nav-sheet-tile:hover {
     transform: translateY(-2px);
     border-color: #CBD5E1;
-    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.05);
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.05);
   }
   .nav-sheet-tile:active {
     transform: scale(0.96);
@@ -954,13 +954,13 @@
   .nav-sheet-tile.active {
     background: #F0F4FA !important;
     border: 1.5px solid #1E3A6E !important;
-    box-shadow: 0 4px 12px rgba(30, 58, 110, 0.1) !important;
+    box-shadow: 0 3px 10px rgba(30, 58, 110, 0.1) !important;
   }
 
   .nav-tile-squircle {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
     background: #F8FAFC;
     color: #334155;
     display: flex;
@@ -977,12 +977,12 @@
     display: block;
     margin: 0;
     vertical-align: 0;
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
   }
 
   .nav-tile-label {
-    font-size: 0.74rem;
+    font-size: 0.68rem;
     font-weight: 600;
     color: #334155;
     line-height: 1.15;
@@ -999,21 +999,21 @@
 
   .nav-tile-badge {
     position: absolute;
-    top: 6px;
-    right: 6px;
+    top: 4px;
+    right: 4px;
     background: #F59E0B;
     color: #FFFFFF;
-    font-size: 0.62rem;
+    font-size: 0.58rem;
     font-weight: 800;
     font-family: var(--font-mono);
-    min-width: 17px;
-    height: 17px;
+    min-width: 15px;
+    height: 15px;
     border-radius: 999px;
-    padding: 0 4px;
+    padding: 0 3px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 2px solid #FFFFFF;
+    border: 1.5px solid #FFFFFF;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
   }
 
@@ -2758,4 +2758,64 @@
   .dash-target-goal-card {
     padding: 12px 14px;
     margin-bottom: 12px;
+  }
+
+  /* Activity / Sales Graph Detail Stats Row */
+  .dash-activity-stats-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #F1F5F9;
+  }
+  @media (min-width: 600px) {
+    .dash-activity-stats-row {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 9px;
+    }
+  }
+  .dash-activity-stat-pill {
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 9px;
+    padding: 7px 9px;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+  .dash-activity-stat-pill:hover {
+    border-color: #CBD5E1;
+    transform: translateY(-1px);
+  }
+  .dash-act-stat-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #64748B;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-family: var(--font-sans);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .dash-act-stat-val {
+    font-size: 0.96rem;
+    font-weight: 800;
+    color: #1E3A6E;
+    font-family: var(--font-mono);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .dash-act-stat-sub {
+    font-size: 0.62rem;
+    color: #94A3B8;
+    font-family: var(--font-sans);
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }

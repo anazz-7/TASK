@@ -338,11 +338,17 @@ function buildDashboardActivityFeedHtml() {
 
 
 let dashActivityPeriod = 'daily'; // 'daily' | 'weekly' | 'monthly'
+let dashChartMetric = 'sales'; // 'sales' | 'activity'
 
 window.__setDashActivityPeriod = function(period) {
   dashActivityPeriod = period;
   const menu = document.getElementById('dashChartDropdownMenu');
   if (menu) menu.classList.remove('show');
+  renderTabBody();
+};
+
+window.__setDashChartMetric = function(metric) {
+  dashChartMetric = metric;
   renderTabBody();
 };
 
@@ -374,18 +380,23 @@ function buildDashboardActivityGraphHtml() {
       
       const tDone = (cache.tasks || []).filter(t => t.status === 'done' && (t.completed_at || t.updated_at || t.due_date || '').startsWith(key)).length;
       const rDone = (cache.routineLog || []).filter(r => r.date === key && r.status === 'done').length;
-      const sCount = (cache.sales || []).filter(s => s.date === key).length;
+      const sOrders = (cache.sales || []).filter(s => s.date === key);
+      const sCount = sOrders.length;
+      const sAmt = sOrders.reduce((sum, s) => sum + Number(s.order_value || 0), 0);
       const lCount = (cache.labels || []).filter(l => l.date === key).length;
       const pCount = (cache.packages || []).filter(p => p.date === key).length;
       const aCount = (cache.attendance || []).filter(a => a.date === key && a.status === 'present').length;
 
-      let val = tDone + rDone + sCount + (lCount > 0 ? 1 : 0) + (pCount > 0 ? 1 : 0) + aCount;
-      if (val === 0 && (cache.sales || []).some(s => s.date === key)) val = 1;
+      let actVal = tDone + rDone + sCount + (lCount > 0 ? 1 : 0) + (pCount > 0 ? 1 : 0) + aCount;
+      if (actVal === 0 && sCount > 0) actVal = 1;
 
       buckets.push({
         date: key,
         label: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
-        val
+        val: dashChartMetric === 'sales' ? sAmt : actVal,
+        salesVal: sAmt,
+        salesCount: sCount,
+        actVal
       });
     }
   } else if (dashActivityPeriod === 'weekly') {
@@ -398,11 +409,17 @@ function buildDashboardActivityGraphHtml() {
       const sK = localDateStr(wStart), eK = localDateStr(wEnd);
       
       const tDone = (cache.tasks || []).filter(t => t.status === 'done' && (t.completed_at || t.updated_at || t.due_date || '') >= sK && (t.completed_at || t.updated_at || t.due_date || '') <= eK).length;
-      const sCount = (cache.sales || []).filter(s => s.date >= sK && s.date <= eK).length;
-      const val = tDone + sCount;
+      const sOrders = (cache.sales || []).filter(s => s.date >= sK && s.date <= eK);
+      const sCount = sOrders.length;
+      const sAmt = sOrders.reduce((sum, s) => sum + Number(s.order_value || 0), 0);
+      const actVal = tDone + sCount;
+
       buckets.push({
         label: wStart.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
-        val
+        val: dashChartMetric === 'sales' ? sAmt : actVal,
+        salesVal: sAmt,
+        salesCount: sCount,
+        actVal
       });
     }
   } else {
@@ -410,11 +427,17 @@ function buildDashboardActivityGraphHtml() {
       const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
       const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
       const tDone = (cache.tasks || []).filter(t => t.status === 'done' && (t.completed_at || t.updated_at || t.due_date || '').startsWith(key)).length;
-      const sCount = (cache.sales || []).filter(s => s.date && s.date.startsWith(key)).length;
-      const val = tDone + sCount;
+      const sOrders = (cache.sales || []).filter(s => s.date && s.date.startsWith(key));
+      const sCount = sOrders.length;
+      const sAmt = sOrders.reduce((sum, s) => sum + Number(s.order_value || 0), 0);
+      const actVal = tDone + sCount;
+
       buckets.push({
         label: d.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' }),
-        val
+        val: dashChartMetric === 'sales' ? sAmt : actVal,
+        salesVal: sAmt,
+        salesCount: sCount,
+        actVal
       });
     }
   }
@@ -462,20 +485,44 @@ function buildDashboardActivityGraphHtml() {
 
   const dots = pts.map((p, i) => {
     const isLatest = (i === n - 1);
+    const tip = dashChartMetric === 'sales'
+      ? `${esc(p.label)}: ₹${p.salesVal.toLocaleString('en-IN')} (${p.salesCount} orders)`
+      : `${esc(p.label)}: ${p.actVal} activities`;
+
     if (isLatest) {
       return `
         <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="5.5" fill="none" stroke="#1E3A6E" stroke-width="2" class="trend-pulse-ring"/>
-        <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="#1E3A6E" stroke="#FFFFFF" stroke-width="2" data-tip="${esc(p.label)}: ${p.val} activities" onmouseenter="window.__showTrendTip(event,this)" onmouseleave="window.__hideTrendTip()" ontouchstart="window.__showTrendTip(event,this)"/>
+        <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="#1E3A6E" stroke="#FFFFFF" stroke-width="2" data-tip="${tip}" onmouseenter="window.__showTrendTip(event,this)" onmouseleave="window.__hideTrendTip()" ontouchstart="window.__showTrendTip(event,this)"/>
       `;
     }
     return `
-      <circle class="trend-chart-dot" style="--dot-idx:${i};" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.8" fill="#FFFFFF" stroke="#1E3A6E" stroke-width="1.8" data-tip="${esc(p.label)}: ${p.val} activities" onmouseenter="window.__showTrendTip(event,this)" onmouseleave="window.__hideTrendTip()" ontouchstart="window.__showTrendTip(event,this)"/>
+      <circle class="trend-chart-dot" style="--dot-idx:${i};" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.8" fill="#FFFFFF" stroke="#1E3A6E" stroke-width="1.8" data-tip="${tip}" onmouseenter="window.__showTrendTip(event,this)" onmouseleave="window.__hideTrendTip()" ontouchstart="window.__showTrendTip(event,this)"/>
     `;
   }).join('');
 
   const xlabels = pts.map((p, i) => showSet.has(i) ? `
     <text x="${p.x.toFixed(1)}" y="${baseY + 14}" text-anchor="middle" font-size="8" font-weight="600" fill="#64748B" font-family="'Plus Jakarta Sans', sans-serif">${esc(p.label)}</text>
   ` : '').join('');
+
+  // Statistics calculation for details row below the chart
+  const totalSalesPeriod = buckets.reduce((s, b) => s + Number(b.salesVal || 0), 0);
+  const totalOrdersPeriod = buckets.reduce((s, b) => s + Number(b.salesCount || 0), 0);
+  const periodCount = Math.max(1, buckets.length);
+  const avgSalesPeriod = Math.round(totalSalesPeriod / periodCount);
+  
+  let peakBucket = { label: '—', salesVal: 0 };
+  buckets.forEach(b => {
+    if (b.salesVal > peakBucket.salesVal) {
+      peakBucket = b;
+    }
+  });
+
+  const activeSalesDays = buckets.filter(b => b.salesVal > 0).length;
+  const activePct = Math.round((activeSalesDays / periodCount) * 100);
+  const totalOpsPeriod = buckets.reduce((s, b) => s + Number(b.actVal || 0), 0);
+
+  const avgPaceLabel = dashActivityPeriod === 'daily' ? 'Daily Avg' : (dashActivityPeriod === 'weekly' ? 'Weekly Avg' : 'Monthly Avg');
+  const peakUnitLabel = dashActivityPeriod === 'daily' ? 'Day' : (dashActivityPeriod === 'weekly' ? 'Week' : 'Month');
 
   return `
     <div class="dash-activity-card">
@@ -492,8 +539,9 @@ function buildDashboardActivityGraphHtml() {
             <div class="dash-dd-item" onclick="window.__setDashActivityPeriod('monthly')">Last 12 months</div>
           </div>
         </div>
-        <div style="display:inline-flex;align-items:center;gap:5px;font-size:0.75rem;font-weight:600;color:#64748B;">
-          ${icon('chartMini', 14)} Total Activity
+        <div style="display:inline-flex;align-items:center;gap:4px;background:#F1F5F9;padding:2px 3px;border-radius:999px;">
+          <button onclick="window.__setDashChartMetric('sales')" style="border:none;background:${dashChartMetric === 'sales' ? '#1E3A6E' : 'transparent'};color:${dashChartMetric === 'sales' ? '#FFFFFF' : '#64748B'};font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:999px;cursor:pointer;transition:all 0.15s ease;">Sales (₹)</button>
+          <button onclick="window.__setDashChartMetric('activity')" style="border:none;background:${dashChartMetric === 'activity' ? '#1E3A6E' : 'transparent'};color:${dashChartMetric === 'activity' ? '#FFFFFF' : '#64748B'};font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:999px;cursor:pointer;transition:all 0.15s ease;">Activity</button>
         </div>
       </div>
       <div style="position:relative;">
@@ -509,6 +557,30 @@ function buildDashboardActivityGraphHtml() {
           ${dots}
           ${xlabels}
         </svg>
+      </div>
+
+      <!-- Details List Below Sales Chart on First Dashboard Section -->
+      <div class="dash-activity-stats-row">
+        <div class="dash-activity-stat-pill">
+          <div class="dash-act-stat-label">Total Sales</div>
+          <div class="dash-act-stat-val">₹${totalSalesPeriod.toLocaleString('en-IN')}</div>
+          <div class="dash-act-stat-sub">${totalOrdersPeriod} orders in period</div>
+        </div>
+        <div class="dash-activity-stat-pill">
+          <div class="dash-act-stat-label">${avgPaceLabel}</div>
+          <div class="dash-act-stat-val">₹${avgSalesPeriod.toLocaleString('en-IN')}</div>
+          <div class="dash-act-stat-sub">avg revenue pace</div>
+        </div>
+        <div class="dash-activity-stat-pill">
+          <div class="dash-act-stat-label">Peak ${peakUnitLabel}</div>
+          <div class="dash-act-stat-val" style="color:var(--turmeric-dark,#D97706);">₹${peakBucket.salesVal.toLocaleString('en-IN')}</div>
+          <div class="dash-act-stat-sub">${peakBucket.label}</div>
+        </div>
+        <div class="dash-activity-stat-pill">
+          <div class="dash-act-stat-label">${dashChartMetric === 'sales' ? 'Active Days' : 'Total Activity'}</div>
+          <div class="dash-act-stat-val" style="color:#1E3A6E;">${dashChartMetric === 'sales' ? `${activeSalesDays} / ${periodCount}d` : totalOpsPeriod}</div>
+          <div class="dash-act-stat-sub">${dashChartMetric === 'sales' ? `${activePct}% revenue days` : 'actions logged'}</div>
+        </div>
       </div>
     </div>
   `;
@@ -831,7 +903,6 @@ function renderDashboardTab(body){
       </div>
     </div>` : ''}
 
-    ${isOwner() ? buildWeeklyEmailReportHtml() : ''}
     ${isOwner() ? buildDashboardPnLLineGraphHtml() : ''}
     ${buildDashboardQuickLinksHtml()}
   `;
@@ -886,8 +957,19 @@ function buildDashboardQuickLinksHtml() {
   `;
 }
 
+window.__togglePnLMask = function(e) {
+  if (e) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  const cur = localStorage.getItem('br_pnl_masked') !== 'false';
+  localStorage.setItem('br_pnl_masked', cur ? 'false' : 'true');
+  renderTabBody();
+};
+
 function buildDashboardPnLLineGraphHtml() {
   if (!isOwner()) return '';
+  const isMasked = localStorage.getItem('br_pnl_masked') !== 'false';
   const records = typeof getPnLData === 'function' ? getPnLData() : [];
   const opening = typeof getPnLOpeningProfit === 'function' ? getPnLOpeningProfit() : { amount: 0 };
   const openingAmt = Number(opening.amount || 0);
@@ -907,96 +989,136 @@ function buildDashboardPnLLineGraphHtml() {
 
   if (chartEntries.length === 0) return '';
 
-  const chartW = 600;
-  const chartH = 180;
-  const baselineY = 120;
-  const paddingX = 40;
-  const usableW = chartW - (paddingX * 2);
+  const formatMasked = (num, isDelta = false) => {
+    if (isMasked) return '₹••••••';
+    const n = Number(num || 0);
+    const prefix = isDelta && n >= 0 ? '+' : '';
+    return prefix + '₹' + n.toLocaleString('en-IN');
+  };
 
-  const maxAbs = Math.max(1, ...chartEntries.map(r => Math.abs(Number(r.net_profit || 0))));
+  const W = 600, H = 100, pL = 16, pR = 16, pT = 16, pB = 22;
+  const cW = W - pL - pR, cH = H - pT - pB;
+  const baseY = pT + cH;
 
-  const points = chartEntries.map((r, idx) => {
+  const netVals = chartEntries.map(r => Number(r.net_profit || 0));
+  const minVal = Math.min(0, ...netVals);
+  const maxVal = Math.max(1, ...netVals);
+  const span = Math.max(1, maxVal - minVal);
+  const n = chartEntries.length;
+
+  const pts = chartEntries.map((r, i) => {
     const net = Number(r.net_profit || 0);
-    const stepX = chartEntries.length > 1 ? usableW / (chartEntries.length - 1) : 0;
-    const x = paddingX + idx * stepX;
-    const isPos = net >= 0;
-    const h = Math.round((Math.abs(net) / maxAbs) * 75);
-    const y = isPos ? (baselineY - h) : (baselineY + h);
-    return { x, y, net, month: r.month, isOpening: r.isOpening };
+    const x = pL + (n < 2 ? cW / 2 : (i / (n - 1)) * cW);
+    const y = pT + cH * ((maxVal - net) / span);
+    return {
+      x,
+      y,
+      net,
+      month: r.month,
+      isOpening: !!r.isOpening
+    };
   });
 
+  // Build cubic Bézier spline curve matching activity chart
   let pathD = '';
-  if (points.length === 1) {
-    pathD = `M ${points[0].x - 20},${points[0].y} L ${points[0].x + 20},${points[0].y}`;
-  } else {
-    pathD = `M ${points[0].x},${points[0].y}`;
-    for (let i = 0; i < points.length - 1; i++) {
-      const p1 = points[i];
-      const p2 = points[i + 1];
-      const cx1 = p1.x + (p2.x - p1.x) / 2;
-      const cy1 = p1.y;
-      const cx2 = p1.x + (p2.x - p1.x) / 2;
-      const cy2 = p2.y;
-      pathD += ` C ${cx1},${cy1} ${cx2},${cy2} ${p2.x},${p2.y}`;
+  if (pts.length > 0) {
+    pathD = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = i > 0 ? pts[i - 1] : pts[i];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = i < pts.length - 2 ? pts[i + 2] : p2;
+      const cp1x = p1.x + (p2.x - p0.x) / 6;
+      const cp1y = p1.y + (p2.y - p0.y) / 6;
+      const cp2x = p2.x - (p3.x - p1.x) / 6;
+      const cp2y = p2.y - (p3.y - p1.y) / 6;
+      pathD += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
     }
   }
+  const areaD = pts.length ? `${pathD} L ${pts[n - 1].x.toFixed(1)} ${baseY.toFixed(1)} L ${pts[0].x.toFixed(1)} ${baseY.toFixed(1)} Z` : '';
 
-  const areaD = `${pathD} L ${points[points.length - 1].x},${baselineY} L ${points[0].x},${baselineY} Z`;
+  const zeroY = pT + cH * (maxVal / span);
+  const hasNegative = minVal < 0;
+
+  const dots = pts.map((p, i) => {
+    const isLatest = (i === n - 1);
+    const isPos = p.net >= 0;
+    const absVal = Math.abs(p.net);
+    const formattedShort = (isPos ? '+' : '-') + '₹' + (absVal >= 100000 ? (absVal / 100000).toFixed(1) + 'L' : Math.round(absVal / 1000) + 'k');
+    const tipText = `${esc(p.month)}: ${isMasked ? '₹••••••' : (isPos ? '+' : '') + '₹' + p.net.toLocaleString('en-IN')}`;
+
+    if (isLatest) {
+      return `
+        <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="5.5" fill="none" stroke="#1E3A6E" stroke-width="2" class="trend-pulse-ring"/>
+        <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="#1E3A6E" stroke="#FFFFFF" stroke-width="2" data-tip="${tipText}" onmouseenter="window.__showTrendTip(event,this)" onmouseleave="window.__hideTrendTip()" ontouchstart="window.__showTrendTip(event,this)"/>
+        ${!isMasked ? `
+          <text x="${p.x.toFixed(1)}" y="${Math.max(12, p.y - 9).toFixed(1)}" text-anchor="middle" font-size="8.5" font-weight="800" fill="#1E3A6E" font-family="'Roboto Mono',monospace">${formattedShort}</text>
+        ` : ''}
+      `;
+    }
+    return `
+      <circle class="trend-chart-dot" style="--dot-idx:${i};" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.8" fill="#FFFFFF" stroke="#1E3A6E" stroke-width="1.8" data-tip="${tipText}" onmouseenter="window.__showTrendTip(event,this)" onmouseleave="window.__hideTrendTip()" ontouchstart="window.__showTrendTip(event,this)"/>
+      ${!isMasked ? `
+        <text x="${p.x.toFixed(1)}" y="${Math.max(12, p.y - 7).toFixed(1)}" text-anchor="middle" font-size="8" font-weight="700" fill="${isPos ? '#10B981' : '#EF4444'}" font-family="'Roboto Mono',monospace">${formattedShort}</text>
+      ` : ''}
+    `;
+  }).join('');
+
+  const xlabels = pts.map(p => `
+    <text x="${p.x.toFixed(1)}" y="${baseY + 14}" text-anchor="middle" font-size="8.5" font-weight="600" fill="#64748B" font-family="'Plus Jakarta Sans', sans-serif">${esc(p.month)}</text>
+  `).join('');
 
   return `
-    <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;margin-top:18px;">
-      <span style="display:inline-flex;align-items:center;gap:6px;">${icon('sales', 14)} Net Profit &amp; Loss (P&amp;L) Trend</span>
-      <a onclick="window.__setTab('pnl')" style="font-size:0.75rem;color:var(--turmeric-dark);font-weight:700;cursor:pointer;">View P&amp;L Analytics &rarr;</a>
-    </div>
-
-    <div class="att-cal-container" style="margin-bottom:20px;padding:16px;background:var(--paper);border:1px solid var(--paper-line);border-radius:12px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
-        <div style="display:flex;align-items:center;gap:12px;font-size:0.82rem;flex-wrap:wrap;">
-          <span>Cumulative Net Profit: <b style="color:${totalCumulativeNet>=0?'var(--leaf)':'var(--brick)'};font-family:'Roboto Mono',monospace;">₹${totalCumulativeNet.toLocaleString('en-IN')}</b></span>
-          ${openingAmt > 0 ? `<span style="color:var(--turmeric-dark);font-weight:600;">Opening: ₹${openingAmt.toLocaleString('en-IN')}</span>` : ''}
-          <span style="color:var(--leaf);font-weight:600;">Latest: ${thisNet>=0?'+':''}₹${thisNet.toLocaleString('en-IN')}</span>
+    <div class="dash-activity-card" style="margin-top:16px;">
+      <div class="dash-activity-header">
+        <div style="display:inline-flex;align-items:center;gap:6px;font-size:0.82rem;font-weight:700;color:#0F172A;">
+          <div class="dash-squircle" style="width:26px;height:26px;border-radius:8px;">${icon('trending', 14)}</div>
+          <span>Net Profit &amp; Loss (P&amp;L) Trend</span>
+        </div>
+        <div style="display:inline-flex;align-items:center;gap:8px;">
+          <button class="stamp-btn small ghost" onclick="window.__togglePnLMask(event)" style="display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 9px;font-size:0.7rem;background:#FFFFFF;border:1px solid #CBD5E1;color:#334155;cursor:pointer;" title="${isMasked ? 'Reveal digits' : 'Mask digits'}">
+            ${isMasked ? icon('eye', 13) + ' <span>Show</span>' : icon('eyeSlash', 13) + ' <span>Mask</span>'}
+          </button>
+          <a onclick="window.__setTab('pnl')" style="font-size:0.72rem;color:#1E3A6E;font-weight:700;cursor:pointer;">View P&amp;L &rarr;</a>
         </div>
       </div>
 
-      <svg viewBox="0 0 ${chartW} ${chartH}" style="width:100%;height:auto;max-height:220px;overflow:visible;">
-        <defs>
-          <linearGradient id="pnlDashGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#10B981" stop-opacity="0.35"/>
-            <stop offset="100%" stop-color="#10B981" stop-opacity="0.0"/>
-          </linearGradient>
-        </defs>
+      <div class="dash-activity-stats-row" style="margin-top:4px;margin-bottom:10px;padding-top:0;border-top:none;">
+        <div class="dash-activity-stat-pill">
+          <div class="dash-act-stat-label">Cumulative Net</div>
+          <div class="dash-act-stat-val" style="color:${totalCumulativeNet>=0?'#10B981':'#EF4444'};">${formatMasked(totalCumulativeNet)}</div>
+          <div class="dash-act-stat-sub">all-time net profit</div>
+        </div>
+        ${openingAmt > 0 ? `
+        <div class="dash-activity-stat-pill">
+          <div class="dash-act-stat-label">Opening Profit</div>
+          <div class="dash-act-stat-val" style="color:#D97706;">${formatMasked(openingAmt)}</div>
+          <div class="dash-act-stat-sub">initial balance</div>
+        </div>` : ''}
+        <div class="dash-activity-stat-pill">
+          <div class="dash-act-stat-label">Latest (${curMonth})</div>
+          <div class="dash-act-stat-val" style="color:${thisNet>=0?'#10B981':'#EF4444'};">${formatMasked(thisNet, true)}</div>
+          <div class="dash-act-stat-sub">current month net</div>
+        </div>
+      </div>
 
-        <!-- Grid Lines -->
-        <line x1="0" y1="35" x2="${chartW}" y2="35" stroke="var(--paper-line)" stroke-dasharray="3,3" stroke-width="1"/>
-        <line x1="0" y1="${baselineY}" x2="${chartW}" y2="${baselineY}" stroke="var(--paper-line)" stroke-width="2"/>
-
-        <!-- Filled Gradient Area -->
-        <path d="${areaD}" fill="url(#pnlDashGrad)"/>
-
-        <!-- Trend Line -->
-        <path d="${pathD}" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round"/>
-
-        <!-- Data Points & Labels -->
-        ${points.map(p => {
-          const isPos = p.net >= 0;
-          const color = p.isOpening ? 'var(--turmeric-dark)' : (isPos ? 'var(--leaf)' : 'var(--brick)');
-          const amtText = `${isPos?'+':''}₹${Math.abs(p.net)>=100000 ? (p.net/100000).toFixed(1)+'L' : Math.round(p.net/1000)+'k'}`;
-          return `
-            <g transform="translate(${p.x}, 0)">
-              <!-- Glowing Data Node -->
-              <circle cx="0" cy="${p.y}" r="5" fill="${color}" stroke="#FFFFFF" stroke-width="2"/>
-
-              <!-- Amount Callout Badge -->
-              <text x="0" y="${isPos ? (p.y - 9) : (p.y + 16)}" text-anchor="middle" font-size="10" font-weight="800" fill="${color}" font-family="'Roboto Mono',monospace">
-                ${amtText}
-              </text>
-
-              <!-- Month Label below axis -->
-              <text x="0" y="152" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink-soft)" font-family="sans-serif">${p.month}</text>
-            </g>
-          `;
-        }).join('')}
-      </svg>
+      <div style="position:relative;">
+        <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;overflow:visible;">
+          <defs>
+            <linearGradient id="dashPnLGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#1E3A6E" stop-opacity="0.22"/>
+              <stop offset="100%" stop-color="#1E3A6E" stop-opacity="0.0"/>
+            </linearGradient>
+          </defs>
+          ${hasNegative ? `
+            <line x1="${pL}" y1="${zeroY.toFixed(1)}" x2="${(W - pR).toFixed(1)}" y2="${zeroY.toFixed(1)}" stroke="#CBD5E1" stroke-dasharray="3,3" stroke-width="1"/>
+          ` : ''}
+          <path class="trend-chart-area" d="${areaD}" fill="url(#dashPnLGrad)"/>
+          <path class="trend-chart-line" d="${pathD}" fill="none" stroke="#1E3A6E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+          ${dots}
+          ${xlabels}
+        </svg>
+      </div>
     </div>
   `;
 }

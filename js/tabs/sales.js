@@ -1488,8 +1488,6 @@ function renderReportsTab(body){
     ${buildSalesTrendChartHtml()}
     ` : ''}
 
-    ${isOwner() ? buildWeeklyEmailReportHtml() : ''}
-
     <div class="row-card" style="align-items:flex-end;">
       <div style="flex:1;"><label style="margin-top:0;">From</label><input type="date" id="repFrom" value="${from}"></div>
       <div style="flex:1;"><label style="margin-top:0;">To</label><input type="date" id="repTo" value="${to}"></div>

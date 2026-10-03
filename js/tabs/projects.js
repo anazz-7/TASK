@@ -911,26 +911,7 @@ window.__generateSalarySlip = function(salaryId) {
    FEATURE: WEEKLY AUTO-REPORT EMAIL
    ================================================================ */
 function buildWeeklyEmailReportHtml() {
-  const sentKey = `br_weekly_email_${session.businessId}`;
-  const lastSent = localStorage.getItem(sentKey) || '';
-  const todayD = new Date();
-  const weekMonday = new Date(todayD); weekMonday.setDate(todayD.getDate() - ((todayD.getDay()||7)-1));
-  const thisWeek = localDateStr(weekMonday);
-  const alreadySent = lastSent === thisWeek;
-
-  return `
-  <div class="row-card" style="flex-direction:column;align-items:stretch;margin-top:8px;">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-      <span style="font-size:1.3rem;">\ud83d\udce7</span>
-      <div>
-        <div style="font-weight:700;font-size:0.82rem;color:var(--ink);">Weekly Summary Email</div>
-        <div style="font-size:0.68rem;color:var(--ink-soft);">One-tap report: sales, attendance, tasks &amp; top performers</div>
-      </div>
-    </div>
-    <button class="email-report-btn ${alreadySent?'sent':''}" onclick="window.__sendWeeklyEmailReport()">
-      ${alreadySent ? '\u2705 Report Sent This Week \u2014 Send Again?' : '\ud83d\udce7 Send Weekly Report to Email'}
-    </button>
-  </div>`;
+  return '';
 }
 
 window.__sendWeeklyEmailReport = function() {
