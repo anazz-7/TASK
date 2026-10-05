@@ -5,21 +5,27 @@ if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
   createClient = window['sb'].createClient;
 } else {
   createClient = function() {
+    function makeDummyBuilder() {
+      const p = Promise.resolve({ data: [], error: null });
+      const b = {
+        select: () => b,
+        insert: () => b,
+        update: () => b,
+        upsert: () => b,
+        delete: () => b,
+        eq: () => b,
+        neq: () => b,
+        order: () => b,
+        limit: () => b,
+        single: () => Promise.resolve({ data: null, error: null }),
+        maybeSingle: () => Promise.resolve({ data: null, error: null }),
+        then: (onFulfill, onReject) => p.then(onFulfill, onReject),
+        catch: (onReject) => p.catch(onReject)
+      };
+      return b;
+    }
     return {
-      from: () => ({
-        select: () => ({
-          eq: () => ({
-            order: () => Promise.resolve({ data: [] }),
-            single: () => Promise.resolve({ data: null }),
-            maybeSingle: () => Promise.resolve({ data: null })
-          }),
-          order: () => Promise.resolve({ data: [] })
-        }),
-        insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: null }) }) }),
-        upsert: () => ({ select: () => ({ single: () => Promise.resolve({ data: null }) }) }),
-        update: () => ({ eq: () => Promise.resolve({ data: null }) }),
-        delete: () => ({ eq: () => Promise.resolve({ data: null }) })
-      })
+      from: () => makeDummyBuilder()
     };
   };
 }
@@ -1683,13 +1689,18 @@ async function loadData(){
 
 function staffName(id){ const s = cache.staff.find(x=>x.id===id); return s ? s.name : 'Unassigned'; }
 function staffPhone(id){ const s = cache.staff.find(x=>x.id===id); return s ? s.phone : ''; }
-function isOwner(){ return session.role === 'owner'; }
-function isManagerPlus(){ return session.role === 'owner' || session.role === 'manager'; }
+function isOwner(){ return !!(session && session.role === 'owner'); }
+function isManager(){ return !!(session && session.role === 'manager'); }
+function isManagerPlus(){ return !!(session && (session.role === 'owner' || session.role === 'manager')); }
+window.isOwner = isOwner;
+window.isManager = isManager;
+window.isManagerPlus = isManagerPlus;
 function esc(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 window.maskSalesAmount = function(val) {
+  const num = Math.round(Number(val || 0));
   if (typeof isOwner === 'function' && isOwner()) {
-    const num = Math.round(Number(val || 0));
+    if (window.__privacyMode) return '₹••••••';
     return '₹' + num.toLocaleString('en-IN');
   }
   return 'Restricted';
@@ -1741,7 +1752,7 @@ function localDateStr(d){
 }
 function localMonthStr(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
 function todayStr(){ return localDateStr(new Date()); }
-function monthKey(d){ return d.slice(0,7); }
+function monthKey(d){ return (d ? String(d) : todayStr()).slice(0,7); }
 
 /* ---------------- notifications (in-app, tab must be open; needs service worker on mobile) ---------------- */
 if('serviceWorker' in navigator){

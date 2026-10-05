@@ -496,7 +496,8 @@ const GODOWNS = ['Home', 'Underground', 'RMTC', 'Back'];
 
 function renderStockkeeperTab(body){
   const today = todayStr();
-  const myCheck = cache.stockChecks.find(c=>c.staff_id===session.staffId && c.date===today);
+  const stockChecks = Array.isArray(cache.stockChecks) ? cache.stockChecks : [];
+  const myCheck = stockChecks.find(c=>c.staff_id===session.staffId && c.date===today);
 
   let checkedGodowns = new Set();
   if (myCheck) {
@@ -1600,13 +1601,16 @@ function tenureStr(createdAt){
   return `${years} year(s)${months?', '+months+' month(s)':''}`;
 }
 function renderAccountTab(body){
-  const s = cache.staff.find(x=>x.id===session.staffId) || {name:session.name, role:session.role};
+  const staffList = Array.isArray(cache.staff) ? cache.staff : [];
+  const pointsList = Array.isArray(cache.points) ? cache.points : [];
+  const tasksList = Array.isArray(cache.tasks) ? cache.tasks : [];
+  const s = staffList.find(x=>x.id===session.staffId) || {name:session.name, role:session.role};
   const totals = {};
-  cache.points.forEach(p=>{ totals[p.staff_id] = (totals[p.staff_id]||0) + Number(p.points||0); });
-  const ranked = cache.staff.slice().sort((a,b)=>(totals[b.id]||0)-(totals[a.id]||0));
+  pointsList.forEach(p=>{ totals[p.staff_id] = (totals[p.staff_id]||0) + Number(p.points||0); });
+  const ranked = staffList.slice().sort((a,b)=>(totals[b.id]||0)-(totals[a.id]||0));
   const myRank = ranked.findIndex(x=>x.id===session.staffId);
   const badges = computeBadges(s);
-  const doneCount = cache.tasks.filter(t=>t.assigned_to===session.staffId && t.status==='done').length;
+  const doneCount = tasksList.filter(t=>t.assigned_to===session.staffId && t.status==='done').length;
 
   body.innerHTML = `
     
@@ -2431,15 +2435,14 @@ function maskCustData(text, type) {
 }
 
 function maskSalesAmount(val) {
-  if (typeof window.maskSalesAmount === 'function') {
-    return window.maskSalesAmount(val);
-  }
   const num = Math.round(Number(val || 0));
   if (typeof isOwner === 'function' && isOwner()) {
+    if (window.__privacyMode) return '₹••••••';
     return '₹' + num.toLocaleString('en-IN');
   }
   return 'Restricted';
 }
+window.maskSalesAmount = maskSalesAmount;
 
 
 

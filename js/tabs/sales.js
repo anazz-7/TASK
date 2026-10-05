@@ -995,12 +995,14 @@ const TROPHY_TYPES = [
   { key: 'teamplayer', icon: 'handshake', name: 'Team Player Award' },
 ];
 function trophyCabinetHtml(){
+  const trophies = Array.isArray(cache.trophies) ? cache.trophies : [];
+  const staffList = Array.isArray(cache.staff) ? cache.staff : [];
   return `
     <div class="section-label">Trophy cabinet</div>
     <div class="row-card" style="flex-wrap:wrap;gap:14px;justify-content:space-around;">
       ${TROPHY_TYPES.map(t=>{
-        const record = cache.trophies.find(x=>x.trophy_key===t.key);
-        const holder = record ? cache.staff.find(s=>s.id===record.staff_id) : null;
+        const record = trophies.find(x=>x.trophy_key===t.key);
+        const holder = record ? staffList.find(s=>s.id===record.staff_id) : null;
         return `<div style="text-align:center;flex:1;min-width:100px;">
           <div style="font-size:2.2rem;line-height:1;">${icon(t.icon,36)}</div>
           <div style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:0.78rem;margin:6px 0 2px;">${t.name}</div>
@@ -1171,12 +1173,14 @@ window.__awardTargetBonus = async (staffId, targetTitle, pts) => {
 
 function renderPointsTab(body){
   const totals = {};
-  cache.points.forEach(p=>{ totals[p.staff_id] = (totals[p.staff_id]||0) + Number(p.points||0); });
-  const ranked = cache.staff.slice().sort((a,b)=>(totals[b.id]||0)-(totals[a.id]||0));
+  const pointsList = Array.isArray(cache.points) ? cache.points : [];
+  const staffList = Array.isArray(cache.staff) ? cache.staff : [];
+  pointsList.forEach(p=>{ totals[p.staff_id] = (totals[p.staff_id]||0) + Number(p.points||0); });
+  const ranked = staffList.slice().sort((a,b)=>(totals[b.id]||0)-(totals[a.id]||0));
   const INCENTIVE_RATE = 10; // ₹10 per point
   const curMonth = monthKey(todayStr());
 
-  const activeTargets = cache.incentiveTargets.filter(t => !t.month || t.month === curMonth);
+  const activeTargets = (Array.isArray(cache.incentiveTargets) ? cache.incentiveTargets : []).filter(t => !t.month || t.month === curMonth);
 
   const subNav = `
     <div style="display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;">
@@ -1188,7 +1192,7 @@ function renderPointsTab(body){
 
   // 1. History Mode
   if(pointsTabMode === 'history'){
-    const historyList = isManagerPlus() ? cache.points : cache.points.filter(p=>p.staff_id===session.staffId);
+    const historyList = isManagerPlus() ? pointsList : pointsList.filter(p=>p.staff_id===session.staffId);
     body.innerHTML = subNav + `
       <div class="section-label">Full Award History</div>
       ${historyList.length ? `<div class="cards-grid">${historyList.map(p=>`
@@ -1304,7 +1308,7 @@ function renderPointsTab(body){
   const myPts = totals[session.staffId] || 0;
   const myCash = myPts * INCENTIVE_RATE;
   const myLevel = getStaffLevel(myPts);
-  const me = cache.staff.find(s=>s.id===session.staffId);
+  const me = staffList.find(s=>s.id===session.staffId);
   const myRank = ranked.findIndex(s=>s.id===session.staffId);
   const levelPct = Math.min(100, Math.round(((myPts - myLevel.min) / (myLevel.next - myLevel.min)) * 100));
 
@@ -2398,9 +2402,9 @@ function renderAccountsTab(body){
   const pendingReqs = isOwner() ? getPendingEditRequests() : [];
 
   // Realtime background check for Owner to catch remote staff requests instantly
-  // NOTE: We MERGE instead of overwrite to preserve locally updated task statuses
-  if(isOwner() && typeof sb !== 'undefined' && session && session.businessId){
-    sb.from('tasks').select('*').eq('business_id', session.businessId).then(r => {
+  const client = (typeof window !== 'undefined' && window.sb) ? window.sb : (typeof sb !== 'undefined' ? sb : null);
+  if(isOwner() && client && typeof client.from === 'function' && session && session.businessId){
+    client.from('tasks').select('*').eq('business_id', session.businessId).then(r => {
       if(r && r.data){
         const prevCount = getPendingEditRequests().length;
         // Merge: preserve local status overrides (done, deleted) on top of cloud data

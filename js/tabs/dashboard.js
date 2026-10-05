@@ -1108,7 +1108,8 @@ window.__togglePnLMask = function(e) {
 function buildDashboardPnLLineGraphHtml() {
   if (!isOwner()) return '';
   const isMasked = localStorage.getItem('br_pnl_masked') !== 'false';
-  const records = typeof getPnLData === 'function' ? getPnLData() : [];
+  const rawRecords = typeof getPnLData === 'function' ? getPnLData() : [];
+  const records = Array.isArray(rawRecords) ? rawRecords : [];
   const opening = typeof getPnLOpeningProfit === 'function' ? getPnLOpeningProfit() : { amount: 0 };
   const openingAmt = Number(opening.amount || 0);
 

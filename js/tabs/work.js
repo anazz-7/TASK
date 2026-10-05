@@ -573,9 +573,11 @@ window.__openTask = () => openTaskModal(null);
 let expandedRoutineIds = new Set();
 function renderDailyTab(body){
   const today = todayStr();
-  let list = isManagerPlus() ? cache.routines : cache.routines.filter(r=>r.assigned_to===session.staffId);
+  const rawRoutines = Array.isArray(cache.routines) ? cache.routines : [];
+  const routineLog = Array.isArray(cache.routineLog) ? cache.routineLog : [];
+  let list = isManagerPlus() ? rawRoutines : rawRoutines.filter(r=>r.assigned_to===session.staffId);
   const row = (r) => {
-    const log = cache.routineLog.find(l=>l.routine_id===r.id);
+    const log = routineLog.find(l=>l.routine_id===r.id);
     const done = log && log.status==='done';
     return `
     <div class="row-card">
@@ -618,8 +620,8 @@ function renderDailyTab(body){
        ${row(r)}`
     : collapsedRow(r);
 
-  const pending = list.filter(r=>{ const l=cache.routineLog.find(x=>x.routine_id===r.id); return !(l && l.status==='done'); });
-  const doneList = list.filter(r=>{ const l=cache.routineLog.find(x=>x.routine_id===r.id); return l && l.status==='done'; });
+  const pending = list.filter(r=>{ const l=routineLog.find(x=>x.routine_id===r.id); return !(l && l.status==='done'); });
+  const doneList = list.filter(r=>{ const l=routineLog.find(x=>x.routine_id===r.id); return l && l.status==='done'; });
 
   body.innerHTML = `
     
@@ -738,10 +740,12 @@ function renderWeeklyTab(body){
   const weekStart = currentWeekStartStr();
   const weekEndDisp = (() => { const d = new Date(weekStart); d.setDate(d.getDate()+6); return d.toLocaleDateString('en-IN',{day:'numeric',month:'short'}); })();
   const weekStartDisp = new Date(weekStart).toLocaleDateString('en-IN',{day:'numeric',month:'short'});
-  let list = isManagerPlus() ? cache.weeklyTasks : cache.weeklyTasks.filter(w=>w.assigned_to===session.staffId);
+  const rawWeekly = Array.isArray(cache.weeklyTasks) ? cache.weeklyTasks : [];
+  const weeklyTaskLog = Array.isArray(cache.weeklyTaskLog) ? cache.weeklyTaskLog : [];
+  let list = isManagerPlus() ? rawWeekly : rawWeekly.filter(w=>w.assigned_to===session.staffId);
 
   const row = (w) => {
-    const log = cache.weeklyTaskLog.find(l=>l.weekly_task_id===w.id);
+    const log = weeklyTaskLog.find(l=>l.weekly_task_id===w.id);
     const done = log && log.status==='done';
     return `
     <div class="row-card">
@@ -782,8 +786,8 @@ function renderWeeklyTab(body){
        ${row(w)}`
     : collapsedRow(w);
 
-  const pending = list.filter(w=>{ const l=cache.weeklyTaskLog.find(x=>x.weekly_task_id===w.id); return !(l && l.status==='done'); });
-  const doneList = list.filter(w=>{ const l=cache.weeklyTaskLog.find(x=>x.weekly_task_id===w.id); return l && l.status==='done'; });
+  const pending = list.filter(w=>{ const l=weeklyTaskLog.find(x=>x.weekly_task_id===w.id); return !(l && l.status==='done'); });
+  const doneList = list.filter(w=>{ const l=weeklyTaskLog.find(x=>x.weekly_task_id===w.id); return l && l.status==='done'; });
 
   body.innerHTML = `
     

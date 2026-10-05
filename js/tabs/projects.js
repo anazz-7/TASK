@@ -1121,7 +1121,7 @@ window.__openOfficeLogModal = function(editId) {
           </div>
           <div style="display:flex;justify-content:flex-end;gap:8px;">
             <button type="button" class="stamp-btn ghost" onclick="window.__closeCurrentModal(this)">Cancel</button>
-            <button type="submit" class="stamp-btn" style="display:inline-flex;align-items:center;gap:6px;">${icon('save', 14)} Save Office Log</button>
+            <button type="button" class="stamp-btn" onclick="window.__saveOfficeLog('${editId || ''}')" style="display:inline-flex;align-items:center;gap:6px;">${icon('save', 14)} ${isEdit ? 'Update Entry' : 'Save Entry'}</button>
           </div>
         </form>
       </div>
@@ -1132,11 +1132,15 @@ window.__openOfficeLogModal = function(editId) {
 
 window.__saveOfficeLog = async function(editId, form) {
   try {
+    if (!form || typeof form.querySelector !== 'function') {
+      form = document.querySelector('#taskModalHolder form') || document;
+    }
     const typeInput = form ? form.querySelector('input[name="log_type"]:checked') : null;
     const type = typeInput ? typeInput.value : 'deposit';
 
     const amountInput = form ? form.querySelector('input[name="amount"]') : null;
-    const amount = Number(amountInput ? amountInput.value : 0);
+    const rawAmt = amountInput ? String(amountInput.value || '').replace(/,/g, '').replace(/₹/g, '').trim() : '0';
+    const amount = Number(rawAmt || 0);
 
     const dateInput = form ? form.querySelector('input[name="date"]') : null;
     const date = dateInput && dateInput.value ? dateInput.value : todayStr();
@@ -1444,21 +1448,21 @@ window.__openPnLOpeningModal = function() {
           <button class="stamp-btn small ghost" onclick="window.__closeCurrentModal(this)" style="display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;">${icon('close', 14)}</button>
         </div>
 
-        <form onsubmit="event.preventDefault(); window.__savePnLOpeningAction(this.opening_amount.value, this.notes.value);">
+        <form id="pnlOpeningForm" onsubmit="event.preventDefault(); window.__savePnLOpeningAction();">
           <div style="margin-bottom:14px;">
             <label style="font-size:0.78rem;font-weight:600;color:var(--leaf);display:block;margin-bottom:4px;">Opening Net Profit Amount (₹) *</label>
-            <input type="number" step="any" name="opening_amount" placeholder="e.g. 500000" value="${opening.amount || ''}" required style="width:100%;box-sizing:border-box;font-family:'Roboto Mono',monospace;font-size:1.15rem;font-weight:800;color:var(--leaf);padding:10px 12px;border:2px solid var(--paper-line);border-radius:8px;">
+            <input type="text" inputmode="decimal" id="pnlOpeningAmount" name="opening_amount" placeholder="e.g. 500000" value="${opening.amount || ''}" required style="width:100%;box-sizing:border-box;font-family:'Roboto Mono',monospace;font-size:1.15rem;font-weight:800;color:var(--leaf);padding:10px 12px;border:2px solid var(--paper-line);border-radius:8px;">
             <span style="font-size:0.68rem;color:var(--ink-soft);margin-top:4px;display:block;">Enter total accumulated profits earned before starting monthly tracking.</span>
           </div>
 
           <div style="margin-bottom:14px;">
             <label style="font-size:0.75rem;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px;">Remarks / Notes (Optional)</label>
-            <input type="text" name="notes" placeholder="e.g. Initial balance from prior years" value="${esc(opening.notes || '')}" style="width:100%;box-sizing:border-box;font-size:0.82rem;">
+            <input type="text" id="pnlOpeningNotes" name="notes" placeholder="e.g. Initial balance from prior years" value="${esc(opening.notes || '')}" style="width:100%;box-sizing:border-box;font-size:0.82rem;">
           </div>
 
           <div style="display:flex;justify-content:flex-end;gap:8px;">
             <button type="button" class="stamp-btn ghost" onclick="window.__closeCurrentModal(this)">Cancel</button>
-            <button type="submit" class="stamp-btn" style="display:inline-flex;align-items:center;gap:6px;">${icon('save', 14)} Save Opening Profit</button>
+            <button type="button" class="stamp-btn" onclick="window.__savePnLOpeningAction()" style="display:inline-flex;align-items:center;gap:6px;">${icon('save', 14)} Save Opening Profit</button>
           </div>
         </form>
       </div>
@@ -1468,10 +1472,26 @@ window.__openPnLOpeningModal = function() {
 };
 
 window.__savePnLOpeningAction = async function(amount, notes) {
-  await savePnLOpeningProfit(amount, notes);
-  getModalHolder('taskModalHolder').innerHTML = '';
-  window.showToast('Opening Profit updated & synced!', 'success');
-  renderTabBody();
+  try {
+    if (amount === undefined || amount === null) {
+      const amtEl = document.getElementById('pnlOpeningAmount') || document.querySelector('#taskModalHolder input[name="opening_amount"]');
+      if (amtEl) amount = amtEl.value;
+    }
+    if (notes === undefined || notes === null) {
+      const notesEl = document.getElementById('pnlOpeningNotes') || document.querySelector('#taskModalHolder input[name="notes"]');
+      if (notesEl) notes = notesEl.value;
+    }
+    const cleanAmt = String(amount || '').replace(/,/g, '').replace(/₹/g, '').trim();
+    await savePnLOpeningProfit(cleanAmt, notes);
+    if (typeof getModalHolder === 'function') getModalHolder('taskModalHolder').innerHTML = '';
+    if (typeof window.__closeCurrentModal === 'function') window.__closeCurrentModal();
+    if (typeof window.showToast === 'function') window.showToast('Opening Profit updated & synced!', 'success');
+    if (typeof renderTabBody === 'function') renderTabBody();
+  } catch(err) {
+    console.error('Error saving opening profit:', err);
+    if (typeof window.showToast === 'function') window.showToast('Could not save opening profit: ' + (err.message || err), 'warning');
+    else alert('Could not save opening profit: ' + (err.message || err));
+  }
 };
 
 function getPnLData() {
@@ -1529,35 +1549,35 @@ window.__openPnLModal = function(editId) {
           <h3 style="margin:0;display:inline-flex;align-items:center;gap:6px;">
             ${icon('reports', 18)} ${isEdit ? 'Edit Monthly Net Profit' : 'Log Monthly Net Profit'}
           </h3>
-          <button class="stamp-btn small ghost" onclick="window.__closeCurrentModal(this)" style="display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;">${icon('close', 14)}</button>
+          <button type="button" class="stamp-btn small ghost" onclick="window.__closeCurrentModal(this)" style="display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;">${icon('close', 14)}</button>
         </div>
 
-        <form onsubmit="event.preventDefault(); window.__savePnLRecord('${editId || ''}', this);">
+        <form id="pnlRecordForm" onsubmit="event.preventDefault(); window.__savePnLRecord('${editId || ''}');">
           <div style="margin-bottom:12px;">
             <label style="font-size:0.75rem;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px;">Month / Period *</label>
-            <input type="month" name="month" value="${item ? item.month : currentMonth}" required style="width:100%;box-sizing:border-box;font-size:0.9rem;padding:8px 10px;">
+            <input type="month" id="pnlRecordMonth" name="month" value="${item ? item.month : currentMonth}" required style="width:100%;box-sizing:border-box;font-size:0.9rem;padding:8px 10px;">
           </div>
 
           <div style="margin-bottom:14px;">
             <label style="font-size:0.78rem;font-weight:600;color:var(--leaf);display:block;margin-bottom:4px;">Net Profit Amount (₹) *</label>
-            <input type="number" step="any" name="net_profit" placeholder="e.g. 85000 (Use negative for loss e.g. -5000)" value="${item ? item.net_profit : ''}" required style="width:100%;box-sizing:border-box;font-family:'Roboto Mono',monospace;font-size:1.15rem;font-weight:800;color:var(--leaf);padding:10px 12px;border:2px solid var(--paper-line);border-radius:8px;">
+            <input type="text" inputmode="decimal" id="pnlRecordNetProfit" name="net_profit" placeholder="e.g. 85000 (Use negative for loss e.g. -5000)" value="${item ? item.net_profit : ''}" required style="width:100%;box-sizing:border-box;font-family:'Roboto Mono',monospace;font-size:1.15rem;font-weight:800;color:var(--leaf);padding:10px 12px;border:2px solid var(--paper-line);border-radius:8px;">
             <span style="font-size:0.68rem;color:var(--ink-soft);margin-top:4px;display:block;">Tip: Enter positive number for Profit (e.g. 50000) or negative for Loss (e.g. -12000)</span>
           </div>
 
           <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
             <div style="flex:1;min-width:140px;">
               <label style="font-size:0.75rem;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px;">Gross Revenue (₹) (Optional)</label>
-              <input type="number" step="any" name="revenue" placeholder="e.g. 250000" value="${item ? (item.revenue || '') : ''}" style="width:100%;box-sizing:border-box;font-family:'Roboto Mono',monospace;font-size:0.88rem;">
+              <input type="text" inputmode="decimal" id="pnlRecordRevenue" name="revenue" placeholder="e.g. 250000" value="${item ? (item.revenue || '') : ''}" style="width:100%;box-sizing:border-box;font-family:'Roboto Mono',monospace;font-size:0.88rem;">
             </div>
             <div style="flex:1;min-width:140px;">
               <label style="font-size:0.75rem;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px;">Remarks / Notes (Optional)</label>
-              <input type="text" name="notes" placeholder="e.g. Festival month profit" value="${item ? esc(item.notes || '') : ''}" style="width:100%;box-sizing:border-box;font-size:0.82rem;">
+              <input type="text" id="pnlRecordNotes" name="notes" placeholder="e.g. Festival month profit" value="${item ? esc(item.notes || '') : ''}" style="width:100%;box-sizing:border-box;font-size:0.82rem;">
             </div>
           </div>
 
           <div style="display:flex;justify-content:flex-end;gap:8px;">
             <button type="button" class="stamp-btn ghost" onclick="window.__closeCurrentModal(this)">Cancel</button>
-            <button type="submit" class="stamp-btn" style="display:inline-flex;align-items:center;gap:6px;">${icon('save', 14)} Log Month Profit</button>
+            <button type="button" id="pnlRecordSubmitBtn" class="stamp-btn" onclick="window.__savePnLRecord('${editId || ''}')" style="display:inline-flex;align-items:center;gap:6px;">${icon('save', 14)} Log Month Profit</button>
           </div>
         </form>
       </div>
@@ -1567,50 +1587,91 @@ window.__openPnLModal = function(editId) {
 };
 
 window.__savePnLRecord = async function(editId, form) {
-  const month = form.month.value;
-  const net_profit = Number(form.net_profit.value || 0);
-  const revenue = Number(form.revenue.value || 0);
-  const notes = (form.notes.value || '').trim();
-
-  if (!month) {
-    window.showToast('Please select a valid month.', 'warning');
-    return;
-  }
-
-  const records = getPnLData();
-  const isEdit = !!editId;
-
-  if (editId) {
-    const idx = records.findIndex(r => r.id === editId);
-    if (idx !== -1) {
-      records[idx].month = month;
-      records[idx].net_profit = net_profit;
-      records[idx].revenue = revenue;
-      records[idx].notes = notes;
+  try {
+    if (!form || typeof form.querySelector !== 'function') {
+      form = document.getElementById('pnlRecordForm') || document.querySelector('#taskModalHolder form') || document;
     }
-  } else {
-    const existingIdx = records.findIndex(r => r.month === month);
-    if (existingIdx !== -1) {
-      records[existingIdx] = {
-        id: records[existingIdx].id,
-        month, net_profit, revenue, notes,
-        updated_at: new Date().toISOString()
-      };
+    const monthEl = form.querySelector ? form.querySelector('[name="month"]') : document.getElementById('pnlRecordMonth');
+    const netProfitEl = form.querySelector ? form.querySelector('[name="net_profit"]') : document.getElementById('pnlRecordNetProfit');
+    const revenueEl = form.querySelector ? form.querySelector('[name="revenue"]') : document.getElementById('pnlRecordRevenue');
+    const notesEl = form.querySelector ? form.querySelector('[name="notes"]') : document.getElementById('pnlRecordNotes');
+
+    const month = monthEl ? (monthEl.value || '').trim() : '';
+    const rawProfit = netProfitEl ? String(netProfitEl.value || '').replace(/,/g, '').replace(/₹/g, '').trim() : '';
+    const rawRev = revenueEl ? String(revenueEl.value || '').replace(/,/g, '').replace(/₹/g, '').trim() : '';
+    const notes = notesEl ? String(notesEl.value || '').trim() : '';
+
+    if (!month) {
+      if (typeof window.showToast === 'function') window.showToast('Please select a valid month.', 'warning');
+      else alert('Please select a valid month.');
+      return;
+    }
+
+    if (rawProfit === '' || isNaN(Number(rawProfit))) {
+      if (typeof window.showToast === 'function') window.showToast('Please enter a valid Net Profit amount.', 'warning');
+      else alert('Please enter a valid Net Profit amount.');
+      return;
+    }
+
+    const saveBtn = document.getElementById('pnlRecordSubmitBtn');
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving…';
+    }
+
+    const net_profit = Number(rawProfit);
+    const revenue = rawRev !== '' && !isNaN(Number(rawRev)) ? Number(rawRev) : 0;
+
+    const records = getPnLData();
+    const isEdit = !!editId;
+
+    if (editId) {
+      const idx = records.findIndex(r => r.id === editId);
+      if (idx !== -1) {
+        records[idx].month = month;
+        records[idx].net_profit = net_profit;
+        records[idx].revenue = revenue;
+        records[idx].notes = notes;
+      }
     } else {
-      records.unshift({
-        id: 'pnl_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-        month, net_profit, revenue, notes,
-        created_at: new Date().toISOString()
-      });
+      const existingIdx = records.findIndex(r => r.month === month);
+      if (existingIdx !== -1) {
+        records[existingIdx] = {
+          id: records[existingIdx].id,
+          month, net_profit, revenue, notes,
+          updated_at: new Date().toISOString()
+        };
+      } else {
+        records.unshift({
+          id: 'pnl_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+          month, net_profit, revenue, notes,
+          created_at: new Date().toISOString()
+        });
+      }
+    }
+
+    records.sort((a, b) => b.month.localeCompare(a.month));
+
+    await savePnLData(records);
+    if (typeof getModalHolder === 'function') getModalHolder('taskModalHolder').innerHTML = '';
+    if (typeof window.__closeCurrentModal === 'function') window.__closeCurrentModal();
+    if (typeof window.showToast === 'function') {
+      window.showToast(isEdit ? 'P&L profit updated!' : 'Monthly Net Profit recorded & synced!', 'success');
+    }
+    if (typeof renderTabBody === 'function') renderTabBody();
+  } catch(err) {
+    console.error('Error saving P&L record:', err);
+    if (typeof window.showToast === 'function') {
+      window.showToast('Could not save: ' + (err.message || err), 'warning');
+    } else {
+      alert('Could not save: ' + (err.message || err));
+    }
+    const saveBtn = document.getElementById('pnlRecordSubmitBtn');
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Log Month Profit';
     }
   }
-
-  records.sort((a, b) => b.month.localeCompare(a.month));
-
-  await savePnLData(records);
-  getModalHolder('taskModalHolder').innerHTML = '';
-  window.showToast(isEdit ? 'P&L profit updated!' : 'Monthly Net Profit recorded & synced!', 'success');
-  renderTabBody();
 };
 
 window.__deletePnLRecord = async function(id) {
