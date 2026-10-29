@@ -2193,10 +2193,10 @@ const TAB_META = {
   projects: {icon:'project', label:'Projects'},
 };
 function currentTabs(){
-  if(session.role === 'sales' || session.role === 'salesman') return ['pricelist', 'sales', 'tasks', 'accounts', 'low_stock'];
+  if(session.role === 'sales' || session.role === 'salesman') return ['pricelist', 'sales', 'tasks', 'accounts'];
   return isManagerPlus()
-    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','office_logs','pnl','sales','pricelist','label','package','stockkeeper','points','salary','accounts','low_stock','reports','audit','projects','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','sales','pricelist','label','package','stockkeeper','points','accounts','low_stock','reports','audit'])
-    : ['pricelist', 'tasks','daily','weekly','attendance','sales','label','package','stockkeeper','points','accounts','low_stock'];
+    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','office_logs','pnl','sales','pricelist','label','package','points','salary','accounts','reports','audit','projects','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','sales','pricelist','label','package','points','accounts','reports','audit'])
+    : ['pricelist', 'tasks','daily','weekly','attendance','sales','label','package','points','accounts'];
 }
 function quickTabs(){
   if(session.role === 'sales' || session.role === 'salesman') return ['pricelist', 'sales', 'tasks', 'accounts'];
@@ -2215,7 +2215,6 @@ function getPrimaryActionBtn(t){
   if(t==='package') return `<button class="stamp-btn compact-mobile" onclick="window.__openPackage()"><span class="btn-text">+ Log Package</span><span class="btn-short">+</span></button>`;
   if(t==='salary' && (isOwner() || isManager())) return `<button class="stamp-btn compact-mobile" onclick="window.__openSalaryLogModal()"><span class="btn-text" style="display:inline-flex;align-items:center;gap:4px;">${icon('salary', 14)} Salary Log</span><span class="btn-short" style="display:inline-flex;align-items:center;justify-content:center;">${icon('salary', 14)}</span></button>${isOwner() ? `<button class="stamp-btn compact-mobile" style="margin-left:6px;" onclick="window.__openSalary()"><span class="btn-text">+ Record Salary</span><span class="btn-short">+</span></button>` : ''}`;
   if(t==='points' && isManagerPlus()) return `<button class="stamp-btn compact-mobile" onclick="window.__openPoints()"><span class="btn-text">+ Award Points</span><span class="btn-short">+</span></button>`;
-  if(t==='low_stock') return `<button class="stamp-btn compact-mobile" onclick="window.__openLowStockModal()"><span class="btn-text">+ Report Low Stock</span><span class="btn-short">+</span></button>`;
   if(t==='projects' && isOwner()) return `<button class="stamp-btn compact-mobile" onclick="window.__openAddProjectModal()"><span class="btn-text">+ New Project</span><span class="btn-short">+</span></button>`;
   return '';
 }
@@ -2339,8 +2338,6 @@ function renderShell(){
             badgeHtml = `<span class="nav-tile-badge">${pendingTasksCount > 99 ? '99+' : pendingTasksCount}</span>`;
           } else if (k === 'daily' && pendingRoutinesCount > 0) {
             badgeHtml = `<span class="nav-tile-badge">${pendingRoutinesCount > 99 ? '99+' : pendingRoutinesCount}</span>`;
-          } else if (k === 'low_stock' && lowStockCount > 0) {
-            badgeHtml = `<span class="nav-tile-badge">${lowStockCount}</span>`;
           }
           let displayLabel = meta.label;
           if (k === 'dashboard') displayLabel = 'Overview';
@@ -2358,7 +2355,7 @@ function renderShell(){
           `;
         };
 
-        const workspaceKeys = ['dashboard', 'tasks', 'daily', 'weekly', 'attendance', 'sales', 'pricelist', 'label', 'package', 'stockkeeper', 'low_stock', 'projects', 'points', 'reports'].filter(k => tabs.includes(k));
+        const workspaceKeys = ['dashboard', 'tasks', 'daily', 'weekly', 'attendance', 'sales', 'pricelist', 'label', 'package', 'projects', 'points', 'reports'].filter(k => tabs.includes(k));
         const moneyKeys = ['accounts', 'office_logs', 'pnl', 'salary'].filter(k => tabs.includes(k));
         const manageKeys = ['staff', 'audit', 'settings'].filter(k => tabs.includes(k));
 
@@ -2430,7 +2427,6 @@ function renderShell(){
     ${activeTab==='label' ? '<button class="fab mobile-only" onclick="window.__openLabel()">+</button>' : ''}
     ${activeTab==='package' ? '<button class="fab mobile-only" onclick="window.__openPackage()">+</button>' : ''}
     ${activeTab==='points' && isManagerPlus() ? '<button class="fab mobile-only" onclick="window.__openPoints()">+</button>' : ''}
-    ${activeTab==='low_stock' ? '<button class="fab mobile-only" onclick="window.__openLowStockModal()">+</button>' : ''}
   `}
   `;
 
@@ -2506,6 +2502,9 @@ function renderShell(){
 function renderTabBody(){
   const body = document.getElementById('tabBody');
   if(!body) return;
+  if(activeTab === 'stockkeeper' || activeTab === 'low_stock') {
+    activeTab = 'dashboard';
+  }
   if(activeTab==='dashboard') renderDashboardTab(body);
   else if(activeTab==='tasks') renderTasksTab(body);
   else if(activeTab==='daily') renderDailyTab(body);

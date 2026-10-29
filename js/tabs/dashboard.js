@@ -1074,15 +1074,6 @@ function buildDashboardQuickLinksHtml() {
           <b style="color:var(--ink);">Points &amp; Rewards</b>
         </button>
 
-        <button class="stamp-btn ghost" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;gap:6px;height:auto;font-size:0.75rem;text-align:center;background:var(--paper-line);" onclick="window.__setTab('stockkeeper')">
-          <span style="font-size:1.2rem;color:var(--ink);">${icon('database', 22)}</span>
-          <b style="color:var(--ink);">Stock Keeper</b>
-        </button>
-
-        <button class="stamp-btn ghost" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;gap:6px;height:auto;font-size:0.75rem;text-align:center;background:var(--paper-line);" onclick="window.__setTab('low_stock')">
-          <span style="font-size:1.2rem;color:var(--brick);">${icon('alert', 22)}</span>
-          <b style="color:var(--ink);">Low Stock Alerts</b>
-        </button>
 
         ${isOwner() ? `
           <button class="stamp-btn ghost" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;gap:6px;height:auto;font-size:0.75rem;text-align:center;background:var(--paper-line);" onclick="window.__setTab('projects')">

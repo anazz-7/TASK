@@ -1965,7 +1965,6 @@ function renderReportsTab(body) {
           </div>
           <div style="display:flex;gap:6px;">
             <button class="stamp-btn small ghost" onclick="window.__setTab('sales')">Sales Tab &rarr;</button>
-            <button class="stamp-btn small ghost" onclick="window.__setTab('low_stock')">Stock Tab &rarr;</button>
           </div>
         </div>
 
