@@ -1377,199 +1377,686 @@ window.__openSalary = () => {
   };
 };
 
-/* ---------------- REPORTS HUB ---------------- */
-let reportsCategoryFilter = 'all'; // 'all' | 'pnl' | 'salary' | 'inventory' | 'attendance' | 'sales'
+/* ---------------- MASTER REPORTS HUB ---------------- */
+let reportsCategoryFilter = 'all'; // 'all' | 'pnl' | 'salary' | 'tasks' | 'attendance' | 'sales'
+let reportsTimeFilter = 'this_month'; // 'this_month' | 'last_month' | 'last_30_days' | 'this_year' | 'custom'
+let reportsCustomFrom = '';
+let reportsCustomTo = '';
+
+function getReportsDateRange() {
+  const today = todayStr();
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth(); // 0-based
+
+  if (reportsTimeFilter === 'last_month') {
+    const lmDate = new Date(year, month - 1, 1);
+    const lmYear = lmDate.getFullYear();
+    const lmMonth = lmDate.getMonth() + 1;
+    const lastDay = new Date(lmYear, lmMonth, 0).getDate();
+    return {
+      from: `${lmYear}-${String(lmMonth).padStart(2, '0')}-01`,
+      to: `${lmYear}-${String(lmMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`,
+      label: lmDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    };
+  }
+
+  if (reportsTimeFilter === 'last_30_days') {
+    const d30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    return {
+      from: localDateStr(d30),
+      to: today,
+      label: 'Last 30 Days'
+    };
+  }
+
+  if (reportsTimeFilter === 'this_year') {
+    return {
+      from: `${year}-01-01`,
+      to: today,
+      label: `Year ${year} to Date`
+    };
+  }
+
+  if (reportsTimeFilter === 'custom' && reportsCustomFrom && reportsCustomTo) {
+    return {
+      from: reportsCustomFrom,
+      to: reportsCustomTo,
+      label: `${reportsCustomFrom} to ${reportsCustomTo}`
+    };
+  }
+
+  // Default: this_month
+  const curMon = month + 1;
+  const curFirst = `${year}-${String(curMon).padStart(2, '0')}-01`;
+  const curMonthName = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  return {
+    from: curFirst,
+    to: today,
+    label: curMonthName
+  };
+}
 
 window.__setReportsFilter = function(cat) {
-  reportsCategoryFilter = cat;
+  reportsCategoryFilter = cat || 'all';
   renderTabBody();
 };
 
-function renderReportsTab(body) {
-  const currentMonth = monthKey(todayStr());
-  
-  // 1. P&L Net Profit Data
-  const pnlObj = typeof getPnLDataObj === 'function' ? getPnLDataObj() : { records: [] };
-  const pnlRecords = pnlObj.records || [];
-  const latestPnL = pnlRecords[0] || {};
-  
-  // 2. Salary & Payroll Data
-  const totals = typeof getAssumedSalaryTotals === 'function' ? getAssumedSalaryTotals() : { monthlyTotal: 0, weeklyTotal: 0, count: 0 };
-  const actualPaidThisMonth = (cache.salaries || []).filter(sa => monthKey(sa.paid_date) === currentMonth).reduce((sum, sa) => sum + Number(sa.amount||0), 0);
-  const advancesThisMonth = (typeof getSalaryAdvances === 'function' ? getSalaryAdvances() : []).filter(a => monthKey(a.date) === currentMonth).reduce((sum, a) => sum + Number(a.amount||0), 0);
-  const totalSalaryOutflow = actualPaidThisMonth + advancesThisMonth;
-  const remainingSalaryDue = Math.max(0, totals.monthlyTotal - totalSalaryOutflow);
-  const salaryPaidPct = totals.monthlyTotal > 0 ? Math.min(100, Math.round((totalSalaryOutflow / totals.monthlyTotal) * 100)) : 0;
-  
-  // 3. Inventory Stock Data
-  const lowStockList = typeof getLowStockList === 'function' ? getLowStockList() : [];
-  const stockItems = cache.stockItems || [];
-  const totalStockVal = stockItems.reduce((sum, item) => sum + (Number(item.qty||0) * Number(item.rate||0)), 0);
-  
-  // 4. Staff & Attendance Data
+window.__setReportsTimeFilter = function(timeKey) {
+  reportsTimeFilter = timeKey || 'this_month';
+  renderTabBody();
+};
+
+window.__applyCustomReportsRange = function() {
+  const fromEl = document.getElementById('repCustomFrom');
+  const toEl = document.getElementById('repCustomTo');
+  if (fromEl && toEl && fromEl.value && toEl.value) {
+    reportsTimeFilter = 'custom';
+    reportsCustomFrom = fromEl.value;
+    reportsCustomTo = toEl.value;
+    renderTabBody();
+  } else {
+    alert('Please select both From and To dates.');
+  }
+};
+
+window.__exportMasterReportsCsv = function() {
+  const { from, to, label } = getReportsDateRange();
+  const inRange = (d) => Boolean(d && d >= from && d <= to);
   const activeStaff = typeof getActiveStaff === 'function' ? getActiveStaff() : (cache.staff || []);
+  
+  const execSales = (cache.sales || []).filter(s => inRange(s.date || s.created_at));
+  const salesTotal = execSales.reduce((sum, s) => sum + Number(s.order_value || s.amount || 0), 0);
+  const execAcc = (cache.dailyAccounts || []).filter(a => inRange(a.date));
+  const accountsTotal = execAcc.reduce((sum, a) => sum + Number(a.total_sales || 0), 0);
+  const grossRevenue = salesTotal + accountsTotal;
+
+  const expensesTotal = execAcc.reduce((sum, a) => sum + Number(a.expenses || 0), 0);
+  const vendorBills = cache.vendorBills || [];
+  const billsPaidTotal = vendorBills.filter(b => inRange(b.bill_date || b.created_at) && (typeof getBillStatus==='function'?getBillStatus(b):b.status)==='paid').reduce((sum, b) => sum + (typeof getBillAmount==='function'?getBillAmount(b):Number(b.amount||0)), 0);
+  const billsUnpaidTotal = vendorBills.filter(b => (typeof getBillStatus==='function'?getBillStatus(b):b.status)!=='paid').reduce((sum, b) => sum + (typeof getBillBalanceAmount==='function'?getBillBalanceAmount(b):Number(b.amount||0)), 0);
+  const salariesPaidTotal = (cache.salaries || []).filter(sa => inRange(sa.paid_date)).reduce((sum, sa) => sum + Number(sa.amount || 0), 0);
+  const advancesPaidTotal = (typeof getSalaryAdvances === 'function' ? getSalaryAdvances() : []).filter(a => inRange(a.date)).reduce((sum, a) => sum + Number(a.amount || 0), 0);
+  const payrollDisbursedTotal = salariesPaidTotal + advancesPaidTotal;
+  const totalOutflow = expensesTotal + billsPaidTotal + payrollDisbursedTotal;
+  const netProfit = grossRevenue - totalOutflow;
+  const marginPct = grossRevenue > 0 ? Math.round((netProfit / grossRevenue) * 100) : 0;
+
+  const attInRange = (cache.attendance || []).filter(a => inRange(a.date));
+  const tasksInRange = (cache.tasks || []).filter(t => inRange(t.due_date) || inRange(t.completed_at) || inRange(t.created_at));
+
+  const lines = [
+    `"BUSINESS EXECUTIVE REPORT - ${session.businessName || 'Business'}"`,
+    `"Report Period:","${label} (${from} to ${to})"`,
+    `"Generated At:","${new Date().toLocaleString()}"`,
+    "",
+    `"FINANCIAL EXECUTIVE SUMMARY"`,
+    `"Gross Revenue (₹)",${grossRevenue.toFixed(2)}`,
+    `"Direct Sales (₹)",${salesTotal.toFixed(2)}`,
+    `"Daily Accounts Sales (₹)",${accountsTotal.toFixed(2)}`,
+    `"Operating Expenses (₹)",${expensesTotal.toFixed(2)}`,
+    `"Vendor Payments Paid (₹)",${billsPaidTotal.toFixed(2)}`,
+    `"Payroll Disbursed (₹)",${payrollDisbursedTotal.toFixed(2)}`,
+    `"Total Operating Outflow (₹)",${totalOutflow.toFixed(2)}`,
+    `"Net Business Profit (₹)",${netProfit.toFixed(2)}`,
+    `"Profit Margin %","${marginPct}%"`,
+    `"Outstanding Supplier Dues (₹)",${billsUnpaidTotal.toFixed(2)}`,
+    "",
+    `"TEAM PERFORMANCE MASTER ROSTER"`,
+    `"Staff Name","Role","Days Present","Days Absent","Attendance Rate %","Tasks Assigned","Tasks Completed","Overdue Tasks","Task Done Rate %","Orders Generated","Sales Revenue (₹)","Points Earned"`
+  ];
+
+  activeStaff.forEach(s => {
+    const sAtt = attInRange.filter(a => a.staff_id === s.id);
+    const pCount = sAtt.filter(a => a.status === 'present').length;
+    const aCount = sAtt.filter(a => a.status === 'absent').length;
+    const sAttRate = (pCount + aCount > 0) ? Math.round((pCount / (pCount + aCount)) * 100) : 0;
+
+    const sTasks = tasksInRange.filter(t => t.assigned_to === s.id);
+    const sDone = sTasks.filter(t => t.status === 'done').length;
+    const sOverdue = sTasks.filter(t => typeof isOverdue==='function'?isOverdue(t):false).length;
+    const sTaskRate = sTasks.length > 0 ? Math.round((sDone / sTasks.length) * 100) : 0;
+
+    const sSales = execSales.filter(x => x.staff_id === s.id);
+    const sSalesTotal = sSales.reduce((sum, x) => sum + Number(x.order_value || x.amount || 0), 0);
+    const sPoints = (cache.points || []).filter(p => p.staff_id === s.id && inRange(p.date)).reduce((sum, p) => sum + Number(p.points || 0), 0);
+
+    lines.push(`"${s.name.replace(/"/g, '""')}","${s.role || 'staff'}",${pCount},${aCount},"${sAttRate}%",${sTasks.length},${sDone},${sOverdue},"${sTaskRate}%",${sSales.length},${isOwner() ? sSalesTotal.toFixed(2) : '"[RESTRICTED]"'},${sPoints}`);
+  });
+
+  const csvBlob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(csvBlob);
+  a.download = `Report_${(session.businessName || 'Business').replace(/[^a-zA-Z0-9_-]/g, '_')}_${from}_to_${to}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  if (typeof showToast === 'function') showToast('Master Report CSV downloaded', 'success');
+};
+
+function renderReportsTab(body) {
+  const { from, to, label } = getReportsDateRange();
+  const inRange = (d) => Boolean(d && d >= from && d <= to);
+  const activeStaff = typeof getActiveStaff === 'function' ? getActiveStaff() : (cache.staff || []);
+
+  // 1. Sales & Revenue in selected period
+  const execSales = (cache.sales || []).filter(s => inRange(s.date || s.created_at));
+  const salesTotal = execSales.reduce((sum, s) => sum + Number(s.order_value || s.amount || 0), 0);
+  const execAcc = (cache.dailyAccounts || []).filter(a => inRange(a.date));
+  const accountsTotal = execAcc.reduce((sum, a) => sum + Number(a.total_sales || 0), 0);
+  const grossRevenue = salesTotal + accountsTotal;
+
+  // 2. Outflows & Expenses in selected period
+  const expensesTotal = execAcc.reduce((sum, a) => sum + Number(a.expenses || 0), 0);
+  const vendorBills = cache.vendorBills || [];
+  const billsPaidTotal = vendorBills.filter(b => inRange(b.bill_date || b.created_at) && (typeof getBillStatus==='function'?getBillStatus(b):b.status)==='paid').reduce((sum, b) => sum + (typeof getBillAmount==='function'?getBillAmount(b):Number(b.amount||0)), 0);
+  const billsUnpaidTotal = vendorBills.filter(b => (typeof getBillStatus==='function'?getBillStatus(b):b.status)!=='paid').reduce((sum, b) => sum + (typeof getBillBalanceAmount==='function'?getBillBalanceAmount(b):Number(b.amount||0)), 0);
+  const salariesPaidTotal = (cache.salaries || []).filter(sa => inRange(sa.paid_date)).reduce((sum, sa) => sum + Number(sa.amount || 0), 0);
+  const advancesPaidTotal = (typeof getSalaryAdvances === 'function' ? getSalaryAdvances() : []).filter(a => inRange(a.date)).reduce((sum, a) => sum + Number(a.amount || 0), 0);
+  const payrollDisbursedTotal = salariesPaidTotal + advancesPaidTotal;
+  const totalOutflow = expensesTotal + billsPaidTotal + payrollDisbursedTotal;
+  const netProfit = grossRevenue - totalOutflow;
+  const marginPct = grossRevenue > 0 ? Math.round((netProfit / grossRevenue) * 100) : 0;
+
+  // 3. Payroll Assumptions
+  const salaryTotals = typeof getAssumedSalaryTotals === 'function' ? getAssumedSalaryTotals() : { monthlyTotal: 0, weeklyTotal: 0, count: 0 };
+  const salaryPaidPct = salaryTotals.monthlyTotal > 0 ? Math.min(100, Math.round((payrollDisbursedTotal / salaryTotals.monthlyTotal) * 100)) : 0;
+  const remainingSalaryDue = Math.max(0, salaryTotals.monthlyTotal - payrollDisbursedTotal);
+
+  // 4. Staff Attendance in selected period
+  const attInRange = (cache.attendance || []).filter(a => inRange(a.date));
+  const totalPresent = attInRange.filter(a => a.status === 'present').length;
+  const totalAbsent = attInRange.filter(a => a.status === 'absent').length;
+  const attRate = (totalPresent + totalAbsent > 0) ? Math.round((totalPresent / (totalPresent + totalAbsent)) * 100) : 0;
   const todayAtt = (cache.attendance || []).filter(a => a.date === todayStr());
   const todayPresent = todayAtt.filter(a => a.status === 'present').length;
-  const attPct = activeStaff.length > 0 ? Math.round((todayPresent / activeStaff.length) * 100) : 0;
-  
-  // 5. Sales & Customer Data
-  const salesList = cache.sales || [];
-  const totalSalesThisMonth = salesList.filter(s => monthKey(s.date || s.created_at) === currentMonth).reduce((sum, s) => sum + Number(s.amount||0), 0);
+  const todayAttRate = activeStaff.length > 0 ? Math.round((todayPresent / activeStaff.length) * 100) : 0;
+
+  // 5. Tasks Execution in selected period
+  const tasksInRange = (cache.tasks || []).filter(t => inRange(t.due_date) || inRange(t.completed_at) || inRange(t.created_at));
+  const tasksDone = tasksInRange.filter(t => t.status === 'done').length;
+  const tasksOverdue = tasksInRange.filter(t => typeof isOverdue==='function'?isOverdue(t):false).length;
+  const taskDoneRate = tasksInRange.length > 0 ? Math.round((tasksDone / tasksInRange.length) * 100) : 0;
+  const undatedTasks = (cache.tasks || []).filter(t => !t.due_date).length;
+
+  // 6. Inventory & Catalog
+  const lowStockList = typeof getLowStockList === 'function' ? getLowStockList() : [];
+  const stockItems = cache.stockItems || [];
+  const totalStockVal = stockItems.reduce((sum, item) => sum + (Number(item.qty || 0) * Number(item.rate || 0)), 0);
+
+  // 7. Staff Master Summary
+  const staffSummary = activeStaff.map(s => {
+    const sAtt = attInRange.filter(a => a.staff_id === s.id);
+    const pCount = sAtt.filter(a => a.status === 'present').length;
+    const aCount = sAtt.filter(a => a.status === 'absent').length;
+    const sAttRate = (pCount + aCount > 0) ? Math.round((pCount / (pCount + aCount)) * 100) : 0;
+
+    const sTasks = tasksInRange.filter(t => t.assigned_to === s.id);
+    const sDone = sTasks.filter(t => t.status === 'done').length;
+    const sOverdue = sTasks.filter(t => typeof isOverdue==='function'?isOverdue(t):false).length;
+    const sTaskRate = sTasks.length > 0 ? Math.round((sDone / sTasks.length) * 100) : 0;
+
+    const sSales = execSales.filter(x => x.staff_id === s.id);
+    const sSalesTotal = sSales.reduce((sum, x) => sum + Number(x.order_value || x.amount || 0), 0);
+    const sOrdersCount = sSales.length;
+
+    const sPoints = (cache.points || []).filter(p => p.staff_id === s.id && inRange(p.date)).reduce((sum, p) => sum + Number(p.points || 0), 0);
+
+    return {
+      id: s.id,
+      name: s.name,
+      role: s.role || 'staff',
+      pCount,
+      aCount,
+      sAttRate,
+      tasksAssigned: sTasks.length,
+      tasksDone: sDone,
+      tasksOverdue: sOverdue,
+      sTaskRate,
+      salesTotal: sSalesTotal,
+      ordersCount: sOrdersCount,
+      points: sPoints
+    };
+  });
+
+  const operationsScore = Math.round((attRate + taskDoneRate) / 2);
 
   body.innerHTML = `
-    <!-- Reports Hub Header Control Bar -->
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-      <div>
-        <h3 style="margin:0;font-size:1.1rem;color:var(--ink);display:inline-flex;align-items:center;gap:6px;">
-          ${icon('reports', 18)} Master Visual Reports Hub
-        </h3>
-        <p style="margin:2px 0 0;font-size:0.75rem;color:var(--ink-soft);">Real-time executive visual analytics across all business modules</p>
+    <!-- Top Executive Header & Filter Bar -->
+    <div class="rep-header-bar">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h2 style="margin:0;font-size:1.15rem;color:var(--ink);display:inline-flex;align-items:center;gap:8px;">
+            ${icon('reports', 20)} Master Visual Reports Hub
+          </h2>
+          <p style="margin:3px 0 0;font-size:0.76rem;color:var(--ink-soft);">
+            Executive business intelligence, operational velocity &amp; financial analytics
+          </p>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span class="rep-range-badge">
+            ${icon('weekly', 13)} ${label} (${from} &rarr; ${to})
+          </span>
+          <button class="stamp-btn small ghost" onclick="window.__exportMasterReportsCsv()" style="display:inline-flex;align-items:center;gap:5px;font-size:0.75rem;">
+            ${icon('save', 14)} Export Master CSV
+          </button>
+        </div>
       </div>
 
-      <!-- Filter Categories -->
-      <div style="display:flex;gap:6px;overflow-x:auto;align-items:center;">
-        <button class="stamp-btn small ${reportsCategoryFilter==='all'?'':'ghost'}" onclick="window.__setReportsFilter('all')">All Reports</button>
-        <button class="stamp-btn small ${reportsCategoryFilter==='pnl'?'':'ghost'}" onclick="window.__setReportsFilter('pnl')">P&amp;L Analytics</button>
-        <button class="stamp-btn small ${reportsCategoryFilter==='salary'?'':'ghost'}" onclick="window.__setReportsFilter('salary')">Payroll</button>
-        <button class="stamp-btn small ${reportsCategoryFilter==='inventory'?'':'ghost'}" onclick="window.__setReportsFilter('inventory')">Inventory</button>
-        <button class="stamp-btn small ${reportsCategoryFilter==='attendance'?'':'ghost'}" onclick="window.__setReportsFilter('attendance')">Attendance</button>
-        <button class="stamp-btn small ${reportsCategoryFilter==='sales'?'':'ghost'}" onclick="window.__setReportsFilter('sales')">Sales</button>
+      <!-- Time Period Selector Strip -->
+      <div class="rep-period-strip">
+        <div class="rep-pills-wrap">
+          <span style="font-size:0.68rem;font-weight:700;color:var(--ink-soft);margin-right:2px;">TIME PERIOD:</span>
+          <button class="rep-pill-btn ${reportsTimeFilter==='this_month'?'active':''}" onclick="window.__setReportsTimeFilter('this_month')">This Month</button>
+          <button class="rep-pill-btn ${reportsTimeFilter==='last_month'?'active':''}" onclick="window.__setReportsTimeFilter('last_month')">Last Month</button>
+          <button class="rep-pill-btn ${reportsTimeFilter==='last_30_days'?'active':''}" onclick="window.__setReportsTimeFilter('last_30_days')">Last 30 Days</button>
+          <button class="rep-pill-btn ${reportsTimeFilter==='this_year'?'active':''}" onclick="window.__setReportsTimeFilter('this_year')">This Year</button>
+          <button class="rep-pill-btn ${reportsTimeFilter==='custom'?'active':''}" onclick="window.__setReportsTimeFilter('custom')">Custom Range</button>
+        </div>
+
+        ${reportsTimeFilter === 'custom' ? `
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px;">
+            <input type="date" id="repCustomFrom" value="${from}" style="font-size:0.75rem;padding:4px 8px;border-radius:6px;border:1px solid var(--paper-line);">
+            <span style="font-size:0.75rem;color:var(--ink-soft);">&rarr;</span>
+            <input type="date" id="repCustomTo" value="${to}" style="font-size:0.75rem;padding:4px 8px;border-radius:6px;border:1px solid var(--paper-line);">
+            <button class="stamp-btn small" onclick="window.__applyCustomReportsRange()" style="padding:4px 10px;font-size:0.72rem;">Apply</button>
+          </div>
+        ` : ''}
       </div>
     </div>
 
-    <!-- 1. P&L & Profitability Visual Report Section -->
+    <!-- Category Tabs Navigation -->
+    <div class="rep-nav-tabs">
+      <button class="rep-tab-btn ${reportsCategoryFilter==='all'?'active':''}" onclick="window.__setReportsFilter('all')">
+        ${icon('reports', 15)} All Reports Overview
+      </button>
+      <button class="rep-tab-btn ${reportsCategoryFilter==='pnl'?'active':''}" onclick="window.__setReportsFilter('pnl')">
+        ${icon('trending', 15)} Financial P&amp;L
+      </button>
+      <button class="rep-tab-btn ${reportsCategoryFilter==='salary'?'active':''}" onclick="window.__setReportsFilter('salary')">
+        ${icon('salary', 15)} Payroll &amp; Wages
+      </button>
+      <button class="rep-tab-btn ${reportsCategoryFilter==='tasks'?'active':''}" onclick="window.__setReportsFilter('tasks')">
+        ${icon('tasks', 15)} Team &amp; Tasks
+      </button>
+      <button class="rep-tab-btn ${reportsCategoryFilter==='attendance'?'active':''}" onclick="window.__setReportsFilter('attendance')">
+        ${icon('attendance', 15)} Staff Attendance
+      </button>
+      <button class="rep-tab-btn ${reportsCategoryFilter==='sales'?'active':''}" onclick="window.__setReportsFilter('sales')">
+        ${icon('sales', 15)} Sales &amp; Inventory
+      </button>
+    </div>
+
+    <!-- Executive KPI Scorecard Strip -->
+    <div class="rep-kpi-grid">
+      <div class="rep-kpi-card revenue">
+        <div class="rep-kpi-title">Gross Revenue</div>
+        <div class="rep-kpi-val" style="color:var(--leaf);">${isOwner() ? '₹' + grossRevenue.toLocaleString('en-IN') : '[RESTRICTED]'}</div>
+        <div class="rep-kpi-sub">Direct Sales + Accounts Sales</div>
+      </div>
+      <div class="rep-kpi-card expense">
+        <div class="rep-kpi-title">Operating Outflow</div>
+        <div class="rep-kpi-val" style="color:var(--brick);">${isOwner() ? '₹' + totalOutflow.toLocaleString('en-IN') : '[RESTRICTED]'}</div>
+        <div class="rep-kpi-sub">Expenses + Vendor Paid + Payroll</div>
+      </div>
+      <div class="rep-kpi-card profit">
+        <div class="rep-kpi-title">Estimated Net Margin</div>
+        <div class="rep-kpi-val" style="color:${netProfit>=0?'var(--leaf)':'var(--brick)'};">
+          ${isOwner() ? (netProfit >= 0 ? '+' : '') + '₹' + netProfit.toLocaleString('en-IN') : '[RESTRICTED]'}
+        </div>
+        <div class="rep-kpi-sub">${marginPct}% net margin on turnover</div>
+      </div>
+      <div class="rep-kpi-card operations">
+        <div class="rep-kpi-title">Team Operations Score</div>
+        <div class="rep-kpi-val" style="color:var(--turmeric);">${operationsScore}%</div>
+        <div class="rep-kpi-sub">${attRate}% attendance · ${taskDoneRate}% tasks done</div>
+      </div>
+    </div>
+
+    <!-- 1. P&L FINANCIALS SECTION -->
     ${(reportsCategoryFilter==='all' || reportsCategoryFilter==='pnl') && isOwner() ? `
-      <div style="margin-bottom:20px;">
-        <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
-          <span>P&amp;L Net Profits &amp; Revenue Analytics</span>
+      <div class="rep-section-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div>
+            <h3 style="margin:0;font-size:0.95rem;color:var(--ink);display:inline-flex;align-items:center;gap:6px;">
+              ${icon('trending', 16)} Financial P&amp;L Performance Breakdown
+            </h3>
+            <span style="font-size:0.72rem;color:var(--ink-soft);">Audited revenue, expenditure &amp; supplier liabilities</span>
+          </div>
           <button class="stamp-btn small ghost" onclick="window.__setTab('pnl')">View Full P&amp;L Tab &rarr;</button>
         </div>
+
+        <div class="stat-grid" style="margin-bottom:14px;">
+          <div class="stat-card" style="border-left:4px solid var(--leaf);padding:10px 12px;">
+            <div class="num" style="color:var(--leaf);">₹${grossRevenue.toLocaleString('en-IN')}</div>
+            <div class="label">Gross Logged Revenue</div>
+          </div>
+          <div class="stat-card" style="border-left:4px solid var(--brick);padding:10px 12px;">
+            <div class="num" style="color:var(--brick);">₹${totalOutflow.toLocaleString('en-IN')}</div>
+            <div class="label">Total Operating Outflow</div>
+          </div>
+          <div class="stat-card" style="border-left:4px solid var(--turmeric);padding:10px 12px;">
+            <div class="num" style="color:${netProfit>=0?'var(--leaf)':'var(--brick)'};">₹${netProfit.toLocaleString('en-IN')}</div>
+            <div class="label">Net Operating Margin (${marginPct}%)</div>
+          </div>
+          <div class="stat-card" style="border-left:4px solid #F59E0B;padding:10px 12px;">
+            <div class="num" style="color:#B45309;">₹${billsUnpaidTotal.toLocaleString('en-IN')}</div>
+            <div class="label">Outstanding Supplier Dues</div>
+          </div>
+        </div>
+
         ${typeof buildDashboardPnLLineGraphHtml === 'function' ? buildDashboardPnLLineGraphHtml() : ''}
       </div>
     ` : ''}
 
-    <!-- 2. Salary & Payroll Assumptions Visual Report Section -->
+    <!-- 2. PAYROLL & WAGES SECTION -->
     ${(reportsCategoryFilter==='all' || reportsCategoryFilter==='salary') ? `
-      <div style="margin-bottom:20px;">
-        <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
-          <span>Salary Assumptions &amp; Expense Outflow Report</span>
+      <div class="rep-section-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div>
+            <h3 style="margin:0;font-size:0.95rem;color:var(--ink);display:inline-flex;align-items:center;gap:6px;">
+              ${icon('salary', 16)} Payroll &amp; Wage Commitment Summary
+            </h3>
+            <span style="font-size:0.72rem;color:var(--ink-soft);">Monthly wage assumptions vs actual disbursements</span>
+          </div>
           <button class="stamp-btn small ghost" onclick="window.__setTab('salary')">View Salary Tab &rarr;</button>
         </div>
 
-        <div class="dash-kpi-grid" style="margin-bottom:12px;">
-          <div class="dash-kpi-card">
-            <div class="dash-kpi-title">Assumed Monthly Salary</div>
-            <div class="dash-kpi-val" style="color:var(--turmeric-dark);">₹${totals.monthlyTotal.toLocaleString('en-IN')}</div>
-            <div class="dash-kpi-sub">Total monthly commitment (${totals.count} active staff)</div>
+        <div class="stat-grid" style="margin-bottom:14px;">
+          <div class="stat-card" style="border-left:4px solid var(--turmeric);padding:10px 12px;">
+            <div class="num" style="color:var(--turmeric);">₹${salaryTotals.monthlyTotal.toLocaleString('en-IN')}</div>
+            <div class="label">Assumed Monthly Budget (${salaryTotals.count} Staff)</div>
           </div>
-          <div class="dash-kpi-card">
-            <div class="dash-kpi-title">Actual Paid This Month</div>
-            <div class="dash-kpi-val" style="color:var(--leaf);">₹${totalSalaryOutflow.toLocaleString('en-IN')}</div>
-            <div class="dash-kpi-sub">Paid payouts &amp; advances (${currentMonth})</div>
+          <div class="stat-card" style="border-left:4px solid var(--leaf);padding:10px 12px;">
+            <div class="num" style="color:var(--leaf);">₹${payrollDisbursedTotal.toLocaleString('en-IN')}</div>
+            <div class="label">Actual Disbursed in Period</div>
           </div>
-          <div class="dash-kpi-card">
-            <div class="dash-kpi-title">Remaining Commitment</div>
-            <div class="dash-kpi-val" style="color:${remainingSalaryDue>0?'var(--brick)':'var(--leaf)'};">₹${remainingSalaryDue.toLocaleString('en-IN')}</div>
-            <div class="dash-kpi-sub">Outstanding balance for current month</div>
+          <div class="stat-card" style="border-left:4px solid ${remainingSalaryDue>0?'var(--brick)':'var(--leaf)'};padding:10px 12px;">
+            <div class="num" style="color:${remainingSalaryDue>0?'var(--brick)':'var(--leaf)'};">₹${remainingSalaryDue.toLocaleString('en-IN')}</div>
+            <div class="label">Remaining Commitment (${salaryPaidPct}% Paid)</div>
           </div>
         </div>
 
-        <!-- Monthly Salary Outflow Visual Bar -->
-        <div class="row-card" style="flex-direction:column;align-items:stretch;padding:12px 14px;background:var(--paper);border:1px solid var(--paper-line);border-radius:8px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-            <b style="font-size:0.82rem;color:var(--ink);">Monthly Payroll Outflow Progress (${currentMonth})</b>
-            <b style="font-family:'Roboto Mono',monospace;font-size:0.8rem;color:var(--leaf);">${salaryPaidPct}% Paid</b>
+        <div style="background:var(--paper);border:1px solid var(--paper-line);border-radius:10px;padding:12px 14px;margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:0.76rem;">
+            <b>Disbursement Progress</b>
+            <b style="color:var(--leaf);font-family:var(--font-mono);">${salaryPaidPct}% Complete</b>
           </div>
-          <div class="progress-track" style="height:8px;background:var(--paper-line);border-radius:999px;overflow:hidden;margin-bottom:6px;">
-            <div class="progress-fill ${salaryPaidPct>=100?'complete':''}" style="width:${salaryPaidPct}%;height:100%;border-radius:999px;background:linear-gradient(90deg, #10B981, #059669);"></div>
+          <div style="width:100%;height:8px;background:var(--paper-line);border-radius:999px;overflow:hidden;">
+            <div style="width:${salaryPaidPct}%;height:100%;background:linear-gradient(90deg, #16A34A, #10B981);border-radius:999px;"></div>
           </div>
-          <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--ink-soft);">
-            <span>Paid: <b style="color:var(--leaf);">₹${totalSalaryOutflow.toLocaleString('en-IN')}</b></span>
-            <span>Assumed Budget: <b style="color:var(--ink);">₹${totals.monthlyTotal.toLocaleString('en-IN')}</b></span>
+        </div>
+
+        ${reportsCategoryFilter === 'salary' && typeof renderSalaryReportHtml === 'function' ? renderSalaryReportHtml() : ''}
+      </div>
+    ` : ''}
+
+    <!-- 3. TEAM OPERATIONS & TASK VELOCITY SECTION -->
+    ${(reportsCategoryFilter==='all' || reportsCategoryFilter==='tasks') ? `
+      <div class="rep-section-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div>
+            <h3 style="margin:0;font-size:0.95rem;color:var(--ink);display:inline-flex;align-items:center;gap:6px;">
+              ${icon('tasks', 16)} Team Task Execution Velocity
+            </h3>
+            <span style="font-size:0.72rem;color:var(--ink-soft);">Operational bottleneck tracking and completion rates</span>
           </div>
+          <button class="stamp-btn small ghost" onclick="window.__setTab('tasks')">View Tasks Tab &rarr;</button>
+        </div>
+
+        <div class="stat-grid" style="margin-bottom:14px;">
+          <div class="stat-card" style="border-left:4px solid var(--turmeric);padding:10px 12px;">
+            <div class="num" style="color:var(--turmeric);">${tasksInRange.length} Tasks</div>
+            <div class="label">Total Tasks in Period</div>
+          </div>
+          <div class="stat-card" style="border-left:4px solid var(--leaf);padding:10px 12px;">
+            <div class="num" style="color:var(--leaf);">${tasksDone} Done</div>
+            <div class="label">Completed Tasks (${taskDoneRate}%)</div>
+          </div>
+          <div class="stat-card" style="border-left:4px solid ${tasksOverdue>0?'var(--brick)':'var(--leaf)'};padding:10px 12px;">
+            <div class="num" style="color:${tasksOverdue>0?'var(--brick)':'var(--leaf)'};">${tasksOverdue} Overdue</div>
+            <div class="label">Pending Past Due Date</div>
+          </div>
+          <div class="stat-card" style="border-left:4px solid #64748B;padding:10px 12px;">
+            <div class="num" style="color:var(--ink-soft);">${undatedTasks} Undated</div>
+            <div class="label">Tasks Without Due Date</div>
+          </div>
+        </div>
+
+        <!-- Master Team Performance Table -->
+        <div class="rep-table-wrap">
+          <table class="rep-table">
+            <thead>
+              <tr>
+                <th>Staff Member</th>
+                <th>Role</th>
+                <th>Attendance Rate</th>
+                <th>Tasks Done / Assigned</th>
+                <th>Task Done %</th>
+                <th>Overdue</th>
+                <th>Sales Generated</th>
+                <th>Points</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${staffSummary.map(r => `
+                <tr>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <div class="avatar-circle" style="width:28px;height:28px;font-size:0.70rem;">${initials(r.name)}</div>
+                      <b style="color:var(--ink);">${esc(r.name)}</b>
+                    </div>
+                  </td>
+                  <td><span class="role-pill ${r.role}">${r.role}</span></td>
+                  <td>
+                    <span style="font-weight:700;color:${r.sAttRate>=85?'var(--leaf)':(r.sAttRate>=70?'#B45309':'var(--brick)')};font-family:var(--font-mono);">
+                      ${r.sAttRate}%
+                    </span>
+                    <span style="font-size:0.68rem;color:var(--ink-soft);">(${r.pCount}P / ${r.aCount}A)</span>
+                  </td>
+                  <td style="font-family:var(--font-mono);">${r.tasksDone} / ${r.tasksAssigned}</td>
+                  <td>
+                    <span style="font-weight:700;color:${r.sTaskRate>=80?'var(--leaf)':(r.sTaskRate>=50?'var(--turmeric)':'var(--brick)')};font-family:var(--font-mono);">
+                      ${r.sTaskRate}%
+                    </span>
+                  </td>
+                  <td>
+                    <span style="font-weight:700;color:${r.tasksOverdue>0?'var(--brick)':'var(--ink-soft)'};font-family:var(--font-mono);">
+                      ${r.tasksOverdue}
+                    </span>
+                  </td>
+                  <td style="font-family:var(--font-mono);font-weight:700;color:var(--ink);">
+                    ${isOwner() ? '₹' + r.salesTotal.toLocaleString('en-IN') : '[RESTRICTED]'}
+                  </td>
+                  <td style="font-family:var(--font-mono);font-weight:700;color:var(--turmeric);">${r.points} pts</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
         </div>
       </div>
     ` : ''}
 
-    <!-- 3. Inventory & Stock Visual Report Section -->
-    ${(reportsCategoryFilter==='all' || reportsCategoryFilter==='inventory') ? `
-      <div style="margin-bottom:20px;">
-        <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
-          <span>Inventory &amp; Stock Health Reports</span>
-          <button class="stamp-btn small ghost" onclick="window.__setTab('low_stock')">View Low Stock Tab &rarr;</button>
-        </div>
-
-        <div class="dash-kpi-grid" style="margin-bottom:12px;">
-          <div class="dash-kpi-card">
-            <div class="dash-kpi-title">Low Stock Item Alerts</div>
-            <div class="dash-kpi-val" style="color:${lowStockList.length>0?'var(--brick)':'var(--leaf)'};">${lowStockList.length}</div>
-            <div class="dash-kpi-sub">Items requiring immediate reorder</div>
-          </div>
-          <div class="dash-kpi-card">
-            <div class="dash-kpi-title">Total Catalog Items</div>
-            <div class="dash-kpi-val" style="color:var(--turmeric-dark);">${stockItems.length}</div>
-            <div class="dash-kpi-sub">Stock items registered</div>
-          </div>
-          <div class="dash-kpi-card">
-            <div class="dash-kpi-title">Estimated Stock Value</div>
-            <div class="dash-kpi-val" style="color:var(--ink);">₹${totalStockVal.toLocaleString('en-IN')}</div>
-            <div class="dash-kpi-sub">Total inventory asset valuation</div>
-          </div>
-        </div>
-
-        ${typeof buildQtyGraphHtml === 'function' && lowStockList.length ? buildQtyGraphHtml(lowStockList, 'monthly', null, 'Low Stock Quantity Distribution', 'qty', 'Pcs', 'created_at') : ''}
-      </div>
-    ` : ''}
-
-    <!-- 4. Staff & Attendance Visual Report Section -->
+    <!-- 4. STAFF ATTENDANCE SECTION -->
     ${(reportsCategoryFilter==='all' || reportsCategoryFilter==='attendance') ? `
-      <div style="margin-bottom:20px;">
-        <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
-          <span>Staff Attendance &amp; Team Performance Visuals</span>
+      <div class="rep-section-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div>
+            <h3 style="margin:0;font-size:0.95rem;color:var(--ink);display:inline-flex;align-items:center;gap:6px;">
+              ${icon('attendance', 16)} Staff Attendance &amp; Workforce Turnout
+            </h3>
+            <span style="font-size:0.72rem;color:var(--ink-soft);">Turnout trends, daily check-in ratios and staff consistency</span>
+          </div>
           <button class="stamp-btn small ghost" onclick="window.__setTab('attendance')">View Attendance Tab &rarr;</button>
         </div>
 
-        <div class="dash-kpi-grid" style="margin-bottom:12px;">
-          <div class="dash-kpi-card">
-            <div class="dash-kpi-title">Active Team Members</div>
-            <div class="dash-kpi-val" style="color:var(--turmeric-dark);">${activeStaff.length}</div>
-            <div class="dash-kpi-sub">Active registered staff</div>
+        <div class="stat-grid" style="margin-bottom:14px;">
+          <div class="stat-card" style="border-left:4px solid var(--leaf);padding:10px 12px;">
+            <div class="num" style="color:var(--leaf);">${attRate}% Turnout</div>
+            <div class="label">Period Attendance Rate</div>
           </div>
-          <div class="dash-kpi-card">
-            <div class="dash-kpi-title">Today's Attendance Rate</div>
-            <div class="dash-kpi-val" style="color:${attPct>=80?'var(--leaf)':'var(--turmeric-dark)'};">${attPct}%</div>
-            <div class="dash-kpi-sub">${todayPresent} / ${activeStaff.length} present today</div>
+          <div class="stat-card" style="border-left:4px solid var(--turmeric);padding:10px 12px;">
+            <div class="num" style="color:var(--turmeric);">${totalPresent} Present</div>
+            <div class="label">Total Present Marks in Period</div>
           </div>
+          <div class="stat-card" style="border-left:4px solid var(--brick);padding:10px 12px;">
+            <div class="num" style="color:var(--brick);">${totalAbsent} Absent</div>
+            <div class="label">Total Absent Marks in Period</div>
+          </div>
+          <div class="stat-card" style="border-left:4px solid #10B981;padding:10px 12px;">
+            <div class="num" style="color:#10B981;">${todayAttRate}% Today</div>
+            <div class="label">Today's Live Check-In Rate (${todayPresent}/${activeStaff.length})</div>
+          </div>
+        </div>
+
+        <!-- Attendance Table -->
+        <div class="rep-table-wrap">
+          <table class="rep-table">
+            <thead>
+              <tr>
+                <th>Staff Name</th>
+                <th>Role</th>
+                <th>Days Present</th>
+                <th>Days Absent</th>
+                <th>Consistency Score</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${staffSummary.map(r => `
+                <tr>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <div class="avatar-circle" style="width:28px;height:28px;font-size:0.70rem;">${initials(r.name)}</div>
+                      <b style="color:var(--ink);">${esc(r.name)}</b>
+                    </div>
+                  </td>
+                  <td><span class="role-pill ${r.role}">${r.role}</span></td>
+                  <td style="font-family:var(--font-mono);font-weight:700;color:var(--leaf);">${r.pCount} Days</td>
+                  <td style="font-family:var(--font-mono);font-weight:700;color:var(--brick);">${r.aCount} Days</td>
+                  <td>
+                    <span style="font-weight:800;color:${r.sAttRate>=85?'var(--leaf)':(r.sAttRate>=70?'#B45309':'var(--brick)')};font-family:var(--font-mono);">
+                      ${r.sAttRate}%
+                    </span>
+                  </td>
+                  <td>
+                    <button class="stamp-btn small ghost" style="padding:2px 8px;font-size:0.68rem;" onclick="window.__setTab('attendance'); setTimeout(()=>{ if(typeof window.__viewStaffCalendar==='function') window.__viewStaffCalendar('${r.id}'); },50);">
+                      Calendar &rarr;
+                    </button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
         </div>
       </div>
     ` : ''}
 
-    <!-- 5. Sales & Revenue Visual Report Section -->
+    <!-- 5. SALES & INVENTORY SECTION -->
     ${(reportsCategoryFilter==='all' || reportsCategoryFilter==='sales') ? `
-      <div style="margin-bottom:20px;">
-        <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;">
-          <span>Sales &amp; Revenue Reports</span>
-          <button class="stamp-btn small ghost" onclick="window.__setTab('sales')">View Sales Tab &rarr;</button>
-        </div>
-
-        <div class="dash-kpi-grid" style="margin-bottom:12px;">
-          <div class="dash-kpi-card">
-            <div class="dash-kpi-title">Total Sales This Month</div>
-            <div class="dash-kpi-val" style="color:var(--leaf);">₹${totalSalesThisMonth.toLocaleString('en-IN')}</div>
-            <div class="dash-kpi-sub">Gross logged sales revenue (${currentMonth})</div>
+      <div class="rep-section-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div>
+            <h3 style="margin:0;font-size:0.95rem;color:var(--ink);display:inline-flex;align-items:center;gap:6px;">
+              ${icon('sales', 16)} Commercial Sales &amp; Inventory Health
+            </h3>
+            <span style="font-size:0.72rem;color:var(--ink-soft);">Sales representative productivity, catalog assets &amp; reorder alerts</span>
           </div>
-          <div class="dash-kpi-card">
-            <div class="dash-kpi-title">Total Sales Entries</div>
-            <div class="dash-kpi-val" style="color:var(--ink);">${salesList.length}</div>
-            <div class="dash-kpi-sub">Total sales records in history</div>
+          <div style="display:flex;gap:6px;">
+            <button class="stamp-btn small ghost" onclick="window.__setTab('sales')">Sales Tab &rarr;</button>
+            <button class="stamp-btn small ghost" onclick="window.__setTab('low_stock')">Stock Tab &rarr;</button>
           </div>
         </div>
 
-        ${typeof buildQtyGraphHtml === 'function' && salesList.length ? buildQtyGraphHtml(salesList, 'monthly', null, 'Monthly Sales Volume (₹)', 'amount', '₹', 'date') : ''}
+        <div class="stat-grid" style="margin-bottom:14px;">
+          <div class="stat-card" style="border-left:4px solid var(--leaf);padding:10px 12px;">
+            <div class="num" style="color:var(--leaf);">${isOwner() ? '₹' + salesTotal.toLocaleString('en-IN') : '[RESTRICTED]'}</div>
+            <div class="label">Logged Sales Revenue (${execSales.length} Orders)</div>
+          </div>
+          <div class="stat-card" style="border-left:4px solid var(--turmeric);padding:10px 12px;">
+            <div class="num" style="color:var(--turmeric);">${stockItems.length} Products</div>
+            <div class="label">Catalog Registered Items</div>
+          </div>
+          <div class="stat-card" style="border-left:4px solid #8B5CF6;padding:10px 12px;">
+            <div class="num" style="color:#8B5CF6;">₹${totalStockVal.toLocaleString('en-IN')}</div>
+            <div class="label">Estimated Stock Asset Valuation</div>
+          </div>
+          <div class="stat-card" style="border-left:4px solid ${lowStockList.length>0?'var(--brick)':'var(--leaf)'};padding:10px 12px;">
+            <div class="num" style="color:${lowStockList.length>0?'var(--brick)':'var(--leaf)'};">${lowStockList.length} Items</div>
+            <div class="label">Low Stock Reorder Alerts</div>
+          </div>
+        </div>
+
+        <!-- Salesperson Leaderboard Table -->
+        <div style="margin-bottom:14px;">
+          <div class="section-label" style="font-size:0.74rem;">Sales Representative Leaderboard (in Period)</div>
+          <div class="rep-table-wrap">
+            <table class="rep-table">
+              <thead>
+                <tr>
+                  <th>Representative</th>
+                  <th>Orders Logged</th>
+                  <th>Total Sales Revenue</th>
+                  <th>Average Order Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${staffSummary.filter(s => s.ordersCount > 0 || s.salesTotal > 0).sort((a,b)=>b.salesTotal - a.salesTotal).map(r => `
+                  <tr>
+                    <td>
+                      <div style="display:flex;align-items:center;gap:8px;">
+                        <div class="avatar-circle" style="width:28px;height:28px;font-size:0.70rem;">${initials(r.name)}</div>
+                        <b style="color:var(--ink);">${esc(r.name)}</b>
+                      </div>
+                    </td>
+                    <td style="font-family:var(--font-mono);font-weight:700;">${r.ordersCount} Orders</td>
+                    <td style="font-family:var(--font-mono);font-weight:700;color:var(--leaf);">
+                      ${isOwner() ? '₹' + r.salesTotal.toLocaleString('en-IN') : '[RESTRICTED]'}
+                    </td>
+                    <td style="font-family:var(--font-mono);color:var(--ink-soft);">
+                      ${isOwner() ? '₹' + (r.ordersCount > 0 ? Math.round(r.salesTotal / r.ordersCount).toLocaleString('en-IN') : 0) : '[RESTRICTED]'}
+                    </td>
+                  </tr>
+                `).join('') || `<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--ink-soft);">No sales logged for this time period.</td></tr>`}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Low Stock Items Alert Table -->
+        ${lowStockList.length > 0 ? `
+          <div>
+            <div class="section-label" style="font-size:0.74rem;color:var(--brick);">Critical Low Stock Items Requiring Reorder</div>
+            <div class="rep-table-wrap">
+              <table class="rep-table">
+                <thead>
+                  <tr>
+                    <th>Product Name</th>
+                    <th>Current Stock</th>
+                    <th>Minimum Alert Level</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${lowStockList.slice(0, 10).map(item => `
+                    <tr>
+                      <td><b style="color:var(--ink);">${esc(item.name || item.item_name || 'Item')}</b></td>
+                      <td style="font-family:var(--font-mono);color:var(--brick);font-weight:700;">${item.qty || 0}</td>
+                      <td style="font-family:var(--font-mono);color:var(--ink-soft);">${item.min_qty || item.alert_threshold || 10}</td>
+                      <td><span class="stamp overdue" style="font-size:0.65rem;">Restock Needed</span></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ` : ''}
       </div>
     ` : ''}
   `;
 }
+
 
 /* ---------------- ACCOUNT (staff profile page) ---------------- */
 window.__openAccount = () => { activeTab = 'account'; renderShell(); };

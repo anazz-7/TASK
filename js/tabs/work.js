@@ -1004,6 +1004,8 @@ let attendanceSubTab = 'daily'; // 'daily' | 'calendar'
 let attendanceCalendarMonth = monthKey(todayStr());
 let attendanceCalendarStaffId = 'all';
 let attendanceCalendarStatusFilter = 'all'; // 'all' | 'present' | 'absent'
+let attendanceDailyFilter = 'all'; // 'all' | 'present' | 'absent' | 'unmarked'
+let attendanceDailySearch = '';
 
 window.__setAttendanceSubTab = function(sub) {
   attendanceSubTab = sub || 'daily';
@@ -1048,7 +1050,183 @@ window.__setCalendarStatusFilter = function(f) {
   renderTabBody();
 };
 
+window.__viewStaffCalendar = function(staffId) {
+  attendanceSubTab = 'calendar';
+  attendanceCalendarStaffId = staffId || 'all';
+  renderTabBody();
+};
+
+window.__onAttStaffSearch = function(query) {
+  attendanceDailySearch = (query || '').toLowerCase().trim();
+  const clearBtn = document.getElementById('attSearchClearBtn');
+  if (clearBtn) clearBtn.style.display = attendanceDailySearch ? 'inline-block' : 'none';
+  window.__applyDailyStaffFilters();
+};
+
+window.__clearAttStaffSearch = function() {
+  const input = document.getElementById('attStaffSearchInput');
+  if (input) { input.value = ''; input.focus(); }
+  window.__onAttStaffSearch('');
+};
+
+window.__onAttFilterClick = function(filter, btn) {
+  attendanceDailyFilter = filter || 'all';
+  document.querySelectorAll('.att-pill-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  window.__applyDailyStaffFilters();
+};
+
+window.__applyDailyStaffFilters = function() {
+  const cards = document.querySelectorAll('.att-staff-card');
+  let visibleCount = 0;
+  cards.forEach(card => {
+    const name = card.getAttribute('data-name') || '';
+    const role = card.getAttribute('data-role') || '';
+    const status = card.getAttribute('data-status') || '';
+    
+    const matchesSearch = !attendanceDailySearch || name.includes(attendanceDailySearch) || role.includes(attendanceDailySearch);
+    const matchesFilter = (attendanceDailyFilter === 'all') || (status === attendanceDailyFilter);
+
+    if (matchesSearch && matchesFilter) {
+      card.style.display = 'flex';
+      visibleCount++;
+    } else {
+      card.style.display = 'none';
+    }
+  });
+
+  const emptyMsg = document.getElementById('attStaffEmptyMsg');
+  if (emptyMsg) {
+    emptyMsg.style.display = visibleCount === 0 ? 'block' : 'none';
+  }
+};
+
+window.__markAllUnmarkedPresent = async function() {
+  const today = todayStr();
+  const activeStaff = typeof getActiveStaff === 'function' ? getActiveStaff() : cache.staff;
+  const unmarked = activeStaff.filter(s => {
+    const rec = cache.attendance.find(a => a.staff_id === s.id && a.date === today);
+    return !rec || !rec.status || rec.status === 'unmarked';
+  });
+
+  if (!unmarked.length) {
+    if (typeof showToast === 'function') showToast('All active staff are already marked today!', 'info');
+    else alert('All active staff are already marked today!');
+    return;
+  }
+
+  if (!confirm(`Mark ${unmarked.length} unmarked staff member(s) as PRESENT for today?`)) {
+    return;
+  }
+
+  const nowIso = new Date().toISOString();
+  for (const s of unmarked) {
+    let existing = cache.attendance.find(a => a.staff_id === s.id && a.date === today);
+    if (existing) {
+      existing.status = 'present';
+      existing.marked_at = nowIso;
+      existing.marked_by = session.staffId;
+    } else {
+      existing = {
+        id: 'loc_att_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+        business_id: session.businessId,
+        staff_id: s.id,
+        date: today,
+        status: 'present',
+        marked_at: nowIso,
+        marked_by: session.staffId
+      };
+      cache.attendance.unshift(existing);
+    }
+  }
+
+  if (typeof saveCacheLocally === 'function') saveCacheLocally();
+  renderTabBody();
+  if (typeof showToast === 'function') showToast(`Marked ${unmarked.length} staff as PRESENT`, 'success');
+
+  (async () => {
+    try {
+      for (const s of unmarked) {
+        const rec = cache.attendance.find(a => a.staff_id === s.id && a.date === today);
+        if (!rec) continue;
+        const data = { status: 'present', marked_at: nowIso, marked_by: session.staffId };
+        if (rec.id && !rec.id.startsWith('loc_')) {
+          await sbCheck(sb.from('attendance').update(data).eq('id', rec.id));
+        } else {
+          const { data: inserted } = await sb.from('attendance').insert({
+            business_id: session.businessId,
+            staff_id: s.id,
+            date: today,
+            ...data
+          }).select().single();
+          if (inserted && inserted.id) rec.id = inserted.id;
+        }
+      }
+      if (typeof saveCacheLocally === 'function') saveCacheLocally();
+    } catch (e) {
+      console.warn('Background bulk attendance sync warning:', e.message || e);
+    }
+  })();
+};
+
+window.__exportAttendanceReport = function() {
+  const parts = attendanceCalendarMonth.split('-');
+  const year = parseInt(parts[0], 10) || new Date().getFullYear();
+  const month = parseInt(parts[1], 10) || (new Date().getMonth() + 1);
+  const totalDays = new Date(year, month, 0).getDate();
+  const activeStaff = typeof getActiveStaff === 'function' ? getActiveStaff() : cache.staff;
+  const monthRecords = cache.attendance.filter(a => monthKey(a.date) === attendanceCalendarMonth);
+
+  const dayCols = [];
+  for (let d = 1; d <= totalDays; d++) dayCols.push(d);
+  
+  const headers = ['Staff Name', 'Role', 'Days Present', 'Days Absent', 'Attendance Rate %', ...dayCols.map(d => `Day ${d}`)];
+  const rows = [headers];
+
+  activeStaff.forEach(s => {
+    const sRecords = monthRecords.filter(a => a.staff_id === s.id);
+    const pCount = sRecords.filter(a => a.status === 'present').length;
+    const aCount = sRecords.filter(a => a.status === 'absent').length;
+    const rate = (pCount + aCount > 0) ? Math.round((pCount / (pCount + aCount)) * 100) + '%' : '0%';
+
+    const dayValues = [];
+    for (let d = 1; d <= totalDays; d++) {
+      const dStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const rec = sRecords.find(a => a.date === dStr);
+      if (rec) {
+        dayValues.push(rec.status === 'present' ? 'P' : 'A');
+      } else {
+        const dow = new Date(year, month - 1, d).getDay();
+        dayValues.push(dow === 0 ? 'OFF' : '-');
+      }
+    }
+
+    rows.push([
+      `"${s.name.replace(/"/g, '""')}"`,
+      `"${(s.role || 'staff').replace(/"/g, '""')}"`,
+      pCount,
+      aCount,
+      `"${rate}"`,
+      ...dayValues
+    ]);
+  });
+
+  const csvContent = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Attendance_${(session.businessName || 'Report').replace(/[^a-zA-Z0-9_-]/g, '_')}_${attendanceCalendarMonth}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  if (typeof showToast === 'function') showToast('Attendance report exported to CSV', 'success');
+};
+
 window.__openCalendarDayDetailModal = function(dateStr, staffId) {
+  const holder = getModalHolder('taskModalHolder');
+  const dayRecords = cache.attendance.filter(a => a.date === dateStr);
   const activeStaffList = typeof getActiveStaff === 'function' ? getActiveStaff() : cache.staff.filter(s => isStaffActive(s));
   const targetStaffList = (staffId === 'all' || !staffId) ? activeStaffList : activeStaffList.filter(s => s.id === staffId);
   const prettyDate = new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
@@ -1061,50 +1239,53 @@ window.__openCalendarDayDetailModal = function(dateStr, staffId) {
   const html = `
     <div class="overlay show" onclick="if(event.target===this) getModalHolder('taskModalHolder').innerHTML=''">
       <div class="modal" style="max-width:480px;width:94%;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--paper-line);">
           <div>
-            <h3 style="margin:0;font-size:0.95rem;color:var(--ink);display:inline-flex;align-items:center;gap:6px;">
-              ${icon('weekly',16)} Attendance Detail
+            <h3 style="margin:0;font-size:1rem;color:var(--ink);display:inline-flex;align-items:center;gap:6px;">
+              ${icon('weekly',18)} Attendance Detail
             </h3>
             <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;font-weight:600;">${prettyDate}</div>
           </div>
           <button class="stamp-btn small ghost" onclick="getModalHolder('taskModalHolder').innerHTML=''" style="display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;">${icon('close', 14)}</button>
         </div>
 
-        <!-- Quick Summary Bar inside modal -->
-        <div style="display:flex;gap:6px;margin-bottom:12px;background:var(--paper-line);padding:6px;border-radius:8px;">
-          <div style="flex:1;background:var(--paper);padding:6px;border-radius:6px;text-align:center;">
-            <div style="font-size:0.9rem;font-weight:700;color:var(--leaf);">${pCount}</div>
-            <div style="font-size:0.58rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;display:inline-flex;align-items:center;gap:3px;justify-content:center;">${icon('check', 11)} Present</div>
+        <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:8px;margin-bottom:14px;">
+          <div style="background:var(--leaf-soft);padding:8px;border-radius:8px;text-align:center;border:1px solid rgba(22, 163, 74, 0.2);">
+            <div style="font-size:1.1rem;font-weight:800;color:var(--leaf);">${pCount}</div>
+            <div style="font-size:0.65rem;color:var(--leaf);text-transform:uppercase;font-weight:700;">Present</div>
           </div>
-          <div style="flex:1;background:var(--paper);padding:6px;border-radius:6px;text-align:center;">
-            <div style="font-size:0.9rem;font-weight:700;color:var(--brick);">${aCount}</div>
-            <div style="font-size:0.58rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;display:inline-flex;align-items:center;gap:3px;justify-content:center;">Absent</div>
+          <div style="background:var(--brick-soft);padding:8px;border-radius:8px;text-align:center;border:1px solid rgba(220, 38, 38, 0.2);">
+            <div style="font-size:1.1rem;font-weight:800;color:var(--brick);">${aCount}</div>
+            <div style="font-size:0.65rem;color:var(--brick);text-transform:uppercase;font-weight:700;">Absent</div>
           </div>
-          <div style="flex:1;background:var(--paper);padding:6px;border-radius:6px;text-align:center;">
-            <div style="font-size:0.9rem;font-weight:700;color:var(--turmeric-dark);">${attPct}%</div>
-            <div style="font-size:0.58rem;color:var(--ink-soft);text-transform:uppercase;font-weight:600;">Score</div>
+          <div style="background:var(--blue-soft);padding:8px;border-radius:8px;text-align:center;border:1px solid rgba(30, 58, 110, 0.2);">
+            <div style="font-size:1.1rem;font-weight:800;color:var(--turmeric);">${attPct}%</div>
+            <div style="font-size:0.65rem;color:var(--turmeric);text-transform:uppercase;font-weight:700;">Turnout</div>
           </div>
         </div>
 
-        <!-- Staff Records List -->
-        <div style="display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto;">
+        <div style="display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto;padding-right:2px;">
           ${targetStaffList.map(s => {
             const rec = dayRecords.find(a => a.staff_id === s.id);
             const status = rec ? rec.status : 'unmarked';
             const timeVal = rec && rec.marked_at ? timeStr(rec.marked_at) : 'Not marked';
-            const locLink = rec && rec.marked_lat != null ? `<a class="link" href="${mapLink(rec.marked_lat, rec.marked_lng)}" target="_blank" style="font-size:0.68rem;display:inline-flex;align-items:center;gap:3px;">${icon('pin',12)} Mapped Location</a>` : '';
+            const locLink = rec && rec.marked_lat != null ? `<a class="link" href="${mapLink(rec.marked_lat, rec.marked_lng)}" target="_blank" style="font-size:0.68rem;display:inline-flex;align-items:center;gap:3px;color:var(--leaf);font-weight:600;">${icon('pin',12)} Location</a>` : '';
             return `
-              <div style="background:var(--paper);padding:8px 10px;border-radius:8px;border:1px solid var(--paper-line);display:flex;justify-content:space-between;align-items:center;">
-                <div>
-                  <b style="font-size:0.8rem;color:var(--ink);display:block;">${esc(s.name)}</b>
-                  <span style="font-size:0.68rem;color:var(--ink-soft);font-family:'Roboto Mono',monospace;">${timeVal}</span>
-                  ${locLink ? `<div style="margin-top:2px;">${locLink}</div>` : ''}
+              <div style="background:var(--card);padding:10px 12px;border-radius:10px;border:1px solid var(--paper-line);display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+                  <div class="avatar-circle" style="width:32px;height:32px;font-size:0.75rem;flex-shrink:0;">${initials(s.name)}</div>
+                  <div style="min-width:0;">
+                    <b style="font-size:0.85rem;color:var(--ink);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(s.name)}</b>
+                    <div style="font-size:0.68rem;color:var(--ink-soft);display:flex;align-items:center;gap:6px;margin-top:2px;">
+                      <span style="font-family:var(--font-mono);">${timeVal}</span>
+                      ${locLink ? `<span>•</span>${locLink}` : ''}
+                    </div>
+                  </div>
                 </div>
-                <div style="display:flex;align-items:center;gap:6px;">
-                  <span class="stamp ${status}" style="font-size:0.68rem;">${status}</span>
+                <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                  <span class="stamp ${status}" style="font-size:0.68rem;padding:3px 8px;text-transform:capitalize;">${status}</span>
                   ${isManagerPlus() ? `
-                    <button class="stamp-btn small ghost" style="font-size:0.65rem;padding:2px 6px;" onclick="getModalHolder('taskModalHolder').innerHTML=''; window.__markStaffAttendanceForDate('${s.id}', '${dateStr}', '${status==='present'?'absent':'present'}')">
+                    <button class="stamp-btn small ghost" style="font-size:0.68rem;padding:4px 8px;" onclick="getModalHolder('taskModalHolder').innerHTML=''; window.__markStaffAttendanceForDate('${s.id}', '${dateStr}', '${status==='present'?'absent':'present'}')">
                       Switch
                     </button>
                   ` : ''}
@@ -1164,8 +1345,9 @@ window.__markStaffAttendanceForDate = async function(staffId, dateStr, status) {
 
 function renderAttendanceCalendarViewReport() {
   const parts = attendanceCalendarMonth.split('-');
-  const year = parseInt(parts[0], 10) || 2026;
-  const month = parseInt(parts[1], 10) || 8;
+  const now = new Date();
+  const year = parseInt(parts[0], 10) || now.getFullYear();
+  const month = parseInt(parts[1], 10) || (now.getMonth() + 1);
   const today = todayStr();
 
   const monthDateObj = new Date(year, month - 1, 1);
@@ -1225,6 +1407,9 @@ function renderAttendanceCalendarViewReport() {
 
     let pPct = 0;
     let aPct = 0;
+    let cellContent = '';
+    let pCount = 0;
+    let aCount = 0;
 
     if (selectedStaffId !== 'all') {
       const rec = targetRecords.find(a => a.date === dateStr);
@@ -1243,7 +1428,7 @@ function renderAttendanceCalendarViewReport() {
               <span class="mobile-only">${isP ? 'P' : 'A'}</span>
             </span>
             ${timeVal ? `<div class="desktop-only" style="font-size:0.68rem;color:var(--ink-soft);margin-top:2px;font-family:'Roboto Mono',monospace;">${timeVal}</div>` : ''}
-            ${hasLoc ? `<div class="desktop-only" style="font-size:0.65rem;color:var(--leaf);margin-top:1px;display:inline-flex;align-items:center;gap:2px;">${icon('salesman', 11)} Mapped</div>` : ''}
+            ${hasLoc ? `<div class="desktop-only" style="font-size:0.65rem;color:var(--leaf);margin-top:1px;display:inline-flex;align-items:center;gap:2px;">${icon('pin', 11)} Mapped</div>` : ''}
           </div>
         `;
       } else if (isSunday) {
@@ -1271,22 +1456,18 @@ function renderAttendanceCalendarViewReport() {
       }
     }
 
-    // Status filter matching
     let dimStyle = '';
     if (attendanceCalendarStatusFilter === 'present' && pCount === 0) dimStyle = 'opacity:0.4;';
     if (attendanceCalendarStatusFilter === 'absent' && aCount === 0) dimStyle = 'opacity:0.4;';
 
-    // Weekend background shading
     const weekendBg = isWeekend ? 'background:rgba(241,245,249,0.65);' : '';
-
-    // Cell title hover preview
     const hoverTitle = `${monthTitlePretty} ${d}: ${pCount} Present, ${aCount} Absent`;
 
     cellsHtml += `
-      <div onclick="window.__openCalendarDayDayDetailModal ? window.__openCalendarDayDayDetailModal('${dateStr}', '${selectedStaffId}') : window.__openCalendarDayDetailModal('${dateStr}', '${selectedStaffId}')" 
+      <div onclick="window.__openCalendarDayDetailModal('${dateStr}', '${selectedStaffId}')" 
            title="${hoverTitle}"
            class="att-cal-cell ${isToday ? 'is-today' : ''}"
-           style="${weekendBg} ${dimStyle}">
+           style="${weekendBg} ${dimStyle} cursor:pointer;">
         <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
           ${isToday ? `<span style="font-size:0.58rem;font-weight:700;background:var(--turmeric);color:#FFF;padding:1px 5px;border-radius:4px;letter-spacing:0.02em;">TODAY</span>` : '<div></div>'}
           <b style="font-size:0.9rem;color:${isSunday?'var(--brick)':'var(--ink)'};">${d}</b>
@@ -1296,7 +1477,6 @@ function renderAttendanceCalendarViewReport() {
           ${cellContent}
         </div>
 
-        <!-- Uniform 5-6px Attendance Indicator Bar Pinned at Bottom -->
         <div class="att-cal-indicator-track">
           ${pPct > 0 ? `<div style="width:${pPct}%;background:var(--leaf);height:100%;transition:width 0.3s ease;"></div>` : ''}
           ${aPct > 0 ? `<div style="width:${aPct}%;background:var(--brick);height:100%;transition:width 0.3s ease;"></div>` : ''}
@@ -1326,6 +1506,9 @@ function renderAttendanceCalendarViewReport() {
               ${staffOptions}
             </select>
           ` : ''}
+          <button class="stamp-btn small ghost" onclick="window.__exportAttendanceReport()" style="font-size:0.74rem;padding:4px 10px;display:inline-flex;align-items:center;gap:4px;">
+            ${icon('save', 13)} Export CSV
+          </button>
         </div>
       </div>
 
@@ -1378,29 +1561,91 @@ function renderAttendanceCalendarViewReport() {
 function renderAttendanceTab(body){
   const today = todayStr();
   const curMonth = monthKey(today);
-  if(!cache.staff.length){ body.innerHTML = `
-    <div class="empty">No staff added yet.</div>`; return; }
+  const now = new Date();
+  const hour = now.getHours();
+  const greeting = hour < 12 ? 'Good morning' : (hour < 17 ? 'Good afternoon' : 'Good evening');
+  const prettyToday = now.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
 
-  const myToday = cache.attendance.find(a=>a.staff_id===session.staffId && a.date===today);
+  const parts = curMonth.split('-');
+  const curYear = parseInt(parts[0], 10) || now.getFullYear();
+  const curMon = parseInt(parts[1], 10) || (now.getMonth() + 1);
+  const curMonthPretty = new Date(curYear, curMon - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  if(!cache.staff.length){
+    body.innerHTML = `<div class="empty">No staff added yet.</div>`;
+    return;
+  }
+
+  const myToday = cache.attendance.find(a => a.staff_id === session.staffId && a.date === today);
   const myStreak = computePresenceStreak(session.staffId);
+
+  // Sub-Tab Navigation Header
+  const subTabHeaderHtml = `
+    <div class="att-subtabs-nav">
+      <button class="att-subtab-btn ${attendanceSubTab==='daily'?'active':''}" onclick="window.__setAttendanceSubTab('daily')">
+        ${icon('clipboard',16)} Daily Punch &amp; Team Roster
+      </button>
+      <button class="att-subtab-btn ${attendanceSubTab==='calendar'?'active':''}" onclick="window.__setAttendanceSubTab('calendar')">
+        ${icon('weekly',16)} Calendar View &amp; Reports
+      </button>
+    </div>
+  `;
+
+  if (attendanceSubTab === 'calendar') {
+    body.innerHTML = subTabHeaderHtml + renderAttendanceCalendarViewReport();
+    return;
+  }
+
+  // Personal Hero Check-In Card
   const selfSection = `
-    <div class="section-label">Your attendance — ${today}</div>
-    ${myStreak>1 ? `<div class="row-card" style="align-items:center;background:var(--blue-soft);border-color:var(--turmeric);"><div class="row-main"><h3 style="margin:0;">${icon('fire',18)} ${myStreak}-day streak</h3></div></div>` : ''}
-    <div class="row-card" style="flex-direction:column;align-items:stretch;">
-      <div class="row-main">
-        <div class="meta">
-          <span class="stamp ${myToday?myToday.status:'unmarked'}">${myToday ? myToday.status : 'not marked yet'}</span>
-          ${myToday && myToday.marked_at ? `<span>at ${timeStr(myToday.marked_at)}</span>` : ''}
+    <div class="att-hero-card ${myToday ? myToday.status : 'unmarked'}">
+      <div class="att-hero-top">
+        <div class="att-hero-user">
+          <div class="avatar-circle" style="width:42px;height:42px;font-size:0.95rem;flex-shrink:0;">${initials(session.name)}</div>
+          <div>
+            <div class="att-hero-greeting">${greeting}, ${esc(session.name)}</div>
+            <div class="att-hero-date">${prettyToday}</div>
+          </div>
+        </div>
+        ${myStreak > 1 ? `
+          <div class="att-streak-pill">
+            <span>${icon('fire', 16)}</span>
+            <span><b>${myStreak}</b>-day streak</span>
+          </div>
+        ` : ''}
+      </div>
+
+      <div class="att-hero-status-strip">
+        <div class="att-hero-status-left">
+          <span class="att-hero-dot ${myToday ? myToday.status : 'unmarked'}"></span>
+          <div>
+            <div class="att-hero-status-title">
+              ${myToday ? (myToday.status === 'present' ? 'Checked In — Present' : 'Marked as Absent') : 'Attendance Pending for Today'}
+            </div>
+            <div class="att-hero-status-sub">
+              ${myToday && myToday.marked_at ? `Recorded at ${timeStr(myToday.marked_at)}` : 'You have not punched in yet today.'}
+              ${myToday && myToday.marked_lat != null ? ` · <a class="link" href="${mapLink(myToday.marked_lat, myToday.marked_lng)}" target="_blank" style="color:var(--leaf);text-decoration:underline;font-weight:600;">GPS Verified</a>` : ''}
+            </div>
+          </div>
+        </div>
+        <div class="att-hero-badge ${myToday ? myToday.status : 'unmarked'}">
+          ${myToday ? myToday.status : 'PENDING'}
         </div>
       </div>
-      <div class="modal-actions">
-        <button class="attend-btn present ${myToday&&myToday.status==='present'?'active':''}" onclick="window.__markMyAttendance('present')">Present</button>
-        <button class="attend-btn absent ${myToday&&myToday.status==='absent'?'active':''}" onclick="window.__markMyAttendance('absent')">Absent</button>
+
+      <div class="att-hero-actions">
+        <button class="att-punch-btn present ${myToday && myToday.status === 'present' ? 'active' : ''}" onclick="window.__markMyAttendance('present')">
+          ${icon('check', 16)} <span>Present</span>
+        </button>
+        <button class="att-punch-btn absent ${myToday && myToday.status === 'absent' ? 'active' : ''}" onclick="window.__markMyAttendance('absent')">
+          ${icon('close', 14)} <span>Absent</span>
+        </button>
+        <button class="att-break-btn" onclick="window.__markImIn()" title="Mark returning to workplace after a break with GPS verification">
+          ${icon('logout', 15)} <span>I'm In (Back from Break)</span>
+        </button>
       </div>
-      <div class="modal-actions" style="margin-top:6px;">
-        <button class="stamp-btn ghost small" style="flex:1;" onclick="window.__markImIn()">${icon('logout',16)} I'm in (back from break)</button>
-      </div>
-    </div>`;
+    </div>
+  `;
 
   window.__markImIn = async () => {
     const key = 'imin-'+session.staffId;
@@ -1419,6 +1664,7 @@ function renderAttendanceTab(body){
       banner.textContent = "Marked — you're in!";
       document.body.appendChild(banner);
       setTimeout(()=>banner.remove(), 1500);
+      if (typeof showToast === 'function') showToast("MARKED: Back from break", 'success');
     } catch(e){
       alert('Could not send this — please check your connection and try again.\n\n('+(e.message||e)+')');
     } finally { __busyKeys.delete(key); }
@@ -1523,71 +1769,260 @@ function renderAttendanceTab(body){
     })();
   };
 
-  // Sub-Tab Switcher Navigation Header
-  const subTabHeaderHtml = `
-    <div class="row-card" style="padding:4px;margin-bottom:12px;background:var(--paper-line);display:flex;gap:4px;">
-      <button class="stamp-btn small ${attendanceSubTab==='daily'?'':'ghost'}" style="flex:1;font-size:0.68rem;padding:4px 6px;" onclick="window.__setAttendanceSubTab('daily')">
-        ${icon('clipboard',14)} Daily Punch Log
-      </button>
-      <button class="stamp-btn small ${attendanceSubTab==='calendar'?'':'ghost'}" style="flex:1;font-size:0.68rem;padding:4px 6px;" onclick="window.__setAttendanceSubTab('calendar')">
-        ${icon('weekly',14)} Calendar View Report
-      </button>
-    </div>
-  `;
-
-  if (attendanceSubTab === 'calendar') {
-    body.innerHTML = subTabHeaderHtml + renderAttendanceCalendarViewReport();
-    return;
-  }
-
   if(isManagerPlus()){
-    const monthAtt = cache.attendance.filter(a=>monthKey(a.date)===curMonth);
+    const activeStaff = typeof getActiveStaff === 'function' ? getActiveStaff() : cache.staff;
+    const todayAtts = cache.attendance.filter(a => a.date === today);
+    const monthAtt = cache.attendance.filter(a => monthKey(a.date) === curMonth);
+
+    let presentStaffCount = 0;
+    let absentStaffCount = 0;
+    let unmarkedStaffCount = 0;
+
+    activeStaff.forEach(s => {
+      const rec = todayAtts.find(a => a.staff_id === s.id);
+      if (rec && rec.status === 'present') presentStaffCount++;
+      else if (rec && rec.status === 'absent') absentStaffCount++;
+      else unmarkedStaffCount++;
+    });
+
+    const totalStaff = activeStaff.length || 1;
+    const turnoutPct = Math.round((presentStaffCount / totalStaff) * 100);
+
     body.innerHTML = `
       ${subTabHeaderHtml}
       ${selfSection}
-      <div class="section-label">Team — Today</div>
-      ${getActiveStaff().map(s=>{
-        const rec = cache.attendance.find(a=>a.staff_id===s.id && a.date===today);
-        const status = rec ? rec.status : 'unmarked';
-        const loc = rec && rec.marked_lat!=null ? `<a class="link" href="${mapLink(rec.marked_lat,rec.marked_lng)}" target="_blank">${icon('pin',14)}</a>` : '';
-        return `<div class="row-card" style="align-items:center;">
-          <div class="row-main"><h3>${esc(s.name)}</h3><div class="meta"><span class="stamp ${status}">${status}</span>${rec&&rec.marked_at?`<span>${timeStr(rec.marked_at)}</span>`:''}${loc?`<span>${loc}</span>`:''}</div></div>
-          <div class="row-actions" style="flex-direction:row;">
-            <button class="attend-btn present ${status==='present'?'active':''}" onclick="window.__markStaffAttendance('${s.id}','present')">Present</button>
-            <button class="attend-btn absent ${status==='absent'?'active':''}" onclick="window.__markStaffAttendance('${s.id}','absent')">Absent</button>
+
+      <!-- Today's Team Header & KPI Scorecard -->
+      <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span>Today's Team Attendance — ${today}</span>
+        <span style="font-size:0.72rem;color:var(--ink-soft);">${activeStaff.length} Active Staff</span>
+      </div>
+
+      <div class="att-team-scorecard">
+        <div class="att-team-kpi present">
+          <div class="kpi-icon">${icon('check', 18)}</div>
+          <div>
+            <div class="kpi-num">${presentStaffCount} <span class="kpi-total">/ ${activeStaff.length}</span></div>
+            <div class="kpi-label">Present Today</div>
           </div>
-        </div>`;
-      }).join('')}
-      <div class="section-label">Monthly summary — ${curMonth}</div>
-      ${getActiveStaff().map(s=>{
-        const mine = monthAtt.filter(a=>a.staff_id===s.id);
-        const daysPresent = mine.filter(a=>a.status==='present').length;
-        const daysAbsent = mine.filter(a=>a.status==='absent').length;
-        return `<div class="row-card" style="align-items:center;">
-          <div class="row-main"><h3>${esc(s.name)}</h3>
-            <div class="kv"><span>Days present</span><b style="color:var(--turmeric)">${daysPresent}</b></div>
-            <div class="kv"><span>Days absent</span><b style="color:var(--turmeric)">${daysAbsent}</b></div>
+        </div>
+        <div class="att-team-kpi absent">
+          <div class="kpi-icon">${icon('close', 16)}</div>
+          <div>
+            <div class="kpi-num">${absentStaffCount}</div>
+            <div class="kpi-label">Absent Today</div>
           </div>
-        </div>`;
-      }).join('')}
+        </div>
+        <div class="att-team-kpi unmarked">
+          <div class="kpi-icon">${icon('attendance', 18)}</div>
+          <div>
+            <div class="kpi-num">${unmarkedStaffCount}</div>
+            <div class="kpi-label">Pending / Unmarked</div>
+          </div>
+        </div>
+        <div class="att-team-kpi turnout">
+          <div class="kpi-icon">${icon('chartMini', 18)}</div>
+          <div>
+            <div class="kpi-num">${turnoutPct}%</div>
+            <div class="kpi-label">Turnout Rate</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Management Search & Filter Toolbar -->
+      <div class="att-toolbar">
+        <div class="att-search-wrap">
+          <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="attStaffSearchInput" class="att-search-input" placeholder="Search staff by name or role..." oninput="window.__onAttStaffSearch(this.value)" value="${esc(attendanceDailySearch)}">
+          <button id="attSearchClearBtn" class="att-search-clear" onclick="window.__clearAttStaffSearch()" style="${attendanceDailySearch ? 'display:inline-block;' : 'display:none;'}">&times;</button>
+        </div>
+
+        <div class="att-filter-pills">
+          <button class="att-pill-btn ${attendanceDailyFilter==='all'?'active':''}" data-filter="all" onclick="window.__onAttFilterClick('all', this)">
+            All <span class="att-pill-badge">${activeStaff.length}</span>
+          </button>
+          <button class="att-pill-btn ${attendanceDailyFilter==='present'?'active':''}" data-filter="present" onclick="window.__onAttFilterClick('present', this)">
+            Present <span class="att-pill-badge">${presentStaffCount}</span>
+          </button>
+          <button class="att-pill-btn ${attendanceDailyFilter==='absent'?'active':''}" data-filter="absent" onclick="window.__onAttFilterClick('absent', this)">
+            Absent <span class="att-pill-badge">${absentStaffCount}</span>
+          </button>
+          <button class="att-pill-btn ${attendanceDailyFilter==='unmarked'?'active':''}" data-filter="unmarked" onclick="window.__onAttFilterClick('unmarked', this)">
+            Pending <span class="att-pill-badge">${unmarkedStaffCount}</span>
+          </button>
+        </div>
+
+        ${unmarkedStaffCount > 0 ? `
+          <button class="att-bulk-btn" onclick="window.__markAllUnmarkedPresent()">
+            ${icon('checkDouble', 15)} Mark All Pending (${unmarkedStaffCount}) Present
+          </button>
+        ` : ''}
+      </div>
+
+      <!-- Staff Roster Cards List -->
+      <div id="attStaffListContainer">
+        ${activeStaff.map(s => {
+          const rec = todayAtts.find(a => a.staff_id === s.id);
+          const status = rec ? rec.status : 'unmarked';
+          const loc = rec && rec.marked_lat != null ? `<a class="link" href="${mapLink(rec.marked_lat, rec.marked_lng)}" target="_blank">${icon('pin', 12)} Mapped Location</a>` : '';
+          
+          return `
+            <div class="att-staff-card" data-name="${esc(s.name).toLowerCase()}" data-role="${esc(s.role||'staff').toLowerCase()}" data-status="${status}">
+              <div class="att-staff-info">
+                <div class="avatar-circle" style="width:38px;height:38px;font-size:0.85rem;flex-shrink:0;">${initials(s.name)}</div>
+                <div class="att-staff-details">
+                  <div class="att-staff-header">
+                    <span class="att-staff-name">${esc(s.name)}</span>
+                    <span class="role-pill ${s.role}">${s.role || 'staff'}</span>
+                  </div>
+                  <div class="att-staff-meta">
+                    <span class="att-chip ${status}">
+                      <span class="att-dot ${status}"></span>
+                      ${status === 'present' ? 'Present' : (status === 'absent' ? 'Absent' : 'Pending')}
+                    </span>
+                    ${rec && rec.marked_at ? `<span class="att-time">${icon('attendance', 12)} ${timeStr(rec.marked_at)}</span>` : ''}
+                    ${loc ? `<span class="att-loc">${loc}</span>` : ''}
+                  </div>
+                </div>
+              </div>
+
+              <div class="att-staff-actions">
+                <button class="att-action-btn present ${status === 'present' ? 'active' : ''}" onclick="window.__markStaffAttendance('${s.id}', 'present')">
+                  ${icon('check', 13)} <span>Present</span>
+                </button>
+                <button class="att-action-btn absent ${status === 'absent' ? 'active' : ''}" onclick="window.__markStaffAttendance('${s.id}', 'absent')">
+                  ${icon('close', 12)} <span>Absent</span>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+        <div id="attStaffEmptyMsg" class="empty" style="display:none;padding:24px;margin-top:8px;">No staff match the current search or status filter.</div>
+      </div>
+
+      <!-- Monthly Summary Section -->
+      <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;margin-top:24px;margin-bottom:10px;">
+        <span>Team Monthly Performance — ${curMonthPretty}</span>
+        <button class="stamp-btn small ghost" onclick="window.__setAttendanceSubTab('calendar')">Full Calendar View &rarr;</button>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+        ${activeStaff.map(s => {
+          const mine = monthAtt.filter(a => a.staff_id === s.id);
+          const daysPresent = mine.filter(a => a.status === 'present').length;
+          const daysAbsent = mine.filter(a => a.status === 'absent').length;
+          const totalMarked = daysPresent + daysAbsent;
+          const rate = totalMarked > 0 ? Math.round((daysPresent / totalMarked) * 100) : 0;
+          const pPct = totalMarked > 0 ? Math.round((daysPresent / totalMarked) * 100) : 0;
+          const aPct = 100 - pPct;
+
+          let badgeClass = 'var(--leaf-soft)';
+          let badgeColor = 'var(--leaf)';
+          if (rate < 75) { badgeClass = '#FEE2E2'; badgeColor = 'var(--brick)'; }
+          else if (rate < 90) { badgeClass = '#FEF3C7'; badgeColor = '#B45309'; }
+
+          return `
+            <div class="att-monthly-card">
+              <div class="att-monthly-main">
+                <div class="avatar-circle" style="width:36px;height:36px;font-size:0.80rem;flex-shrink:0;">${initials(s.name)}</div>
+                <div style="flex:1;min-width:0;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                    <b style="font-size:0.85rem;color:var(--ink);">${esc(s.name)}</b>
+                    <span class="att-rate-badge" style="background:${badgeClass};color:${badgeColor};">${rate}% Rate</span>
+                  </div>
+                  
+                  <div class="att-monthly-progress-track">
+                    ${pPct > 0 ? `<div class="att-progress-seg present" style="width:${pPct}%;"></div>` : ''}
+                    ${aPct > 0 ? `<div class="att-progress-seg absent" style="width:${aPct}%;"></div>` : ''}
+                  </div>
+
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;font-size:0.70rem;color:var(--ink-soft);">
+                    <span><b style="color:var(--leaf);">${daysPresent}</b> Days Present · <b style="color:var(--brick);">${daysAbsent}</b> Days Absent</span>
+                    <button class="stamp-btn small ghost" style="padding:2px 6px;font-size:0.65rem;" onclick="window.__viewStaffCalendar('${s.id}')">View Calendar</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+
+      <!-- History Section (for Owners) -->
       ${isOwner() ? `
-      <div class="section-label">History</div>
-      ${cache.attendance.filter(a=>a.date!==today && a.status).slice(0,30).map(a=>{
-        const loc = a.marked_lat!=null ? `<a class="link" href="${mapLink(a.marked_lat,a.marked_lng)}" target="_blank">${icon('pin',14)}</a>` : '';
-        return `<div class="row-card" style="align-items:center;"><div class="row-main"><div class="meta"><span>${a.date}</span><span>${staffName(a.staff_id)}</span>${loc?`<span>${loc}</span>`:''}</div></div>
-        <span class="stamp ${a.status}">${a.status}</span></div>`;
-      }).join('') || `<div class="empty">No earlier records yet.</div>`}
+        <div class="section-label" style="display:flex;justify-content:space-between;align-items:center;margin-top:24px;margin-bottom:10px;">
+          <span>Attendance Audit History</span>
+          <span style="font-size:0.72rem;color:var(--ink-soft);">Recent Logs</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px;">
+          ${cache.attendance.filter(a => a.date !== today && a.status).slice(0, 30).map(a => {
+            const loc = a.marked_lat != null ? `<a class="link" href="${mapLink(a.marked_lat, a.marked_lng)}" target="_blank" style="font-size:0.68rem;display:inline-flex;align-items:center;gap:3px;color:var(--leaf);font-weight:600;">${icon('pin', 12)} Location</a>` : '';
+            return `
+              <div class="row-card" style="align-items:center;padding:10px 14px;border-radius:10px;">
+                <div class="row-main">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <b style="font-size:0.84rem;color:var(--ink);">${staffName(a.staff_id)}</b>
+                    <span style="font-size:0.72rem;color:var(--ink-soft);font-family:var(--font-mono);">${a.date}</span>
+                    ${a.marked_at ? `<span style="font-size:0.70rem;color:var(--ink-muted);">at ${timeStr(a.marked_at)}</span>` : ''}
+                  </div>
+                  ${loc ? `<div style="margin-top:2px;">${loc}</div>` : ''}
+                </div>
+                <span class="stamp ${a.status}" style="text-transform:capitalize;font-size:0.70rem;">${a.status}</span>
+              </div>
+            `;
+          }).join('') || `<div class="empty">No earlier records yet.</div>`}
+        </div>
       ` : ''}
     `;
+
+    if (attendanceDailySearch || attendanceDailyFilter !== 'all') {
+      setTimeout(() => { if (typeof window.__applyDailyStaffFilters === 'function') window.__applyDailyStaffFilters(); }, 10);
+    }
   } else {
+    // Regular Staff (Non-Manager View)
+    const monthAtt = cache.attendance.filter(a => a.staff_id === session.staffId && monthKey(a.date) === curMonth);
+    const daysPresent = monthAtt.filter(a => a.status === 'present').length;
+    const daysAbsent = monthAtt.filter(a => a.status === 'absent').length;
+    const totalMarked = daysPresent + daysAbsent;
+    const rate = totalMarked > 0 ? Math.round((daysPresent / totalMarked) * 100) : 0;
+
     body.innerHTML = `
       ${subTabHeaderHtml}
       ${selfSection}
-      <div class="section-label">Your recent history</div>
-      ${cache.attendance.filter(a=>a.staff_id===session.staffId && a.date!==today && a.status).slice(0,20).map(a=>`
-        <div class="row-card" style="align-items:center;"><div class="row-main"><div class="meta"><span>${a.date}</span></div></div>
-        <span class="stamp ${a.status}">${a.status}</span></div>`).join('') || `<div class="empty">No attendance history yet.</div>`}
+
+      <!-- Personal Monthly Summary -->
+      <div class="section-label">Your Monthly Summary — ${curMonthPretty}</div>
+      <div class="stat-grid" style="margin-bottom:16px;">
+        <div class="stat-card" style="border-left:4px solid var(--leaf);padding:10px 12px;">
+          <div class="num" style="color:var(--leaf);">${daysPresent} Days</div>
+          <div class="label">Days Present</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid var(--brick);padding:10px 12px;">
+          <div class="num" style="color:var(--brick);">${daysAbsent} Days</div>
+          <div class="label">Days Absent</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid var(--turmeric);padding:10px 12px;">
+          <div class="num" style="color:var(--turmeric);">${rate}%</div>
+          <div class="label">Attendance Rate</div>
+        </div>
+      </div>
+
+      <!-- Recent History -->
+      <div class="section-label">Your Recent Attendance History</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px;">
+        ${cache.attendance.filter(a => a.staff_id === session.staffId && a.date !== today && a.status).slice(0, 20).map(a => `
+          <div class="row-card" style="align-items:center;padding:10px 14px;border-radius:10px;">
+            <div class="row-main">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <b style="font-size:0.84rem;color:var(--ink);">${a.date}</b>
+                ${a.marked_at ? `<span style="font-size:0.72rem;color:var(--ink-soft);font-family:var(--font-mono);">Checked in at ${timeStr(a.marked_at)}</span>` : ''}
+              </div>
+            </div>
+            <span class="stamp ${a.status}" style="text-transform:capitalize;font-size:0.70rem;">${a.status}</span>
+          </div>
+        `).join('') || `<div class="empty">No attendance history yet.</div>`}
+      </div>
     `;
   }
 }
+
 
