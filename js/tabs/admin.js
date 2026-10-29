@@ -657,12 +657,42 @@ function renderStockkeeperTab(body){
   };
 }
 
-/* ---------------- SALARY (owner only) ---------------- */
+/* ---------------- SALARY & PAYROLL SUITE ---------------- */
+let salarySelectedMonth = monthKey(todayStr());
+let salarySubTab = 'roster'; // 'roster' | 'payouts' | 'advances' | 'schedules' | 'analytics'
+let salarySearchQuery = '';
+let salaryStatusFilter = 'all'; // 'all' | 'due' | 'partial' | 'settled' | 'advance'
+let salaryModeFilter = 'all';
 let salaryReportMode = 'monthly';
 window.__setSalaryReportMode = (m) => { salaryReportMode = m; renderTabBody(); };
 const WEEKDAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
-let salarySubTab = 'report'; // 'report' | 'payouts' | 'advances' | 'expenses' | 'schedules'
+function formatMonthLabel(mKey) {
+  if (!mKey) mKey = monthKey(todayStr());
+  try {
+    const parts = mKey.split('-');
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const d = new Date(y, m, 1);
+    return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  } catch(e) { return mKey; }
+}
+
+function parseSalaryPaymentMode(sa) {
+  if (sa && sa.payment_mode) return sa.payment_mode;
+  if (!sa || !sa.notes) return 'Cash';
+  const match = sa.notes.match(/\[Mode:\s*([^\]]+)\]/i);
+  if (match) return match[1].trim();
+  if (/gpay|upi|online|phonepe|paytm/i.test(sa.notes)) return 'UPI / Online';
+  if (/bank|neft|rtgs|imps|transfer/i.test(sa.notes)) return 'Bank Transfer';
+  if (/cheque|check/i.test(sa.notes)) return 'Cheque';
+  return 'Cash';
+}
+
+function cleanSalaryNotes(notes) {
+  if (!notes) return '';
+  return notes.replace(/\[Mode:\s*[^\]]+\]\s*/ig, '').replace(/\[Month:\s*[^\]]+\]\s*/ig, '').trim();
+}
 
 function getStaffMonthlyAssumedSalary(s) {
   if (!s || s.status === 'inactive') return 0;
@@ -671,6 +701,106 @@ function getStaffMonthlyAssumedSalary(s) {
   if (freq === 'weekly') return Math.round(base * 52 / 12);
   if (freq === 'daily') return Math.round(base * 26);
   return base;
+}
+
+function getSalaryMonthData(mKey) {
+  mKey = mKey || salarySelectedMonth || monthKey(todayStr());
+  const activeStaff = typeof getActiveStaff === 'function' ? getActiveStaff() : (cache.staff || []).filter(s => s.status !== 'inactive');
+  
+  const allSalaries = cache.salaries || [];
+  const monthSalaries = allSalaries.filter(sa => {
+    const pDate = sa.paid_date || '';
+    return pDate.startsWith(mKey) || (sa.month_for && sa.month_for === mKey) || (sa.notes && sa.notes.includes(`[Month: ${mKey}]`));
+  });
+
+  const allAdvances = typeof getSalaryAdvances === 'function' ? getSalaryAdvances() : [];
+  const monthAdvances = allAdvances.filter(a => (a.date || '').startsWith(mKey));
+
+  const staffBreakdown = activeStaff.map(s => {
+    const baseSalary = Number(s.base_salary || 0);
+    const freq = s.salary_frequency || 'monthly';
+    
+    let daysWorked = 0;
+    if (cache.attendance && Array.isArray(cache.attendance)) {
+      const staffAtt = cache.attendance.filter(a => a.staff_id === s.id && (a.date || '').startsWith(mKey));
+      daysWorked = staffAtt.reduce((cnt, a) => {
+        if (a.status === 'present') return cnt + 1;
+        if (a.status === 'half_day') return cnt + 0.5;
+        return cnt;
+      }, 0);
+    }
+
+    let commitment = getStaffMonthlyAssumedSalary(s);
+    if (freq === 'daily' && daysWorked > 0) {
+      commitment = Math.round(daysWorked * baseSalary);
+    }
+
+    const staffPayouts = monthSalaries.filter(sa => sa.staff_id === s.id);
+    const paidAmt = staffPayouts.reduce((sum, sa) => sum + Number(sa.amount || 0), 0);
+
+    const staffAdvs = monthAdvances.filter(a => a.staff_id === s.id);
+    const advAmt = staffAdvs.reduce((sum, a) => sum + Number(a.amount || 0), 0);
+
+    const totalDisbursed = paidAmt + advAmt;
+    const balanceDue = Math.max(0, commitment - totalDisbursed);
+
+    let status = 'settled';
+    if (commitment > 0) {
+      if (totalDisbursed >= commitment) status = 'settled';
+      else if (totalDisbursed > 0) status = 'partial';
+      else status = 'due';
+    }
+
+    return {
+      staff: s,
+      id: s.id,
+      name: s.name,
+      role: s.role,
+      baseSalary,
+      frequency: freq,
+      salaryDay: s.salary_day,
+      daysWorked,
+      commitment,
+      paidAmt,
+      advAmt,
+      totalDisbursed,
+      balanceDue,
+      status,
+      payouts: staffPayouts,
+      advances: staffAdvs
+    };
+  });
+
+  const totalCommitment = staffBreakdown.reduce((sum, item) => sum + item.commitment, 0);
+  const totalSalariesPaid = monthSalaries.reduce((sum, sa) => sum + Number(sa.amount || 0), 0);
+  const totalAdvances = monthAdvances.reduce((sum, a) => sum + Number(a.amount || 0), 0);
+  const totalDisbursed = totalSalariesPaid + totalAdvances;
+  const totalDue = staffBreakdown.reduce((sum, item) => sum + item.balanceDue, 0);
+  const disbursedPct = totalCommitment > 0 ? Math.min(100, Math.round((totalDisbursed / totalCommitment) * 100)) : (activeStaff.length === 0 ? 0 : 100);
+
+  const counts = {
+    total: staffBreakdown.length,
+    due: staffBreakdown.filter(x => x.status === 'due').length,
+    partial: staffBreakdown.filter(x => x.status === 'partial').length,
+    settled: staffBreakdown.filter(x => x.status === 'settled').length,
+    withAdv: staffBreakdown.filter(x => x.advAmt > 0).length
+  };
+
+  return {
+    mKey,
+    staffBreakdown,
+    monthSalaries,
+    monthAdvances,
+    totals: {
+      totalCommitment,
+      totalSalariesPaid,
+      totalAdvances,
+      totalDisbursed,
+      totalDue,
+      disbursedPct
+    },
+    counts
+  };
 }
 
 function getAssumedSalaryTotals() {
@@ -813,30 +943,41 @@ function saveSalaryAdvanceLocally(adv) {
   saveSalaryAdvances(advances);
 }
 
-window.__openSalaryAdvanceModal = function() {
-  const holder = getModalHolder('salaryModalHolder');
+window.__openSalaryAdvanceModal = function(prefillStaffId) {
+  const holder = getModalHolder('salaryModalHolder') || getModalHolder('taskModalHolder');
+  const activeStaff = typeof getActiveStaff === 'function' ? getActiveStaff() : (cache.staff || []).filter(s => s.status !== 'inactive');
+  const defStaff = prefillStaffId || (activeStaff.length ? activeStaff[0].id : '');
   holder.innerHTML = `
   <div class="overlay show" onclick="if(event.target===this) window.__closeSalaryModal()"><div class="modal" style="max-width:440px;width:92%;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-      <h3 style="margin:0;">Record Salary Advance</h3>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--paper-line);">
+      <h3 style="margin:0;font-size:1.05rem;">Record Salary Advance</h3>
       <button class="stamp-btn small ghost" onclick="window.__closeSalaryModal()" style="display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;">${icon("close", 14)}</button>
     </div>
 
     <label>Select Staff Member *</label>
     <select id="mAdvStaffId">
-      ${cache.staff.map(s => `<option value="${s.id}">${esc(s.name)} (${s.role})</option>`).join('')}
+      ${activeStaff.map(s => `<option value="${s.id}" ${s.id===defStaff?'selected':''}>${esc(s.name)} (${s.role})</option>`).join('')}
     </select>
     <label>Advance Amount (₹) *</label>
     <input type="number" step="0.01" id="mAdvAmount" placeholder="e.g. 2000">
     <label>Date of Advance</label>
     <input type="date" id="mAdvDate" value="${todayStr()}">
     <label>Notes / Reason</label>
-    <textarea id="mAdvNotes" placeholder="Reason for advance..."></textarea>
-    <div class="modal-actions">
+    <textarea id="mAdvNotes" placeholder="Reason for advance (e.g. emergency, festival advance)..."></textarea>
+    <div class="modal-actions" style="margin-top:14px;">
       <button class="stamp-btn ghost" onclick="window.__closeSalaryModal()">Cancel</button>
       <button class="stamp-btn" onclick="window.__saveSalaryAdvance()">Save Advance</button>
     </div>
   </div></div>`;
+};
+
+window.__closeSalaryModal = () => {
+  const h1 = document.getElementById('salaryModalHolder');
+  if (h1) h1.innerHTML = '';
+  const h2 = document.getElementById('taskModalHolder');
+  if (h2) h2.innerHTML = '';
+  const h3 = document.getElementById('scheduleModalHolder');
+  if (h3) h3.innerHTML = '';
 };
 
 window.__saveSalaryAdvance = async function() {
@@ -1074,51 +1215,1033 @@ window.__deleteExpenseItem = function(id) {
 };
 
 
-function renderSalaryTab(body){
-  if (salarySubTab === 'expenses') salarySubTab = 'payouts';
+window.__salaryPrevMonth = function() {
+  const parts = salarySelectedMonth.split('-');
+  let y = parseInt(parts[0], 10);
+  let m = parseInt(parts[1], 10) - 1;
+  if (m < 1) { m = 12; y--; }
+  salarySelectedMonth = `${y}-${String(m).padStart(2, '0')}`;
+  renderTabBody();
+};
+
+window.__salaryNextMonth = function() {
+  const parts = salarySelectedMonth.split('-');
+  let y = parseInt(parts[0], 10);
+  let m = parseInt(parts[1], 10) + 1;
+  if (m > 12) { m = 1; y++; }
+  salarySelectedMonth = `${y}-${String(m).padStart(2, '0')}`;
+  renderTabBody();
+};
+
+window.__salarySetMonth = function(val) {
+  if (val) {
+    salarySelectedMonth = val;
+    renderTabBody();
+  }
+};
+
+window.__salaryCurrentMonth = function() {
+  salarySelectedMonth = monthKey(todayStr());
+  renderTabBody();
+};
+
+window.__setSalarySubTab = function(t) {
+  salarySubTab = t;
+  renderTabBody();
+};
+
+window.__setSalarySearch = function(val) {
+  salarySearchQuery = (val || '').toLowerCase().trim();
+  const term = salarySearchQuery;
+  const rows = document.querySelectorAll('.sal-staff-row, .sal-staff-card');
+  rows.forEach(r => {
+    const text = (r.getAttribute('data-staff-name') || '').toLowerCase();
+    const role = (r.getAttribute('data-staff-role') || '').toLowerCase();
+    if (!term || text.includes(term) || role.includes(term)) {
+      r.style.display = '';
+    } else {
+      r.style.display = 'none';
+    }
+  });
+};
+
+window.__setSalaryStatusFilter = function(filter) {
+  salaryStatusFilter = filter || 'all';
+  renderTabBody();
+};
+
+window.__setSalaryModeFilter = function(mode) {
+  salaryModeFilter = mode || 'all';
+  renderTabBody();
+};
+
+window.__exportPayrollCSV = function() {
+  const data = getSalaryMonthData(salarySelectedMonth);
+  let csv = '\uFEFF"Employee ID","Employee Name","Role","Pay Frequency","Base Salary (₹)","Commitment (' + formatMonthLabel(salarySelectedMonth) + ')","Advances Deducted (₹)","Net Paid (₹)","Outstanding Balance (₹)","Payment Status"\n';
+  
+  data.staffBreakdown.forEach(s => {
+    const statusLabel = s.status === 'settled' ? 'Settled / Paid' : (s.status === 'partial' ? 'Partially Paid' : 'Pending / Due');
+    csv += `"${s.id}","${(s.name || '').replace(/"/g, '""')}","${s.role}","${s.frequency}",${s.baseSalary},${s.commitment},${s.advAmt},${s.paidAmt},${s.balanceDue},"${statusLabel}"\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Payroll_Statement_${salarySelectedMonth}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  if (typeof window.showToast === 'function') {
+    window.showToast(`Exported payroll statement for ${formatMonthLabel(salarySelectedMonth)}`, 'success');
+  }
+};
+
+window.__openSalarySlipModal = function(idOrStaffId, monthStr) {
+  let sa = null;
+  let staff = null;
+  let month = monthStr || salarySelectedMonth || monthKey(todayStr());
+  let net = 0;
+  let paidDate = todayStr();
+  let mode = 'Direct Settlement';
+  let notes = '';
+
+  sa = (cache.salaries || []).find(s => s.id === idOrStaffId);
+  if (sa) {
+    staff = (cache.staff || []).find(s => s.id === sa.staff_id) || { id: sa.staff_id, name: staffName(sa.staff_id), role: 'Staff' };
+    month = (sa.paid_date || '').slice(0, 7) || month;
+    net = Number(sa.amount || 0);
+    paidDate = sa.paid_date || todayStr();
+    mode = parseSalaryPaymentMode(sa);
+    notes = cleanSalaryNotes(sa.notes);
+  } else {
+    staff = (cache.staff || []).find(s => s.id === idOrStaffId);
+    if (!staff && session.staffId) {
+      staff = (cache.staff || []).find(s => s.id === session.staffId);
+    }
+    if (!staff) {
+      if (typeof window.showToast === 'function') window.showToast('Staff member record not found.', 'error');
+      return;
+    }
+    const staffSalaries = (cache.salaries || []).filter(s => s.staff_id === staff.id && ((s.paid_date || '').slice(0, 7) === month || (s.month_for && s.month_for === month)));
+    net = staffSalaries.reduce((sum, s) => sum + Number(s.amount || 0), 0);
+    paidDate = staffSalaries.length ? staffSalaries[staffSalaries.length - 1].paid_date : todayStr();
+    mode = staffSalaries.length ? parseSalaryPaymentMode(staffSalaries[0]) : 'Pending Disbursement';
+    notes = staffSalaries.map(s => cleanSalaryNotes(s.notes)).filter(Boolean).join('; ');
+  }
+
+  const allAdvances = typeof getSalaryAdvances === 'function' ? getSalaryAdvances() : [];
+  const staffAdvs = allAdvances.filter(a => a.staff_id === staff.id && (a.date || '').slice(0, 7) === month);
+  const totalAdv = staffAdvs.reduce((sum, a) => sum + Number(a.amount || 0), 0);
+  const baseSalary = Number(staff.base_salary || 0);
+  const gross = getStaffMonthlyAssumedSalary(staff) || (net + totalAdv);
+  const slipId = `PAY-${month.replace('-', '')}-${(staff.id || 'EMP').slice(0, 6).toUpperCase()}`;
+  const amountWords = typeof numToWordsINR === 'function' ? numToWordsINR(net) : `Rupees ${net.toLocaleString('en-IN')} Only`;
+
+  const waMsg = encodeURIComponent(
+    `*SALARY DISBURSEMENT SLIP*\n` +
+    `🏢 Business: ${session.businessName || 'Business Register'}\n` +
+    `👤 Employee: ${staff.name} (${staff.role || 'Staff'})\n` +
+    `📅 Period: ${formatMonthLabel(month)}\n` +
+    `🗓️ Payment Date: ${paidDate}\n` +
+    `💳 Payment Mode: ${mode}\n` +
+    `--------------------------------\n` +
+    `Gross Commitment: ₹${gross.toLocaleString('en-IN')}\n` +
+    (totalAdv > 0 ? `Advance Deducted: -₹${totalAdv.toLocaleString('en-IN')}\n` : '') +
+    `*Net Salary Paid: ₹${net.toLocaleString('en-IN')}*\n` +
+    `Amount in Words: ${amountWords}\n` +
+    (notes ? `Notes / Reference: ${notes}\n` : '') +
+    `--------------------------------\n` +
+    `Slip Ref: ${slipId}\n` +
+    `Generated by Business Register`
+  );
+
+  let area = document.getElementById('salarySlipPrintArea');
+  if (!area) {
+    area = document.createElement('div');
+    area.id = 'salarySlipPrintArea';
+    document.body.appendChild(area);
+  }
+
+  area.innerHTML = `
+    <div class="sal-slip-container">
+      <div class="sal-slip-actions-top" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <button class="stamp-btn ghost small" onclick="document.getElementById('salarySlipPrintArea').style.display='none';">
+          &larr; Close Slip
+        </button>
+        <div style="display:inline-flex;gap:6px;">
+          <a class="stamp-btn small" href="https://wa.me/?text=${waMsg}" target="_blank" style="background:#25D366;color:#FFFFFF;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+            ${icon('whatsapp', 13)} WhatsApp
+          </a>
+          <button class="stamp-btn small" onclick="window.print()" style="display:inline-flex;align-items:center;gap:4px;">
+            ${icon('print', 13)} Print / PDF
+          </button>
+        </div>
+      </div>
+
+      <div class="sal-slip-header">
+        <h2>${esc(session.businessName || 'Business Register')}</h2>
+        <div class="sal-slip-type">Official Salary Disbursement Voucher</div>
+        <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">
+          Pay Period: <b>${formatMonthLabel(month)}</b> &bull; Slip ID: <b>${slipId}</b>
+        </div>
+      </div>
+
+      <div class="sal-slip-meta-grid">
+        <div>
+          <div style="font-size:0.68rem;color:var(--ink-soft);text-transform:uppercase;font-weight:700;">Employee Name</div>
+          <b style="font-size:0.95rem;color:var(--ink);">${esc(staff.name)}</b>
+          <div style="font-size:0.72rem;color:var(--ink-soft);margin-top:2px;">Role: <span class="role-pill ${staff.role}">${staff.role}</span></div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:0.68rem;color:var(--ink-soft);text-transform:uppercase;font-weight:700;">Disbursement Date</div>
+          <b style="font-size:0.95rem;color:var(--ink);">${paidDate}</b>
+          <div style="font-size:0.72rem;color:var(--ink-soft);margin-top:2px;">Mode: <b>${esc(mode)}</b></div>
+        </div>
+      </div>
+
+      <table class="sal-slip-breakdown-table">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th style="text-align:right;">Earnings (₹)</th>
+            <th style="text-align:right;">Deductions (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <b>Basic Salary / Monthly Commitment</b>
+              <div style="font-size:0.70rem;color:var(--ink-soft);">Base: ₹${baseSalary.toLocaleString('en-IN')} / ${staff.salary_frequency || 'monthly'}</div>
+            </td>
+            <td style="text-align:right;font-family:'Roboto Mono',monospace;font-weight:700;">
+              ₹${gross.toLocaleString('en-IN')}
+            </td>
+            <td style="text-align:right;color:var(--ink-soft);">&mdash;</td>
+          </tr>
+          ${totalAdv > 0 ? `
+            <tr>
+              <td>
+                <b style="color:var(--brick);">Salary Advance Recovery</b>
+                <div style="font-size:0.70rem;color:var(--ink-soft);">${staffAdvs.length} advance(s) recorded in ${formatMonthLabel(month)}</div>
+              </td>
+              <td style="text-align:right;color:var(--ink-soft);">&mdash;</td>
+              <td style="text-align:right;font-family:'Roboto Mono',monospace;font-weight:700;color:var(--brick);">
+                -₹${totalAdv.toLocaleString('en-IN')}
+              </td>
+            </tr>
+          ` : ''}
+          ${notes ? `
+            <tr>
+              <td colspan="3" style="font-size:0.74rem;color:var(--ink-soft);background:var(--paper);padding:8px 10px;">
+                <b>Payment Notes / UTR Reference:</b> ${esc(notes)}
+              </td>
+            </tr>
+          ` : ''}
+        </tbody>
+      </table>
+
+      <div class="sal-slip-net-banner">
+        <div>
+          <div class="sal-net-title">Net Salary Disbursed</div>
+          <div style="font-size:0.70rem;color:#047857;">Take-home payout for ${formatMonthLabel(month)}</div>
+        </div>
+        <div class="sal-net-val">₹${net.toLocaleString('en-IN')}</div>
+      </div>
+
+      <div class="sal-slip-words">
+        <b>Amount in Words:</b> ${esc(amountWords)}
+      </div>
+
+      <div class="sal-slip-signatures">
+        <div class="sal-sig-box">
+          Employee Signature
+        </div>
+        <div class="sal-sig-box">
+          Authorised Signatory
+        </div>
+      </div>
+
+      <div style="margin-top:20px;text-align:center;font-size:0.65rem;color:var(--ink-soft);border-top:1px dashed var(--paper-line);padding-top:8px;">
+        This is a computer-generated salary slip created via Business Register.
+      </div>
+    </div>
+  `;
+
+  area.style.display = 'block';
+  if (typeof window.showToast === 'function') {
+    window.showToast('Salary slip generated — ready to print or share!', 'success');
+  }
+};
+window.__generateSalarySlip = window.__openSalarySlipModal;
+
+window.__deleteSalary = function(id) {
+  window.__showDeleteConfirm({
+    title: 'Delete salary record?',
+    message: 'This removes the salary payment record from the business ledger. It cannot be undone.',
+    onConfirm: async () => {
+      showLoading('Deleting record...');
+      try {
+        if (typeof sb !== 'undefined' && sb) {
+          await sb.from('salaries').delete().eq('id', id);
+        }
+        cache.salaries = cache.salaries.filter(s => s.id !== id);
+        localStorage.setItem('br_salaries_' + session.businessId, JSON.stringify(cache.salaries));
+      } catch(e){}
+      finally {
+        hideLoading();
+        await loadData();
+        renderTabBody();
+        if (typeof window.showToast === 'function') window.showToast('Salary record deleted.', 'info');
+      }
+    }
+  });
+};
+
+window.__convertAdvanceToSalaryPaid = async function(advanceId) {
   const advances = getSalaryAdvances();
-  const currentMonth = monthKey(todayStr());
-  const advancesThisMonth = advances.filter(a => monthKey(a.date) === currentMonth);
+  const adv = advances.find(a => a.id === advanceId);
+  if (!adv) return;
+
+  const sName = staffName(adv.staff_id);
+  if (!confirm(`Convert Salary Advance of ₹${Number(adv.amount).toLocaleString('en-IN')} for ${sName} to Salary Paid?`)) return;
+
+  showLoading('Converting Salary Advance...');
+
+  const updatedAdvs = advances.filter(a => a.id !== advanceId);
+  saveSalaryAdvances(updatedAdvs);
+
+  const salData = {
+    id: 'loc_sal_' + Date.now(),
+    business_id: session.businessId,
+    staff_id: adv.staff_id,
+    amount: Number(adv.amount),
+    paid_date: adv.date || todayStr(),
+    notes: (adv.notes ? adv.notes + ' ' : '') + '(Converted from Salary Advance)'
+  };
+
+  cache.salaries.unshift(salData);
+  localStorage.setItem('br_salaries_' + session.businessId, JSON.stringify(cache.salaries));
+
+  if (typeof sb !== 'undefined' && sb) {
+    const dbPayload = Object.assign({}, salData);
+    delete dbPayload.id;
+    sb.from('salaries').insert(dbPayload).select().single().then(r => {
+      if (r && r.data && r.data.id) {
+        const locItem = cache.salaries.find(s => s.id === salData.id);
+        if (locItem) {
+          locItem.id = r.data.id;
+          localStorage.setItem('br_salaries_' + session.businessId, JSON.stringify(cache.salaries));
+        }
+      }
+    }).catch(() => {});
+  }
+
+  hideLoading();
+  window.showToast(`Converted ₹${Number(adv.amount).toLocaleString('en-IN')} advance to Salary Paid!`, 'success');
+  if (typeof logAuditEvent === 'function') {
+    logAuditEvent('Salary Converted', `Converted ₹${adv.amount} advance for ${sName} to Salary Paid`);
+  }
+  
+  salarySubTab = 'payouts';
+  await loadData();
+  renderTabBody();
+};
+
+window.__openSalaryLogModal = function() {
+  const holder = getModalHolder('salaryModalHolder') || getModalHolder('taskModalHolder');
+  const salaries = cache.salaries || [];
+  const advances = getSalaryAdvances();
+  const totalPaid = salaries.reduce((sum, s) => sum + Number(s.amount||0), 0);
+  const totalAdv = advances.reduce((sum, a) => sum + Number(a.amount||0), 0);
+
+  holder.innerHTML = `
+  <div class="overlay show" onclick="if(event.target===this) window.__closeSalaryModal()">
+    <div class="modal" style="max-width:560px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--paper-line);">
+        <div>
+          <h2 style="margin:0;font-size:1.05rem;">Salary Log &amp; Payout Audit</h2>
+          <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">
+            Total Paid: <b>₹${totalPaid.toLocaleString('en-IN')}</b> &bull; Total Advances: <b>₹${totalAdv.toLocaleString('en-IN')}</b>
+          </div>
+        </div>
+        <button class="stamp-btn ghost small" onclick="window.__closeSalaryModal()" style="padding:4px 8px;">${icon("close", 14)}</button>
+      </div>
+
+      <div style="max-height:360px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
+        ${salaries.length ? salaries.map(sa => {
+          return `
+            <div class="row-card" style="align-items:center;padding:10px 12px;margin:0;">
+              <div class="row-main">
+                <b style="font-size:0.88rem;color:var(--ink);">${esc(staffName(sa.staff_id))}</b>
+                <div style="font-size:0.72rem;color:var(--ink-soft);margin-top:2px;">
+                  <span>${sa.paid_date}</span>${sa.notes ? ` &bull; <span>${esc(sa.notes)}</span>` : ''}
+                </div>
+              </div>
+              <b style="font-family:'Roboto Mono',monospace;font-size:0.95rem;color:var(--leaf);margin-right:6px;">₹${Number(sa.amount).toFixed(0)}</b>
+              <button class="stamp-btn small ghost" style="font-size:0.65rem;padding:2px 6px;" onclick="window.__openSalarySlipModal('${sa.id}')">
+                ${icon("reports", 12)} Slip
+              </button>
+            </div>`;
+        }).join('') : '<div class="empty">No salary payments logged yet.</div>'}
+      </div>
+
+      <div class="modal-actions">
+        <button class="stamp-btn ghost" onclick="window.__closeSalaryModal()">Close Log</button>
+        ${isOwner() ? `<button class="stamp-btn" onclick="window.__closeSalaryModal();window.__openSalary();">+ Record New Salary</button>` : ''}
+      </div>
+    </div>
+  </div>`;
+};
+
+window.__setPayoutSchedule = (staffId) => {
+  const s = cache.staff.find(x => x.id === staffId);
+  if (!s) return;
+  const holder = document.getElementById('scheduleModalHolder') || getModalHolder('salaryModalHolder');
+  const freq = s.salary_frequency || 'monthly';
+  const curBase = Number(s.base_salary || 0);
+
+  const renderFields = (f) => {
+    if (f === 'daily') return `<p style="font-size:0.82rem;color:var(--ink-soft);margin-top:6px;">Daily wages are paid per day worked based on daily attendance records.</p>`;
+    if (f === 'weekly') return `<label>Day of the Week</label><select id="mScheduleDay">${WEEKDAY_NAMES.map((d,i)=>`<option value="${i}" ${s.salary_day===i?'selected':''}>Every ${d}</option>`).join('')}</select>`;
+    return `<label>Day of the Month</label><input type="number" id="mScheduleDay" min="1" max="31" value="${s.salary_day && s.salary_frequency==='monthly'?s.salary_day:''}" placeholder="Day 1-31 (e.g. 1 or 5)">`;
+  };
+
+  holder.innerHTML = `
+  <div class="overlay show" onclick="if(event.target===this) window.__closeSalaryModal()">
+    <div class="modal" style="max-width:440px;width:92%;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--paper-line);">
+        <h2 style="margin:0;font-size:1.05rem;">Payout Schedule &mdash; ${esc(s.name)}</h2>
+        <button class="stamp-btn ghost small" onclick="window.__closeSalaryModal()" style="padding:4px 8px;">${icon('close', 14)}</button>
+      </div>
+
+      <label>Base Salary Amount (₹) *</label>
+      <input type="number" step="0.01" id="mScheduleBase" value="${curBase > 0 ? curBase : ''}" placeholder="e.g. 20000">
+
+      <label>Payout Frequency</label>
+      <select id="mScheduleFreq" onchange="window.__refreshScheduleFields()">
+        <option value="monthly" ${freq==='monthly'?'selected':''}>Monthly Payouts</option>
+        <option value="weekly" ${freq==='weekly'?'selected':''}>Weekly Payouts</option>
+        <option value="daily" ${freq==='daily'?'selected':''}>Daily Wage</option>
+      </select>
+
+      <div id="scheduleFieldsWrap">${renderFields(freq)}</div>
+
+      <div class="modal-actions" style="margin-top:16px;">
+        <button class="stamp-btn ghost" onclick="window.__closeSalaryModal()">Cancel</button>
+        <button class="stamp-btn" onclick="window.__saveSchedule('${staffId}')">Save Changes</button>
+      </div>
+    </div>
+  </div>`;
+
+  window.__refreshScheduleFields = () => {
+    const f = document.getElementById('mScheduleFreq').value;
+    document.getElementById('scheduleFieldsWrap').innerHTML = renderFields(f);
+  };
+
+  window.__saveSchedule = async (id) => {
+    const f = document.getElementById('mScheduleFreq').value;
+    const baseAmt = Number(document.getElementById('mScheduleBase').value || 0);
+    let day = null;
+    if (f !== 'daily') {
+      const el = document.getElementById('mScheduleDay');
+      day = Number(el.value);
+      if (f === 'monthly' && (!day || day < 1 || day > 31)) {
+        alert('Please enter a payout day of month between 1 and 31.');
+        return;
+      }
+    }
+
+    showLoading('Updating schedule...');
+    try {
+      if (typeof sb !== 'undefined' && sb) {
+        await sb.from('staff').update({
+          salary_frequency: f,
+          salary_day: day,
+          base_salary: baseAmt
+        }).eq('id', id);
+      }
+      const st = cache.staff.find(x => x.id === id);
+      if (st) {
+        st.salary_frequency = f;
+        st.salary_day = day;
+        st.base_salary = baseAmt;
+      }
+      holder.innerHTML = '';
+      if (typeof window.showToast === 'function') {
+        window.showToast(`Updated payout schedule for ${s.name}`, 'success');
+      }
+      await loadData();
+      renderTabBody();
+    } catch(e) {
+      alert('Error saving schedule: ' + e.message);
+    } finally {
+      hideLoading();
+    }
+  };
+};
+
+window.__openSalary = (prefillStaffId, prefillAmount) => {
+  const holder = getModalHolder('salaryModalHolder') || getModalHolder('taskModalHolder');
+  const activeStaff = typeof getActiveStaff === 'function' ? getActiveStaff() : (cache.staff || []).filter(s => s.status !== 'inactive');
+  const defaultStaffId = prefillStaffId || (activeStaff.length ? activeStaff[0].id : '');
+
+  const monthData = getSalaryMonthData(salarySelectedMonth);
+  const staffStat = monthData.staffBreakdown.find(x => x.id === defaultStaffId);
+  const suggestedAmt = prefillAmount != null ? prefillAmount : (staffStat ? staffStat.balanceDue : 0);
+
+  holder.innerHTML = `
+  <div class="overlay show" onclick="if(event.target===this) window.__closeSalaryModal()">
+    <div class="modal" style="max-width:480px;width:94%;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--paper-line);">
+        <h2 style="margin:0;font-size:1.05rem;">Record Salary Payout</h2>
+        <button class="stamp-btn ghost small" onclick="window.__closeSalaryModal()" style="padding:4px 8px;">${icon('close', 14)}</button>
+      </div>
+
+      <label>Staff Member *</label>
+      <select id="mSalaryStaff" onchange="window.__refreshSalaryHelperBox()">
+        ${activeStaff.map(s => `<option value="${s.id}" ${s.id === defaultStaffId ? 'selected' : ''}>${esc(s.name)} (${s.role})</option>`).join('')}
+      </select>
+
+      <div id="mSalaryHelperBox" style="background:var(--paper);border:1px solid var(--paper-line);border-radius:8px;padding:10px 12px;margin:8px 0 12px;font-size:0.75rem;"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label>Payout Amount (₹) *</label>
+          <input type="number" step="0.01" id="mSalaryAmount" value="${suggestedAmt > 0 ? suggestedAmt : ''}" placeholder="e.g. 15000">
+        </div>
+        <div>
+          <label>Payment Mode *</label>
+          <select id="mSalaryMode">
+            <option value="UPI / Online">UPI / GPay / Online</option>
+            <option value="Cash">Cash</option>
+            <option value="Bank Transfer">Bank Transfer / NEFT</option>
+            <option value="Cheque">Cheque</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label>Paid Date</label>
+          <input type="date" id="mSalaryDate" value="${todayStr()}">
+        </div>
+        <div>
+          <label>For Month</label>
+          <input type="month" id="mSalaryMonth" value="${salarySelectedMonth}" onchange="window.__refreshSalaryHelperBox()">
+        </div>
+      </div>
+
+      <label>Notes / UTR / Reference</label>
+      <input id="mSalaryNotes" placeholder="e.g. Full settlement, UPI Ref 12345678">
+
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;margin-bottom:14px;">
+        <button type="button" class="sal-chip" onclick="document.getElementById('mSalaryNotes').value='Full Month Settlement'">Full Settlement</button>
+        <button type="button" class="sal-chip" onclick="document.getElementById('mSalaryNotes').value='Part Payment'">Part Payment</button>
+        <button type="button" class="sal-chip" onclick="document.getElementById('mSalaryNotes').value='Advance Adjusted'">Advance Adjusted</button>
+        <button type="button" class="sal-chip" onclick="document.getElementById('mSalaryNotes').value='Performance Bonus'">Bonus</button>
+      </div>
+
+      <div class="modal-actions">
+        <button class="stamp-btn ghost" onclick="window.__closeSalaryModal()">Cancel</button>
+        <button class="stamp-btn" onclick="window.__saveSalary()">Save Payout</button>
+      </div>
+    </div>
+  </div>`;
+
+  window.__refreshSalaryHelperBox = () => {
+    const sId = document.getElementById('mSalaryStaff').value;
+    const mVal = document.getElementById('mSalaryMonth') ? document.getElementById('mSalaryMonth').value : salarySelectedMonth;
+    const mData = getSalaryMonthData(mVal);
+    const stat = mData.staffBreakdown.find(x => x.id === sId);
+    const box = document.getElementById('mSalaryHelperBox');
+    if (!box || !stat) return;
+
+    box.innerHTML = `
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span style="color:var(--ink-soft);">Base Commitment:</span>
+        <b style="font-family:'Roboto Mono',monospace;">₹${stat.commitment.toLocaleString('en-IN')}</b>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span style="color:var(--ink-soft);">Advances Taken (${formatMonthLabel(mVal)}):</span>
+        <b style="font-family:'Roboto Mono',monospace;color:var(--turmeric-dark);">₹${stat.advAmt.toLocaleString('en-IN')}</b>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span style="color:var(--ink-soft);">Already Paid This Month:</span>
+        <b style="font-family:'Roboto Mono',monospace;color:var(--leaf);">₹${stat.paidAmt.toLocaleString('en-IN')}</b>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding-top:6px;border-top:1px dashed var(--paper-line);align-items:center;">
+        <span style="font-weight:700;color:var(--ink);">Net Outstanding Balance:</span>
+        <div style="display:inline-flex;align-items:center;gap:6px;">
+          <b style="font-family:'Roboto Mono',monospace;font-size:0.95rem;color:${stat.balanceDue > 0 ? 'var(--brick)' : 'var(--leaf)'};">
+            ₹${stat.balanceDue.toLocaleString('en-IN')}
+          </b>
+          ${stat.balanceDue > 0 ? `<button type="button" class="stamp-btn small ghost" style="padding:1px 6px;font-size:0.65rem;" onclick="document.getElementById('mSalaryAmount').value='${stat.balanceDue}'">Fill</button>` : ''}
+        </div>
+      </div>
+    `;
+  };
+
+  window.__refreshSalaryHelperBox();
+
+  window.__saveSalary = async () => {
+    const staffId = document.getElementById('mSalaryStaff').value;
+    const amount = Number(document.getElementById('mSalaryAmount').value || 0);
+    const paidDate = document.getElementById('mSalaryDate').value || todayStr();
+    const forMonth = document.getElementById('mSalaryMonth').value || salarySelectedMonth;
+    const mode = document.getElementById('mSalaryMode').value || 'Cash';
+    const rawNotes = document.getElementById('mSalaryNotes').value.trim();
+
+    if (!amount || amount <= 0) {
+      alert('Please enter a valid payout amount.');
+      return;
+    }
+
+    const formattedNotes = `[Mode: ${mode}] [Month: ${forMonth}] ${rawNotes}`.trim();
+
+    showLoading('Recording Salary Payout...');
+    const localId = 'loc_sal_' + Date.now();
+    const payload = {
+      business_id: session.businessId,
+      staff_id: staffId,
+      amount: amount,
+      paid_date: paidDate,
+      notes: formattedNotes
+    };
+
+    try {
+      if (typeof sb !== 'undefined' && sb) {
+        const { data: newRow } = await sb.from('salaries').insert(payload).select().single();
+        if (newRow && newRow.id) {
+          cache.salaries.unshift(newRow);
+        } else {
+          cache.salaries.unshift(Object.assign({ id: localId }, payload));
+        }
+      } else {
+        cache.salaries.unshift(Object.assign({ id: localId }, payload));
+      }
+    } catch(e) {
+      cache.salaries.unshift(Object.assign({ id: localId }, payload));
+    } finally {
+      localStorage.setItem('br_salaries_' + session.businessId, JSON.stringify(cache.salaries));
+      hideLoading();
+      holder.innerHTML = '';
+      if (typeof logAuditEvent === 'function') {
+        logAuditEvent('Salary Paid', `Disbursed ₹${amount.toLocaleString('en-IN')} (${mode}) to ${staffName(staffId)}`);
+      }
+      if (typeof triggerAppNotification === 'function') {
+        triggerAppNotification('Salary Paid', `₹${amount.toLocaleString('en-IN')} disbursed to ${staffName(staffId)}`);
+      }
+      if (typeof window.showToast === 'function') {
+        window.showToast(`Paid ₹${amount.toLocaleString('en-IN')} to ${staffName(staffId)}`, 'success');
+      }
+      await loadData();
+      renderTabBody();
+    }
+  };
+};
+
+function renderSalaryTab(body) {
+  if (salarySubTab === 'expenses') salarySubTab = 'roster';
+  
+  if (!isOwner() && !isManager()) {
+    const myStaffId = session.staffId || session.userId;
+    const myStaff = (cache.staff || []).find(s => s.id === myStaffId) || { name: session.name || 'My Account', role: session.role || 'Staff' };
+    const monthData = getSalaryMonthData(salarySelectedMonth);
+    const myStat = monthData.staffBreakdown.find(s => s.id === myStaffId) || {
+      commitment: getStaffMonthlyAssumedSalary(myStaff),
+      paidAmt: 0,
+      advAmt: 0,
+      balanceDue: getStaffMonthlyAssumedSalary(myStaff),
+      status: 'due'
+    };
+
+    body.innerHTML = `
+      <div class="sal-period-nav">
+        <div class="sal-period-controls">
+          <button class="stamp-btn small ghost" onclick="window.__salaryPrevMonth()">&lsaquo; Prev</button>
+          <div class="sal-period-label">${icon('calendar', 15)} ${formatMonthLabel(salarySelectedMonth)}</div>
+          <button class="stamp-btn small ghost" onclick="window.__salaryNextMonth()">Next &rsaquo;</button>
+        </div>
+        <button class="stamp-btn small ghost" onclick="window.__salaryCurrentMonth()">Current Month</button>
+      </div>
+
+      <div class="sal-scorecard-grid" style="grid-template-columns:repeat(2, minmax(0, 1fr));">
+        <div class="sal-kpi-card">
+          <div class="kpi-label">Base Salary</div>
+          <div class="kpi-value" style="color:var(--ink);">₹${Number(myStaff.base_salary || 0).toLocaleString('en-IN')}</div>
+          <div class="kpi-sub">${payScheduleLabel(myStaff)}</div>
+        </div>
+        <div class="sal-kpi-card">
+          <div class="kpi-label">Paid This Month</div>
+          <div class="kpi-value" style="color:var(--leaf);">${maskSalesAmount(myStat.paidAmt)}</div>
+          <div class="kpi-sub">${formatMonthLabel(salarySelectedMonth)}</div>
+        </div>
+        <div class="sal-kpi-card">
+          <div class="kpi-label">Salary Advances</div>
+          <div class="kpi-value" style="color:var(--turmeric-dark);">${maskSalesAmount(myStat.advAmt)}</div>
+          <div class="kpi-sub">Total advances taken</div>
+        </div>
+        <div class="sal-kpi-card">
+          <div class="kpi-label">Remaining Balance</div>
+          <div class="kpi-value" style="color:${myStat.balanceDue > 0 ? 'var(--brick)' : 'var(--leaf)'};">${maskSalesAmount(myStat.balanceDue)}</div>
+          <div class="kpi-sub">${myStat.status === 'settled' ? 'Settled in full' : 'Pending payment'}</div>
+        </div>
+      </div>
+
+      <div class="row-card" style="flex-direction:column;align-items:stretch;padding:16px;margin-top:14px;text-align:center;">
+        <h3 style="margin:0 0 6px;">Official Salary Slip</h3>
+        <p style="font-size:0.78rem;color:var(--ink-soft);margin:0 0 14px;">View or print your official salary disbursement slip for ${formatMonthLabel(salarySelectedMonth)}.</p>
+        <button class="stamp-btn" style="margin:0 auto;display:inline-flex;align-items:center;gap:6px;" onclick="window.__openSalarySlipModal('${myStaff.id}', '${salarySelectedMonth}')">
+          ${icon('reports', 15)} View / Download My Salary Slip
+        </button>
+      </div>
+
+      <div id="salaryModalHolder"></div>
+    `;
+    return;
+  }
+
+  const data = getSalaryMonthData(salarySelectedMonth);
+  const totals = data.totals;
+
+  let filteredStaff = data.staffBreakdown.filter(s => {
+    if (salaryStatusFilter === 'due' && s.status !== 'due') return false;
+    if (salaryStatusFilter === 'partial' && s.status !== 'partial') return false;
+    if (salaryStatusFilter === 'settled' && s.status !== 'settled') return false;
+    if (salaryStatusFilter === 'advance' && s.advAmt <= 0) return false;
+    if (salarySearchQuery) {
+      const q = salarySearchQuery.toLowerCase();
+      const name = (s.name || '').toLowerCase();
+      const role = (s.role || '').toLowerCase();
+      if (!name.includes(q) && !role.includes(q)) return false;
+    }
+    return true;
+  });
 
   body.innerHTML = `
-    <!-- Salary Sub-Menu Navigation Bar -->
-    <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;">
-      <button class="stamp-btn small ${salarySubTab==='payouts'?'':'ghost'}" onclick="window.__setSalarySubTab('payouts')" style="display:inline-flex;align-items:center;gap:4px;">${icon("salary", 14)} Payout History (${cache.salaries.length})</button>
-      <button class="stamp-btn small ${salarySubTab==='advances'?'':'ghost'}" onclick="window.__setSalarySubTab('advances')" style="display:inline-flex;align-items:center;gap:4px;">${icon("salary", 14)} Salary Advances (${advances.length})</button>
-      <button class="stamp-btn small ${salarySubTab==='schedules'?'':'ghost'}" onclick="window.__setSalarySubTab('schedules')" style="display:inline-flex;align-items:center;gap:4px;">${icon("calendar", 14)} Schedules (${cache.staff.length})</button>
+    <!-- Top Period Navigation & Control Bar -->
+    <div class="sal-period-nav">
+      <div class="sal-period-controls">
+        <button class="stamp-btn small ghost" onclick="window.__salaryPrevMonth()" title="Previous Month">&lsaquo; Prev</button>
+        <div class="sal-period-label">
+          ${icon('calendar', 16)}
+          <span>${formatMonthLabel(salarySelectedMonth)}</span>
+          <input type="month" class="sal-period-input" value="${salarySelectedMonth}" onchange="window.__salarySetMonth(this.value)" title="Choose Month">
+        </div>
+        <button class="stamp-btn small ghost" onclick="window.__salaryNextMonth()" title="Next Month">Next &rsaquo;</button>
+      </div>
+      <div class="sal-period-actions">
+        <button class="stamp-btn small ghost" onclick="window.__salaryCurrentMonth()">Current Month</button>
+        <button class="stamp-btn small ghost" onclick="window.__exportPayrollCSV()" style="display:inline-flex;align-items:center;gap:4px;">
+          ${icon('download', 13)} Export Sheet
+        </button>
+        ${isOwner() ? `
+          <button class="stamp-btn small" onclick="window.__openSalary()" style="background:var(--turmeric);color:#fff;display:inline-flex;align-items:center;gap:4px;">
+            ${icon('plus', 13)} Record Salary
+          </button>
+        ` : ''}
+      </div>
     </div>
 
+    <!-- Executive KPI Scorecard Grid -->
+    <div class="sal-scorecard-grid">
+      <div class="sal-kpi-card">
+        <div class="kpi-label">Monthly Budget</div>
+        <div class="kpi-value" style="color:var(--ink);">₹${totals.totalCommitment.toLocaleString('en-IN')}</div>
+        <div class="kpi-sub">${data.counts.total} active staff members</div>
+      </div>
+      <div class="sal-kpi-card">
+        <div class="kpi-label">Paid This Month</div>
+        <div class="kpi-value" style="color:var(--leaf);">${maskSalesAmount(totals.totalSalariesPaid)}</div>
+        <div class="kpi-sub">${data.monthSalaries.length} logged payouts</div>
+      </div>
+      <div class="sal-kpi-card">
+        <div class="kpi-label">Salary Advances</div>
+        <div class="kpi-value" style="color:var(--turmeric-dark);">${maskSalesAmount(totals.totalAdvances)}</div>
+        <div class="kpi-sub">${data.counts.withAdv} staff with advances</div>
+      </div>
+      <div class="sal-kpi-card">
+        <div class="kpi-label">Balance Due</div>
+        <div class="kpi-value" style="color:${totals.totalDue > 0 ? 'var(--brick)' : 'var(--leaf)'};">${maskSalesAmount(totals.totalDue)}</div>
+        <div class="kpi-sub">${data.counts.due + data.counts.partial} staff pending</div>
+      </div>
+      <div class="sal-kpi-card">
+        <div class="kpi-label">Disbursement Rate</div>
+        <div class="kpi-value" style="color:var(--leaf);">${totals.disbursedPct}%</div>
+        <div class="kpi-sub">${totals.totalDue === 0 ? 'Fully Disbursed' : 'In Progress'}</div>
+      </div>
+    </div>
 
-    ${salarySubTab === 'payouts' ? `
-      ${isOwner() ? buildQtyGraphHtml(cache.salaries, salaryReportMode, '__setSalaryReportMode', '', 'amount', '₹', 'paid_date') : ''}
-      <div class="section-label">Salary Payment History</div>
-      ${cache.salaries.length ? cache.salaries.map(sa=>{
-        const staff = cache.staff.find(s=>s.id===sa.staff_id)||{};
-        return `
-        <div class="row-card" style="align-items:center;">
-          <div class="row-main"><h3>${esc(staffName(sa.staff_id))}</h3><div class="meta"><span>${sa.paid_date}</span>${sa.notes?`<span>${esc(sa.notes)}</span>`:''}</div></div>
-          <b style="font-family:'Roboto Mono',monospace;">${maskSalesAmount(sa.amount)}</b>
-          <button class="stamp-btn small ghost" style="font-size:0.65rem;padding:4px 8px;" onclick="window.__generateSalarySlip('${sa.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon("reports", 12)} Slip</button>
-          <div class="action-dropdown-holder">
-            <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${sa.id}')">More ▾</button>
-            <div class="action-dropdown-menu" id="actionMenu_${sa.id}">
-              <button onclick="window.__generateSalarySlip('${sa.id}')">Generate Slip</button>
-              <button class="danger" onclick="window.__deleteSalary('${sa.id}')">Delete</button>
+    <!-- Monthly Outflow Progress Bar Widget -->
+    <div class="sal-progress-card">
+      <div class="sal-progress-header">
+        <span>Monthly Payroll Fulfillment &mdash; ${formatMonthLabel(salarySelectedMonth)}</span>
+        <b style="font-family:'Roboto Mono',monospace;color:var(--leaf);">${totals.disbursedPct}% Disbursed</b>
+      </div>
+      <div class="sal-progress-bar">
+        <div class="sal-progress-fill" style="width:${totals.disbursedPct}%;"></div>
+      </div>
+      <div class="sal-progress-meta">
+        <span>Disbursed Outflow: <b style="color:var(--leaf);font-family:'Roboto Mono',monospace;">₹${totals.totalDisbursed.toLocaleString('en-IN')}</b> (Incl. Advances)</span>
+        <span>Total Commitment: <b style="color:var(--ink);font-family:'Roboto Mono',monospace;">₹${totals.totalCommitment.toLocaleString('en-IN')}</b></span>
+      </div>
+    </div>
+
+    <!-- Salary Sub-Navigation Tabs Bar -->
+    <div class="sal-subnav">
+      <button class="stamp-btn small ${salarySubTab==='roster'?'':'ghost'}" onclick="window.__setSalarySubTab('roster')" style="display:inline-flex;align-items:center;gap:4px;">
+        ${icon("staff", 14)} Staff Roster (${data.counts.total})
+      </button>
+      <button class="stamp-btn small ${salarySubTab==='payouts'?'':'ghost'}" onclick="window.__setSalarySubTab('payouts')" style="display:inline-flex;align-items:center;gap:4px;">
+        ${icon("salary", 14)} Payouts Log (${cache.salaries.length})
+      </button>
+      <button class="stamp-btn small ${salarySubTab==='advances'?'':'ghost'}" onclick="window.__setSalarySubTab('advances')" style="display:inline-flex;align-items:center;gap:4px;">
+        ${icon("salary", 14)} Salary Advances (${(getSalaryAdvances()||[]).length})
+      </button>
+      <button class="stamp-btn small ${salarySubTab==='schedules'?'':'ghost'}" onclick="window.__setSalarySubTab('schedules')" style="display:inline-flex;align-items:center;gap:4px;">
+        ${icon("calendar", 14)} Schedules &amp; Rates (${cache.staff.length})
+      </button>
+      <button class="stamp-btn small ${salarySubTab==='analytics'?'':'ghost'}" onclick="window.__setSalarySubTab('analytics')" style="display:inline-flex;align-items:center;gap:4px;">
+        ${icon("reports", 14)} Outflow Analytics
+      </button>
+    </div>
+
+    <!-- Sub-Tab 1: Staff Roster & Payroll Sheet -->
+    ${salarySubTab === 'roster' ? `
+      <div class="sal-filter-bar">
+        <div class="sal-search-wrap">
+          <span class="sal-search-icon">${icon('search', 14)}</span>
+          <input type="text" id="salarySearchInput" class="sal-search-input" placeholder="Search staff member or role..." value="${esc(salarySearchQuery)}" oninput="window.__setSalarySearch(this.value)">
+        </div>
+        <div class="sal-filter-chips">
+          <button class="sal-chip ${salaryStatusFilter==='all'?'active':''}" onclick="window.__setSalaryStatusFilter('all')">All (${data.counts.total})</button>
+          <button class="sal-chip ${salaryStatusFilter==='due'?'active':''}" onclick="window.__setSalaryStatusFilter('due')">Due (${data.counts.due})</button>
+          <button class="sal-chip ${salaryStatusFilter==='partial'?'active':''}" onclick="window.__setSalaryStatusFilter('partial')">Partial (${data.counts.partial})</button>
+          <button class="sal-chip ${salaryStatusFilter==='settled'?'active':''}" onclick="window.__setSalaryStatusFilter('settled')">Settled (${data.counts.settled})</button>
+          <button class="sal-chip ${salaryStatusFilter==='advance'?'active':''}" onclick="window.__setSalaryStatusFilter('advance')">With Advance (${data.counts.withAdv})</button>
+        </div>
+      </div>
+
+      <!-- Desktop & Tablet Table View -->
+      <div class="sal-table-wrap sal-desktop-table">
+        <table class="sal-table">
+          <thead>
+            <tr>
+              <th>Staff Member</th>
+              <th>Base Rate</th>
+              <th>Commitment (${formatMonthLabel(salarySelectedMonth)})</th>
+              <th>Advances</th>
+              <th>Paid So Far</th>
+              <th>Balance Due</th>
+              <th>Status</th>
+              <th style="text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filteredStaff.length ? filteredStaff.map(s => {
+              const statusChip = s.status === 'settled'
+                ? '<span class="sal-badge sal-badge-paid">&#10003; Settled</span>'
+                : (s.status === 'partial'
+                    ? '<span class="sal-badge sal-badge-partial">&#9684; Partial</span>'
+                    : '<span class="sal-badge sal-badge-due">&#9679; Due</span>');
+              return `
+                <tr class="sal-staff-row" data-staff-name="${esc(s.name)}" data-staff-role="${esc(s.role)}">
+                  <td>
+                    <b style="color:var(--ink);display:block;font-size:0.85rem;">${esc(s.name)}</b>
+                    <span class="role-pill ${s.role}">${s.role}</span>
+                  </td>
+                  <td>
+                    <span style="font-family:'Roboto Mono',monospace;font-weight:600;">₹${s.baseSalary.toLocaleString('en-IN')}</span>
+                    <span style="font-size:0.68rem;color:var(--ink-soft);display:block;">/ ${s.frequency}</span>
+                  </td>
+                  <td>
+                    <b style="font-family:'Roboto Mono',monospace;color:var(--ink);">₹${s.commitment.toLocaleString('en-IN')}</b>
+                    ${s.daysWorked > 0 ? `<span style="font-size:0.68rem;color:var(--ink-soft);display:block;">${s.daysWorked} days worked</span>` : ''}
+                  </td>
+                  <td>
+                    ${s.advAmt > 0
+                      ? `<b style="font-family:'Roboto Mono',monospace;color:var(--turmeric-dark);">₹${s.advAmt.toLocaleString('en-IN')}</b>`
+                      : '<span style="color:var(--ink-soft);">&mdash;</span>'}
+                  </td>
+                  <td>
+                    <b style="font-family:'Roboto Mono',monospace;color:var(--leaf);">${maskSalesAmount(s.paidAmt)}</b>
+                  </td>
+                  <td>
+                    <b style="font-family:'Roboto Mono',monospace;color:${s.balanceDue > 0 ? 'var(--brick)' : 'var(--leaf)'};font-size:0.88rem;">
+                      ${s.balanceDue > 0 ? maskSalesAmount(s.balanceDue) : '₹0'}
+                    </b>
+                  </td>
+                  <td>${statusChip}</td>
+                  <td style="text-align:right;">
+                    <div style="display:inline-flex;gap:4px;align-items:center;">
+                      ${isOwner() ? `
+                        <button class="stamp-btn small" style="padding:3px 7px;font-size:0.68rem;" onclick="window.__openSalary('${s.id}', ${s.balanceDue})" title="Pay Salary">
+                          + Pay
+                        </button>
+                        <button class="stamp-btn small ghost" style="padding:3px 6px;font-size:0.68rem;" onclick="window.__openSalaryAdvanceModal('${s.id}')" title="Give Advance">
+                          + Adv
+                        </button>
+                      ` : ''}
+                      <button class="stamp-btn small ghost" style="padding:3px 6px;font-size:0.68rem;" onclick="window.__openSalarySlipModal('${s.id}', '${salarySelectedMonth}')" title="Generate Salary Slip">
+                        Slip
+                      </button>
+                      ${isOwner() ? `
+                        <button class="stamp-btn small ghost" style="padding:3px 6px;font-size:0.68rem;" onclick="window.__setPayoutSchedule('${s.id}')" title="Edit Rate and Schedule">
+                          ${icon('edit', 11)}
+                        </button>
+                      ` : ''}
+                    </div>
+                  </td>
+                </tr>
+              `;
+            }).join('') : `<tr><td colspan="8" style="padding:24px;text-align:center;color:var(--ink-soft);">No staff members found matching selected criteria.</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mobile Cards View -->
+      <div class="sal-mobile-cards">
+        ${filteredStaff.length ? filteredStaff.map(s => {
+          const statusChip = s.status === 'settled'
+            ? '<span class="sal-badge sal-badge-paid">&#10003; Settled</span>'
+            : (s.status === 'partial'
+                ? '<span class="sal-badge sal-badge-partial">&#9684; Partial</span>'
+                : '<span class="sal-badge sal-badge-due">&#9679; Due</span>');
+          return `
+            <div class="sal-staff-card" data-staff-name="${esc(s.name)}" data-staff-role="${esc(s.role)}">
+              <div class="sal-staff-card-header">
+                <div>
+                  <b style="font-size:0.92rem;color:var(--ink);">${esc(s.name)}</b>
+                  <span class="role-pill ${s.role}" style="margin-left:4px;">${s.role}</span>
+                  <div style="font-size:0.72rem;color:var(--ink-soft);margin-top:2px;">
+                    ₹${s.baseSalary.toLocaleString('en-IN')} / ${s.frequency} &bull; ${payScheduleLabel(s.staff)}
+                  </div>
+                </div>
+                <div>${statusChip}</div>
+              </div>
+
+              <div class="sal-staff-card-metrics">
+                <div class="sal-metric-item">
+                  <span class="sub">Month Commitment</span>
+                  <span class="val" style="color:var(--ink);">₹${s.commitment.toLocaleString('en-IN')}</span>
+                </div>
+                <div class="sal-metric-item">
+                  <span class="sub">Advances</span>
+                  <span class="val" style="color:var(--turmeric-dark);">${s.advAmt > 0 ? '₹' + s.advAmt.toLocaleString('en-IN') : 'None'}</span>
+                </div>
+                <div class="sal-metric-item">
+                  <span class="sub">Paid So Far</span>
+                  <span class="val" style="color:var(--leaf);">${maskSalesAmount(s.paidAmt)}</span>
+                </div>
+                <div class="sal-metric-item">
+                  <span class="sub">Balance Due</span>
+                  <span class="val" style="color:${s.balanceDue > 0 ? 'var(--brick)' : 'var(--leaf)'};">${maskSalesAmount(s.balanceDue)}</span>
+                </div>
+              </div>
+
+              <div class="sal-staff-card-actions">
+                ${isOwner() ? `
+                  <button class="stamp-btn small" style="padding:4px 8px;font-size:0.72rem;" onclick="window.__openSalary('${s.id}', ${s.balanceDue})">
+                    + Pay Salary
+                  </button>
+                  <button class="stamp-btn small ghost" style="padding:4px 8px;font-size:0.72rem;" onclick="window.__openSalaryAdvanceModal('${s.id}')">
+                    + Advance
+                  </button>
+                ` : ''}
+                <button class="stamp-btn small ghost" style="padding:4px 8px;font-size:0.72rem;" onclick="window.__openSalarySlipModal('${s.id}', '${salarySelectedMonth}')">
+                  ${icon('reports', 12)} Slip
+                </button>
+                ${isOwner() ? `
+                  <button class="stamp-btn small ghost" style="padding:4px 8px;font-size:0.72rem;" onclick="window.__setPayoutSchedule('${s.id}')">
+                    Rate
+                  </button>
+                ` : ''}
+              </div>
             </div>
-          </div>
-        </div>`;
-      }).join('') : `<div class="empty">No salary payments logged yet. Tap + to add one.</div>`}
+          `;
+        }).join('') : `<div class="empty">No staff members found matching criteria.</div>`}
+      </div>
     ` : ''}
 
+    <!-- Sub-Tab 2: Payment Disbursements Log -->
+    ${salarySubTab === 'payouts' ? `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+        <div class="section-label" style="margin:0;">Salary Disbursements Log (${cache.salaries.length})</div>
+        <div style="display:inline-flex;gap:6px;align-items:center;">
+          <select class="sal-period-input" onchange="window.__setSalaryModeFilter(this.value)">
+            <option value="all" ${salaryModeFilter==='all'?'selected':''}>All Payment Modes</option>
+            <option value="UPI / Online" ${salaryModeFilter==='UPI / Online'?'selected':''}>UPI / Online</option>
+            <option value="Cash" ${salaryModeFilter==='Cash'?'selected':''}>Cash</option>
+            <option value="Bank Transfer" ${salaryModeFilter==='Bank Transfer'?'selected':''}>Bank Transfer</option>
+            <option value="Cheque" ${salaryModeFilter==='Cheque'?'selected':''}>Cheque</option>
+          </select>
+          ${isOwner() ? `<button class="stamp-btn small" onclick="window.__openSalary()">+ Record Payout</button>` : ''}
+        </div>
+      </div>
+
+      ${isOwner() ? buildQtyGraphHtml(cache.salaries, salaryReportMode, '__setSalaryReportMode', '', 'amount', '₹', 'paid_date') : ''}
+
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">
+        ${cache.salaries.length ? cache.salaries.filter(sa => {
+          if (salaryModeFilter !== 'all') {
+            const m = parseSalaryPaymentMode(sa);
+            if (m !== salaryModeFilter && !m.includes(salaryModeFilter)) return false;
+          }
+          return true;
+        }).map(sa => {
+          const staff = cache.staff.find(s => s.id === sa.staff_id) || {};
+          const mode = parseSalaryPaymentMode(sa);
+          const cleanNotes = cleanSalaryNotes(sa.notes);
+          return `
+            <div class="row-card" style="align-items:center;">
+              <div class="row-main">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <b style="font-size:0.92rem;color:var(--ink);">${esc(staffName(sa.staff_id))}</b>
+                  <span class="role-pill ${staff.role||'staff'}">${staff.role||'staff'}</span>
+                  <span class="sal-mode-pill">${esc(mode)}</span>
+                </div>
+                <div class="meta" style="margin-top:3px;">
+                  <span>${sa.paid_date}</span>
+                  ${cleanNotes ? `<span>&bull; ${esc(cleanNotes)}</span>` : ''}
+                </div>
+              </div>
+              <b style="font-family:'Roboto Mono',monospace;font-size:1.02rem;color:var(--leaf);margin-right:6px;">
+                ${maskSalesAmount(sa.amount)}
+              </b>
+              <button class="stamp-btn small ghost" style="font-size:0.70rem;padding:4px 8px;" onclick="window.__openSalarySlipModal('${sa.id}')">
+                ${icon("reports", 12)} Slip
+              </button>
+              ${isOwner() ? `
+                <div class="action-dropdown-holder">
+                  <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${sa.id}')">More ▾</button>
+                  <div class="action-dropdown-menu" id="actionMenu_${sa.id}">
+                    <button onclick="window.__openSalarySlipModal('${sa.id}')">Generate Slip</button>
+                    <button class="danger" onclick="window.__deleteSalary('${sa.id}')">Delete Record</button>
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }).join('') : `<div class="empty">No salary payments logged matching filter.</div>`}
+      </div>
+    ` : ''}
+
+    <!-- Sub-Tab 3: Advances Ledger -->
     ${salarySubTab === 'advances' ? `
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-        <div class="section-label" style="margin:0;">Staff Advances Overview (${currentMonth})</div>
-        <button class="stamp-btn small" style="background:var(--turmeric);color:white;" onclick="window.__openSalaryAdvanceModal()" style="display:inline-flex;align-items:center;gap:4px;">${icon("salary", 14)} Record Salary Advance</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+        <div class="section-label" style="margin:0;">Staff Advances Overview (${formatMonthLabel(salarySelectedMonth)})</div>
+        ${isOwner() ? `
+          <button class="stamp-btn small" style="background:var(--turmeric);color:white;" onclick="window.__openSalaryAdvanceModal()">
+            ${icon("salary", 14)} Record Salary Advance
+          </button>
+        ` : ''}
       </div>
 
       <div class="cards-grid" style="margin-bottom:16px;">
         ${cache.staff.map(s => {
-          const staffAdvs = advancesThisMonth.filter(a => a.staff_id === s.id);
+          const staffAdvs = (getSalaryAdvances() || []).filter(a => a.staff_id === s.id && (a.date||'').startsWith(salarySelectedMonth));
           const totalAdv = staffAdvs.reduce((sum, a) => sum + Number(a.amount||0), 0);
           return `
             <div class="row-card" style="flex-direction:column;align-items:stretch;padding:12px 14px;">
@@ -1130,13 +2253,15 @@ function renderSalaryTab(body){
                 </div>
                 <div style="text-align:right;">
                   <div style="font-size:0.68rem;color:var(--ink-soft);font-family:'Roboto Mono',monospace;">ADVANCES THIS MONTH</div>
-                  <b style="font-size:1rem;color:${totalAdv > 0 ? 'var(--turmeric)' : 'var(--turmeric)'};font-family:'Roboto Mono',monospace;">${maskSalesAmount(totalAdv)}</b>
+                  <b style="font-size:1rem;color:${totalAdv > 0 ? 'var(--turmeric)' : 'var(--ink)'};font-family:'Roboto Mono',monospace;">
+                    ${maskSalesAmount(totalAdv)}
+                  </b>
                 </div>
               </div>
               ${staffAdvs.length ? `
                 <div style="margin-top:8px;padding-top:6px;border-top:1px dashed var(--paper-line);">
                   ${staffAdvs.map(a => `
-                    <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">
+                    <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--ink-soft);margin-top:3px;">
                       <span>${a.date} (${esc(a.notes||'Advance')})</span>
                       <span style="font-family:'Roboto Mono',monospace;font-weight:600;color:var(--turmeric);">${maskSalesAmount(a.amount)}</span>
                     </div>
@@ -1148,8 +2273,8 @@ function renderSalaryTab(body){
         }).join('')}
       </div>
 
-      <div class="section-label">Salary Advance Ledger (${advances.length})</div>
-      ${advances.length ? advances.map(a => `
+      <div class="section-label">All Salary Advances History (${(getSalaryAdvances()||[]).length})</div>
+      ${(getSalaryAdvances()||[]).length ? (getSalaryAdvances()||[]).map(a => `
         <div class="row-card" style="align-items:center;">
           <div class="row-main">
             <h3>${esc(staffName(a.staff_id))}</h3>
@@ -1157,225 +2282,137 @@ function renderSalaryTab(body){
             ${a.notes ? `<div class="notes">${esc(a.notes)}</div>` : ''}
           </div>
           <b style="font-family:'Roboto Mono',monospace;color:var(--turmeric);margin-right:6px;">${maskSalesAmount(a.amount)}</b>
-          <button class="stamp-btn small ghost" style="font-size:0.65rem;padding:3px 7px;margin-right:6px;" onclick="window.__convertAdvanceToSalaryPaid('${a.id}')" title="Convert Advance to Salary Paid" style="display:inline-flex;align-items:center;gap:4px;">${icon("rotate", 12)} Convert to Paid</button>
-          <div class="action-dropdown-holder">
-            <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${a.id}')">More ▾</button>
-            <div class="action-dropdown-menu" id="actionMenu_${a.id}">
-              <button onclick="window.__convertAdvanceToSalaryPaid('${a.id}')">Convert to Salary Paid</button>
-              <button class="danger" onclick="window.__deleteSalaryAdvance('${a.id}')">Delete</button>
+          ${isOwner() ? `
+            <button class="stamp-btn small ghost" style="font-size:0.65rem;padding:3px 7px;margin-right:6px;" onclick="window.__convertAdvanceToSalaryPaid('${a.id}')" title="Convert Advance to Salary Paid">
+              ${icon("rotate", 12)} Convert to Paid
+            </button>
+            <div class="action-dropdown-holder">
+              <button class="action-more-btn" onclick="window.__toggleActionMenu(event, '${a.id}')">More ▾</button>
+              <div class="action-dropdown-menu" id="actionMenu_${a.id}">
+                <button onclick="window.__convertAdvanceToSalaryPaid('${a.id}')">Convert to Salary Paid</button>
+                <button class="danger" onclick="window.__deleteSalaryAdvance('${a.id}')">Delete</button>
+              </div>
             </div>
-          </div>
+          ` : ''}
         </div>
       `).join('') : `<div class="empty">No salary advances recorded.</div>`}
     ` : ''}
 
+    <!-- Sub-Tab 4: Payout Schedules & Base Rates -->
     ${salarySubTab === 'schedules' ? `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div class="section-label" style="margin:0;">Staff Payout Schedules &amp; Base Rates (${cache.staff.length})</div>
+      </div>
 
-      <div class="section-label">Payout Schedule Per Staff</div>
-      ${cache.staff.map(s=>`
-        <div class="row-card" style="align-items:center;">
-          <div class="row-main"><h3>${esc(s.name)}</h3><div class="meta"><span>${payScheduleLabel(s)}</span></div></div>
-          <button class="icon-btn" onclick="window.__setPayoutSchedule('${s.id}')">Edit</button>
-        </div>`).join('')}
+      <div class="sal-table-wrap">
+        <table class="sal-table">
+          <thead>
+            <tr>
+              <th>Staff Member</th>
+              <th>Role</th>
+              <th>Pay Frequency</th>
+              <th>Base Salary Rate</th>
+              <th>Assumed Monthly Total</th>
+              <th>Schedule Details</th>
+              <th style="text-align:right;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${cache.staff.map(s => {
+              const assumed = getStaffMonthlyAssumedSalary(s);
+              return `
+                <tr>
+                  <td>
+                    <b style="color:var(--ink);">${esc(s.name)}</b>
+                    <span style="display:block;font-size:0.68rem;color:var(--ink-soft);">${s.status==='inactive'?'Inactive':'Active'}</span>
+                  </td>
+                  <td><span class="role-pill ${s.role}">${s.role}</span></td>
+                  <td style="text-transform:capitalize;">${s.salary_frequency || 'monthly'}</td>
+                  <td style="font-family:'Roboto Mono',monospace;font-weight:700;">
+                    ₹${Number(s.base_salary || 0).toLocaleString('en-IN')}
+                  </td>
+                  <td style="font-family:'Roboto Mono',monospace;font-weight:700;color:var(--turmeric-dark);">
+                    ₹${assumed.toLocaleString('en-IN')}
+                  </td>
+                  <td style="font-size:0.75rem;color:var(--ink-soft);">${payScheduleLabel(s)}</td>
+                  <td style="text-align:right;">
+                    ${isOwner() ? `
+                      <button class="stamp-btn small ghost" onclick="window.__setPayoutSchedule('${s.id}')">
+                        ${icon('edit', 12)} Edit Rate
+                      </button>
+                    ` : ''}
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    ` : ''}
+
+    <!-- Sub-Tab 5: Outflow Analytics -->
+    ${salarySubTab === 'analytics' ? `
+      <div class="section-label">Payroll Outflow Trends &amp; Distribution</div>
+      ${isOwner() ? buildQtyGraphHtml(cache.salaries, salaryReportMode, '__setSalaryReportMode', '', 'amount', '₹', 'paid_date') : ''}
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:12px;margin-top:16px;">
+        <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px;">
+          <h4 style="margin:0 0 10px;font-size:0.85rem;color:var(--ink);">Role-Wise Payroll Commitment</h4>
+          ${(() => {
+            const roleTotals = {};
+            data.staffBreakdown.forEach(s => {
+              roleTotals[s.role] = (roleTotals[s.role] || 0) + s.commitment;
+            });
+            return Object.entries(roleTotals).map(([r, amt]) => {
+              const pct = totals.totalCommitment > 0 ? Math.round((amt / totals.totalCommitment) * 100) : 0;
+              return `
+                <div style="margin-bottom:8px;">
+                  <div style="display:flex;justify-content:space-between;font-size:0.75rem;margin-bottom:3px;">
+                    <span style="text-transform:capitalize;font-weight:600;">${r} (${pct}%)</span>
+                    <span style="font-family:'Roboto Mono',monospace;font-weight:700;">₹${amt.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div style="height:6px;background:var(--paper-line);border-radius:999px;overflow:hidden;">
+                    <div style="width:${pct}%;height:100%;background:var(--turmeric);border-radius:999px;"></div>
+                  </div>
+                </div>
+              `;
+            }).join('');
+          })()}
+        </div>
+
+        <div class="row-card" style="flex-direction:column;align-items:stretch;padding:14px;">
+          <h4 style="margin:0 0 10px;font-size:0.85rem;color:var(--ink);">Payment Mode Distribution</h4>
+          ${(() => {
+            const modeTotals = {};
+            data.monthSalaries.forEach(sa => {
+              const m = parseSalaryPaymentMode(sa);
+              modeTotals[m] = (modeTotals[m] || 0) + Number(sa.amount || 0);
+            });
+            const modes = Object.entries(modeTotals);
+            if (!modes.length) return '<div class="empty" style="padding:10px;">No salary payouts logged for this month yet.</div>';
+            return modes.map(([m, amt]) => {
+              const pct = totals.totalSalariesPaid > 0 ? Math.round((amt / totals.totalSalariesPaid) * 100) : 0;
+              return `
+                <div style="margin-bottom:8px;">
+                  <div style="display:flex;justify-content:space-between;font-size:0.75rem;margin-bottom:3px;">
+                    <span style="font-weight:600;">${m} (${pct}%)</span>
+                    <span style="font-family:'Roboto Mono',monospace;font-weight:700;color:var(--leaf);">₹${amt.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div style="height:6px;background:var(--paper-line);border-radius:999px;overflow:hidden;">
+                    <div style="width:${pct}%;height:100%;background:var(--leaf);border-radius:999px;"></div>
+                  </div>
+                </div>
+              `;
+            }).join('');
+          })()}
+        </div>
+      </div>
     ` : ''}
 
     <div id="salaryModalHolder"></div>
     <div id="scheduleModalHolder"></div>
   `;
-  window.__deleteSalary = function(id) {
-  window.__showDeleteConfirm({
-    title: 'Delete salary record?',
-    message: 'This removes it for everyone on this business. It cannot be undone.',
-    onConfirm: async () => {
-      showLoading();
-      try {
-        await sb.from('salaries').delete().eq('id', id);
-        cache.salaries = cache.salaries.filter(s => s.id !== id);
-      } catch(e){}
-      finally {
-        hideLoading();
-        await loadData();
-        renderTabBody();
-      }
-    }
-  });
-};
-
-  window.__convertAdvanceToSalaryPaid = async function(advanceId) {
-    const advances = getSalaryAdvances();
-    const adv = advances.find(a => a.id === advanceId);
-    if (!adv) return;
-
-    const sName = staffName(adv.staff_id);
-    if (!confirm(`Convert Salary Advance of ₹${Number(adv.amount).toLocaleString('en-IN')} for ${sName} to Salary Paid?`)) return;
-
-    showLoading('Converting Salary Advance...');
-
-    // 1. Remove from Salary Advances local list
-    const updatedAdvs = advances.filter(a => a.id !== advanceId);
-    saveSalaryAdvances(updatedAdvs);
-
-    // 2. Create official Salary Paid entry
-    const salData = {
-      id: 'loc_sal_' + Date.now(),
-      business_id: session.businessId,
-      staff_id: adv.staff_id,
-      amount: Number(adv.amount),
-      paid_date: adv.date || todayStr(),
-      notes: (adv.notes ? adv.notes + ' ' : '') + '(Converted from Salary Advance)'
-    };
-
-    cache.salaries.unshift(salData);
-    localStorage.setItem('br_salaries_' + session.businessId, JSON.stringify(cache.salaries));
-
-    // 3. Background DB sync to Supabase
-    if (typeof sb !== 'undefined' && sb) {
-      const dbPayload = Object.assign({}, salData);
-      delete dbPayload.id;
-      sb.from('salaries').insert(dbPayload).select().single().then(r => {
-        if (r && r.data && r.data.id) {
-          const locItem = cache.salaries.find(s => s.id === salData.id);
-          if (locItem) {
-            locItem.id = r.data.id;
-            localStorage.setItem('br_salaries_' + session.businessId, JSON.stringify(cache.salaries));
-          }
-        }
-      }).catch(() => {});
-    }
-
-    hideLoading();
-    window.showToast(`Converted ₹${Number(adv.amount).toLocaleString('en-IN')} advance to Salary Paid!`, 'success');
-    logAuditEvent('Salary Converted', `Converted ₹${adv.amount} advance for ${sName} to Salary Paid`);
-    
-    // Switch to payouts tab to view newly converted salary
-    salarySubTab = 'payouts';
-    await loadData();
-    renderTabBody();
-  };
-
-  window.__openSalaryLogModal = function() {
-    const holder = getModalHolder('taskModalHolder');
-    const salaries = cache.salaries || [];
-    const advances = getSalaryAdvances();
-    const totalPaid = salaries.reduce((sum, s) => sum + Number(s.amount||0), 0);
-    const totalAdv = advances.reduce((sum, a) => sum + Number(a.amount||0), 0);
-
-    holder.innerHTML = `
-    <div class="overlay show" onclick="if(event.target===this) this.remove()">
-      <div class="modal" style="max-width:560px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--paper-line);">
-          <div>
-            <h2 style="margin:0;font-size:1.05rem;">Salary Log &amp; Payout Audit</h2>
-            <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:2px;">
-              Total Paid: <b>₹${totalPaid.toLocaleString('en-IN')}</b> &bull; Total Advances: <b>₹${totalAdv.toLocaleString('en-IN')}</b>
-            </div>
-          </div>
-          <button class="stamp-btn ghost small" onclick="this.closest('.overlay').remove()" style="display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;">${icon("close", 14)}</button>
-        </div>
-
-        <div style="max-height:360px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
-          ${salaries.length ? salaries.map(sa => {
-            return `
-              <div class="row-card" style="align-items:center;padding:10px 12px;margin:0;">
-                <div class="row-main">
-                  <b style="font-size:0.88rem;color:var(--ink);">${esc(staffName(sa.staff_id))}</b>
-                  <div style="font-size:0.72rem;color:var(--ink-soft);margin-top:2px;">
-                    <span>${sa.paid_date}</span>${sa.notes ? ` &bull; <span>${esc(sa.notes)}</span>` : ''}
-                  </div>
-                </div>
-                <b style="font-family:'Roboto Mono',monospace;font-size:0.95rem;color:var(--leaf);margin-right:6px;">₹${Number(sa.amount).toFixed(0)}</b>
-                <button class="stamp-btn small ghost" style="font-size:0.65rem;padding:2px 6px;" onclick="window.__generateSalarySlip('${sa.id}')" style="display:inline-flex;align-items:center;gap:4px;">${icon("reports", 12)} Slip</button>
-              </div>`;
-          }).join('') : '<div class="empty">No salary payments logged yet.</div>'}
-        </div>
-
-        <div class="modal-actions">
-          <button class="stamp-btn ghost" onclick="getModalHolder('taskModalHolder').innerHTML=''">Close Log</button>
-          ${isOwner() ? `<button class="stamp-btn" onclick="getModalHolder('taskModalHolder').innerHTML='';window.__openSalary();">+ Record New Salary</button>` : ''}
-        </div>
-      </div>
-    </div>`;
-  };
-  window.__setPayoutSchedule = (staffId) => {
-    const s = cache.staff.find(x=>x.id===staffId);
-    const holder = document.getElementById('scheduleModalHolder');
-    const freq = s.salary_frequency || 'monthly';
-    const renderFields = (f) => {
-      if(f==='daily') return `<p style="font-size:0.82rem;color:var(--ink-soft);">No specific day needed — paid every day worked.</p>`;
-      if(f==='weekly') return `<label>Day of the week</label><select id="mScheduleDay">${WEEKDAY_NAMES.map((d,i)=>`<option value="${i}" ${s.salary_day===i?'selected':''}>${d}</option>`).join('')}</select>`;
-      return `<label>Day of the month</label><input type="number" id="mScheduleDay" min="1" max="31" value="${s.salary_day&&s.salary_frequency==='monthly'?s.salary_day:''}" placeholder="1-31">`;
-    };
-    holder.innerHTML = `
-    <div class="overlay show"><div class="modal">
-      <h2>Payout schedule — ${esc(s.name)}</h2>
-      <label>How often paid</label>
-      <select id="mScheduleFreq" onchange="window.__refreshScheduleFields()">
-        <option value="daily" ${freq==='daily'?'selected':''}>Daily</option>
-        <option value="weekly" ${freq==='weekly'?'selected':''}>Weekly</option>
-        <option value="monthly" ${freq==='monthly'?'selected':''}>Monthly</option>
-      </select>
-      <div id="scheduleFieldsWrap">${renderFields(freq)}</div>
-      <div class="modal-actions">
-        <button class="stamp-btn ghost" onclick="window.__closeScheduleModal()">Cancel</button>
-        <button class="stamp-btn" onclick="window.__saveSchedule('${staffId}')">Save</button>
-      </div>
-    </div></div>`;
-    window.__refreshScheduleFields = () => {
-      const f = document.getElementById('mScheduleFreq').value;
-      document.getElementById('scheduleFieldsWrap').innerHTML = renderFields(f);
-    };
-    window.__closeScheduleModal = () => { holder.innerHTML=''; };
-    window.__saveSchedule = async (id) => {
-      const f = document.getElementById('mScheduleFreq').value;
-      let day = null;
-      if(f!=='daily'){
-        const el = document.getElementById('mScheduleDay');
-        day = Number(el.value);
-        if(f==='monthly' && (!day || day<1 || day>31)){ alert('Enter a day between 1 and 31.'); return; }
-      }
-      await guardedSave('schedule-'+id, async () => {
-        await sbCheck(sb.from('staff').update({salary_frequency:f, salary_day:day}).eq('id', id));
-        holder.innerHTML='';
-        await loadData(); renderTabBody();
-      });
-    };
-  };
 }
-window.__openSalary = () => {
-  const holder = getModalHolder('salaryModalHolder');
-  holder.innerHTML = `
-  <div class="overlay show"><div class="modal">
-    <h2>Log a salary payment</h2>
-    <label>Staff</label>
-    <select id="mSalaryStaff">${cache.staff.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select>
-    <label>Amount (₹)</label>
-    <input type="number" step="0.01" id="mSalaryAmount" value="0">
-    <label>Paid date</label>
-    <input type="date" id="mSalaryDate" value="${todayStr()}">
-    <label>Notes</label>
-    <input id="mSalaryNotes" placeholder="e.g. July salary, advance, bonus">
-    <div class="modal-actions">
-      <button class="stamp-btn ghost" onclick="window.__closeSalaryModal()">Cancel</button>
-      <button class="stamp-btn" onclick="window.__saveSalary()">Save</button>
-    </div>
-  </div></div>`;
-  window.__closeSalaryModal = () => { holder.innerHTML=''; };
-  window.__saveSalary = async () => {
-    const amount = Number(document.getElementById('mSalaryAmount').value || 0);
-    if(amount<=0){ alert('Enter an amount.'); return; }
-    await guardedSave('salary', async () => {
-      await sbCheck(sb.from('salaries').insert({
-        business_id: session.businessId,
-        staff_id: document.getElementById('mSalaryStaff').value,
-        amount,
-        paid_date: document.getElementById('mSalaryDate').value || todayStr(),
-        notes: document.getElementById('mSalaryNotes').value.trim(),
-      }));
-      holder.innerHTML='';
-      await loadData(); renderTabBody();
-    });
-  };
-};
 
 /* ---------------- MASTER REPORTS HUB ---------------- */
 let reportsCategoryFilter = 'all'; // 'all' | 'pnl' | 'salary' | 'tasks' | 'attendance' | 'sales'

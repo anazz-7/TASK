@@ -4354,3 +4354,470 @@
       margin-right: auto;
     }
   }
+
+  /* ---------------- SALARY & PAYROLL REDESIGN ---------------- */
+  .sal-period-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-radius: 10px;
+    padding: 8px 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .sal-period-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sal-period-label {
+    font-size: 0.96rem;
+    font-weight: 800;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sal-period-input {
+    border: 1px solid var(--paper-line);
+    background: #FFFFFF;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.78rem;
+    color: var(--ink);
+    font-family: inherit;
+    font-weight: 600;
+  }
+  .sal-period-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .sal-scorecard-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  @media (min-width: 641px) {
+    .sal-scorecard-grid {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+  }
+  .sal-kpi-card {
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .sal-kpi-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+  }
+  .sal-kpi-card .kpi-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ink-soft);
+    margin-bottom: 4px;
+  }
+  .sal-kpi-card .kpi-value {
+    font-size: 1.18rem;
+    font-weight: 800;
+    font-family: 'Roboto Mono', monospace;
+    line-height: 1.2;
+  }
+  .sal-kpi-card .kpi-sub {
+    font-size: 0.70rem;
+    color: var(--ink-soft);
+    margin-top: 4px;
+  }
+
+  .sal-progress-card {
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+  }
+  .sal-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .sal-progress-bar {
+    height: 8px;
+    background: var(--paper-line);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .sal-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #10B981, #059669);
+    transition: width 0.3s ease;
+  }
+  .sal-progress-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: var(--ink-soft);
+  }
+
+  .sal-subnav {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    margin-bottom: 14px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sal-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .sal-search-wrap {
+    position: relative;
+    min-width: 200px;
+    flex: 1;
+    max-width: 320px;
+  }
+  .sal-search-input {
+    width: 100%;
+    padding: 6px 10px 6px 30px;
+    border: 1px solid var(--paper-line);
+    border-radius: 8px;
+    background: #FFFFFF;
+    font-size: 0.80rem;
+    color: var(--ink);
+    outline: none;
+    font-family: inherit;
+  }
+  .sal-search-input:focus {
+    border-color: var(--turmeric);
+  }
+  .sal-search-icon {
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ink-soft);
+    pointer-events: none;
+  }
+  .sal-filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .sal-chip {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border: 1px solid var(--paper-line);
+    background: var(--paper);
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .sal-chip:hover {
+    background: #F1F5F9;
+  }
+  .sal-chip.active {
+    background: var(--ink);
+    color: #FFFFFF;
+    border-color: var(--ink);
+  }
+
+  /* Roster Table */
+  .sal-table-wrap {
+    background: #FFFFFF;
+    border: 1px solid var(--paper-line);
+    border-radius: 10px;
+    overflow-x: auto;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  }
+  .sal-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+  }
+  .sal-table th {
+    background: var(--paper);
+    padding: 10px 12px;
+    font-size: 0.70rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ink-soft);
+    border-bottom: 1px solid var(--paper-line);
+    white-space: nowrap;
+  }
+  .sal-table td {
+    padding: 10px 12px;
+    font-size: 0.80rem;
+    border-bottom: 1px solid var(--paper-line);
+    vertical-align: middle;
+  }
+  .sal-table tr:last-child td {
+    border-bottom: none;
+  }
+  .sal-table tr:hover td {
+    background: rgba(0,0,0,0.012);
+  }
+
+  /* Status Badges */
+  .sal-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .sal-badge-paid {
+    background: #ECFDF5;
+    color: #065F46;
+    border: 1px solid #A7F3D0;
+  }
+  .sal-badge-partial {
+    background: #FFFBEB;
+    color: #92400E;
+    border: 1px solid #FDE68A;
+  }
+  .sal-badge-due {
+    background: #FEF2F2;
+    color: #991B1B;
+    border: 1px solid #FECACA;
+  }
+
+  /* Staff Mobile Cards View */
+  .sal-mobile-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  @media (min-width: 768px) {
+    .sal-mobile-cards {
+      display: none;
+    }
+  }
+  @media (max-width: 767px) {
+    .sal-desktop-table {
+      display: none;
+    }
+  }
+  .sal-staff-card {
+    background: #FFFFFF;
+    border: 1px solid var(--paper-line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  }
+  .sal-staff-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+  }
+  .sal-staff-card-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    background: var(--paper);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 10px;
+    font-size: 0.75rem;
+  }
+  .sal-metric-item {
+    display: flex;
+    flex-direction: column;
+  }
+  .sal-metric-item .sub {
+    font-size: 0.65rem;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .sal-metric-item .val {
+    font-size: 0.88rem;
+    font-weight: 700;
+    font-family: 'Roboto Mono', monospace;
+  }
+  .sal-staff-card-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+    border-top: 1px dashed var(--paper-line);
+    padding-top: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* Payment Mode Pill */
+  .sal-mode-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.66rem;
+    font-weight: 600;
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    color: var(--ink-soft);
+  }
+
+  /* Salary Slip Modal & Print View */
+  .sal-slip-container {
+    max-width: 580px;
+    margin: 0 auto;
+    background: #FFFFFF;
+    border: 2px solid var(--paper-line);
+    border-radius: 12px;
+    padding: 24px;
+    font-family: inherit;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+  }
+  .sal-slip-header {
+    text-align: center;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+  }
+  .sal-slip-header h2 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    margin: 0 0 4px;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .sal-slip-header .sal-slip-type {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--turmeric-dark);
+  }
+  .sal-slip-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    font-size: 0.78rem;
+  }
+  .sal-slip-breakdown-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 16px;
+    font-size: 0.82rem;
+  }
+  .sal-slip-breakdown-table th {
+    background: var(--paper);
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--paper-line);
+    text-align: left;
+    font-size: 0.72rem;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+  }
+  .sal-slip-breakdown-table td {
+    padding: 8px 10px;
+    border-bottom: 1px dashed var(--paper-line);
+  }
+  .sal-slip-net-banner {
+    background: #ECFDF5;
+    border: 1px solid #A7F3D0;
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .sal-slip-net-banner .sal-net-title {
+    font-size: 0.80rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #065F46;
+  }
+  .sal-slip-net-banner .sal-net-val {
+    font-size: 1.3rem;
+    font-weight: 800;
+    font-family: 'Roboto Mono', monospace;
+    color: #047857;
+  }
+  .sal-slip-words {
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+    font-style: italic;
+    margin-bottom: 16px;
+    padding: 6px 10px;
+    background: var(--paper);
+    border-radius: 6px;
+  }
+  .sal-slip-signatures {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 36px;
+    padding-top: 10px;
+    font-size: 0.72rem;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+  .sal-slip-signatures .sal-sig-box {
+    border-top: 1px dashed var(--ink-soft);
+    width: 140px;
+    padding-top: 6px;
+  }
+  @media print {
+    body > *:not(#salarySlipPrintArea) { display: none !important; }
+    #salarySlipPrintArea {
+      display: block !important;
+      position: fixed;
+      inset: 0;
+      padding: 24px;
+      background: #FFFFFF;
+      z-index: 99999;
+    }
+    .sal-slip-container {
+      border: none !important;
+      box-shadow: none !important;
+      max-width: 100% !important;
+      padding: 0 !important;
+    }
+    .sal-slip-header {
+      border-bottom: 2px solid #000000 !important;
+    }
+    .sal-slip-actions-top {
+      display: none !important;
+    }
+  }

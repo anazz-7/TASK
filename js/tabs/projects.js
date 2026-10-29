@@ -855,8 +855,11 @@ window.__hideTrendTip = function() {
 /* ================================================================
    FEATURE: SALARY SLIP GENERATOR (Print-to-PDF)
    ================================================================ */
-window.__generateSalarySlip = function(salaryId) {
-  const sa = cache.salaries.find(s => s.id === salaryId);
+window.__generateSalarySlip = function(salaryIdOrStaffId, monthStr) {
+  if (typeof window.__openSalarySlipModal === 'function') {
+    return window.__openSalarySlipModal(salaryIdOrStaffId, monthStr);
+  }
+  const sa = cache.salaries.find(s => s.id === salaryIdOrStaffId);
   if (!sa) { window.showToast('Salary record not found.', 'error'); return; }
 
   const staff = cache.staff.find(s => s.id === sa.staff_id) || {};

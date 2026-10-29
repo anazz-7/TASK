@@ -2194,9 +2194,20 @@ const TAB_META = {
 };
 function currentTabs(){
   if(session.role === 'sales' || session.role === 'salesman') return ['pricelist', 'sales', 'tasks', 'accounts'];
-  return isManagerPlus()
-    ? (isOwner() ? ['dashboard','tasks','daily','weekly','attendance','office_logs','pnl','sales','pricelist','label','package','points','salary','accounts','reports','audit','projects','staff','settings'] : ['dashboard','tasks','daily','weekly','attendance','sales','pricelist','label','package','points','accounts','reports','audit'])
-    : ['pricelist', 'tasks','daily','weekly','attendance','sales','label','package','points','accounts'];
+  const cfg = typeof getFeatureConfig === 'function' ? getFeatureConfig() : {};
+  if (isOwner()) {
+    return ['dashboard','tasks','daily','weekly','attendance','office_logs','pnl','sales','pricelist','label','package','points','salary','accounts','reports','audit','projects','staff','settings'];
+  }
+  if (isManagerPlus()) {
+    const list = ['dashboard','tasks','daily','weekly','attendance','sales','pricelist','label','package','points','accounts','reports','audit'];
+    if (cfg.allowManagerSalary && !list.includes('salary')) {
+      const idx = list.indexOf('accounts');
+      if (idx !== -1) list.splice(idx, 0, 'salary');
+      else list.push('salary');
+    }
+    return list;
+  }
+  return ['pricelist', 'tasks','daily','weekly','attendance','sales','label','package','points','accounts'];
 }
 function quickTabs(){
   if(session.role === 'sales' || session.role === 'salesman') return ['pricelist', 'sales', 'tasks', 'accounts'];
@@ -2213,7 +2224,7 @@ function getPrimaryActionBtn(t){
   if(t==='pricelist' && isManagerPlus()) return `<button class="stamp-btn compact-mobile" onclick="window.__openAddPriceListItemModal()"><span class="btn-text">+ Add Product</span><span class="btn-short">+</span></button>`;
   if(t==='label') return `<button class="stamp-btn compact-mobile" onclick="window.__openLabel()"><span class="btn-text">+ Log Label</span><span class="btn-short">+</span></button>`;
   if(t==='package') return `<button class="stamp-btn compact-mobile" onclick="window.__openPackage()"><span class="btn-text">+ Log Package</span><span class="btn-short">+</span></button>`;
-  if(t==='salary' && (isOwner() || isManager())) return `<button class="stamp-btn compact-mobile" onclick="window.__openSalaryLogModal()"><span class="btn-text" style="display:inline-flex;align-items:center;gap:4px;">${icon('salary', 14)} Salary Log</span><span class="btn-short" style="display:inline-flex;align-items:center;justify-content:center;">${icon('salary', 14)}</span></button>${isOwner() ? `<button class="stamp-btn compact-mobile" style="margin-left:6px;" onclick="window.__openSalary()"><span class="btn-text">+ Record Salary</span><span class="btn-short">+</span></button>` : ''}`;
+  if(t==='salary' && (isOwner() || isManager())) return `<button class="stamp-btn compact-mobile ghost" onclick="window.__exportPayrollCSV()"><span class="btn-text" style="display:inline-flex;align-items:center;gap:4px;">${icon('download', 14)} Export Sheet</span><span class="btn-short" style="display:inline-flex;align-items:center;justify-content:center;">${icon('download', 14)}</span></button>${isOwner() ? `<button class="stamp-btn compact-mobile" style="margin-left:6px;" onclick="window.__openSalary()"><span class="btn-text">+ Record Salary</span><span class="btn-short">+</span></button>` : ''}`;
   if(t==='points' && isManagerPlus()) return `<button class="stamp-btn compact-mobile" onclick="window.__openPoints()"><span class="btn-text">+ Award Points</span><span class="btn-short">+</span></button>`;
   if(t==='projects' && isOwner()) return `<button class="stamp-btn compact-mobile" onclick="window.__openAddProjectModal()"><span class="btn-text">+ New Project</span><span class="btn-short">+</span></button>`;
   return '';
