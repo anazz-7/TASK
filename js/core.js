@@ -2513,6 +2513,9 @@ function renderShell(){
 function renderTabBody(){
   const body = document.getElementById('tabBody');
   if(!body) return;
+  if(activeTab !== 'dashboard' && typeof window.__stopOwnerAutoslide === 'function') {
+    window.__stopOwnerAutoslide();
+  }
   if(activeTab === 'stockkeeper' || activeTab === 'low_stock') {
     activeTab = 'dashboard';
   }

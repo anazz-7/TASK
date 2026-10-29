@@ -715,6 +715,211 @@ function buildDashboardActivityGraphHtml() {
   `;
 }
 
+/* ---------------- OWNER AUTOSLIDE PULSE CARDS ---------------- */
+let ownerSlideIndex = 0;
+let ownerSlideTimer = null;
+let ownerSlideTouchStartX = 0;
+
+window.__setOwnerSlide = function(idx) {
+  const track = document.getElementById('ownerAutoslideTrack');
+  const dots = document.querySelectorAll('.dash-autoslide-dot');
+  if (!track) return;
+  const totalSlides = track.children.length;
+  if (idx < 0) idx = totalSlides - 1;
+  if (idx >= totalSlides) idx = 0;
+  ownerSlideIndex = idx;
+  track.style.transform = `translateX(-${idx * 100}%)`;
+  dots.forEach((d, i) => {
+    if (i === idx) d.classList.add('active');
+    else d.classList.remove('active');
+  });
+};
+
+window.__nextOwnerSlide = function() {
+  window.__setOwnerSlide(ownerSlideIndex + 1);
+};
+
+window.__prevOwnerSlide = function() {
+  window.__setOwnerSlide(ownerSlideIndex - 1);
+};
+
+window.__startOwnerAutoslide = function() {
+  window.__stopOwnerAutoslide();
+  ownerSlideTimer = setInterval(() => {
+    window.__nextOwnerSlide();
+  }, 3500);
+};
+
+window.__stopOwnerAutoslide = function() {
+  if (ownerSlideTimer) {
+    clearInterval(ownerSlideTimer);
+    ownerSlideTimer = null;
+  }
+};
+
+window.__handleOwnerTouchStart = function(e) {
+  window.__stopOwnerAutoslide();
+  if (e.touches && e.touches[0]) {
+    ownerSlideTouchStartX = e.touches[0].clientX;
+  }
+};
+
+window.__handleOwnerTouchEnd = function(e) {
+  if (e.changedTouches && e.changedTouches[0]) {
+    const endX = e.changedTouches[0].clientX;
+    const diff = ownerSlideTouchStartX - endX;
+    if (Math.abs(diff) > 40) {
+      if (diff > 0) window.__nextOwnerSlide();
+      else window.__prevOwnerSlide();
+    }
+  }
+  window.__startOwnerAutoslide();
+};
+
+function buildOwnerAutoslideCardsHtml(today, curMonth, metrics) {
+  const pkgs = cache.packages || [];
+  const pkgToday = pkgs.filter(p => p.date === today).reduce((s, p) => s + Number(p.qty || 0), 0) || metrics.packagesToday || 0;
+  const pkgMonth = pkgs.filter(p => monthKey(p.date) === curMonth).reduce((s, p) => s + Number(p.qty || 0), 0);
+  const pkgTotal = pkgs.reduce((s, p) => s + Number(p.qty || 0), 0);
+  const pkgBatches = pkgs.filter(p => monthKey(p.date) === curMonth).length;
+
+  const lbls = cache.labels || [];
+  const lblToday = lbls.filter(l => l.date === today).reduce((s, l) => s + Number(l.qty || 0), 0) || metrics.labelsToday || 0;
+  const lblMonth = lbls.filter(l => monthKey(l.date) === curMonth).reduce((s, l) => s + Number(l.qty || 0), 0);
+  const lblTotal = lbls.reduce((s, l) => s + Number(l.qty || 0), 0);
+  const lblBatches = lbls.filter(l => monthKey(l.date) === curMonth).length;
+
+  const salesTodayStr = window.maskFinance ? window.maskFinance('₹' + metrics.todaySalesTotal.toLocaleString('en-IN')) : '₹' + metrics.todaySalesTotal.toLocaleString('en-IN');
+  const salesMonthStr = window.maskFinance ? window.maskFinance('₹' + metrics.monthSalesTotal.toLocaleString('en-IN')) : '₹' + metrics.monthSalesTotal.toLocaleString('en-IN');
+  const monthOrdersCount = (cache.sales || []).filter(s => monthKey(s.date) === curMonth).length;
+
+  const advancesThisMonth = (typeof getSalaryAdvances === 'function' ? getSalaryAdvances() : [])
+    .filter(a => (a.date || '').startsWith(curMonth))
+    .reduce((s, a) => s + Number(a.amount || 0), 0);
+
+  return `
+    <div class="dash-autoslide-wrap"
+      onmouseenter="window.__stopOwnerAutoslide()"
+      onmouseleave="window.__startOwnerAutoslide()"
+      ontouchstart="window.__handleOwnerTouchStart(event)"
+      ontouchend="window.__handleOwnerTouchEnd(event)">
+      <div class="dash-autoslide-top">
+        <div class="dash-autoslide-badge">
+          <span class="dash-pulse-dot"></span>
+          <span>Operations Live Pulse (Owner)</span>
+        </div>
+        <div class="dash-autoslide-arrows">
+          <button class="dash-arrow-btn" onclick="window.__prevOwnerSlide()" title="Previous slide">&lsaquo;</button>
+          <button class="dash-arrow-btn" onclick="window.__nextOwnerSlide()" title="Next slide">&rsaquo;</button>
+        </div>
+      </div>
+
+      <div class="dash-autoslide-viewport">
+        <div class="dash-autoslide-track" id="ownerAutoslideTrack">
+          <!-- Slide 1: Total Packages -->
+          <div class="dash-autoslide-slide" onclick="window.__setTab('package')">
+            <div class="dash-slide-main">
+              <div>
+                <div class="dash-slide-tag">Total Packages Dispatched</div>
+                <div class="dash-slide-num">${pkgToday.toLocaleString('en-IN')}<span class="unit">pcs today</span></div>
+              </div>
+              <div class="dash-slide-icon" style="color:var(--turmeric);">${icon('package', 20)}</div>
+            </div>
+            <div class="dash-slide-footer">
+              <span>This Month: <b>${pkgMonth.toLocaleString('en-IN')} pcs</b> (${pkgBatches} batches) &bull; All Time: <b>${pkgTotal.toLocaleString('en-IN')}</b></span>
+              <span class="dash-slide-link">Open &rarr;</span>
+            </div>
+          </div>
+
+          <!-- Slide 2: Total Labels -->
+          <div class="dash-autoslide-slide" onclick="window.__setTab('label')">
+            <div class="dash-slide-main">
+              <div>
+                <div class="dash-slide-tag">Total Labels Produced</div>
+                <div class="dash-slide-num">${lblToday.toLocaleString('en-IN')}<span class="unit">pcs today</span></div>
+              </div>
+              <div class="dash-slide-icon" style="color:#2563EB;">${icon('tagDiamond', 20)}</div>
+            </div>
+            <div class="dash-slide-footer">
+              <span>This Month: <b>${lblMonth.toLocaleString('en-IN')} pcs</b> (${lblBatches} batches) &bull; All Time: <b>${lblTotal.toLocaleString('en-IN')}</b></span>
+              <span class="dash-slide-link">Open &rarr;</span>
+            </div>
+          </div>
+
+          <!-- Slide 3: Total Sales & Revenue -->
+          <div class="dash-autoslide-slide" onclick="window.__setTab('sales')">
+            <div class="dash-slide-main">
+              <div>
+                <div class="dash-slide-tag">Sales &amp; Business Inflow</div>
+                <div class="dash-slide-num" style="color:var(--leaf);">${salesTodayStr}<span class="unit">today</span></div>
+              </div>
+              <div class="dash-slide-icon" style="color:var(--leaf);">${icon('sales', 20)}</div>
+            </div>
+            <div class="dash-slide-footer">
+              <span>This Month: <b>${salesMonthStr}</b> &bull; Orders: <b>${monthOrdersCount}</b> &bull; Target: <b>${metrics.bizPct}%</b></span>
+              <span class="dash-slide-link">Open &rarr;</span>
+            </div>
+          </div>
+
+          <!-- Slide 4: Attendance & Workforce -->
+          <div class="dash-autoslide-slide" onclick="window.__setTab('attendance')">
+            <div class="dash-slide-main">
+              <div>
+                <div class="dash-slide-tag">Team Attendance</div>
+                <div class="dash-slide-num">${metrics.todayCheckedIn} / ${cache.staff.length}<span class="unit">present today</span></div>
+              </div>
+              <div class="dash-slide-icon" style="color:#0891B2;">${icon('users', 20)}</div>
+            </div>
+            <div class="dash-slide-footer">
+              <span>Present Rate: <b>${metrics.attPct}%</b> &bull; Active Staff: <b>${cache.staff.length}</b></span>
+              <span class="dash-slide-link">Open &rarr;</span>
+            </div>
+          </div>
+
+          <!-- Slide 5: Tasks & Routines -->
+          <div class="dash-autoslide-slide" onclick="window.__setTab('tasks')">
+            <div class="dash-slide-main">
+              <div>
+                <div class="dash-slide-tag">Task Fulfillment</div>
+                <div class="dash-slide-num">${metrics.rate}%<span class="unit">completed (${metrics.done}/${metrics.total})</span></div>
+              </div>
+              <div class="dash-slide-icon" style="color:#7C3AED;">${icon('checkDouble', 20)}</div>
+            </div>
+            <div class="dash-slide-footer">
+              <span>Overdue: <b style="color:${metrics.overdue > 0 ? 'var(--brick)' : 'inherit'};">${metrics.overdue}</b> &bull; Routines: <b>${metrics.routineDoneToday}/${metrics.routineTotal}</b></span>
+              <span class="dash-slide-link">Open &rarr;</span>
+            </div>
+          </div>
+
+          <!-- Slide 6: Payroll & Salary Outflow -->
+          <div class="dash-autoslide-slide" onclick="window.__setTab('salary')">
+            <div class="dash-slide-main">
+              <div>
+                <div class="dash-slide-tag">Payroll &amp; Advances</div>
+                <div class="dash-slide-num" style="color:var(--leaf);">${maskSalesAmount(metrics.monthSalaryTotal)}<span class="unit">paid this month</span></div>
+              </div>
+              <div class="dash-slide-icon" style="color:var(--turmeric);">${icon('salary', 20)}</div>
+            </div>
+            <div class="dash-slide-footer">
+              <span>Advances: <b>${maskSalesAmount(advancesThisMonth)}</b> &bull; Staff: <b>${cache.staff.length}</b></span>
+              <span class="dash-slide-link">Open &rarr;</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-autoslide-dots">
+        <span class="dash-autoslide-dot active" onclick="window.__setOwnerSlide(0)"></span>
+        <span class="dash-autoslide-dot" onclick="window.__setOwnerSlide(1)"></span>
+        <span class="dash-autoslide-dot" onclick="window.__setOwnerSlide(2)"></span>
+        <span class="dash-autoslide-dot" onclick="window.__setOwnerSlide(3)"></span>
+        <span class="dash-autoslide-dot" onclick="window.__setOwnerSlide(4)"></span>
+        <span class="dash-autoslide-dot" onclick="window.__setOwnerSlide(5)"></span>
+      </div>
+    </div>
+  `;
+}
+
 function renderDashboardTab(body){
   const today = todayStr();
   const curMonth = monthKey(today);
@@ -775,6 +980,24 @@ function renderDashboardTab(body){
   body.innerHTML = `
     <!-- 1. Top Activity Wave Graph Card -->
     ${buildDashboardActivityGraphHtml()}
+
+    <!-- OWNER AUTOSLIDE CARDS (ONLY FOR OWNER) -->
+    ${isOwner() ? buildOwnerAutoslideCardsHtml(today, curMonth, {
+      packagesToday,
+      labelsToday,
+      todaySalesTotal,
+      monthSalesTotal,
+      bizPct,
+      todayCheckedIn,
+      attPct,
+      done,
+      total,
+      rate,
+      overdue,
+      routineDoneToday,
+      routineTotal,
+      monthSalaryTotal
+    }) : ''}
 
     <!-- PINNED INCENTIVE TARGET PROGRESS BAR (OLD EXECUTIVE DESIGN) -->
     ${buildPinnedIncentiveTargetWidgetHtml(curMonth, monthSales)}
@@ -1044,6 +1267,14 @@ function renderDashboardTab(body){
     ${isOwner() ? buildDashboardPnLLineGraphHtml() : ''}
     ${buildDashboardQuickLinksHtml()}
   `;
+
+  if (typeof isOwner === 'function' && isOwner()) {
+    setTimeout(() => {
+      if (typeof window.__startOwnerAutoslide === 'function') {
+        window.__startOwnerAutoslide();
+      }
+    }, 150);
+  }
 }
 
 function buildDashboardQuickLinksHtml() {
