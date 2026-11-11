@@ -9,6 +9,32 @@
   :root {
     --font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     --font-mono: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+    /* ── Global Typography & Font Size Tokens ──────────────── */
+    /* Headings */
+    --font-display: 28px;
+    --font-page-title: 24px;
+    --font-section: 20px;
+    --font-card-title: 16px;
+
+    /* Content */
+    --font-body: 14px;
+    --font-table: 13px;
+    --font-secondary: 12px;
+    --font-caption: 11px;
+    --font-micro: 10px;
+
+    /* Components */
+    --font-button: 13px;
+    --font-input: 14px;
+    --font-badge: 11px;
+
+    /* Weights (400-700 only) */
+    --weight-regular: 400;
+    --weight-medium: 500;
+    --weight-semibold: 600;
+    --weight-bold: 700;
+
     --paper: #F8FAFC;
     --paper-line: #E2E8F0;
     --card: #FFFFFF;
@@ -44,13 +70,13 @@
     --shadow-lg: 0 12px 28px -4px rgba(15, 23, 42, 0.12), 0 4px 8px -2px rgba(15, 23, 42, 0.04);
     --shadow-modal: 0 24px 50px -12px rgba(15, 23, 42, 0.28), 0 8px 16px -4px rgba(15, 23, 42, 0.08);
 
-    /* Strict Component Radius Rules */
-    --radius-card: 14px;
-    --radius-button: 10px;
-    --radius-input: 10px;
-    --radius-modal: 20px;
+    /* Recommended Strict Component Radius Rules (8-12px) */
+    --radius-card: 12px;
+    --radius-button: 8px;
+    --radius-input: 8px;
+    --radius-modal: 12px;
     --radius-pill: 9999px;
-    --radius: 14px;
+    --radius: 10px;
   }
 
   * { box-sizing: border-box; }
@@ -62,9 +88,252 @@
     background: var(--paper);
     color: var(--ink);
     font-family: var(--font-sans);
+    font-size: var(--font-body);
+    font-weight: var(--weight-regular);
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-align: left;
+  }
+
+  /* ── 1. Global Font Size System ─────────────────────────── */
+  h1, .page-title {
+    font-size: var(--font-page-title); /* 24px */
+    font-weight: var(--weight-bold); /* 700 */
+    line-height: 1.25;
+    margin: 0 0 12px;
+    color: var(--ink);
+    letter-spacing: -0.015em;
+  }
+
+  h2, .section-heading {
+    font-size: var(--font-section); /* 20px */
+    font-weight: var(--weight-semibold); /* 600 */
+    line-height: 1.3;
+    margin: 16px 0 10px;
+    color: var(--ink);
+  }
+
+  h3, .card-title, .row-main h3 {
+    font-size: var(--font-card-title); /* 16px */
+    font-weight: var(--weight-semibold); /* 600 */
+    line-height: 1.35;
+    margin: 12px 0 6px;
+    color: var(--ink);
+  }
+
+  h4, .subheading, .section-subheading {
+    font-size: 15px; /* Subheading: 15px */
+    font-weight: var(--weight-medium); /* 500 */
+    line-height: 1.4;
+    margin: 8px 0 4px;
+    color: var(--ink);
+  }
+
+  p, .body-text {
+    font-size: var(--font-body); /* Body Text: 14px */
+    font-weight: var(--weight-regular); /* 400 */
+    line-height: 1.5;
+    margin: 0 0 8px;
+  }
+
+  table td, tbody td, .table-content, .table-row, .rep-table td, .sal-table td {
+    font-size: var(--font-table) !important; /* Table Content: 13px */
+    font-weight: var(--weight-regular) !important; /* 400 */
+    line-height: 1.4;
+  }
+
+  .secondary-text, .meta, .row-main .meta, .text-secondary, .text-muted, .sub-text, .kv span, .sal-min-meta {
+    font-size: var(--font-secondary) !important; /* Secondary Text: 12px */
+    font-weight: var(--weight-regular) !important; /* 400 */
+    color: var(--ink-soft);
+  }
+
+  input::placeholder, textarea::placeholder, select::placeholder {
+    font-size: 13px !important; /* Placeholder: 13px */
+    font-weight: var(--weight-regular) !important; /* 400 */
+    color: var(--ink-muted);
+  }
+
+  small.hint, .helper-text, .hint, .form-hint {
+    font-size: var(--font-caption) !important; /* Helper / Hint: 11px */
+    font-weight: var(--weight-regular) !important; /* 400 */
+    color: var(--ink-soft);
+    line-height: 1.35;
+  }
+
+  .micro-label, .meta-tag, .chip-micro, .dash-slide-num, .tag-micro {
+    font-size: var(--font-micro) !important; /* Micro Label: 10px */
+    font-weight: var(--weight-medium) !important; /* 500 */
+    letter-spacing: 0.03em;
+  }
+
+  /* ── 2. Component-Specific Sizes ────────────────────────── */
+  .desktop-sidebar .sidebar-item {
+    font-size: 14px !important; /* Sidebar Menu: 14px */
+    font-weight: var(--weight-medium) !important;
+  }
+  .desktop-sidebar .sidebar-item.active {
+    font-weight: var(--weight-semibold) !important;
+  }
+
+  .desktop-sidebar .sidebar-section-title {
+    font-size: 11px !important; /* Sidebar Section Label: 11px */
+    font-weight: var(--weight-semibold) !important;
+    letter-spacing: 0.06em;
+  }
+
+  header.top h1, header.top .navbar-title, .top-bar-title {
+    font-size: 16px !important; /* Navbar Title: 16px */
+    font-weight: var(--weight-bold) !important;
+    line-height: 1.25;
+  }
+
+  .stamp-btn, button, .action-btn, button.btn, .icon-btn, .wa-btn, .attend-btn, .action-more-btn {
+    font-size: var(--font-button); /* Buttons: 13px */
+    font-weight: var(--weight-semibold); /* 600 */
+  }
+
+  input, select, textarea {
+    font-size: var(--font-input); /* Input Fields: 14px */
+    font-weight: var(--weight-regular); /* 400 */
+  }
+
+  select option, .action-dropdown-menu button, .dropdown-item {
+    font-size: 13px !important; /* Dropdown Options: 13px */
+    font-weight: var(--weight-regular) !important;
+  }
+
+  table th, thead th, .rep-table th, .sal-table th, table thead th {
+    font-size: 12px !important; /* Table Headers: 12px */
+    font-weight: var(--weight-semibold) !important; /* 600 */
+    letter-spacing: 0.04em;
+  }
+
+  .invoice-number, .inv-no, .receipt-no, .voucher-no {
+    font-size: 14px !important; /* Invoice Number: 14px */
+    font-weight: var(--weight-medium) !important; /* 500 */
+    font-variant-numeric: tabular-nums;
+  }
+
+  .product-name, .item-name {
+    font-size: 14px !important; /* Product Name: 14px */
+    font-weight: var(--weight-medium) !important; /* 500 */
+  }
+
+  .product-sku, .item-sku, .sku-code {
+    font-size: 11px !important; /* Product SKU: 11px */
+    font-weight: var(--weight-regular) !important; /* 400 */
+  }
+
+  .price, .product-price, .item-price, .price-val, .financial-product-price {
+    font-size: 14px !important; /* Price: 14px */
+    font-weight: var(--weight-medium) !important; /* 500 */
+    font-variant-numeric: tabular-nums;
+  }
+
+  .total-amount, .grand-total, .invoice-total, .financial-total-amount {
+    font-size: 20px !important; /* Total Amount: 20px */
+    font-weight: var(--weight-semibold) !important; /* 600 */
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stamp, .badge, .status-badge, .badge-chip, .bnav-badge, .role-pill, .sal-badge {
+    font-size: var(--font-badge) !important; /* Status Badge: 11px */
+    font-weight: var(--weight-medium) !important; /* 500 */
+  }
+
+  .toast-banner, .toast, .toast-banner span {
+    font-size: 13px !important; /* Toast Notifications: 13px */
+    font-weight: var(--weight-medium) !important; /* 500 */
+  }
+
+  .modal h2, .modal-title {
+    font-size: 18px !important; /* Modal Title: 18px */
+    font-weight: var(--weight-bold) !important; /* 700 */
+  }
+
+  .modal p, .modal-desc, .modal-description, .modal-subtitle {
+    font-size: 13px !important; /* Modal Description: 13px */
+    font-weight: var(--weight-regular) !important; /* 400 */
+  }
+
+  /* ── 3. Financial Data Typography ───────────────────────── */
+  /* Total Sales & Dashboard KPI Values: 28px, 700 */
+  .dash-stat-num, .stat-card .num, .dash-kpi-val, .dash-act-stat-val,
+  .financial-total-sales, .total-sales-val, .sales-hero-amt, .pnl-hero-income {
+    font-size: var(--font-display) !important; /* Dashboard KPI & Total Sales: 28px */
+    font-weight: var(--weight-bold) !important; /* 700 */
+    font-variant-numeric: tabular-nums !important;
+    line-height: 1.18;
+  }
+
+  /* Net Profit: 24px, 700 */
+  .financial-net-profit, .net-profit-val, .pnl-hero-stat, .net-profit {
+    font-size: 24px !important; /* Net Profit: 24px */
+    font-weight: var(--weight-bold) !important; /* 700 */
+    font-variant-numeric: tabular-nums !important;
+    line-height: 1.25;
+  }
+
+  /* Outstanding: 20px, 600 */
+  .financial-outstanding, .outstanding-val, .balance-due-val, .due-val, .sal-min-kpi.due .val {
+    font-size: 20px !important; /* Outstanding: 20px */
+    font-weight: var(--weight-semibold) !important; /* 600 */
+    font-variant-numeric: tabular-nums !important;
+    line-height: 1.3;
+  }
+
+  /* Transaction Amount: 15px, 600 */
+  .financial-transaction, .tx-amount, .entry-amount, .ledger-amt, .voucher-amt {
+    font-size: 15px !important; /* Transaction Amount: 15px */
+    font-weight: var(--weight-semibold) !important; /* 600 */
+    font-variant-numeric: tabular-nums !important;
+  }
+
+  /* Product Price: 14px, 500 */
+  .financial-product-price, .product-price, .price-val {
+    font-size: 14px !important; /* Product Price: 14px */
+    font-weight: var(--weight-medium) !important; /* 500 */
+    font-variant-numeric: tabular-nums !important;
+  }
+
+  /* Quantity: 13px, 500 */
+  .financial-qty, .item-qty, .table-qty, .qty-val {
+    font-size: 13px !important; /* Quantity: 13px */
+    font-weight: var(--weight-medium) !important; /* 500 */
+    font-variant-numeric: tabular-nums !important;
+  }
+
+  /* Tax / GST: 12px, 400 */
+  .financial-tax, .tax-amount, .gst-val, .tax-val {
+    font-size: 12px !important; /* Tax / GST: 12px */
+    font-weight: var(--weight-regular) !important; /* 400 */
+    font-variant-numeric: tabular-nums !important;
+  }
+
+  /* Universal Tabular Numeral Alignment */
+  .tabular-nums,
+  .money-val,
+  .dash-stat-num,
+  .stat-card .num,
+  .dash-act-stat-val,
+  .dash-kpi-val,
+  .pinned-target-amount,
+  .financial-total-sales,
+  .financial-net-profit,
+  .financial-outstanding,
+  .financial-transaction,
+  .financial-total-amount,
+  .financial-product-price,
+  .financial-qty,
+  .financial-tax,
+  .sal-min-kpi .val,
+  .data-num,
+  table td,
+  table th {
+    font-variant-numeric: tabular-nums !important;
+    font-feature-settings: "tnum" 1 !important;
   }
   
   button, input, select, textarea {
@@ -142,8 +411,8 @@
   
   header.top h1 {
     font-family: var(--font-sans);
-    font-size: 1.25rem;
-    font-weight: 700;
+    font-size: 16px;
+    font-weight: var(--weight-bold);
     margin: 0 0 2px;
     letter-spacing: -0.015em;
     text-transform: none;
@@ -153,7 +422,7 @@
   header.top p {
     margin: 0;
     color: var(--ink-soft);
-    font-size: 0.78rem;
+    font-size: var(--font-secondary);
     text-transform: none;
     text-align: left;
   }
@@ -254,14 +523,14 @@
     justify-content: center;
     gap: 6px;
     font-family: var(--font-sans);
-    font-weight: 600;
-    font-size: 0.82rem;
+    font-weight: var(--weight-semibold);
+    font-size: var(--font-button);
     text-transform: none;
     background: linear-gradient(180deg, #1E293B 0%, #0F172A 100%);
     color: #FFFFFF;
     border: 1px solid #0F172A;
     border-radius: var(--radius-button) !important;
-    padding: 9px 16px;
+    padding: 8px 14px;
     cursor: pointer;
     white-space: nowrap;
     box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.12);
@@ -276,7 +545,7 @@
 
   @media (max-width: 640px) {
     .stamp-btn.compact-mobile .btn-short,
-    .header-actions .stamp-btn .btn-short { display: inline-flex !important; align-items: center !important; justify-content: center !important; font-size: 0.95rem !important; font-weight: 800 !important; }
+    .header-actions .stamp-btn .btn-short { display: inline-flex !important; align-items: center !important; justify-content: center !important; font-size: 0.95rem !important; font-weight: var(--weight-bold) !important; }
     .stamp-btn.compact-mobile .btn-text,
     .header-actions .stamp-btn .btn-text { display: none !important; }
     .header-actions .stamp-btn.compact-mobile {
@@ -508,11 +777,11 @@
     align-items: center;
     justify-content: center;
     font-family: 'Roboto Mono', monospace !important;
-    font-size: 0.68rem;
-    font-weight: 600;
+    font-size: var(--font-badge) !important;
+    font-weight: var(--weight-medium) !important;
     letter-spacing: 0.04em;
     text-transform: uppercase !important;
-    padding: 3px 9px;
+    padding: 3px 8px;
     border-radius: var(--radius-pill);
     border: 1px solid currentColor;
     margin-right: 8px;
@@ -631,10 +900,10 @@
     }
   }
 
-  .modal h2 {
+  .modal h2, .modal-title {
     font-family: var(--font-sans);
-    font-size: 1.15rem !important;
-    font-weight: 700;
+    font-size: 18px !important;
+    font-weight: var(--weight-bold);
     color: var(--ink);
     border-bottom: 1px solid #F1F5F9;
     padding-bottom: 12px;
@@ -646,8 +915,8 @@
   
   label {
     display: block;
-    font-size: 0.76rem !important;
-    font-weight: 600;
+    font-size: var(--font-secondary) !important;
+    font-weight: var(--weight-medium);
     color: #475569;
     margin: 12px 0 5px !important;
     font-family: var(--font-sans);
@@ -659,12 +928,13 @@
   /* Modern Input Styling */
   input, select, textarea {
     width: 100%;
-    padding: 10px 14px !important;
+    padding: 8px 12px !important;
     border-radius: var(--radius-input) !important;
     border: 1px solid #CBD5E1;
     background: #FFFFFF;
     font-family: var(--font-sans);
-    font-size: 0.88rem !important;
+    font-size: var(--font-input) !important;
+    font-weight: var(--weight-regular);
     color: var(--ink);
     text-transform: none !important;
     box-sizing: border-box;
@@ -674,8 +944,8 @@
 
   @media (max-width: 640px) {
     input, select, textarea {
-      font-size: 16px !important;
-      padding: 9px 12px !important;
+      font-size: var(--font-input) !important;
+      padding: 8px 12px !important;
     }
   }
 
@@ -793,8 +1063,9 @@
   
   .stat-card .num {
     font-family: var(--font-mono) !important;
-    font-size: 1.55rem;
-    font-weight: 800;
+    font-size: var(--font-display) !important;
+    font-weight: var(--weight-bold) !important;
+    font-variant-numeric: tabular-nums !important;
     line-height: 1.2;
     margin-bottom: 4px;
     letter-spacing: -0.02em;
@@ -803,8 +1074,8 @@
   }
   .stat-card .label {
     font-family: var(--font-sans) !important;
-    font-size: 0.68rem;
-    font-weight: 600;
+    font-size: var(--font-caption) !important;
+    font-weight: var(--weight-medium);
     text-transform: uppercase !important;
     color: var(--ink-soft);
     letter-spacing: 0.05em;
@@ -905,7 +1176,7 @@
   }
   .bnav-btn.active {
     color: #1E3A6E;
-    font-weight: 800;
+    font-weight: var(--weight-bold);
   }
   .bnav-btn.active .bnav-ic-box {
     background: #E8EEF8;
@@ -918,8 +1189,8 @@
     right: 4px;
     background: #F59E0B;
     color: #FFFFFF;
-    font-size: 0.62rem;
-    font-weight: 800;
+    font-size: var(--font-badge);
+    font-weight: var(--weight-bold);
     font-family: var(--font-mono);
     min-width: 16px;
     height: 16px;
@@ -990,7 +1261,7 @@
   }
   .nav-sheet-header-title {
     font-size: 1.05rem;
-    font-weight: 800;
+    font-weight: var(--weight-bold);
     color: #0F172A;
     font-family: var(--font-sans);
     line-height: 1.2;
@@ -1025,7 +1296,7 @@
   /* Grid & Tiles inside Navigation Menu Sheet */
   .nav-sheet-section-title {
     font-size: 0.65rem;
-    font-weight: 800;
+    font-weight: var(--weight-bold);
     letter-spacing: 0.08em;
     color: #94A3B8;
     text-transform: uppercase;
@@ -1130,7 +1401,7 @@
   }
   .nav-sheet-tile.active .nav-tile-label {
     color: #1E3A6E !important;
-    font-weight: 800 !important;
+    font-weight: var(--weight-bold) !important;
   }
 
   .nav-tile-badge {
@@ -1140,7 +1411,7 @@
     background: #F59E0B;
     color: #FFFFFF;
     font-size: 0.58rem;
-    font-weight: 800;
+    font-weight: var(--weight-bold);
     font-family: var(--font-mono);
     min-width: 15px;
     height: 15px;
@@ -1204,7 +1475,7 @@
   }
 
   .header-icon-btn { background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--ink); padding: 8px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
-  .badge-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--blue-soft); border: 1px solid var(--turmeric); color: var(--turmeric-dark); padding: 6px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; margin: 0 8px 8px 0; text-transform: uppercase !important; }
+  .badge-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--blue-soft); border: 1px solid var(--turmeric); color: var(--turmeric-dark); padding: 4px 10px; border-radius: 999px; font-size: var(--font-badge); font-weight: var(--weight-medium); margin: 0 8px 8px 0; text-transform: uppercase !important; }
   .celebrate-banner { position: fixed; top: 22%; left: 50%; transform: translateX(-50%); background: var(--ink); color: #FFFFFF; padding: 16px 32px; border-radius: 16px !important; font-family: var(--font-sans); font-weight: 700; font-size: 1.1rem; z-index: 300; box-shadow: 0 10px 30px rgba(0,0,0,0.35); animation: celebratePop 0.35s ease, celebrateFade 0.4s ease 1.25s forwards; text-transform: none; }
   @keyframes celebratePop{from{transform:translateX(-50%) scale(0.6);opacity:0;}to{transform:translateX(-50%) scale(1);opacity:1;}}
   @keyframes celebrateFade{to{opacity:0;transform:translateX(-50%) scale(0.92);}}
@@ -1262,8 +1533,8 @@
 
     .sidebar-section-title {
       font-family: 'Roboto Mono', monospace !important;
-      font-size: 0.68rem;
-      font-weight: 700;
+      font-size: var(--font-caption) !important;
+      font-weight: var(--weight-semibold) !important;
       color: var(--ink-soft);
       letter-spacing: 0.08em;
       text-transform: uppercase !important;
@@ -1281,8 +1552,8 @@
       background: transparent !important;
       color: var(--ink-soft);
       cursor: pointer;
-      font-weight: 500;
-      font-size: 0.86rem;
+      font-weight: var(--weight-medium);
+      font-size: var(--font-body) !important;
       transition: all 0.18s ease;
       text-transform: none;
       width: 100%;
@@ -1298,7 +1569,7 @@
     .sidebar-item.active {
       background: #0F172A !important;
       color: #FFFFFF !important;
-      font-weight: 600;
+      font-weight: var(--weight-semibold) !important;
       box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2) !important;
     }
 
@@ -1397,7 +1668,7 @@
 
   .dash-kpi-val {
     font-size: 1.45rem;
-    font-weight: 800;
+    font-weight: var(--weight-bold);
     color: var(--ink);
     margin: 4px 0 2px;
     font-family: var(--font-mono) !important;
@@ -1647,8 +1918,8 @@
     border-radius: 12px !important;
     padding: 12px 16px !important;
     font-family: var(--font-sans) !important;
-    font-size: 0.82rem !important;
-    font-weight: 600 !important;
+    font-size: 13px !important;
+    font-weight: var(--weight-medium) !important;
     box-shadow: 0 12px 32px rgba(15,23,42,0.18) !important;
     display: flex;
     align-items: center;
@@ -1682,8 +1953,8 @@
     border: none;
     padding: 4px 10px;
     border-radius: 6px;
-    font-size: 0.72rem;
-    font-weight: 800;
+    font-size: 11px;
+    font-weight: var(--weight-bold);
     cursor: pointer;
     margin-left: auto;
     flex-shrink: 0;
@@ -2199,32 +2470,33 @@
     }
     .stat-card .num,
     .dash-kpi-val {
-      font-size: 1.15rem !important;
+      font-size: 22px !important;
       line-height: 1.2 !important;
       margin-bottom: 2px !important;
-      font-weight: 800 !important;
+      font-weight: var(--weight-bold) !important;
       white-space: nowrap !important;
       overflow: hidden !important;
       text-overflow: ellipsis !important;
       max-width: 100% !important;
+      font-variant-numeric: tabular-nums !important;
     }
     .stat-card .num[style*="font-size:1rem"],
     .stat-card .num[style*="font-size: 1rem"] {
-      font-size: 0.82rem !important;
-      font-weight: 700 !important;
+      font-size: 14px !important;
+      font-weight: var(--weight-semibold) !important;
     }
     .stat-card .label,
     .dash-kpi-title {
-      font-size: 0.68rem !important;
+      font-size: var(--font-caption) !important;
       letter-spacing: 0.03em !important;
       text-transform: uppercase !important;
       line-height: 1.25 !important;
-      font-weight: 600 !important;
+      font-weight: var(--weight-medium) !important;
       white-space: normal !important;
       word-break: break-word !important;
     }
     .dash-kpi-sub {
-      font-size: 0.65rem !important;
+      font-size: var(--font-caption) !important;
       line-height: 1.2 !important;
       margin-top: 2px !important;
       white-space: normal !important;
@@ -2488,7 +2760,7 @@
   }
   .att-hero-greeting {
     font-size: 1.05rem;
-    font-weight: 800;
+    font-weight: var(--weight-bold);
     color: var(--ink);
     line-height: 1.3;
   }
@@ -2560,8 +2832,8 @@
     font-weight: 500;
   }
   .att-hero-badge {
-    font-size: 0.72rem;
-    font-weight: 800;
+    font-size: 11px;
+    font-weight: var(--weight-bold);
     letter-spacing: 0.04em;
     padding: 4px 10px;
     border-radius: var(--radius-pill);
@@ -2685,7 +2957,7 @@
 
   .att-team-kpi .kpi-num {
     font-size: 1.15rem;
-    font-weight: 800;
+    font-weight: var(--weight-bold);
     color: var(--ink);
     line-height: 1.2;
   }
@@ -2786,7 +3058,7 @@
   }
   .att-pill-badge {
     font-size: 0.65rem;
-    font-weight: 800;
+    font-weight: var(--weight-bold);
     padding: 1px 5px;
     border-radius: 999px;
     background: rgba(0,0,0,0.08);
@@ -2978,8 +3250,8 @@
   .att-progress-seg.present { background: var(--leaf); height: 100%; }
   .att-progress-seg.absent { background: var(--brick); height: 100%; }
   .att-rate-badge {
-    font-size: 0.72rem;
-    font-weight: 800;
+    font-size: 11px;
+    font-weight: var(--weight-bold);
     padding: 3px 8px;
     border-radius: var(--radius-pill);
   }
@@ -3104,7 +3376,7 @@
   }
   .rep-kpi-val {
     font-size: 1.25rem;
-    font-weight: 800;
+    font-weight: var(--weight-bold);
     margin: 4px 0;
     font-family: var(--font-mono);
     line-height: 1.2;
@@ -3132,23 +3404,25 @@
   .rep-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.78rem;
+    font-size: var(--font-table);
     text-align: left;
   }
   .rep-table th {
     background: var(--paper);
     color: var(--ink-soft);
-    font-weight: 700;
+    font-weight: var(--weight-semibold);
     padding: 10px 12px;
     border-bottom: 1px solid var(--paper-line);
     text-transform: uppercase;
-    font-size: 0.68rem;
-    letter-spacing: 0.02em;
+    font-size: 12px;
+    letter-spacing: 0.04em;
   }
   .rep-table td {
     padding: 10px 12px;
     border-bottom: 1px solid var(--paper-line);
     color: var(--ink);
+    font-size: var(--font-table);
+    font-weight: var(--weight-regular);
   }
   .rep-table tr:last-child td { border-bottom: none; }
   .rep-table tr:hover td { background: rgba(248, 250, 252, 0.7); }
@@ -3447,7 +3721,7 @@
     background: #0F172A;
     color: #FFFFFF;
     font-size: 0.7rem;
-    font-weight: 800;
+    font-weight: var(--weight-bold);
     padding: 5px 10px;
     border-radius: 8px;
     pointer-events: none;
@@ -3611,7 +3885,7 @@
   table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.84rem;
+    font-size: var(--font-table);
     text-align: left;
     min-width: 480px;
   }
@@ -3619,22 +3893,22 @@
   @media (max-width: 640px) {
     table thead th {
       padding: 8px 10px;
-      font-size: 0.65rem;
+      font-size: 12px;
     }
     table tbody td {
       padding: 8px 10px;
-      font-size: 0.78rem;
+      font-size: var(--font-table);
     }
   }
 
   table thead th {
     background: #F8FAFC;
     color: var(--ink-soft);
-    font-size: 0.70rem;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: var(--weight-semibold);
     letter-spacing: 0.05em;
     text-transform: uppercase;
-    padding: 11px 14px;
+    padding: 10px 12px;
     border-bottom: 1px solid var(--paper-line);
     white-space: nowrap;
     position: sticky;
@@ -3643,9 +3917,11 @@
   }
 
   table tbody td {
-    padding: 11px 14px;
+    padding: 10px 12px;
     border-bottom: 1px solid #F1F5F9;
     color: var(--ink);
+    font-size: var(--font-table);
+    font-weight: var(--weight-regular);
     vertical-align: middle;
     transition: background-color 0.12s ease;
   }
@@ -3698,7 +3974,7 @@
   }
   .dash-section-title {
     font-size: 0.76rem;
-    font-weight: 800;
+    font-weight: var(--weight-bold);
     color: #475569;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -3764,10 +4040,10 @@
       height: 14px !important;
     }
     .dash-stat-num {
-      font-size: 1.1rem !important;
+      font-size: 22px !important;
     }
     .dash-stat-label {
-      font-size: 0.68rem !important;
+      font-size: 11px !important;
       line-height: 1.2 !important;
     }
   }
@@ -3934,18 +4210,19 @@
     line-height: 1.25;
   }
 
-  /* Big Number Typography (Compact & Punchy) */
+  /* Big Number Typography (Dashboard KPI Value: 28px, 700) */
   .dash-stat-num {
-    font-size: 1.25rem;
-    font-weight: 800;
+    font-size: var(--font-display);
+    font-weight: var(--weight-bold);
     color: #0F172A;
     font-family: var(--font-sans);
     line-height: 1.2;
     letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
   }
   .dash-stat-label {
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: var(--font-caption);
+    font-weight: var(--weight-medium);
     color: #475569;
     margin-top: 3px;
     line-height: 1.25;
@@ -4093,7 +4370,7 @@
   }
   .dash-act-stat-val {
     font-size: 1.05rem;
-    font-weight: 800;
+    font-weight: var(--weight-bold);
     color: #1E3A6E;
     font-family: var(--font-mono);
     margin-top: 3px;
@@ -4324,7 +4601,7 @@
     }
     .stamp {
       padding: 2px 6px;
-      font-size: 0.62rem;
+      font-size: var(--font-badge);
       margin-right: 4px;
     }
   }
@@ -4373,7 +4650,7 @@
   }
   .sal-period-label {
     font-size: 0.96rem;
-    font-weight: 800;
+    font-weight: var(--weight-bold);
     color: var(--ink);
     display: flex;
     align-items: center;
@@ -4431,7 +4708,7 @@
   }
   .sal-kpi-card .kpi-value {
     font-size: 1.18rem;
-    font-weight: 800;
+    font-weight: var(--weight-bold);
     font-family: 'Roboto Mono', monospace;
     line-height: 1.2;
   }
@@ -4563,8 +4840,8 @@
   .sal-table th {
     background: var(--paper);
     padding: 10px 12px;
-    font-size: 0.70rem;
-    font-weight: 700;
+    font-size: 12px;
+    font-weight: var(--weight-semibold);
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: var(--ink-soft);
@@ -4573,7 +4850,8 @@
   }
   .sal-table td {
     padding: 10px 12px;
-    font-size: 0.80rem;
+    font-size: var(--font-table);
+    font-weight: var(--weight-regular);
     border-bottom: 1px solid var(--paper-line);
     vertical-align: middle;
   }
@@ -4591,8 +4869,8 @@
     gap: 4px;
     padding: 3px 8px;
     border-radius: 999px;
-    font-size: 0.68rem;
-    font-weight: 700;
+    font-size: var(--font-badge);
+    font-weight: var(--weight-medium);
     letter-spacing: 0.02em;
     white-space: nowrap;
   }
@@ -4709,7 +4987,7 @@
   }
   .sal-slip-header h2 {
     font-size: 1.25rem;
-    font-weight: 800;
+    font-weight: var(--weight-bold);
     margin: 0 0 4px;
     color: var(--ink);
     letter-spacing: -0.01em;
@@ -4769,7 +5047,7 @@
   }
   .sal-slip-net-banner .sal-net-val {
     font-size: 1.3rem;
-    font-weight: 800;
+    font-weight: var(--weight-bold);
     font-family: 'Roboto Mono', monospace;
     color: #047857;
   }
@@ -4842,7 +5120,7 @@
     align-items: center;
     gap: 6px;
     font-size: 0.70rem;
-    font-weight: 800;
+    font-weight: var(--weight-bold);
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--turmeric-dark);
@@ -4919,7 +5197,7 @@
   }
   .dash-slide-tag {
     font-size: 0.68rem;
-    font-weight: 800;
+    font-weight: var(--weight-bold);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--ink-soft);
@@ -4927,7 +5205,7 @@
   }
   .dash-slide-num {
     font-size: 1.55rem;
-    font-weight: 800;
+    font-weight: var(--weight-bold);
     font-family: 'Roboto Mono', monospace;
     color: var(--ink);
     line-height: 1.1;
@@ -5011,7 +5289,7 @@
   }
   .sal-min-month-label {
     font-size: 0.95rem;
-    font-weight: 800;
+    font-weight: var(--weight-bold);
     color: var(--ink);
   }
 
@@ -5043,7 +5321,7 @@
   }
   .sal-min-kpi .val {
     font-size: 1.15rem;
-    font-weight: 800;
+    font-weight: var(--weight-bold);
     font-family: 'Roboto Mono', monospace;
     color: var(--ink);
   }
