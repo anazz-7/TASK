@@ -1365,20 +1365,18 @@ async function loadData(){
     const bizId = session ? (session.businessId || session.business_id) : '';
     if (!bizId) return;
     const client = window.sb || sb;
-    const [staffR, tasksR, attR, salesR, routinesR, pointsR, labelsR, weeklyR, packagesR, locR, salariesR, targetsR, trophiesR, stockR, auditR, sysTasksR] = await Promise.all([
+    const [staffR, tasksR, attR, salesR, routinesR, labelsR, weeklyR, packagesR, locR, salariesR, targetsR, stockR, auditR, sysTasksR] = await Promise.all([
       client.from('staff').select('*').eq('business_id', bizId).order('name'),
       client.from('tasks').select('*').eq('business_id', bizId).not('title', 'like', '[%').order('created_at', {ascending:false}),
       client.from('attendance').select('*').eq('business_id', bizId).order('date', {ascending:false}),
       client.from('sales').select('*').eq('business_id', bizId).order('date', {ascending:false}),
       client.from('routines').select('*').eq('business_id', bizId).order('title'),
-      client.from('points_log').select('*').eq('business_id', bizId).order('date', {ascending:false}),
       client.from('labels').select('*').eq('business_id', bizId).order('date', {ascending:false}),
       client.from('weekly_tasks').select('*').eq('business_id', bizId).order('title'),
       client.from('packages').select('*').eq('business_id', bizId).order('date', {ascending:false}),
       client.from('salesman_locations').select('*').eq('business_id', bizId),
       client.from('salaries').select('*').eq('business_id', bizId).order('paid_date', {ascending:false}),
       client.from('sales_targets').select('*').eq('business_id', bizId),
-      client.from('trophies').select('*').eq('business_id', bizId),
       client.from('stock_checks').select('*').eq('business_id', bizId).order('date', {ascending:false}),
       client.from('audit_logs').select('*').eq('business_id', bizId).order('timestamp', {ascending:false}).limit(300),
       client.from('tasks').select('*').eq('business_id', bizId).like('title', '[%').order('created_at', {ascending:false}).limit(50),
@@ -1536,7 +1534,7 @@ async function loadData(){
     cache.attendance = attR.data || [];
     cache.sales = salesR.data || [];
     cache.routines = routinesR.data || [];
-    cache.points = pointsR.data || [];
+    cache.points = [];
     
     try {
       const localLbl = JSON.parse(localStorage.getItem('br_labels_' + bizId) || '[]');
@@ -1565,7 +1563,7 @@ async function loadData(){
     cache.salesmanLocations = locR.data || [];
     cache.salaries = salariesR.data || [];
     cache.salesTargets = targetsR.data || [];
-    cache.trophies = trophiesR.data || [];
+    cache.trophies = [];
     cache.stockChecks = stockR.data || [];
     cache.auditLogs = auditR.data || [];
     try {
@@ -1655,17 +1653,7 @@ async function loadData(){
     await ensurePresetAccountsSeeded(bizId);
     localStorage.setItem('br_daily_accounts_' + bizId, JSON.stringify(cache.dailyAccounts));
 
-    const localTargets = localStorage.getItem('br_incentive_targets_' + bizId);
-    if(localTargets){
-      try { cache.incentiveTargets = JSON.parse(localTargets); } catch(e){ cache.incentiveTargets = []; }
-    } else {
-      cache.incentiveTargets = [
-        { id: 'target_sample_1', title: 'Monthly Sales Target', type: 'sales', target_val: 50000, reward_pts: 100, assigned_to: 'all', month: monthKey(todayStr()), notes: 'Achieve ₹50,000 monthly sales' },
-        { id: 'target_sample_2', title: 'Task Master Target', type: 'tasks', target_val: 20, reward_pts: 50, assigned_to: 'all', month: monthKey(todayStr()), notes: 'Complete 20 tasks this month' },
-        { id: 'target_sample_3', title: 'Perfect Attendance Target', type: 'attendance', target_val: 25, reward_pts: 50, assigned_to: 'all', month: monthKey(todayStr()), notes: '25 present days this month' }
-      ];
-      localStorage.setItem('br_incentive_targets_' + bizId, JSON.stringify(cache.incentiveTargets));
-    }
+    cache.incentiveTargets = [];
 
     const routineIds = cache.routines.map(r=>r.id);
     if(routineIds.length){
@@ -1696,6 +1684,10 @@ window.isOwner = isOwner;
 window.isManager = isManager;
 window.isManagerPlus = isManagerPlus;
 function esc(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function initials(name){ return (name||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
+function rankClass(i){ return i===0?'gold':i===1?'silver':i===2?'bronze':''; }
+window.initials = initials;
+window.rankClass = rankClass;
 
 window.maskSalesAmount = function(val) {
   const num = Math.round(Number(val || 0));
@@ -2112,7 +2104,6 @@ const ICONS = {
   sales: '<path d="M3 17l5-5 4 4 8-9" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 7h6v6" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
   label: '<path d="M20.6 12.7 12.7 20.6a2 2 0 0 1-2.8 0l-7-7a2 2 0 0 1 0-2.8L10.8 2.9a2 2 0 0 1 1.4-.6H19a2 2 0 0 1 2 2v6.9a2 2 0 0 1-.6 1.4Z" fill="none" stroke-width="2" stroke-linejoin="round"/><circle cx="15.5" cy="7.5" r="1.5"/>',
   package: '<path d="M21 8 12 3 3 8l9 5 9-5Z" fill="none" stroke-width="2" stroke-linejoin="round"/><path d="M3 8v8l9 5 9-5V8M12 13v8" fill="none" stroke-width="2" stroke-linejoin="round"/>',
-  points: '<path d="M8 21h8M12 17v4" stroke-width="2" stroke-linecap="round"/><path d="M6 4h12v5a6 6 0 0 1-12 0V4Z" fill="none" stroke-width="2" stroke-linejoin="round"/><path d="M6 6H4a2 2 0 0 0 0 4h2M18 6h2a2 2 0 0 1 0 4h-2" fill="none" stroke-width="2"/>',
   salary: '<circle cx="12" cy="12" r="9" fill="none" stroke-width="2"/><path d="M12 7v10M9.5 9.3c0-1.3 1.1-2.3 2.5-2.3s2.5.8 2.5 2c0 2.7-5 1.3-5 4 0 1.2 1.1 2 2.5 2s2.5-1 2.5-2.3" fill="none" stroke-width="1.6" stroke-linecap="round"/>',
   reports: '<path d="M4 19V10M11 19V5M18 19v-7" stroke-width="2" stroke-linecap="round"/><path d="M3 19h18" stroke-width="2" stroke-linecap="round"/>',
   staff: '<circle cx="9" cy="8" r="3.2" fill="none" stroke-width="2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" fill="none" stroke-width="2" stroke-linecap="round"/><circle cx="17.5" cy="9" r="2.5" fill="none" stroke-width="2"/><path d="M15.5 14.2c2.6.4 4.5 2.6 4.5 5.3" fill="none" stroke-width="2" stroke-linecap="round"/>',
@@ -2181,7 +2172,6 @@ const TAB_META = {
   pricelist: {icon:'clipboard', label:'Price List'},
   label: {icon:'label', label:'Label'},
   package: {icon:'package', label:'Package'},
-  points: {icon:'points', label:'Points'},
   salary: {icon:'salary', label:'Salary'},
   reports: {icon:'reports', label:'Reports'},
   staff: {icon:'staff', label:'Staff'},
@@ -2196,10 +2186,10 @@ function currentTabs(){
   if(session.role === 'sales' || session.role === 'salesman') return ['pricelist', 'sales', 'tasks', 'accounts'];
   const cfg = typeof getFeatureConfig === 'function' ? getFeatureConfig() : {};
   if (isOwner()) {
-    return ['dashboard','tasks','daily','weekly','attendance','office_logs','pnl','sales','pricelist','label','package','points','salary','accounts','reports','audit','projects','staff','settings'];
+    return ['dashboard','tasks','daily','weekly','attendance','office_logs','pnl','sales','pricelist','label','package','salary','accounts','reports','audit','projects','staff','settings'];
   }
   if (isManagerPlus()) {
-    const list = ['dashboard','tasks','daily','weekly','attendance','sales','pricelist','label','package','points','accounts','reports','audit'];
+    const list = ['dashboard','tasks','daily','weekly','attendance','sales','pricelist','label','package','accounts','reports','audit'];
     if (cfg.allowManagerSalary && !list.includes('salary')) {
       const idx = list.indexOf('accounts');
       if (idx !== -1) list.splice(idx, 0, 'salary');
@@ -2207,7 +2197,7 @@ function currentTabs(){
     }
     return list;
   }
-  return ['pricelist', 'tasks','daily','weekly','attendance','sales','label','package','points','accounts'];
+  return ['pricelist', 'tasks','daily','weekly','attendance','sales','label','package','accounts'];
 }
 function quickTabs(){
   if(session.role === 'sales' || session.role === 'salesman') return ['pricelist', 'sales', 'tasks', 'accounts'];
@@ -2225,7 +2215,6 @@ function getPrimaryActionBtn(t){
   if(t==='label') return `<button class="stamp-btn compact-mobile" onclick="window.__openLabel()"><span class="btn-text">+ Log Label</span><span class="btn-short">+</span></button>`;
   if(t==='package') return `<button class="stamp-btn compact-mobile" onclick="window.__openPackage()"><span class="btn-text">+ Log Package</span><span class="btn-short">+</span></button>`;
   if(t==='salary' && (isOwner() || isManager())) return `<button class="stamp-btn compact-mobile ghost" onclick="window.__exportPayrollCSV()"><span class="btn-text" style="display:inline-flex;align-items:center;gap:4px;">${icon('download', 14)} Export Sheet</span><span class="btn-short" style="display:inline-flex;align-items:center;justify-content:center;">${icon('download', 14)}</span></button>${isOwner() ? `<button class="stamp-btn compact-mobile" style="margin-left:6px;" onclick="window.__openSalary()"><span class="btn-text">+ Record Salary</span><span class="btn-short">+</span></button>` : ''}`;
-  if(t==='points' && isManagerPlus()) return `<button class="stamp-btn compact-mobile" onclick="window.__openPoints()"><span class="btn-text">+ Award Points</span><span class="btn-short">+</span></button>`;
   if(t==='projects' && isOwner()) return `<button class="stamp-btn compact-mobile" onclick="window.__openAddProjectModal()"><span class="btn-text">+ New Project</span><span class="btn-short">+</span></button>`;
   return '';
 }
@@ -2366,7 +2355,7 @@ function renderShell(){
           `;
         };
 
-        const workspaceKeys = ['dashboard', 'tasks', 'daily', 'weekly', 'attendance', 'sales', 'pricelist', 'label', 'package', 'projects', 'points', 'reports'].filter(k => tabs.includes(k));
+        const workspaceKeys = ['dashboard', 'tasks', 'daily', 'weekly', 'attendance', 'sales', 'pricelist', 'label', 'package', 'projects', 'reports'].filter(k => tabs.includes(k));
         const moneyKeys = ['accounts', 'office_logs', 'pnl', 'salary'].filter(k => tabs.includes(k));
         const manageKeys = ['staff', 'audit', 'settings'].filter(k => tabs.includes(k));
 
@@ -2437,7 +2426,6 @@ function renderShell(){
     ${activeTab==='sales' ? '<button class="fab mobile-only" onclick="window.__openSale()">+</button>' : ''}
     ${activeTab==='label' ? '<button class="fab mobile-only" onclick="window.__openLabel()">+</button>' : ''}
     ${activeTab==='package' ? '<button class="fab mobile-only" onclick="window.__openPackage()">+</button>' : ''}
-    ${activeTab==='points' && isManagerPlus() ? '<button class="fab mobile-only" onclick="window.__openPoints()">+</button>' : ''}
   `}
   `;
 
@@ -2516,7 +2504,7 @@ function renderTabBody(){
   if(activeTab !== 'dashboard' && typeof window.__stopOwnerAutoslide === 'function') {
     window.__stopOwnerAutoslide();
   }
-  if(activeTab === 'stockkeeper' || activeTab === 'low_stock') {
+  if(activeTab === 'stockkeeper' || activeTab === 'low_stock' || activeTab === 'points') {
     activeTab = 'dashboard';
   }
   if(activeTab==='dashboard') renderDashboardTab(body);
@@ -2535,7 +2523,6 @@ function renderTabBody(){
   else if(activeTab==='low_stock') renderLowStockTab(body);
   else if(activeTab==='audit' && isManagerPlus()) renderAuditTab(body);
   else if(activeTab==='salary' && (isOwner() || (isManager() && getFeatureConfig().allowManagerSalary))) renderSalaryTab(body);
-  else if(activeTab==='points') renderPointsTab(body);
   else if(activeTab==='staff' && isOwner()) renderStaffTab(body);
   else if(activeTab==='projects') renderProjectsTab(body);
   else if(activeTab==='reports' && (isOwner() || (isManager() && getFeatureConfig().allowManagerReports))) renderReportsTab(body);

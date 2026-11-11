@@ -838,7 +838,6 @@
   .leaderboard-rank { font-family: var(--font-mono) !important; font-weight: 700; color: var(--ink-soft); font-size: 0.85rem; width: 24px; text-align: center; flex-shrink: 0; }
   .leaderboard-name { font-family: var(--font-sans); font-weight: 600; font-size: 0.95rem; text-transform: none; text-align: left; }
   .leaderboard-meta { font-family: var(--font-sans); font-size: 0.72rem; color: var(--ink-soft); margin-top: 2px; text-transform: none; text-align: left; }
-  .leaderboard-points { font-family: var(--font-mono) !important; font-weight: 700; font-size: 1.1rem; color: var(--turmeric-dark); flex-shrink: 0; }
   
   /* ── Modern Bottom Navigation Bar (Image 2 Design) ────────── */
   .bottom-nav {
@@ -4163,7 +4162,6 @@
   .dash-act-stat-val,
   .pinned-target-amount,
   .pinned-target-pct,
-  .leaderboard-points,
   .data-num,
   .stat-grid .dash-stat-num,
   [data-tabular="true"],

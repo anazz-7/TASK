@@ -423,7 +423,6 @@ window.__markDone = async function(id, btn) {
   if (typeof celebrateDone === 'function') celebrateDone();
   if (typeof window.showToast === 'function') window.showToast('Task completed! Moved to Completed.', 'success');
   if (typeof logAuditEvent === 'function') logAuditEvent('Task Completed', 'Completed: ' + t.title);
-  try { if (typeof awardTaskPoint === 'function') awardTaskPoint(t.id, 'task').catch(() => {}); } catch(e){}
   try { if (typeof notifyCompletion === 'function') notifyCompletion(t.id, 'task'); } catch(e){}
 
   // 2. Direct Supabase Cloud update
@@ -657,7 +656,6 @@ function renderDailyTab(body){
       else await sbCheck(sb.from('routine_log').insert({routine_id: routineId, date: today, status: newStatus}));
       if(newStatus==='done'){
         celebrateDone();
-        await awardTaskPoint(routineId, 'routine');
         notifyCompletion(routineId, 'routine');
       }
       await loadData(); renderTabBody();
@@ -813,7 +811,6 @@ function renderWeeklyTab(body){
       else await sbCheck(sb.from('weekly_task_log').insert({weekly_task_id: weeklyId, week_start: weekStart, status: newStatus}));
       if(newStatus==='done'){
         celebrateDone();
-        await awardTaskPoint(weeklyId, 'weekly');
         notifyCompletion(weeklyId, 'weekly');
       }
       await loadData(); renderTabBody();
@@ -961,31 +958,6 @@ function celebrateDone(){
     document.body.appendChild(c);
     setTimeout(()=>c.remove(), 3200);
   }
-}
-async function awardTaskPoint(itemId, kind){
-  let assignedTo, title;
-  if(kind==='task'){
-    const t = cache.tasks.find(x=>x.id===itemId);
-    if(!t) return;
-    assignedTo = t.assigned_to; title = t.title;
-  } else if(kind==='routine'){
-    const r = cache.routines.find(x=>x.id===itemId);
-    if(!r) return;
-    assignedTo = r.assigned_to; title = r.title;
-  } else {
-    const w = cache.weeklyTasks.find(x=>x.id===itemId);
-    if(!w) return;
-    assignedTo = w.assigned_to; title = w.title;
-  }
-  if(!assignedTo) return;
-  await sb.from('points_log').insert({
-    business_id: session.businessId,
-    staff_id: assignedTo,
-    points: 1,
-    reason: `Completed: ${title}`,
-    date: todayStr(),
-    awarded_by: session.staffId,
-  });
 }
 function computePresenceStreak(staffId){
   let streak = 0;

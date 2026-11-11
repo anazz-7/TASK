@@ -2198,7 +2198,7 @@ window.__exportMasterReportsCsv = function() {
     `"Outstanding Supplier Dues (₹)",${billsUnpaidTotal.toFixed(2)}`,
     "",
     `"TEAM PERFORMANCE MASTER ROSTER"`,
-    `"Staff Name","Role","Days Present","Days Absent","Attendance Rate %","Tasks Assigned","Tasks Completed","Overdue Tasks","Task Done Rate %","Orders Generated","Sales Revenue (₹)","Points Earned"`
+    `"Staff Name","Role","Days Present","Days Absent","Attendance Rate %","Tasks Assigned","Tasks Completed","Overdue Tasks","Task Done Rate %","Orders Generated","Sales Revenue (₹)"`
   ];
 
   activeStaff.forEach(s => {
@@ -2214,9 +2214,8 @@ window.__exportMasterReportsCsv = function() {
 
     const sSales = execSales.filter(x => x.staff_id === s.id);
     const sSalesTotal = sSales.reduce((sum, x) => sum + Number(x.order_value || x.amount || 0), 0);
-    const sPoints = (cache.points || []).filter(p => p.staff_id === s.id && inRange(p.date)).reduce((sum, p) => sum + Number(p.points || 0), 0);
 
-    lines.push(`"${s.name.replace(/"/g, '""')}","${s.role || 'staff'}",${pCount},${aCount},"${sAttRate}%",${sTasks.length},${sDone},${sOverdue},"${sTaskRate}%",${sSales.length},${isOwner() ? sSalesTotal.toFixed(2) : '"[RESTRICTED]"'},${sPoints}`);
+    lines.push(`"${s.name.replace(/"/g, '""')}","${s.role || 'staff'}",${pCount},${aCount},"${sAttRate}%",${sTasks.length},${sDone},${sOverdue},"${sTaskRate}%",${sSales.length},${isOwner() ? sSalesTotal.toFixed(2) : '"[RESTRICTED]"'}`);
   });
 
   const csvBlob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
@@ -2295,8 +2294,6 @@ function renderReportsTab(body) {
     const sSalesTotal = sSales.reduce((sum, x) => sum + Number(x.order_value || x.amount || 0), 0);
     const sOrdersCount = sSales.length;
 
-    const sPoints = (cache.points || []).filter(p => p.staff_id === s.id && inRange(p.date)).reduce((sum, p) => sum + Number(p.points || 0), 0);
-
     return {
       id: s.id,
       name: s.name,
@@ -2309,8 +2306,7 @@ function renderReportsTab(body) {
       tasksOverdue: sOverdue,
       sTaskRate,
       salesTotal: sSalesTotal,
-      ordersCount: sOrdersCount,
-      points: sPoints
+      ordersCount: sOrdersCount
     };
   });
 
@@ -2531,7 +2527,6 @@ function renderReportsTab(body) {
                 <th>Task Done %</th>
                 <th>Overdue</th>
                 <th>Sales Generated</th>
-                <th>Points</th>
               </tr>
             </thead>
             <tbody>
@@ -2564,7 +2559,6 @@ function renderReportsTab(body) {
                   <td style="font-family:var(--font-mono);font-weight:700;color:var(--ink);">
                     ${isOwner() ? '₹' + r.salesTotal.toLocaleString('en-IN') : '[RESTRICTED]'}
                   </td>
-                  <td style="font-family:var(--font-mono);font-weight:700;color:var(--turmeric);">${r.points} pts</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -2756,10 +2750,6 @@ function renderReportsTab(body) {
 window.__openAccount = () => { activeTab = 'account'; renderShell(); };
 function computeBadges(s){
   const badges = [];
-  const totals = {};
-  cache.points.forEach(p=>{ totals[p.staff_id] = (totals[p.staff_id]||0) + Number(p.points||0); });
-  const pts = totals[s.id] || 0;
-  [[500,icon('trophy',14)+' 500 Club'],[250,icon('trophy',14)+' 250 Club'],[100,icon('star',14)+' Century'],[50,icon('star',14)+' 50 Points']].forEach(([n,label])=>{ if(pts>=n){ badges.push(label); } });
   const streak = computePresenceStreak(s.id);
   if(streak>=30) badges.push(icon('fire',14)+' 30-Day Streak');
   else if(streak>=7) badges.push(icon('fire',14)+' 7-Day Streak');
@@ -2783,28 +2773,25 @@ function tenureStr(createdAt){
 }
 function renderAccountTab(body){
   const staffList = Array.isArray(cache.staff) ? cache.staff : [];
-  const pointsList = Array.isArray(cache.points) ? cache.points : [];
   const tasksList = Array.isArray(cache.tasks) ? cache.tasks : [];
   const s = staffList.find(x=>x.id===session.staffId) || {name:session.name, role:session.role};
-  const totals = {};
-  pointsList.forEach(p=>{ totals[p.staff_id] = (totals[p.staff_id]||0) + Number(p.points||0); });
-  const ranked = staffList.slice().sort((a,b)=>(totals[b.id]||0)-(totals[a.id]||0));
-  const myRank = ranked.findIndex(x=>x.id===session.staffId);
   const badges = computeBadges(s);
   const doneCount = tasksList.filter(t=>t.assigned_to===session.staffId && t.status==='done').length;
+  const streak = computePresenceStreak(session.staffId);
+  const attCount = (cache.attendance || []).filter(a => a.staff_id === session.staffId && a.status === 'present').length;
 
   body.innerHTML = `
     
     <div class="row-card" style="flex-direction:column;align-items:center;text-align:center;padding:26px 16px;">
-      <div class="avatar-circle ${rankClass(myRank)}" style="width:76px;height:76px;font-size:1.8rem;margin-bottom:10px;">${initials(s.name)}</div>
+      <div class="avatar-circle" style="width:76px;height:76px;font-size:1.8rem;margin-bottom:10px;">${initials(s.name)}</div>
       <h2 style="margin:0 0 4px;font-family:'Roboto Mono',monospace;">${esc(s.name)}</h2>
       <span class="role-pill ${s.role}">${s.role}</span>
     </div>
 
     <div class="stat-grid">
-      <div class="stat-card"><div class="num" style="color:var(--turmeric-dark);">${totals[session.staffId]||0}</div><div class="label">Total points</div></div>
-      <div class="stat-card"><div class="num">#${myRank+1}</div><div class="label">Team rank</div></div>
       <div class="stat-card"><div class="num">${doneCount}</div><div class="label">Tasks completed</div></div>
+      <div class="stat-card"><div class="num" style="color:var(--leaf);">${attCount}</div><div class="label">Days present</div></div>
+      <div class="stat-card"><div class="num" style="color:var(--turmeric);">${streak}</div><div class="label">Current streak</div></div>
       <div class="stat-card"><div class="num" style="font-size:1rem;">${tenureStr(s.created_at)}</div><div class="label">On the team</div></div>
     </div>
 

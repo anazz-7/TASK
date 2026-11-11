@@ -1,8 +1,6 @@
 /* ---------------- DASHBOARD ---------------- */
 let dashSalesMode = 'weekly';
 window.__setDashSalesMode = (m) => { dashSalesMode = m; renderTabBody(); };
-let dashPointsMode = 'weekly';
-window.__setDashPointsMode = (m) => { dashPointsMode = m; renderTabBody(); };
 
 function getPreviousMonthSalesTotal(curMonthKey) {
   const parts = (curMonthKey || monthKey(todayStr())).split('-');
@@ -1299,12 +1297,6 @@ function buildDashboardQuickLinksHtml() {
           <span style="font-size:1.2rem;color:var(--blue);">${icon('box', 22)}</span>
           <b style="color:var(--ink);">Package Log</b>
         </button>
-
-        <button class="stamp-btn ghost" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;gap:6px;height:auto;font-size:0.75rem;text-align:center;background:var(--paper-line);" onclick="window.__setTab('points')">
-          <span style="font-size:1.2rem;color:var(--turmeric-dark);">${icon('trophy', 22)}</span>
-          <b style="color:var(--ink);">Points &amp; Rewards</b>
-        </button>
-
 
         ${isOwner() ? `
           <button class="stamp-btn ghost" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;gap:6px;height:auto;font-size:0.75rem;text-align:center;background:var(--paper-line);" onclick="window.__setTab('projects')">
